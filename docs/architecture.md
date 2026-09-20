@@ -79,6 +79,11 @@ whether an hour is taken and no second table to drift.
 `payment_pending` with a fresh hold, so the student keeps their appointment
 while they fix it.
 
+**Task** — `todo → doing → review → done`, with `blocked` reachable from any of
+them. `blocked` is a column rather than a flag, and the database refuses a
+blocked task that does not record what is blocking it: a team leader's whole job
+on the dashboard is seeing where to step in.
+
 **Submission** — `draft → submitted → (changes_requested → submitted)* → approved`.
 Each pass through creates a new `submission_versions` row and a new `evaluations`
 row. Nothing is ever updated in place, so a re-evaluation can always be compared
@@ -106,11 +111,33 @@ Two systems that must not be confused:
 | Certificates & verification | ✅ tested | ✅ issue, list, public /verify |
 | Mentors, availability, levels | ✅ tested | ✅ directory, profile, slots |
 | Bookings & payments | ✅ tested | ✅ full journey + admin verification |
-| Teams & workspace | ✅ tested | — team pages next |
-| Messaging | ✅ tested | — inbox next |
+| Teams & workspace | ✅ tested | ✅ board, sprints, members, invites |
+| Messaging | ✅ tested | ✅ full chat with replies and reactions |
 | Wallet | ✅ tested | — ledger view next |
 | Marketplace, incubator | ✅ schema + RLS | — next |
 
 The order above is the recommended build order: the mentor review UI closes the
 loop a student already starts, and the booking flow is what turns the platform
 into a business.
+
+## Teams and messaging
+
+A team is a closed workspace, not a group chat. Tasks, sprints, documents and
+the activity log are first-class; the conversation only reports what happened
+elsewhere, through system messages written by triggers. That separation is
+deliberate — it is what stops work from disappearing into a chat thread.
+
+`teams.visibility` decides exposure: `private` hides the team completely, while
+`listed` publishes only the professional profile the team opted into. Neither
+ever exposes tasks, chat or documents, and the RLS policies name the leader
+explicitly so a creator can read back the team they just made.
+
+Conversations are never created by a person. A team gets its chat when it is
+created, members join and leave it with their membership, and a confirmed
+booking opens the mentor conversation. There is no "new chat" because every
+conversation must be backed by a relationship that already exists.
+
+Team XP lives in its own ledger (`team_xp_events`), separate from personal XP,
+so a team's reputation is neither the sum of its members' nor a way to inflate
+it. A completed task pays the team 2 XP, plus 5 when it landed on time, and the
+assignee a small fixed personal amount.

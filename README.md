@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 93 business-rule assertions
+scripts/test.sh                   # 120 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -65,7 +65,8 @@ The suite covers identity and TechMood IDs, role review, the XP economy,
 evaluation history, cross-mentor review visibility, RLS isolation between users,
 certificate eligibility, mentor availability and derived slots, price integrity,
 the booking state machine, reservation expiry, payment verification and receipt
-rules, message rules, team quotas and the admin surface.
+rules, team workspace privacy, task and sprint rules, team XP, message rules and
+reactions, invitations, and the admin surface.
 
 ---
 
@@ -100,6 +101,12 @@ database constraint with a test, not a UI convention:
    functions, not client code, decide identity.
 10. **Internal helpers are not callable by clients.** `award_xp()` and
     `notify()` have no grant, so nobody can mint XP or write into your inbox.
+11. **A team is a closed workspace.** Its tasks, chat and documents are members-only;
+    a team may opt into a public professional profile, and that publishes its name,
+    members and finished projects — never its work in progress.
+12. **The chat is not where work is tracked.** A blocked task must say what is
+    blocking it, every task carries an owner, a state and a date, and the chat only
+    receives system messages reporting what happened on the board.
 
 ---
 
@@ -134,9 +141,15 @@ certificates and public verification, the full booking and payment journey
 (mentor directory → session type → slot → goal → payment method → receipt →
 admin verification → mentor approval → confirmed), and the admin surface.
 
-Still schema-only, awaiting screens: teams and their workspace, messaging,
-the wallet ledger, the marketplace and the incubator. Each already has its
-tables, policies and tested rules — see `docs/architecture.md`.
+Also built: the team workspace (board with a real `blocked` column, sprints,
+members and invitations by TechMood ID, activity log, team XP and stars) and
+Messages — a private contextual chat with replies, reactions, read state and
+system messages, and no links, files or posts by design.
+
+Still schema-only, awaiting screens: team documents and settings, the team
+calendar, the exhibition, the wallet ledger, the marketplace and the incubator.
+Each already has its tables, policies and tested rules — see
+`docs/architecture.md`.
 
 ### Scheduled job
 

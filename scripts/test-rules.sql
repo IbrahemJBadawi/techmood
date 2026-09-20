@@ -858,6 +858,246 @@ select public.assert(
   (select count(*) from public.payment_methods) = 8,
   '12.22 an admin still sees the disabled method in order to enable it');
 
+-- ===========================================================================
+-- 13. Team workspace and messaging
+-- ===========================================================================
+
+select id as team_conv from public.conversations where team_id = :'team' and kind = 'team' \gset
+
+select public.assert(
+  :'team_conv' is not null,
+  '13.1 creating a team opens its chat automatically');
+
+select public.assert(
+  (select count(*) from public.conversation_participants
+    where conversation_id = :'team_conv') = 2,
+  '13.2 team membership and chat membership stay in step');
+
+-- A private team is invisible to everyone outside it.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+
+select public.assert(
+  (select count(*) from public.teams where id = :'team') = 0,
+  '13.3 a private team is not readable by a non-member');
+
+select public.assert(
+  (select count(*) from public.team_tasks where team_id = :'team') = 0,
+  '13.4 a non-member cannot read the team board');
+
+select public.assert(
+  (select count(*) from public.messages where conversation_id = :'team_conv') = 0,
+  '13.5 a non-member cannot read the team chat');
+reset role;
+
+-- Opting into a public professional profile exposes the team, not its work.
+update public.teams set visibility = 'listed' where id = :'team';
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.teams where id = :'team') = 1,
+  '13.6 a listed team profile is readable by anyone');
+
+select public.assert(
+  (select count(*) from public.team_tasks where team_id = :'team') = 0,
+  '13.7 listing a team still does not expose its tasks');
+reset role;
+
+update public.teams set visibility = 'private' where id = :'team';
+
+-- ---------------------------------------------------------------------------
+-- Tasks
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.team_tasks (team_id, title_ar, assignee_id, created_by, due_on, column_key)
+values (:'team', 'بناء واجهة تسجيل الدخول', '22222222-2222-2222-2222-222222222222',
+        '11111111-1111-1111-1111-111111111111', current_date + 3, 'doing')
+returning id as task \gset
+
+select public.assert_rejects(
+  format($$update public.team_tasks set column_key = 'blocked' where id = %L$$, :'task'),
+  '13.8 a blocked task must record what is blocking it',
+  'what is blocking it');
+
+update public.team_tasks
+   set column_key = 'blocked', blocked_reason_ar = 'بانتظار تصميم الواجهة'
+ where id = :'task';
+
+select public.assert(
+  (select column_key from public.team_tasks where id = :'task') = 'blocked',
+  '13.9 a blocked task is accepted once the reason is recorded');
+
+update public.team_tasks set column_key = 'done' where id = :'task';
+reset role;
+
+select public.assert(
+  (select completed_at from public.team_tasks where id = :'task') is not null,
+  '13.10 completing a task stamps when it was completed');
+
+select public.assert(
+  (select total_xp from public.team_xp where team_id = :'team') = 7,
+  '13.11 an on-time task pays the team 2 XP plus a 5 XP on-time bonus');
+
+select public.assert(
+  (select xp from public.xp_events
+    where profile_id = '22222222-2222-2222-2222-222222222222'
+      and source = 'team_contribution' and ref_id = :'task') = 3,
+  '13.12 the assignee earns a small, fixed personal XP for the task');
+
+select public.assert(
+  (select count(*) from public.messages
+    where conversation_id = :'team_conv' and is_system
+      and body_ar like '%اكتملت مهمة%') = 1,
+  '13.13 finishing work reports itself into the team chat as a system message');
+
+select public.assert(
+  (select count(*) from public.team_activity
+    where team_id = :'team' and verb = 'task_completed' and task_id = :'task') = 1,
+  '13.14 the activity log records who did what, on which task');
+
+-- Sprints belong to the leader.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+-- A WITH CHECK violation raises, unlike a USING filter which silently hides rows.
+select public.assert_rejects(
+  format($$insert into public.sprints (team_id, number, goal_ar, starts_on, ends_on)
+           values (%L, 1, 'محاولة عضو', current_date, current_date + 7)$$, :'team'),
+  '13.15 an ordinary member cannot open a sprint',
+  'row-level security');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.sprints (team_id, number, goal_ar, starts_on, ends_on, status)
+values (:'team', 1, 'إكمال نظام المصادقة', current_date, current_date + 7, 'active')
+returning id as sprint \gset
+reset role;
+
+select public.assert(
+  (select count(*) from public.messages
+    where conversation_id = :'team_conv' and is_system and body_ar like '%بدأ السبرنت%') = 1,
+  '13.16 starting a sprint announces itself in the team chat');
+
+-- ---------------------------------------------------------------------------
+-- Messaging rules
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar)
+           values (%L, '11111111-1111-1111-1111-111111111111', 'الملف على drive.google.com شوفوه')$$, :'team_conv'),
+  '13.17 a bare domain is refused, not only a full URL',
+  'links and images are not allowed');
+
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar)
+           values (%L, '11111111-1111-1111-1111-111111111111', 'تعالوا على t.me/techmood')$$, :'team_conv'),
+  '13.18 a messenger invite link is refused too');
+
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'team_conv', '11111111-1111-1111-1111-111111111111', 'خلصت الواجهة، جاهزة للمراجعة')
+returning id as msg \gset
+
+-- Reply and reaction stay inside the conversation.
+insert into public.messages (conversation_id, sender_id, body_ar, reply_to_id)
+values (:'team_conv', '11111111-1111-1111-1111-111111111111', 'تمام، سأراجعها اليوم', :'msg');
+
+insert into public.message_reactions (message_id, profile_id, reaction)
+values (:'msg', '11111111-1111-1111-1111-111111111111', 'like');
+
+insert into public.message_reactions (message_id, profile_id, reaction)
+values (:'msg', '11111111-1111-1111-1111-111111111111', 'celebrate')
+on conflict (message_id, profile_id) do update set reaction = excluded.reaction;
+reset role;
+
+select public.assert(
+  (select count(*) from public.message_reactions where message_id = :'msg') = 1
+  and (select reaction from public.message_reactions where message_id = :'msg') = 'celebrate',
+  '13.19 a reaction is one signal per person, replaced rather than stacked');
+
+-- A non-participant can neither read nor react.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$insert into public.message_reactions (message_id, profile_id, reaction)
+           values (%L, '33333333-3333-3333-3333-333333333333', 'like')$$, :'msg'),
+  '13.20 a non-participant cannot react to a message they cannot see');
+reset role;
+
+-- Unread counts come from each person's own read marker.
+select public.assert(
+  (select unread_count from public.conversation_unread
+    where conversation_id = :'team_conv'
+      and profile_id = '22222222-2222-2222-2222-222222222222') > 0,
+  '13.21 a member who has not read the thread has unread messages');
+
+update public.conversation_participants set last_read_at = now()
+ where conversation_id = :'team_conv' and profile_id = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select unread_count from public.conversation_unread
+    where conversation_id = :'team_conv'
+      and profile_id = '22222222-2222-2222-2222-222222222222') = 0,
+  '13.22 reading the thread clears the unread count');
+
+-- When the relationship behind a conversation ends, the history stays but the
+-- writing stops.
+update public.conversations set is_read_only = true where id = :'team_conv';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar)
+           values (%L, '11111111-1111-1111-1111-111111111111', 'رسالة متأخرة')$$, :'team_conv'),
+  '13.23 a read-only conversation refuses new messages',
+  'read-only');
+reset role;
+
+update public.conversations set is_read_only = false where id = :'team_conv';
+
+-- ---------------------------------------------------------------------------
+-- Invitations
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.team_invites (team_id, invitee_id, responsibility_ar, invited_by)
+values (:'team', '55555555-5555-5555-5555-555555555555', 'Frontend', '11111111-1111-1111-1111-111111111111')
+returning token as invite_token \gset
+
+-- An invitation addressed to one person is not a public door.
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.accept_team_invite(%L)$$, :'invite_token'),
+  '13.24 an invitation cannot be redeemed by someone else',
+  'belongs to someone else');
+
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.accept_team_invite(:'invite_token');
+reset role;
+
+select public.assert(
+  (select count(*) from public.team_members
+    where team_id = :'team' and profile_id = '55555555-5555-5555-5555-555555555555') = 1,
+  '13.25 accepting an invitation joins the team with the existing account');
+
+select public.assert(
+  (select count(*) from public.conversation_participants
+    where conversation_id = :'team_conv'
+      and profile_id = '55555555-5555-5555-5555-555555555555') = 1,
+  '13.26 joining a team also joins its chat');
+
+delete from public.team_members
+ where team_id = :'team' and profile_id = '55555555-5555-5555-5555-555555555555';
+
+select public.assert(
+  (select count(*) from public.conversation_participants
+    where conversation_id = :'team_conv'
+      and profile_id = '55555555-5555-5555-5555-555555555555') = 0,
+  '13.27 leaving a team leaves its chat');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

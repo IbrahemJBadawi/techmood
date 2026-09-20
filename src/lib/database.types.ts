@@ -48,6 +48,104 @@ export type PaymentStatus =
 
 export type SlotState = 'available' | 'pending' | 'booked' | 'unavailable';
 
+export type TeamKind = 'learning' | 'project' | 'freelance' | 'startup';
+export type TeamStatus = 'active' | 'completed' | 'archived';
+export type TeamVisibility = 'private' | 'listed';
+export type TeamJoinPolicy = 'invite_only' | 'request_allowed';
+export type TaskColumn = 'todo' | 'doing' | 'blocked' | 'review' | 'done';
+export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
+export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
+export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
+
+export type Team = {
+  id: string;
+  slug: string;
+  team_code: string;
+  title_ar: string;
+  description_ar: string | null;
+  leader_id: string;
+  needs: string[];
+  is_open: boolean;
+  path_id: string | null;
+  kind: TeamKind;
+  status: TeamStatus;
+  visibility: TeamVisibility;
+  join_policy: TeamJoinPolicy;
+  avatar_url: string | null;
+  focus_ar: string | null;
+  public_summary_ar: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TeamMember = {
+  team_id: string;
+  profile_id: string;
+  role: 'leader' | 'member' | 'mentor';
+  title_ar: string | null;
+  responsibility_ar: string | null;
+  is_active: boolean;
+  joined_at: string;
+}
+
+export type TeamTask = {
+  id: string;
+  team_id: string;
+  title_ar: string;
+  description_ar: string | null;
+  column_key: TaskColumn;
+  priority: TaskPriority;
+  assignee_id: string | null;
+  sprint_id: string | null;
+  project_id: string | null;
+  due_on: string | null;
+  blocked_reason_ar: string | null;
+  completed_at: string | null;
+  xp_reward: number;
+  sort_order: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type Sprint = {
+  id: string;
+  team_id: string;
+  number: number;
+  goal_ar: string | null;
+  starts_on: string;
+  ends_on: string;
+  status: SprintStatus;
+  review_ar: string | null;
+  reflection_ar: string | null;
+  created_at: string;
+}
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string | null;
+  body_ar: string;
+  is_system: boolean;
+  reply_to_id: string | null;
+  edited_at: string | null;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+export type Conversation = {
+  id: string;
+  kind: ConversationKind;
+  title_ar: string | null;
+  team_id: string | null;
+  booking_id: string | null;
+  path_id: string | null;
+  is_read_only: boolean;
+  archived_at: string | null;
+  created_at: string;
+}
+
 export type SessionType = {
   id: string;
   slug: string;
@@ -386,10 +484,42 @@ export type Database = {
         status: 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
         tags: string[]; is_public: boolean; created_at: string; updated_at: string;
       }>;
-      teams: Table<{
-        id: string; slug: string; title_ar: string; description_ar: string | null;
-        leader_id: string; needs: string[]; is_open: boolean; path_id: string | null;
-        created_at: string; updated_at: string;
+      teams: Table<Team>;
+      team_members: Table<TeamMember>;
+      team_tasks: Table<TeamTask>;
+      sprints: Table<Sprint>;
+      messages: Table<Message>;
+      conversations: Table<Conversation>;
+      conversation_participants: Table<{
+        conversation_id: string; profile_id: string; last_read_at: string | null; joined_at: string;
+      }>;
+      message_reactions: Table<{
+        message_id: string; profile_id: string; reaction: MessageReaction; created_at: string;
+      }>;
+      team_permissions: Table<{
+        team_id: string; members_create_tasks: boolean; members_assign_tasks: boolean;
+        members_invite: boolean; members_manage_docs: boolean; members_book_mentor: boolean;
+        members_edit_project: boolean;
+      }>;
+      team_invites: Table<{
+        id: string; team_id: string; invitee_id: string | null; token: string;
+        responsibility_ar: string | null; invited_by: string; status: string;
+        expires_at: string; created_at: string;
+      }>;
+      team_activity: Table<{
+        id: string; team_id: string; actor_id: string | null; verb: string;
+        task_id: string | null; subject_ar: string | null; created_at: string;
+      }>;
+      task_checklist_items: Table<{
+        id: string; task_id: string; label_ar: string; is_done: boolean; sort_order: number;
+      }>;
+      task_comments: Table<{
+        id: string; task_id: string; author_id: string; body_ar: string; created_at: string;
+      }>;
+      team_documents: Table<{
+        id: string; team_id: string; kind: string; title_ar: string; body_ar: string | null;
+        url: string | null; project_id: string | null; task_id: string | null;
+        author_id: string; created_at: string; updated_at: string;
       }>;
       session_types: Table<SessionType>;
       payment_methods: Table<PaymentMethod>;
@@ -411,6 +541,11 @@ export type Database = {
       profile_xp: View<{ profile_id: string; total_xp: number }>;
       profile_stars: View<{ profile_id: string; stars_avg: number | null; rated_count: number }>;
       admin_review_queue: View<ReviewQueueItem>;
+      team_xp: View<{ team_id: string; total_xp: number }>;
+      team_stars: View<{ team_id: string; stars_avg: number | null; reviews_count: number }>;
+      conversation_unread: View<{
+        conversation_id: string; profile_id: string; unread_count: number; last_message_at: string | null;
+      }>;
       wallet_balance: View<{
         profile_id: string; available_usd: number; pending_usd: number; total_earned_usd: number;
       }>;
@@ -454,6 +589,10 @@ export type Database = {
         Args: { p_payment_id: string; p_approve: boolean; p_reason?: string | null };
         Returns: undefined;
       };
+      accept_team_invite: { Args: { p_token: string }; Returns: string };
+      team_permission: { Args: { p_team: string; p_permission: string }; Returns: boolean };
+      is_team_member: { Args: { p_team: string }; Returns: boolean };
+      is_team_leader: { Args: { p_team: string }; Returns: boolean };
       mentor_decide_booking: {
         Args: { p_booking_id: string; p_accept: boolean; p_reason?: string | null };
         Returns: undefined;
