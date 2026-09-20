@@ -115,7 +115,8 @@ Two systems that must not be confused:
 | Messaging | ✅ tested | ✅ full chat with replies and reactions |
 | Wallet & payouts | ✅ tested | ✅ ledger, payout accounts, admin transfers |
 | Projects & Exhibition | ✅ tested | ✅ team projects, public gallery, admin review |
-| Marketplace, incubator | ✅ schema + RLS | — next |
+| Incubator & startups | ✅ tested | ✅ canvas, plan, strategy, admin review |
+| Marketplace | ✅ schema + RLS | — next |
 
 The order above is the recommended build order: the mentor review UI closes the
 loop a student already starts, and the booking flow is what turns the platform
@@ -199,3 +200,36 @@ A refund credits the student's wallet — traceable — and cancels the mentor's
 earning for that session. If the mentor had already been paid out, the balance
 goes negative. That is the honest record of what happened, and the wallet says so
 rather than rounding it away.
+
+## The incubator
+
+A founder gets three working documents, kept separate because they answer
+different questions:
+
+  * **Canvas** — how the business works, on one page. Nine blocks fixed by the
+    model; cards carry a colour from a named palette (never free hex, so a card
+    stays legible in both themes) and a position inside their block, which is all
+    "move" needs to be. `move_canvas_card()` settles ordering in the destination
+    server-side so two people dragging at once cannot corrupt it.
+  * **Plan** — the ten sections, one row each, so progress is a count of what is
+    finished rather than a guess at how full a blob of text looks. A section
+    cannot be marked complete while it is empty.
+  * **Strategy** — vision, mission, values, SWOT, and SMART goals. The letters
+    are only worth writing down if the system holds you to them: measurable means
+    a metric whose target differs from its baseline, time-bound means a date
+    range, and progress is computed from the numbers and shown against time
+    elapsed so drift is visible before the deadline.
+
+The startup itself may be listed publicly; the three documents never are. They
+are visible to its members through `can_view_startup_workspace()` and editable
+through `can_edit_startup()`.
+
+Applying to the incubator requires at least six canvas cards. That is not
+bureaucracy — it is the cheapest possible evidence that the idea has been thought
+about before a human is asked to spend time on it. The application also records
+the stage and plan completion at the moment it was made, so a reviewer compares
+applications on what they were, not on what they became afterwards.
+
+The canvas page talks to Supabase directly from the browser rather than
+round-tripping a server action per keystroke and drag. That is safe because RLS,
+not the component, decides who may write.

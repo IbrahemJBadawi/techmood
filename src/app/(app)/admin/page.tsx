@@ -75,6 +75,11 @@ export default async function AdminPage() {
               راجع طلبات السحب ({byKind('payout_request').length})
             </Link>
           )}
+          {byKind('incubator_application').length > 0 && (
+            <Link className="btn btn-sky btn-sm" href="/admin/incubator">
+              راجع طلبات الحاضنة ({byKind('incubator_application').length})
+            </Link>
+          )}
         </div>
       </section>
 

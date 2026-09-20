@@ -53,6 +53,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/wallet">المحفظة</NavLink>
         </div>
 
+        <div className="nav-group">
+          <div className="nav-group-label">ريادة الأعمال</div>
+          <NavLink href="/startups">مشاريعي الناشئة</NavLink>
+          <NavLink href="/incubator">الحاضنة</NavLink>
+        </div>
+
         {(isAdmin || isMentor) && (
           <div className="nav-group">
             <div className="nav-group-label">المراجعة</div>
@@ -62,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {isAdmin && <NavLink href="/admin/payments">مراجعة المدفوعات</NavLink>}
             {isAdmin && <NavLink href="/admin/exhibition">مراجعة المعرض</NavLink>}
             {isAdmin && <NavLink href="/admin/payouts">طلبات السحب</NavLink>}
+            {isAdmin && <NavLink href="/admin/incubator">طلبات الحاضنة</NavLink>}
           </div>
         )}
       </aside>

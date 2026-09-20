@@ -104,6 +104,79 @@ export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
 export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
 export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
 export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
+export type StartupStage = 'idea' | 'validation' | 'mvp' | 'users' | 'business_model' | 'startup';
+export type CanvasBlock =
+  | 'key_partners' | 'key_activities' | 'key_resources' | 'value_propositions'
+  | 'customer_relationships' | 'channels' | 'customer_segments'
+  | 'cost_structure' | 'revenue_streams';
+export type CardColour = 'default' | 'royal' | 'sky' | 'green' | 'amber' | 'rose' | 'violet' | 'slate';
+export type PlanSection =
+  | 'executive_summary' | 'company_description' | 'market_analysis'
+  | 'competitive_analysis' | 'product_and_service' | 'marketing_and_sales'
+  | 'operations' | 'team_and_management' | 'financial_plan' | 'risks_and_mitigation';
+export type SwotQuadrant = 'strength' | 'weakness' | 'opportunity' | 'threat';
+export type GoalStatus = 'planned' | 'on_track' | 'at_risk' | 'achieved' | 'missed';
+
+export type Startup = {
+  id: string;
+  slug: string;
+  name_ar: string;
+  description_ar: string | null;
+  founder_id: string;
+  team_id: string | null;
+  stage: StartupStage;
+  users_count: number;
+  is_in_incubator: boolean;
+  one_liner_ar: string | null;
+  problem_ar: string | null;
+  solution_ar: string | null;
+  website_url: string | null;
+  logo_url: string | null;
+  founded_on: string | null;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CanvasCard = {
+  id: string;
+  startup_id: string;
+  block: CanvasBlock;
+  body_ar: string;
+  colour: CardColour;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BusinessPlanSection = {
+  startup_id: string;
+  section: PlanSection;
+  body_ar: string | null;
+  is_complete: boolean;
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export type SmartGoal = {
+  id: string;
+  startup_id: string;
+  title_ar: string;
+  specific_ar: string;
+  achievable_ar: string | null;
+  relevant_ar: string | null;
+  metric_label_ar: string;
+  baseline_value: number;
+  target_value: number;
+  current_value: number;
+  starts_on: string;
+  due_on: string;
+  status: GoalStatus;
+  owner_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
 export type ExhibitionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
 /** Frozen at approval, so the public gallery never reads live workspace data. */
@@ -575,6 +648,32 @@ export type Database = {
         completed_at: string | null; created_at: string; updated_at: string;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
+      startups: Table<Startup>;
+      startup_members: Table<{
+        startup_id: string; profile_id: string;
+        role: 'founder' | 'cofounder' | 'member' | 'advisor';
+        title_ar: string | null; joined_at: string;
+      }>;
+      canvas_cards: Table<CanvasCard>;
+      business_plan_sections: Table<BusinessPlanSection>;
+      startup_strategy: Table<{
+        startup_id: string; vision_ar: string | null; mission_ar: string | null;
+        values_ar: string[]; updated_at: string;
+      }>;
+      swot_items: Table<{
+        id: string; startup_id: string; quadrant: SwotQuadrant; body_ar: string; sort_order: number;
+      }>;
+      smart_goals: Table<SmartGoal>;
+      startup_stage_history: Table<{
+        id: string; startup_id: string; stage: StartupStage; note_ar: string | null;
+        changed_by: string | null; changed_at: string;
+      }>;
+      incubator_applications: Table<{
+        id: string; startup_id: string; pitch_ar: string; status: RoleStatus;
+        reviewed_by: string | null; reviewed_at: string | null; review_note: string | null;
+        stage_at_application: StartupStage | null; plan_percent_at_application: number | null;
+        created_at: string;
+      }>;
       project_evidence: Table<{
         id: string; project_id: string; kind: EvidenceKind; url: string;
         label: string | null; created_at: string;
@@ -641,6 +740,12 @@ export type Database = {
       admin_review_queue: View<ReviewQueueItem>;
       team_xp: View<{ team_id: string; total_xp: number }>;
       team_stars: View<{ team_id: string; stars_avg: number | null; reviews_count: number }>;
+      business_plan_progress: View<{
+        startup_id: string; completed_sections: number; total_sections: number; percent: number;
+      }>;
+      smart_goal_progress: View<{
+        goal_id: string; startup_id: string; percent: number; time_elapsed_percent: number;
+      }>;
       exhibition_gallery: View<{
         entry_code: string; published_at: string; snapshot: ExhibitionSnapshot;
       }>;
@@ -692,6 +797,14 @@ export type Database = {
         Returns: undefined;
       };
       accept_team_invite: { Args: { p_token: string }; Returns: string };
+      move_canvas_card: { Args: { p_card: string; p_block: CanvasBlock; p_index?: number | null }; Returns: undefined };
+      apply_to_incubator: { Args: { p_startup: string; p_pitch: string }; Returns: unknown };
+      review_incubator_application: {
+        Args: { p_application: string; p_approve: boolean; p_note?: string | null };
+        Returns: undefined;
+      };
+      can_edit_startup: { Args: { p_startup: string }; Returns: boolean };
+      can_view_startup_workspace: { Args: { p_startup: string }; Returns: boolean };
       request_payout: { Args: { p_account: string; p_amount: number }; Returns: PayoutRequest };
       review_payout: {
         Args: { p_request: string; p_approve: boolean; p_reference?: string | null; p_note?: string | null };

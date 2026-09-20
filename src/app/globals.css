@@ -771,3 +771,143 @@ table.data tr:last-child td { border-bottom: none; }
   .chat-list { max-height: 230px; }
   .chat-thread { min-height: 320px; }
 }
+
+/* ---------- business model canvas ---------- */
+.bmc {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-rows: auto auto auto;
+  gap: 12px;
+  grid-template-areas:
+    "partners activities value relationships segments"
+    "partners resources  value channels      segments"
+    "cost     cost       cost  revenue       revenue";
+}
+.bmc-block {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bmc-block.drop-target { border-color: var(--royal); background: var(--sky-tint); }
+.bmc-block header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bmc-block h3 { font-size: 0.8rem; line-height: 1.3; }
+.bmc-block .bmc-hint { font-size: 0.68rem; color: var(--ink-soft); }
+
+.bmc-card {
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--card-accent, var(--line-strong));
+  background: var(--card-bg, var(--bg-deep));
+  border-radius: var(--radius-s);
+  padding: 9px 11px;
+  font-size: 0.8rem;
+  cursor: grab;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.bmc-card:active { cursor: grabbing; }
+.bmc-card.dragging { opacity: 0.45; }
+
+.card-default { --card-accent: var(--line-strong); --card-bg: var(--bg-deep); }
+.card-royal   { --card-accent: var(--royal);  --card-bg: color-mix(in srgb, var(--royal) 12%, var(--panel)); }
+.card-sky     { --card-accent: var(--sky-deep); --card-bg: color-mix(in srgb, var(--sky-deep) 12%, var(--panel)); }
+.card-green   { --card-accent: var(--ok);     --card-bg: color-mix(in srgb, var(--ok) 12%, var(--panel)); }
+.card-amber   { --card-accent: var(--warn);   --card-bg: color-mix(in srgb, var(--warn) 14%, var(--panel)); }
+.card-rose    { --card-accent: var(--danger); --card-bg: color-mix(in srgb, var(--danger) 12%, var(--panel)); }
+.card-violet  { --card-accent: #8B5CF6;       --card-bg: color-mix(in srgb, #8B5CF6 12%, var(--panel)); }
+.card-slate   { --card-accent: var(--ink-soft); --card-bg: color-mix(in srgb, var(--ink-soft) 10%, var(--panel)); }
+
+.swatch-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background: var(--card-accent, var(--line-strong));
+  cursor: pointer;
+  padding: 0;
+}
+.swatch.selected { border-color: var(--ink); }
+
+.add-card-btn {
+  border: 1px dashed var(--line-strong);
+  background: none;
+  color: var(--ink-soft);
+  border-radius: var(--radius-s);
+  padding: 7px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  width: 100%;
+}
+.add-card-btn:hover { border-color: var(--royal); color: var(--royal-dark); }
+
+/* ---------- plan & strategy ---------- */
+.plan-section {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--panel);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.plan-section.done { border-inline-start: 3px solid var(--ok); }
+
+.swot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.swot-quad { border: 1px solid var(--line); border-radius: var(--radius-m); padding: 14px; background: var(--panel); }
+.swot-quad h3 { font-size: 0.88rem; margin-bottom: 10px; }
+.swot-strength    { border-top: 3px solid var(--ok); }
+.swot-weakness    { border-top: 3px solid var(--danger); }
+.swot-opportunity { border-top: 3px solid var(--sky-deep); }
+.swot-threat      { border-top: 3px solid var(--warn); }
+
+.goal-bars { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.goal-bar-row { display: flex; align-items: center; gap: 10px; font-size: 0.76rem; }
+.goal-bar-row .lbl { min-width: 74px; color: var(--ink-soft); }
+.goal-bar-row .progress-track { flex: 1; }
+.goal-bar-row .progress-fill.time { background: var(--ink-soft); }
+
+@media (max-width: 1000px) {
+  .bmc {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "partners  activities"
+      "resources value"
+      "relationships channels"
+      "segments  segments"
+      "cost      revenue";
+  }
+}
+@media (max-width: 620px) {
+  .bmc {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "partners" "activities" "resources" "value"
+      "relationships" "channels" "segments" "cost" "revenue";
+  }
+  .swot-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- startup stages ---------- */
+.roadmap-stages {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+.stage-step {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  padding: 12px;
+  font-size: 0.78rem;
+}
+.stage-step strong { display: block; font-size: 0.85rem; margin-bottom: 4px; }
+.stage-step span { color: var(--ink-soft); }
+.stage-step.done { border-top-color: var(--ok); }
+.stage-step.current { border-top-color: var(--royal); background: var(--sky-tint); }
+
+@media (max-width: 900px) { .roadmap-stages { grid-template-columns: 1fr 1fr 1fr; } }
+@media (max-width: 560px) { .roadmap-stages { grid-template-columns: 1fr 1fr; } }

@@ -1474,6 +1474,218 @@ select public.assert(
   (select count(*) from public.admin_review_queue where item_kind = 'payout_request') = 0,
   '16.21 settled payout requests leave the admin queue');
 
+-- ===========================================================================
+-- 17. Incubator: canvas, business plan, strategy
+-- ===========================================================================
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.startups (slug, name_ar, description_ar, founder_id, one_liner_ar, is_public)
+values ('sehha-raqamiya', 'صحة رقمية', 'منصة متابعة صحية للعيادات الصغيرة.',
+        '11111111-1111-1111-1111-111111111111', 'متابعة المرضى بلا أوراق.', true)
+returning id as startup \gset
+reset role;
+
+select public.assert(
+  (select role from public.startup_members
+    where startup_id = :'startup' and profile_id = '11111111-1111-1111-1111-111111111111') = 'founder',
+  '17.1 creating a startup makes its founder a member automatically');
+
+select public.assert(
+  (select count(*) from public.startup_stage_history where startup_id = :'startup') = 1,
+  '17.2 the starting stage is recorded in the history');
+
+-- ---------------------------------------------------------------------------
+-- The canvas is a private working document
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.canvas_cards (startup_id, block, body_ar, colour, sort_order, created_by)
+values
+  (:'startup', 'value_propositions', 'توفير وقت التوثيق الورقي', 'royal', 0, '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'channels', 'زيارات مباشرة للعيادات', 'default', 0, '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'revenue_streams', 'اشتراك شهري لكل عيادة', 'green', 0, '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'cost_structure', 'استضافة وفريق دعم', 'amber', 0, '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'key_activities', 'تطوير المنتج ودعم العيادات', 'violet', 0, '11111111-1111-1111-1111-111111111111');
+
+insert into public.canvas_cards (startup_id, block, body_ar, colour, sort_order, created_by)
+values (:'startup', 'customer_segments', 'عيادات صغيرة في غزة', 'sky', 0, '11111111-1111-1111-1111-111111111111')
+returning id as card1 \gset
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select count(*) from public.startups where id = :'startup') = 1,
+  '17.3 a listed startup is visible to anyone');
+
+select public.assert(
+  (select count(*) from public.canvas_cards where startup_id = :'startup') = 0,
+  '17.4 the business model canvas stays private to the startup team');
+
+select public.assert_rejects(
+  format($$insert into public.canvas_cards (startup_id, block, body_ar)
+           values (%L, 'channels', 'بطاقة متطفلة')$$, :'startup'),
+  '17.5 an outsider cannot add a card to someone canvas');
+reset role;
+
+-- Moving a card between blocks
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.move_canvas_card(:'card1', 'key_partners', 0);
+reset role;
+
+select public.assert(
+  (select block from public.canvas_cards where id = :'card1') = 'key_partners',
+  '17.6 a card can be moved to another block');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.move_canvas_card(%L, 'channels', 0)$$, :'card1'),
+  '17.7 an outsider cannot move a card on someone canvas',
+  'edit access');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- The ten-section business plan
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert_rejects(
+  format($$insert into public.business_plan_sections (startup_id, section, body_ar, is_complete)
+           values (%L, 'executive_summary', '', true)$$, :'startup'),
+  '17.8 an empty plan section cannot be marked complete',
+  'cannot be marked complete');
+
+insert into public.business_plan_sections (startup_id, section, body_ar, is_complete) values
+  (:'startup', 'executive_summary',   'منصة تتابع المرضى إلكترونياً وتوفّر وقت التوثيق.', true),
+  (:'startup', 'company_description', 'شركة ناشئة في غزة تخدم العيادات الصغيرة.',        true),
+  (:'startup', 'market_analysis',     'أكثر من 400 عيادة صغيرة في القطاع.',               true),
+  (:'startup', 'product_and_service', 'تطبيق ويب بسيط لإدارة الملفات والمواعيد.',        false);
+reset role;
+
+select public.assert(
+  (select completed_sections from public.business_plan_progress where startup_id = :'startup') = 3
+  and (select percent from public.business_plan_progress where startup_id = :'startup') = 30,
+  '17.9 plan progress is counted from completed sections, out of ten');
+
+-- ---------------------------------------------------------------------------
+-- Strategy and SMART goals
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.startup_strategy (startup_id, vision_ar, mission_ar, values_ar)
+values (:'startup', 'رعاية صحية بلا أوراق في فلسطين.', 'نمنح العيادات الصغيرة أدوات المستشفيات.',
+        array['الخصوصية','البساطة','الاعتماد على الدليل']);
+
+insert into public.swot_items (startup_id, quadrant, body_ar) values
+  (:'startup', 'strength',    'فريق تقني يعرف السوق المحلي'),
+  (:'startup', 'weakness',    'لا يوجد تمويل بعد'),
+  (:'startup', 'opportunity', 'التحول الرقمي في القطاع الصحي'),
+  (:'startup', 'threat',      'ضعف الاتصال بالإنترنت');
+
+-- A goal that does not move is not measurable.
+select public.assert_rejects(
+  format($$insert into public.smart_goals
+      (startup_id, title_ar, specific_ar, metric_label_ar, baseline_value, target_value, starts_on, due_on)
+    values (%L, 'هدف بلا حركة', 'وصف', 'عيادات', 10, 10, current_date, current_date + 90)$$, :'startup'),
+  '17.10 a SMART goal whose target equals its baseline is refused');
+
+select public.assert_rejects(
+  format($$insert into public.smart_goals
+      (startup_id, title_ar, specific_ar, metric_label_ar, baseline_value, target_value, starts_on, due_on)
+    values (%L, 'هدف بتاريخ مقلوب', 'وصف', 'عيادات', 0, 25, current_date, current_date - 10)$$, :'startup'),
+  '17.11 a SMART goal that ends before it starts is refused');
+
+insert into public.smart_goals
+  (startup_id, title_ar, specific_ar, achievable_ar, relevant_ar,
+   metric_label_ar, baseline_value, target_value, current_value, starts_on, due_on, status)
+values
+  (:'startup', 'الوصول إلى 25 عيادة مشتركة',
+   'التعاقد مع 25 عيادة صغيرة في غزة وخان يونس.',
+   'لدينا فريق مبيعات من شخصين ونموذج جاهز.',
+   'الاشتراكات هي مصدر الدخل الوحيد في هذه المرحلة.',
+   'عيادة مشتركة', 0, 25, 10, current_date - 30, current_date + 60, 'on_track')
+returning id as goal \gset
+reset role;
+
+select public.assert(
+  (select percent from public.smart_goal_progress where goal_id = :'goal') = 40,
+  '17.12 goal progress is computed from the numbers, not typed in');
+
+select public.assert(
+  (select time_elapsed_percent from public.smart_goal_progress where goal_id = :'goal') = 33,
+  '17.13 time elapsed is computed alongside it, so drift is visible');
+
+-- ---------------------------------------------------------------------------
+-- Applying to the incubator
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.apply_to_incubator(%L, 'سأقدّم عن شركة غيري')$$, :'startup'),
+  '17.14 only the founder may apply to the incubator',
+  'only the founder');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.apply_to_incubator(
+  :'startup',
+  'نطلب دعم الحاضنة للوصول إلى أول 25 عيادة وبناء نموذج اشتراك مستدام.'
+)).id as application \gset
+
+select public.assert_rejects(
+  format($$select public.apply_to_incubator(%L, 'طلب ثانٍ')$$, :'startup'),
+  '17.15 a second application cannot be opened while one is under review',
+  'already under review');
+reset role;
+
+select public.assert(
+  (select stage_at_application from public.incubator_applications where id = :'application') = 'idea'
+  and (select plan_percent_at_application from public.incubator_applications where id = :'application') = 30,
+  '17.16 the application captures where the startup stood when it applied');
+
+select public.assert(
+  (select is_in_incubator from public.startups where id = :'startup') = false,
+  '17.17 applying does not admit a startup into the incubator by itself');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.review_incubator_application(%L, true)$$, :'application'),
+  '17.18 a founder cannot approve their own application',
+  'only an admin');
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_incubator_application(:'application', true, 'فكرة واضحة وسوق محدد.');
+reset role;
+
+select public.assert(
+  (select is_in_incubator from public.startups where id = :'startup') = true,
+  '17.19 approval admits the startup into the incubator');
+
+-- A canvas that has barely been started is not ready for an application.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.startups (slug, name_ar, founder_id)
+values ('fikra-jadida', 'فكرة جديدة', '22222222-2222-2222-2222-222222222222')
+returning id as startup2 \gset
+
+select public.assert_rejects(
+  format($$select public.apply_to_incubator(%L, 'عندي فكرة')$$, :'startup2'),
+  '17.20 applying requires a business model canvas that was actually filled in',
+  'business model canvas');
+reset role;
+
+select public.assert(
+  (select count(*) from public.startup_stage_history where startup_id = :'startup2') = 1,
+  '17.21 every startup starts with a recorded stage');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
