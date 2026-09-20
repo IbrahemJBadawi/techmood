@@ -5,7 +5,6 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { levelInfo } from '@/lib/xp';
 
-import { RoleRequestForm } from './RoleRequestForm';
 
 const ROLE_LABELS: Record<string, string> = {
   student: 'طالب', freelancer: 'فريلانسر', mentor: 'منتور',
@@ -50,7 +49,6 @@ export default async function PassportPage() {
 
   const totalXp = xp?.total_xp ?? 0;
   const level = levelInfo(totalXp);
-  const heldRoles = (roles ?? []).map((role) => role.role);
 
   return (
     <>
@@ -179,7 +177,13 @@ export default async function PassportPage() {
             </p>
           </div>
 
-          <RoleRequestForm heldRoles={heldRoles} />
+          <div className="panel section-block">
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 8 }}>تريد دوراً آخر؟</h3>
+            <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
+              طلب الدور، والردّ عليه، وسجلّ مراجعته — كلّها في مكان واحد.
+            </p>
+            <Link className="btn btn-ghost btn-sm" href="/settings/roles">أدواري</Link>
+          </div>
         </aside>
       </div>
     </>

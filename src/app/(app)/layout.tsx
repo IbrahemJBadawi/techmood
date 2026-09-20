@@ -1,10 +1,14 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { signOut } from '../(auth)/actions';
+import { ACTIVE_ROLE_COOKIE, defaultRole, navFor, ROLE_BY_VALUE } from '@/lib/roles';
+import type { UserRole } from '@/lib/database.types';
 
+import { signOut } from '../(auth)/actions';
 import { NavLink } from './NavLink';
+import { RoleSwitcher } from './RoleSwitcher';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -12,79 +16,64 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from('profiles').select('full_name, techmood_id').eq('id', user.id).single(),
+    supabase
+      .from('profiles')
+      .select('full_name, display_name, techmood_id, avatar_url, primary_role, onboarding_completed_at')
+      .eq('id', user.id)
+      .single(),
     supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
   ]);
 
-  const approved = (roles ?? []).filter((role) => role.status === 'approved').map((role) => role.role);
-  const isAdmin = approved.includes('admin');
-  const isMentor = approved.includes('mentor');
+  // An account that has not finished onboarding has no username, no fields and
+  // no answered role questions — there is nothing for the shell to render yet.
+  if (!profile?.onboarding_completed_at) redirect('/onboarding');
+
+  const held = roles ?? [];
+  const approved = held.filter((row) => row.status === 'approved').map((row) => row.role);
+
+  // The cookie is a preference, not a permission: whatever it says, the role is
+  // only honoured when it is one of the approved ones.
+  const jar = await cookies();
+  const requested = jar.get(ACTIVE_ROLE_COOKIE)?.value as UserRole | undefined;
+  const active = requested && approved.includes(requested)
+    ? requested
+    : defaultRole(approved, profile.primary_role);
+
+  const groups = navFor(active);
+  const displayName = profile.display_name ?? profile.full_name;
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <aside className="sidebar" aria-label="التنقّل">
         <div className="sidebar-logo">
           <span className="logo-mark" />
-          TechMood
+          <span className="sidebar-wordmark">TechMood</span>
         </div>
 
-        <div className="nav-group">
-          <NavLink href="/home">الرئيسية</NavLink>
-        </div>
-
-        <div className="nav-group">
-          <div className="nav-group-label">التعلّم والبناء</div>
-          <NavLink href="/passport">الجواز المهني</NavLink>
-          <NavLink href="/academy">الأكاديمية</NavLink>
-          <NavLink href="/certificates">الشهادات</NavLink>
-          <NavLink href="/exhibition">المعرض</NavLink>
-        </div>
-
-        <div className="nav-group">
-          <div className="nav-group-label">العمل الجماعي</div>
-          <NavLink href="/teams">الفرق</NavLink>
-          <NavLink href="/messages">الرسائل</NavLink>
-        </div>
-
-        <div className="nav-group">
-          <div className="nav-group-label">الإرشاد</div>
-          <NavLink href="/mentors">المنتورز</NavLink>
-          <NavLink href="/bookings">حجوزاتي</NavLink>
-          <NavLink href="/wallet">المحفظة</NavLink>
-        </div>
-
-        <div className="nav-group">
-          <div className="nav-group-label">العمل والفرص</div>
-          <NavLink href="/marketplace">سوق العمل</NavLink>
-          <NavLink href="/applications">طلباتي</NavLink>
-        </div>
-
-        <div className="nav-group">
-          <div className="nav-group-label">ريادة الأعمال</div>
-          <NavLink href="/startups">مشاريعي الناشئة</NavLink>
-          <NavLink href="/incubator">الحاضنة</NavLink>
-        </div>
-
-        {(isAdmin || isMentor) && (
-          <div className="nav-group">
-            <div className="nav-group-label">المراجعة</div>
-            {(isMentor || isAdmin) && <NavLink href="/review">مراجعة الأعمال</NavLink>}
-            {isMentor && <NavLink href="/mentor-requests">طلبات الجلسات</NavLink>}
-            {isAdmin && <NavLink href="/admin">لوحة الإدارة</NavLink>}
-            {isAdmin && <NavLink href="/admin/payments">مراجعة المدفوعات</NavLink>}
-            {isAdmin && <NavLink href="/admin/exhibition">مراجعة المعرض</NavLink>}
-            {isAdmin && <NavLink href="/admin/payouts">طلبات السحب</NavLink>}
-            {isAdmin && <NavLink href="/admin/incubator">طلبات الحاضنة</NavLink>}
+        {groups.map((group) => (
+          <div className="nav-group" key={group.label}>
+            <div className="nav-group-label">{group.label}</div>
+            {group.items.map((item) => (
+              <NavLink href={item.href} icon={item.icon} key={item.href}>
+                {item.label}
+              </NavLink>
+            ))}
           </div>
-        )}
+        ))}
+
+        <div className="nav-group">
+          <div className="nav-group-label">الحساب</div>
+          <NavLink href="/settings/roles" icon="settings">أدواري</NavLink>
+        </div>
       </aside>
 
       <div className="main">
         <header className="topbar">
           <div className="topbar-inner">
-            <h1>{profile?.full_name ?? 'TechMood'}</h1>
+            <h1>{displayName}</h1>
             <div className="topbar-actions">
-              {profile?.techmood_id && <span className="id-chip">{profile.techmood_id}</span>}
+              <RoleSwitcher roles={held} active={active} />
+              <span className="id-chip">{profile.techmood_id}</span>
               <Link className="btn btn-ghost btn-sm" href="/passport">ملفي</Link>
               <form action={signOut}>
                 <button className="btn btn-ghost btn-sm" type="submit">خروج</button>
@@ -93,7 +82,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <div className="content">{children}</div>
+        <div className="content" data-active-role={ROLE_BY_VALUE[active].value}>
+          {children}
+        </div>
       </div>
     </div>
   );

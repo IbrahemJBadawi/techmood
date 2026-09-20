@@ -1,36 +1,38 @@
-'use client';
-
 import Link from 'next/link';
-import { useActionState } from 'react';
 
-import { login } from '../actions';
+import { GoogleButton } from '../GoogleButton';
+import { LoginForm } from './LoginForm';
 
-export default function LoginPage() {
-  const [state, formAction, pending] = useActionState(login, undefined);
+export const metadata = { title: 'تسجيل الدخول — TechMood' };
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+  const next = params.next && params.next.startsWith('/') ? params.next : undefined;
 
   return (
-    <main className="landing" style={{ maxWidth: 440 }}>
+    <main className="landing auth-page">
       <h1 style={{ fontSize: '1.4rem', margin: '48px 0 6px' }}>مرحباً بعودتك</h1>
       <p className="muted" style={{ fontSize: '0.9rem', marginBottom: 24 }}>
         سجّل الدخول لمتابعة رحلتك في TechMood.
       </p>
 
-      <form action={formAction} className="panel">
-        <div className="field">
-          <label htmlFor="email">البريد الإلكتروني</label>
-          <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
-        </div>
-        <div className="field">
-          <label htmlFor="password">كلمة المرور</label>
-          <input id="password" name="password" type="password" required autoComplete="current-password" />
-        </div>
+      {params.error && (
+        <p className="notice notice-danger" style={{ marginBottom: 14 }}>
+          تعذّر إكمال تسجيل الدخول — حاول مرة أخرى.
+        </p>
+      )}
 
-        {state?.error && <p className="notice notice-danger" style={{ marginBottom: 14 }}>{state.error}</p>}
+      <div className="panel">
+        <GoogleButton next={next ?? '/home'} label="تابع عبر Google" />
 
-        <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
-          {pending ? 'جارٍ الدخول…' : 'دخول'}
-        </button>
-      </form>
+        <div className="auth-divider"><span>أو بالبريد وكلمة المرور</span></div>
+
+        <LoginForm next={next} />
+      </div>
 
       <p className="muted" style={{ fontSize: '0.86rem', marginTop: 16 }}>
         ليس لديك حساب؟ <Link href="/signup" style={{ color: 'var(--royal-dark)' }}>أنشئ حساباً</Link>

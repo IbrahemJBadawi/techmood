@@ -38,6 +38,21 @@ psql "$DATABASE_URL" -f supabase/seed.sql   # loads the academy catalogue
 npm run dev
 ```
 
+### Signing in with Google
+
+`Continue with Google` is wired up in the app, but the provider itself is
+configured outside this repository:
+
+1. Google Cloud → APIs & Services → Credentials → OAuth client ID (Web).
+2. Authorised redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. Supabase dashboard → Authentication → Providers → Google → paste the client
+   ID and secret.
+4. Set `NEXT_PUBLIC_SITE_URL` so the callback returns to the right origin.
+
+Until that is done the button reports that the provider is not enabled rather
+than failing silently. Email and password keep working either way — which is
+also how the first admin below signs in.
+
 ### Making yourself an admin
 
 The database refuses to let anyone grant themselves `admin`. Run this once,
@@ -56,7 +71,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 223 business-rule assertions
+scripts/test.sh                   # 275 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.

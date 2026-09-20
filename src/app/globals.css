@@ -930,3 +930,367 @@ table.data tr:last-child td { border-bottom: none; }
 .match-row .mark { width: 18px; flex: none; text-align: center; }
 .match-row.met .mark { color: var(--ok); }
 .match-row.unmet .mark { color: var(--warn); }
+
+/* =========================================================================
+   Identity, onboarding and the role system
+   ========================================================================= */
+
+/* ---------- the public site header ---------- */
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+}
+.site-links {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.site-links a {
+  display: inline-block;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.site-links a:hover { background: var(--sky-tint); color: var(--royal-dark); }
+.site-actions { display: flex; gap: 8px; flex: none; }
+
+@media (max-width: 900px) {
+  .landing-nav { flex-wrap: wrap; }
+  .site-links { order: 3; width: 100%; justify-content: flex-start; }
+}
+
+/* ---------- sign in ---------- */
+.auth-page { max-width: 460px; }
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-google:hover { background: var(--bg-deep); }
+.btn-google:disabled { opacity: 0.6; cursor: progress; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ---------- onboarding ---------- */
+.onboarding-shell { min-height: 100vh; background: var(--bg); }
+.onboarding {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+.onboarding-head h1 { font-size: 1.5rem; margin: 22px 0 8px; }
+.onboarding-head > p { color: var(--ink-soft); font-size: 0.92rem; }
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 24px 0 18px;
+}
+.stepper li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.stepper li.current {
+  background: var(--sky-tint);
+  border-color: var(--line);
+  color: var(--royal-dark);
+  font-weight: 600;
+}
+.stepper li.done { color: var(--ok); }
+.stepper-dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.7rem;
+  font-family: var(--font-mono), monospace;
+}
+.stepper li.done .stepper-dot { background: color-mix(in srgb, var(--ok) 16%, transparent); }
+
+.onboarding-card h2 { font-size: 1.1rem; margin-bottom: 6px; }
+.onboarding-card > p.muted { margin-bottom: 18px; font-size: 0.9rem; }
+.onboarding-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.avatar-picker { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.avatar-preview {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  flex: none;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--sky-tint);
+  color: var(--royal-dark);
+  font-size: 1.5rem;
+  font-weight: 700;
+  border: 1px solid var(--line);
+}
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+.username-field {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  background: var(--panel);
+}
+.username-prefix {
+  padding: 0 10px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--bg-deep);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.username-field input { border: 0; border-radius: 0; flex: 1; }
+
+.role-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.role-card.is-selected { border-color: var(--royal); background: var(--sky-tint); }
+.role-card.is-active { border-inline-start: 3px solid var(--ok); }
+.role-card p.muted { font-size: 0.85rem; margin-top: 6px; }
+
+.term-list { max-height: 320px; overflow-y: auto; padding: 4px; }
+.term-tag {
+  cursor: pointer;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  line-height: 1.3;
+  padding: 6px 11px;
+}
+.term-tag[aria-pressed="true"],
+.tag.is-on { background: var(--royal); color: #fff; border-color: var(--royal); }
+.term-tag:disabled { opacity: 0.4; cursor: not-allowed; }
+.term-en { font-size: 0.64rem; opacity: 0.75; font-family: var(--font-mono), monospace; }
+
+.suggest-form {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-s);
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.summary-list { display: grid; gap: 10px; }
+.summary-list > div { display: grid; grid-template-columns: 150px 1fr; gap: 12px; }
+.summary-list dt { color: var(--ink-soft); font-size: 0.84rem; }
+.summary-list dd { font-size: 0.9rem; }
+.summary-roles { list-style: none; display: grid; gap: 8px; margin-top: 8px; }
+.summary-roles li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+
+@media (max-width: 560px) {
+  .summary-list > div { grid-template-columns: 1fr; gap: 2px; }
+  .stepper-label { display: none; }
+}
+
+/* ---------- role pills ---------- */
+.pill {
+  font-size: 0.73rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-deep);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.pill-ok { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.pill-wait { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.pill-ask { background: var(--sky-tint); color: var(--royal-dark); }
+.pill-no { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+
+.notice-ok {
+  border-inline-start-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+  color: var(--ok);
+}
+
+.stack { display: grid; gap: 14px; }
+
+.quote {
+  border-inline-start: 3px solid var(--line-strong);
+  padding: 4px 12px;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.role-status-card { border-inline-start: 3px solid var(--line-strong); }
+.role-status-card.tone-ok { border-inline-start-color: var(--ok); }
+.role-status-card.tone-wait { border-inline-start-color: var(--warn); }
+.role-status-card.tone-ask { border-inline-start-color: var(--royal); }
+.role-status-card.tone-no { border-inline-start-color: var(--danger); }
+
+.request-trail { list-style: none; display: grid; gap: 10px; margin: 6px 0; }
+.request-trail li {
+  border-inline-start: 2px solid var(--line);
+  padding-inline-start: 12px;
+  font-size: 0.84rem;
+}
+.request-trail time { color: var(--ink-soft); font-size: 0.74rem; margin-inline-start: 8px; }
+
+.review-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* ---------- browse as ---------- */
+.role-switcher { position: relative; }
+.role-switcher-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.role-switcher-trigger:hover { background: var(--bg-deep); }
+.role-switcher .chevron { font-size: 0.7rem; color: var(--ink-soft); }
+
+.role-switcher-menu {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 8px);
+  min-width: 250px;
+  z-index: 90;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  box-shadow: 0 16px 36px rgba(7, 28, 43, 0.14);
+  padding: 8px;
+}
+.role-switcher-hint {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  padding: 4px 8px 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+.role-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: start;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--ink);
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.role-switcher-item:hover:not(:disabled) { background: var(--sky-tint); }
+.role-switcher-item.is-active { background: var(--sky-tint); font-weight: 600; }
+.role-switcher-item:disabled { color: var(--ink-soft); cursor: not-allowed; }
+.role-switcher-label { flex: 1; }
+.role-switcher-foot {
+  display: block;
+  padding: 9px 10px 4px;
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+  color: var(--royal-dark);
+}
+
+/* ---------- the sidebar, now with icons ---------- */
+.navlink { justify-content: flex-start; }
+.navlink .icon { flex: none; opacity: 0.9; }
+.navlink-label { flex: 1; }
+
+a.stat-tile { text-decoration: none; color: inherit; display: block; }
+a.stat-tile:hover { border-color: var(--royal); }
+
+/*
+ * On a phone the sidebar becomes a compact rail: icons only, still vertical,
+ * still in document order. The labels stay in the DOM for screen readers and
+ * appear as tooltips — an icon nobody can name is not navigation.
+ */
+@media (max-width: 760px) {
+  .app { flex-direction: row; }
+  .sidebar {
+    width: 58px;
+    flex: none;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    flex-direction: column;
+    overflow-x: visible;
+    overflow-y: auto;
+    border-inline-start: 1px solid var(--line);
+    border-bottom: none;
+  }
+  .sidebar-logo { display: flex; justify-content: center; padding: 14px 0; }
+  .sidebar-wordmark { display: none; }
+  .nav-group { display: block; padding: 4px 7px; }
+  .nav-group-label { display: none; }
+  .nav-group + .nav-group { border-top: 1px solid var(--line); padding-top: 8px; }
+  .navlink { justify-content: center; padding: 10px 0; }
+  .navlink-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .topbar h1 { font-size: 0.95rem; }
+  .role-switcher-trigger span:not(.chevron) { display: none; }
+}

@@ -1,24 +1,39 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { ACTIVE_ROLE_COOKIE, defaultRole } from '@/lib/roles';
 import { levelInfo } from '@/lib/xp';
+import type { UserRole } from '@/lib/database.types';
+
+import { RoleDashboard } from './RoleDashboard';
 
 export default async function HomePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: profile }, { data: xp }, { data: stars }, { data: paths }, { data: certificates }, { data: pendingRoles }] =
+  const [{ data: profile }, { data: xp }, { data: stars }, { data: paths }, { data: certificates }, { data: roles }] =
     await Promise.all([
-      supabase.from('profiles').select('full_name, techmood_id').eq('id', user.id).single(),
+      supabase.from('profiles').select('full_name, display_name, techmood_id, primary_role').eq('id', user.id).single(),
       supabase.from('profile_xp').select('total_xp').eq('profile_id', user.id).maybeSingle(),
       supabase.from('profile_stars').select('stars_avg, rated_count').eq('profile_id', user.id).maybeSingle(),
       supabase.from('learning_paths').select('id, slug, title_ar, description_ar, tags').eq('status', 'published').order('sort_order'),
       supabase.from('certificates').select('id').eq('profile_id', user.id).eq('status', 'active'),
-      supabase.from('profile_roles').select('role, status').eq('profile_id', user.id).eq('status', 'pending_review'),
+      supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
     ]);
+
+  const held = roles ?? [];
+  const approved = held.filter((row) => row.status === 'approved').map((row) => row.role as UserRole);
+  const pendingRoles = held.filter((row) => row.status === 'pending_review');
+
+  const jar = await cookies();
+  const requested = jar.get(ACTIVE_ROLE_COOKIE)?.value as UserRole | undefined;
+  const active = requested && approved.includes(requested)
+    ? requested
+    : defaultRole(approved, (profile?.primary_role ?? null) as UserRole | null);
 
   const totalXp = xp?.total_xp ?? 0;
   const level = levelInfo(totalXp);
@@ -28,10 +43,11 @@ export default async function HomePage() {
       <section className="section-block panel">
         <p className="kicker">One identity · many journeys</p>
         <h2 style={{ fontSize: '1.35rem', margin: '8px 0 6px' }}>
-          أهلاً {profile?.full_name?.split(' ')[0] ?? ''} 👋
+          أهلاً {(profile?.display_name ?? profile?.full_name ?? '').split(' ')[0]} 👋
         </h2>
         <p className="muted" style={{ fontSize: '0.9rem' }}>
-          حساب واحد، سمعة واحدة، وسجل مهني واحد يرافقك من التعلّم إلى العمل.
+          حساب واحد، سمعة واحدة، وسجل مهني واحد يرافقك من التعلّم إلى العمل. XP
+          والنجوم أدناه تخصّ معرّفك في TechMood، لا الدور الذي تتصفّح به.
         </p>
 
         <div className="tags-row" style={{ marginTop: 14, alignItems: 'center' }}>
@@ -52,11 +68,14 @@ export default async function HomePage() {
         )}
       </section>
 
-      {(pendingRoles?.length ?? 0) > 0 && (
+      {pendingRoles.length > 0 && (
         <p className="notice section-block">
-          لديك {pendingRoles!.length} طلب دور قيد المراجعة. حسابك يعمل كطالب في هذه الأثناء.
+          لديك {pendingRoles.length} طلب دور قيد المراجعة — تتابع حالته من{' '}
+          <Link href="/settings/roles">أدواري</Link>. بقية أدوارك تعمل كالمعتاد.
         </p>
       )}
+
+      <RoleDashboard role={active} userId={user.id} />
 
       <section className="section-block">
         <h2 style={{ fontSize: '1.05rem', marginBottom: 14 }}>نظرة سريعة</h2>

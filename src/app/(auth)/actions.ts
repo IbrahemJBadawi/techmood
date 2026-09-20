@@ -1,30 +1,88 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
-import { SELECTABLE_ROLES } from '@/lib/roles';
-import type { UserRole } from '@/lib/database.types';
 
 export type AuthState = { error?: string } | undefined;
+
+/** Where a fresh session lands: onboarding first, the app once it is done. */
+async function landingFor(userId: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select('onboarding_completed_at')
+    .eq('id', userId)
+    .single();
+
+  return data?.onboarding_completed_at ? '/home' : '/onboarding';
+}
+
+async function siteOrigin(): Promise<string> {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit) return explicit.replace(/\/$/, '');
+
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  return `${proto}://${host}`;
+}
+
+/**
+ * Continue with Google.
+ *
+ * Google is used to sign in, nothing more: TechMood never asks it for contacts,
+ * calendars or drive, and the profile it creates is TechMood's own.
+ *
+ * This needs the Google provider switched on in the Supabase dashboard with an
+ * OAuth client from Google Cloud. Until that is done the call comes back with a
+ * provider error, and the message below says so rather than pretending.
+ */
+export async function signInWithGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const supabase = await createClient();
+  const next = String(formData.get('next') ?? '') || '/onboarding';
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+      queryParams: { prompt: 'select_account' },
+    },
+  });
+
+  if (error || !data?.url) {
+    return { error: 'تعذّر بدء الدخول عبر Google — مزوّد Google غير مفعّل بعد على هذا المشروع.' };
+  }
+
+  redirect(data.url);
+}
 
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: String(formData.get('email') ?? ''),
     password: String(formData.get('password') ?? ''),
   });
 
-  if (error) {
+  if (error || !data.user) {
     return { error: 'تعذّر تسجيل الدخول — تأكد من البريد وكلمة المرور.' };
   }
 
+  const next = String(formData.get('next') ?? '');
+  const landing = await landingFor(data.user.id);
+
   revalidatePath('/', 'layout');
-  redirect('/home');
+  redirect(landing === '/onboarding' ? landing : next || '/home');
 }
 
+/**
+ * Creating the account creates the identity and nothing else. Who you are on
+ * the platform — handle, fields, interests, skills, the roles you are asking
+ * for — is settled in onboarding, where each of those has room to be explained.
+ */
 export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const supabase = await createClient();
 
@@ -43,26 +101,13 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
     return { error: error.message.includes('already') ? 'هذا البريد مسجّل بالفعل.' : 'تعذّر إنشاء الحساب.' };
   }
 
-  // The database trigger already created the profile and the approved student
-  // role. Anything else the person asked for is filed for review.
-  const extraRoles = formData
-    .getAll('roles')
-    .map(String)
-    .filter((role): role is UserRole => role !== 'student' && SELECTABLE_ROLES.some((r) => r.value === role));
-
-  if (data.user && extraRoles.length > 0) {
-    await supabase
-      .from('profile_roles')
-      .insert(extraRoles.map((role) => ({ profile_id: data.user!.id, role, status: 'pending_review' as const })));
-  }
-
   if (!data.session) {
     // Email confirmation is on; there is nothing to redirect into yet.
     return { error: 'تم إنشاء الحساب — تحقّق من بريدك لتأكيد التسجيل ثم سجّل الدخول.' };
   }
 
   revalidatePath('/', 'layout');
-  redirect('/home');
+  redirect('/onboarding');
 }
 
 export async function signOut() {
@@ -70,24 +115,4 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath('/', 'layout');
   redirect('/');
-}
-
-/** Ask for an additional role on an existing account. */
-export async function requestRole(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const role = String(formData.get('role') ?? '') as UserRole;
-  if (role === 'admin' || !SELECTABLE_ROLES.some((r) => r.value === role)) return;
-
-  await supabase.from('profile_roles').insert({
-    profile_id: user.id,
-    role,
-    status: 'pending_review',
-    application_note: String(formData.get('note') ?? '').slice(0, 1000) || null,
-    evidence_url: String(formData.get('evidence_url') ?? '').slice(0, 500) || null,
-  });
-
-  revalidatePath('/passport');
 }

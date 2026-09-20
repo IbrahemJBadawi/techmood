@@ -278,3 +278,108 @@ describe what an ordinary member may do.
 old leader, promote the new one, update the team — so a team is never left with
 two leaders or none. The new leader must already be a member, and the handover
 is written to the activity log.
+
+## Identity, onboarding and roles
+
+### One identifier, two names
+
+`profiles.techmood_id` is issued by the database when the account is created and
+never changes. `username` is a handle the person chooses — unique, lowercase,
+and refused for the names the router already uses — and `display_name` is what
+people read. None of the three is the identity: the identity is the row, and XP,
+stars, certificates, projects and reputation all hang off its id, never off a
+role or a name.
+
+### Three taxonomies, kept apart
+
+`fields`, `interests` and `skills` are separate tables with identical shapes, and
+that repetition is the point:
+
+| | question | limit | read by |
+|---|---|---|---|
+| field | where do you work? | 3 | mentor matching, team matching, work matching |
+| interest | what do you care about? | none | recommendations, discovery |
+| skill | what can you do? | none | portfolio, search, evidence verification |
+
+Merging them into one `tags` table would be less code and a worse product: the
+matching that reads fields would drown in interests, and a skill that an
+approved submission verified would be indistinguishable from a hobby.
+
+The three-field cap is a constraint trigger, not a form rule, because a direct
+PostgREST call has to hit it too. Attaching an unapproved term is refused in the
+same trigger and again in the RLS `with check`.
+
+Anyone may `suggest_taxonomy_term()`. It files the term as `pending_review`,
+which means: nobody else can see it, nobody can pick it, and the person who
+suggested it sees it marked as under review rather than watching it vanish. An
+admin publishes it with `review_taxonomy_term()`.
+
+### The role lifecycle
+
+`profile_roles` stays the single source of truth for who may enter which
+workspace; there is no second table and no client-held "active role".
+
+```
+                  apply_for_role()
+                        │
+                        ▼
+                 pending_review ──── decide_role_request('approved') ──▶ approved
+                   ▲        │                                              │
+  answer_role_     │        └── decide_role_request('more_info_requested')─┤
+  request()        │                        │                              │
+                   └──── needs_more_info ◀──┘                              │
+                                                                           │
+                 rejected ◀── decide_role_request('rejected', reason)      │
+                                                             suspended ◀───┘
+```
+
+Three rules the functions enforce rather than trust:
+
+* a rejection without a reason is refused — the account survives the rejection,
+  and the person is owed an explanation they can act on;
+* "request more information" must say what is missing;
+* only an admin decides, and every step is appended to `role_request_events`,
+  which no client may write to at all (the privilege is revoked, not just the
+  policy).
+
+`student` is granted at sign-up and can never be applied for; `admin` can never
+be applied for at all.
+
+### Primary role and "browse as"
+
+`profiles.primary_role` decides which workspace the shell opens on. A trigger
+refuses a primary role the person does not hold, and a second trigger clears it
+the moment that role stops being approved — so the shell can never open on a
+door that is now closed.
+
+The switcher in the top bar lists every role the person holds, including pending
+and rejected ones, because hiding them would leave someone guessing what became
+of their request. Selecting one calls `switchRole()`, which asks
+`can_enter_role()` before writing the cookie; the cookie is a preference, and the
+layout re-checks the approved list on every request regardless of what it says.
+This is deliberate: the v23 prototype's `switchPersona()` only showed a toast,
+and a switcher that lies is worse than none.
+
+### The mentor application
+
+An application is not a separate table — it is a `mentor_profiles` row whose
+`approved_at` is still null. Approval is one timestamp rather than a copy from
+one table into another, and `mentor_profiles_read` shows only approved rows to
+the public, so an applicant never appears in the mentor list.
+
+`submit_mentor_application()` opens the role request first, because a
+`mentor_profiles` row is only allowed to exist while a live application stands
+behind it.
+
+A mentor's `level`, `sessions_count`, `rating_avg` and `approved_at` are stripped
+from any update the mentor makes themselves: the level sets the session price, so
+leaving it under the self-update policy was a way to raise your own fee. The
+triggers that maintain those columns from real sessions still write to them.
+
+### Signing in
+
+Email and password remain, and Google is offered alongside them. Google answers
+one question — is this the same person as last time — and nothing else is read
+from or written to the Google account. `handle_new_user()` takes the name and
+picture Google supplies so onboarding does not ask for them again; the profile,
+the TechMood ID and the reputation are TechMood's own.

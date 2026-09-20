@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { SiteNav } from '@/components/SiteNav';
 import { createClient } from '@/lib/supabase/server';
 
 const LOOP = ['Learn', 'Build', 'Prove', 'Connect', 'Work', 'Grow'];
@@ -22,16 +23,7 @@ export default async function LandingPage() {
 
   return (
     <main className="landing">
-      <nav className="landing-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
-          <span className="logo-mark" />
-          TechMood
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link className="btn btn-ghost btn-sm" href="/login">تسجيل الدخول</Link>
-          <Link className="btn btn-primary btn-sm" href="/signup">ابدأ رحلتك</Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       <section className="hero">
         <p className="kicker">Build • Learn • Mentor • Work • Grow</p>

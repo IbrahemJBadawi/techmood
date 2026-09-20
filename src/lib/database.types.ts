@@ -17,7 +17,16 @@
 export type UserRole =
   | 'student' | 'freelancer' | 'mentor' | 'team_leader' | 'founder' | 'company' | 'admin';
 
-export type RoleStatus = 'approved' | 'pending_review' | 'rejected' | 'suspended';
+export type RoleStatus =
+  | 'approved' | 'pending_review' | 'needs_more_info' | 'rejected' | 'suspended';
+
+export type RoleRequestEvent =
+  | 'submitted' | 'more_info_requested' | 'more_info_provided'
+  | 'approved' | 'rejected' | 'suspended' | 'reinstated' | 'withdrawn';
+
+export type TaxonomyStatus = 'approved' | 'pending_review' | 'rejected';
+export type TaxonomyKind = 'field' | 'interest' | 'skill';
+export type UiLanguage = 'ar' | 'en';
 
 export type LessonKind = 'video' | 'article' | 'reading' | 'exercise' | 'live';
 
@@ -467,8 +476,33 @@ export type Profile = {
   website_url: string | null;
   phone: string | null;
   is_public: boolean;
+  username: string | null;
+  display_name: string | null;
+  language: UiLanguage;
+  primary_role: UserRole | null;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Fields, interests and skills share a shape but never share a table. */
+export type TaxonomyTerm = {
+  id: string;
+  slug: string;
+  name_ar: string;
+  name_en: string;
+  status: TaxonomyStatus;
+  suggested_by: string | null;
+  created_at: string;
+}
+
+export type RoleRequestEventRow = {
+  id: string;
+  role_request_id: string;
+  actor_id: string | null;
+  event: RoleRequestEvent;
+  note: string | null;
+  created_at: string;
 }
 
 export type ProfileRole = {
@@ -644,6 +678,13 @@ export type Database = {
     Tables: {
       profiles: Table<Profile>;
       profile_roles: Table<ProfileRole>;
+      role_request_events: Table<RoleRequestEventRow>;
+      fields: Table<TaxonomyTerm>;
+      interests: Table<TaxonomyTerm>;
+      skills: Table<TaxonomyTerm>;
+      profile_fields: Table<{ profile_id: string; field_id: string; added_at: string }>;
+      profile_interests: Table<{ profile_id: string; interest_id: string; added_at: string }>;
+      profile_skills: Table<{ profile_id: string; skill_id: string; is_verified: boolean }>;
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
       path_courses: Table<{ path_id: string; course_id: string; is_required: boolean; sort_order: number }>;
@@ -683,6 +724,10 @@ export type Database = {
         profile_id: string; level: MentorLevel; headline_ar: string | null; bio_ar: string | null;
         domains: string[]; session_minutes: number; is_accepting: boolean;
         sessions_count: number; rating_avg: number | null;
+        years_experience: number | null; weekly_hours: number | null;
+        motivation_ar: string | null; experience_ar: string | null;
+        linkedin_url: string | null; portfolio_url: string | null;
+        languages: string[]; approved_at: string | null;
       }>;
       projects: Table<{
         id: string; code: string; title_ar: string; description_ar: string | null;
@@ -803,6 +848,41 @@ export type Database = {
       }>;
     };
     Functions: {
+      is_username_available: { Args: { p_username: string }; Returns: boolean };
+      can_enter_role: { Args: { p_role: UserRole }; Returns: boolean };
+      suggest_taxonomy_term: {
+        Args: { p_kind: TaxonomyKind; p_name_ar: string; p_name_en: string };
+        Returns: string;
+      };
+      review_taxonomy_term: {
+        Args: { p_kind: TaxonomyKind; p_term_id: string; p_approve: boolean };
+        Returns: undefined;
+      };
+      apply_for_role: {
+        Args: { p_role: UserRole; p_note?: string | null; p_evidence_url?: string | null };
+        Returns: string;
+      };
+      answer_role_request: { Args: { p_request: string; p_note: string }; Returns: undefined };
+      decide_role_request: {
+        Args: { p_request: string; p_decision: RoleRequestEvent; p_note?: string | null };
+        Returns: undefined;
+      };
+      withdraw_role_request: { Args: { p_request: string }; Returns: undefined };
+      submit_mentor_application: {
+        Args: {
+          p_headline: string;
+          p_bio: string;
+          p_domains: string[];
+          p_years: number;
+          p_weekly_hours: number;
+          p_motivation: string;
+          p_experience: string;
+          p_linkedin_url?: string | null;
+          p_portfolio_url?: string | null;
+          p_languages?: string[];
+        };
+        Returns: string;
+      };
       submit_work: {
         Args: { p_assignment_id: string; p_evidence: unknown; p_note?: string | null };
         Returns: string;

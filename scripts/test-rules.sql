@@ -1986,6 +1986,430 @@ select public.assert(
   '19.17 the leader always keeps every permission regardless of the settings');
 reset role;
 
+-- ===========================================================================
+-- 20. Onboarding: handle, taxonomies and the role lifecycle
+-- ===========================================================================
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('77777777-7777-7777-7777-777777777777', 'nour@example.com', '{"full_name":"نور حرب"}'),
+  ('88888888-8888-8888-8888-888888888888', 'rami@example.com', '{"full_name":"رامي قاسم"}');
+
+-- --- the handle ------------------------------------------------------------
+select public.assert_rejects($$
+  update public.profiles set username = 'Nour Harb'
+   where id = '77777777-7777-7777-7777-777777777777'$$,
+  '20.1 a username may not contain spaces or capitals', 'profiles_username_format');
+
+select public.assert_rejects($$
+  update public.profiles set username = 'admin'
+   where id = '77777777-7777-7777-7777-777777777777'$$,
+  '20.2 route names are reserved and cannot be taken as usernames', 'not_reserved');
+
+update public.profiles set username = 'nour', display_name = 'نور'
+ where id = '77777777-7777-7777-7777-777777777777';
+
+select public.assert_rejects($$
+  update public.profiles set username = 'nour'
+   where id = '88888888-8888-8888-8888-888888888888'$$,
+  '20.3 a username is taken only once', 'username_unique');
+
+select public.assert(
+  (select techmood_id from public.profiles where username = 'nour') ~ '^TMU-',
+  '20.4 the TechMood ID survives the username — it is still the real identifier');
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert(
+  public.is_username_available('nour') = false
+  and public.is_username_available('rami') = true
+  and public.is_username_available('Rami') = false
+  and public.is_username_available('ad') = false,
+  '20.5 availability is answered by the database, not by the form');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Editing your own profile must not report your own handle as taken.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  public.is_username_available('nour') = true,
+  '20.5b your own username is still available to you');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- the primary role ------------------------------------------------------
+select public.assert_rejects($$
+  update public.profiles set primary_role = 'mentor'
+   where id = '77777777-7777-7777-7777-777777777777'$$,
+  '20.6 a primary role you do not hold is refused', 'الدور الأساسي');
+
+update public.profiles set primary_role = 'student'
+ where id = '77777777-7777-7777-7777-777777777777';
+
+select public.assert(
+  (select primary_role from public.profiles
+    where id = '77777777-7777-7777-7777-777777777777') = 'student',
+  '20.7 a role you do hold may be made primary');
+
+-- --- fields: at most three -------------------------------------------------
+insert into public.profile_fields (profile_id, field_id)
+select '77777777-7777-7777-7777-777777777777', id from public.fields
+ where slug in ('frontend-development', 'ux-design', 'data-analysis');
+
+select public.assert(
+  (select count(*) from public.profile_fields
+    where profile_id = '77777777-7777-7777-7777-777777777777') = 3,
+  '20.8 three fields are allowed');
+
+select public.assert_rejects($$
+  insert into public.profile_fields (profile_id, field_id)
+  select '77777777-7777-7777-7777-777777777777', id from public.fields where slug = 'devops'$$,
+  '20.9 a fourth field is refused', 'ثلاثة');
+
+-- --- interests: no limit ---------------------------------------------------
+insert into public.profile_interests (profile_id, interest_id)
+select '77777777-7777-7777-7777-777777777777', id from public.interests
+ where slug in ('open-source', 'hackathons', 'mentoring', 'arabic-tech',
+                'accessibility-advocacy', 'podcasting', 'chess');
+
+select public.assert(
+  (select count(*) from public.profile_interests
+    where profile_id = '77777777-7777-7777-7777-777777777777') = 7,
+  '20.10 interests are unlimited');
+
+select public.assert(
+  (select count(*) from public.fields where status = 'approved') = 100
+  and (select count(*) from public.interests where status = 'approved') = 53,
+  '20.11 the platform ships with a catalogue, so onboarding is a search not a blank box');
+
+-- Fields, interests and skills stay three separate axes. Matching reads the
+-- first, recommendations the second, the portfolio the third — so choosing a
+-- field must never quietly also become an interest or a claimed skill.
+select public.assert(
+  (select count(*) from public.profile_fields
+    where profile_id = '77777777-7777-7777-7777-777777777777') = 3
+  and (select count(*) from public.profile_interests
+        where profile_id = '77777777-7777-7777-7777-777777777777') = 7
+  and (select count(*) from public.profile_skills
+        where profile_id = '77777777-7777-7777-7777-777777777777') = 0,
+  '20.12 fields, interests and skills are three independent axes, never one tag bag');
+
+-- --- suggesting a term -----------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.suggest_taxonomy_term('field', 'هندسة الكم', 'Quantum Engineering') \gset sug_
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.fields where slug = 'quantum-engineering') = 'pending_review',
+  '20.13 a suggested field is filed for review, never published');
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects($$
+  insert into public.profile_fields (profile_id, field_id)
+  select '77777777-7777-7777-7777-777777777777', id from public.fields
+   where slug = 'quantum-engineering'$$,
+  '20.14 an unapproved term cannot be attached to a profile', 'غير معتمد');
+
+select public.assert(
+  exists (select 1 from public.fields where slug = 'quantum-engineering'),
+  '20.15 the person who suggested a term still sees it, so "under review" is honest');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert(
+  not exists (select 1 from public.fields where slug = 'quantum-engineering'),
+  '20.16 nobody else sees a term that has not been approved');
+
+select public.assert_rejects($$select public.review_taxonomy_term('field', $$ || quote_literal(:'sug_suggest_taxonomy_term') || $$::uuid, true)$$,
+  '20.17 only an admin may publish a suggested term', 'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_taxonomy_term('field', :'sug_suggest_taxonomy_term', true);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.fields where slug = 'quantum-engineering') = 'approved',
+  '20.18 an admin publishes the term, and only then');
+
+-- --- applying for a role ---------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select public.assert_rejects($$select public.apply_for_role('student')$$,
+  '20.19 nobody applies to be a student — every account already is one', 'تلقائياً');
+
+select public.assert_rejects($$select public.apply_for_role('admin')$$,
+  '20.20 nobody applies to be an admin', 'لا يُطلب');
+
+select public.apply_for_role('freelancer', 'أعمل على مشاريع واجهات منذ سنتين') \gset req_
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.profile_roles
+    where id = :'req_apply_for_role') = 'pending_review',
+  '20.21 a requested role starts pending, never active');
+
+select public.assert(
+  (select event from public.role_request_events
+    where role_request_id = :'req_apply_for_role') = 'submitted',
+  '20.22 the request opens an append-only trail');
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  public.can_enter_role('freelancer') = false,
+  '20.23 a pending role is visible but not enterable');
+
+select public.assert_rejects($$
+  insert into public.role_request_events (role_request_id, actor_id, event)
+  values ($$ || quote_literal(:'req_apply_for_role') || $$::uuid,
+          '77777777-7777-7777-7777-777777777777', 'approved')$$,
+  '20.24 the trail is append-only to the database, not writable by the client', 'permission denied');
+
+select public.assert_rejects($$select public.decide_role_request($$ ||
+  quote_literal(:'req_apply_for_role') || $$::uuid, 'approved')$$,
+  '20.25 an applicant cannot approve their own request', 'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- the third decision: request more information --------------------------
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects($$select public.decide_role_request($$ ||
+  quote_literal(:'req_apply_for_role') || $$::uuid, 'more_info_requested')$$,
+  '20.26 asking for more information without saying what is missing is refused', 'وضّح');
+
+select public.decide_role_request(:'req_apply_for_role', 'more_info_requested',
+  'أرفق رابط أعمال سابقة من فضلك');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.profile_roles where id = :'req_apply_for_role') = 'needs_more_info',
+  '20.27 "request more information" is a state of its own, not a rejection');
+
+select public.assert(
+  (select count(*) from public.notifications
+    where profile_id = '77777777-7777-7777-7777-777777777777' and kind = 'role_review') = 1,
+  '20.28 the applicant is told, and told where to answer');
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.answer_role_request(:'req_apply_for_role', 'هذا رابط أعمالي: https://example.com/work');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.profile_roles where id = :'req_apply_for_role') = 'pending_review',
+  '20.29 answering puts the same request back in the queue — no second request is opened');
+
+select public.assert(
+  (select count(*) from public.profile_roles
+    where profile_id = '77777777-7777-7777-7777-777777777777' and role = 'freelancer') = 1,
+  '20.30 one person, one request per role');
+
+select public.assert(
+  (select count(*) from public.role_request_events
+    where role_request_id = :'req_apply_for_role') = 3,
+  '20.31 every step is on the record: submitted, more info asked, more info given');
+
+-- --- approval --------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.decide_role_request(:'req_apply_for_role', 'approved', 'أعمال مقنعة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  public.can_enter_role('freelancer') = true,
+  '20.32 approval is what opens the workspace, nothing else');
+
+select public.assert_rejects($$select public.apply_for_role('freelancer')$$,
+  '20.33 you cannot apply for a role you already hold', 'بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- rejection keeps the account -------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.apply_for_role('company', 'شركة تطوير في غزة') \gset rej_
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects($$select public.decide_role_request($$ ||
+  quote_literal(:'rej_apply_for_role') || $$::uuid, 'rejected')$$,
+  '20.34 a rejection without a reason is refused — the person deserves an explanation', 'سبب الرفض');
+
+select public.decide_role_request(:'rej_apply_for_role', 'rejected', 'نحتاج سجلاً تجارياً مرفقاً');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.profile_roles
+    where profile_id = '88888888-8888-8888-8888-888888888888' and role = 'student') = 'approved',
+  '20.35 a rejected role never costs you the account');
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.apply_for_role('company', 'مرفق السجل التجاري الآن');
+select public.assert(
+  (select status from public.profile_roles where id = :'rej_apply_for_role') = 'pending_review',
+  '20.36 a rejected application may be answered and sent again');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- suspension ------------------------------------------------------------
+update public.profiles set primary_role = 'freelancer'
+ where id = '77777777-7777-7777-7777-777777777777';
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.decide_role_request(:'req_apply_for_role', 'suspended', 'بلاغ قيد الفحص');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select primary_role from public.profiles
+    where id = '77777777-7777-7777-7777-777777777777') is null,
+  '20.37 losing a role also loses it as the primary one — the shell cannot open on a closed door');
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  public.can_enter_role('freelancer') = false,
+  '20.38 a suspended role is shut immediately');
+
+select public.assert_rejects($$select public.apply_for_role('freelancer')$$,
+  '20.39 a suspended role is not re-opened by applying again', 'موقوف');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- the mentor application ------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+
+select public.assert_rejects($$select public.submit_mentor_application(
+  'مطوّر واجهات', 'سيرة', array['frontend-development'], 5, 4, 'قصير', 'قصير')$$,
+  '20.40 a mentor application is a form with substance, not three words', 'دافعك');
+
+select public.submit_mentor_application(
+  'مطوّر واجهات أمامية',
+  'خمس سنوات في بناء واجهات إنتاجية.',
+  array['frontend-development', 'ux-design'],
+  5, 6,
+  'أريد أن أختصر على غيري الطريق الذي مشيته وحدي في بداياتي بغزة.',
+  'قدت فريق واجهات من أربعة أشخاص، وراجعت أعمال متدرّبين لعامين كاملين.',
+  'https://linkedin.com/in/rami',
+  'https://rami.dev',
+  array['ar', 'en']) \gset mentor_
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select approved_at from public.mentor_profiles
+    where profile_id = '88888888-8888-8888-8888-888888888888') is null,
+  '20.41 an application is a mentor profile that is not approved yet — not a second table');
+
+set role anon;
+select public.assert(
+  not exists (select 1 from public.mentor_profiles
+               where profile_id = '88888888-8888-8888-8888-888888888888'),
+  '20.42 an applicant is not a mentor: they never appear in the public mentor list');
+
+select public.assert(
+  exists (select 1 from public.profiles where username = 'nour'),
+  '20.42b a signed-out visitor can still read a public profile');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.decide_role_request(:'mentor_submit_mentor_application', 'approved', 'خبرة واضحة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  exists (select 1 from public.mentor_profiles
+           where profile_id = '88888888-8888-8888-8888-888888888888'),
+  '20.43 approval is what puts a mentor in front of students');
+reset role;
+
+select public.assert(
+  (select level from public.mentor_profiles
+    where profile_id = '88888888-8888-8888-8888-888888888888') = 'L1',
+  '20.44 a new mentor starts at L1 — the platform sets the price ladder');
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+update public.mentor_profiles
+   set level = 'L3', sessions_count = 99, approved_at = now()
+ where profile_id = '88888888-8888-8888-8888-888888888888';
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select level from public.mentor_profiles
+    where profile_id = '88888888-8888-8888-8888-888888888888') = 'L1'
+  and (select sessions_count from public.mentor_profiles
+        where profile_id = '88888888-8888-8888-8888-888888888888') = 0,
+  '20.45 a mentor cannot raise their own level, standing or price');
+
+-- --- withdrawing -----------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.apply_for_role('team_leader', 'أقود فريق تطوير') \gset wd_
+
+select public.withdraw_role_request(:'wd_apply_for_role');
+
+select public.assert(
+  not exists (select 1 from public.profile_roles where id = :'wd_apply_for_role'),
+  '20.46 a request you no longer want can be withdrawn');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert_rejects($$select public.withdraw_role_request($$ ||
+  quote_literal(:'mentor_submit_mentor_application') || $$::uuid)$$,
+  '20.47 an approved role is not something you can quietly drop', 'لا يمكن سحب دور معتمد');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- signing up with Google --------------------------------------------------
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('99999999-9999-9999-9999-999999999999', 'dana@gmail.com',
+   '{"name":"Dana Salem","picture":"https://lh3.googleusercontent.com/a/dana"}');
+
+select public.assert(
+  (select full_name from public.profiles
+    where id = '99999999-9999-9999-9999-999999999999') = 'Dana Salem',
+  '20.48 a Google sign-up arrives with a name, so it is not asked for again');
+
+select public.assert(
+  (select avatar_url from public.profiles
+    where id = '99999999-9999-9999-9999-999999999999') like 'https://lh3.%',
+  '20.49 and with a picture');
+
+select public.assert(
+  (select onboarding_completed_at from public.profiles
+    where id = '99999999-9999-9999-9999-999999999999') is null
+  and (select status from public.profile_roles
+        where profile_id = '99999999-9999-9999-9999-999999999999' and role = 'student') = 'approved',
+  '20.50 Google signs you in — it does not finish your onboarding or grant a role');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
