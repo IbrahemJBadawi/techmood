@@ -49,3 +49,23 @@ export function isOverdue(dueOn: string | null, column: TaskColumn) {
   if (!dueOn || column === 'done') return false;
   return new Date(dueOn) < new Date(new Date().toDateString());
 }
+
+export const DOCUMENT_KINDS: { key: string; label: string; group: string }[] = [
+  { key: 'requirements',   label: 'المتطلبات',        group: 'توثيق المشروع' },
+  { key: 'specification',  label: 'المواصفات',        group: 'توثيق المشروع' },
+  { key: 'meeting_notes',  label: 'محاضر الاجتماعات', group: 'توثيق المشروع' },
+  { key: 'decision',       label: 'القرارات',         group: 'توثيق المشروع' },
+  { key: 'guideline',      label: 'إرشادات العمل',    group: 'توثيق المشروع' },
+  { key: 'design',         label: 'التصاميم',         group: 'مخرجات وأدلة' },
+  { key: 'report',         label: 'التقارير',         group: 'مخرجات وأدلة' },
+  { key: 'deliverable',    label: 'المخرجات',         group: 'مخرجات وأدلة' },
+  { key: 'integration',    label: 'روابط وتكاملات',   group: 'مخرجات وأدلة' },
+];
+
+export const CALENDAR_ENTRY: Record<string, { label: string; icon: string }> = {
+  task:           { label: 'موعد مهمة',      icon: '📌' },
+  sprint_start:   { label: 'بداية سبرنت',    icon: '🚀' },
+  sprint_end:     { label: 'نهاية سبرنت',    icon: '🏁' },
+  milestone:      { label: 'معلم مشروع',     icon: '🎯' },
+  mentor_session: { label: 'جلسة منتور',     icon: '🎓' },
+};

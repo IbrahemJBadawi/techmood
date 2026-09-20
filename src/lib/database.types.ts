@@ -842,6 +842,14 @@ export type Database = {
         Returns: undefined;
       };
       accept_team_invite: { Args: { p_token: string }; Returns: string };
+      team_calendar: {
+        Args: { p_team: string; p_from: string; p_to: string };
+        Returns: {
+          entry_kind: string; entry_id: string; title_ar: string;
+          on_date: string; detail_ar: string | null;
+        }[];
+      };
+      transfer_team_leadership: { Args: { p_team: string; p_to: string }; Returns: undefined };
       can_post_opportunity: { Args: { p_kind: OpportunityKind; p_team?: string | null }; Returns: boolean };
       opportunity_match: {
         Args: { p_opportunity: string; p_profile: string };

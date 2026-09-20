@@ -111,7 +111,7 @@ Two systems that must not be confused:
 | Certificates & verification | ✅ tested | ✅ issue, list, public /verify |
 | Mentors, availability, levels | ✅ tested | ✅ directory, profile, slots |
 | Bookings & payments | ✅ tested | ✅ full journey + admin verification |
-| Teams & workspace | ✅ tested | ✅ board, sprints, members, invites |
+| Teams & workspace | ✅ tested | ✅ board, sprints, members, calendar, documents, settings |
 | Messaging | ✅ tested | ✅ full chat with replies and reactions |
 | Wallet & payouts | ✅ tested | ✅ ledger, payout accounts, admin transfers |
 | Projects & Exhibition | ✅ tested | ✅ team projects, public gallery, admin review |
@@ -256,3 +256,25 @@ A team seat does not open a second decision surface. Applying creates a request
 in the team's own queue, the leader decides there once, and a trigger syncs that
 answer back to the marketplace record, so the applicant never sees two different
 answers to the same question.
+
+## The team calendar
+
+Derived, like the mentor's slots. A team's dates already exist on its tasks,
+sprints, project milestones and booked sessions; `team_calendar()` gathers them
+for a window rather than storing them a second time where they could drift.
+
+The function filters on the caller's own membership, so a non-member calling it
+directly gets an empty list rather than a permission error — the same answer the
+UI would give them.
+
+## Team settings
+
+Permissions are per-team rather than per-role, so a leader can delegate task
+creation or invitations without the platform inventing new roles for it. The
+leader always holds every permission regardless of the settings; the toggles
+describe what an ordinary member may do.
+
+`transfer_team_leadership()` does the handover in one transaction — demote the
+old leader, promote the new one, update the team — so a team is never left with
+two leaders or none. The new leader must already be a member, and the handover
+is written to the activity log.

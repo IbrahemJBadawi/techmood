@@ -1854,6 +1854,138 @@ select public.assert_rejects(
   'only the applicant');
 reset role;
 
+-- ===========================================================================
+-- 19. Team documents, calendar and leadership
+-- ===========================================================================
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.team_documents (team_id, kind, title_ar, body_ar, author_id)
+values (:'team', 'meeting_notes', 'محضر اجتماع السبرنت الأول',
+        'اتفقنا على إنهاء المصادقة قبل نهاية الأسبوع.', '11111111-1111-1111-1111-111111111111')
+returning id as doc \gset
+
+select public.assert_rejects(
+  format($$insert into public.team_documents (team_id, kind, title_ar, author_id)
+           values (%L, 'decision', 'قرار بلا محتوى', '11111111-1111-1111-1111-111111111111')$$, :'team'),
+  '19.1 a document must carry either text or a link');
+
+select public.assert_rejects(
+  format($$insert into public.team_documents (team_id, kind, title_ar, url, author_id)
+           values (%L, 'design', 'تصميم', 'not-a-url', '11111111-1111-1111-1111-111111111111')$$, :'team'),
+  '19.2 a document link must be a real http link');
+reset role;
+
+-- Documents are workspace-internal, like the board and the chat.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.team_documents where id = :'doc') = 1,
+  '19.3 an admin can read team documents');
+
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.team_documents where id = :'doc') = 1,
+  '19.4 a team member can read team documents');
+reset role;
+
+-- The member who was removed from the team earlier is outside it now.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.team_documents where id = :'doc') = 0,
+  '19.5 someone outside the team cannot read its documents');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Calendar
+-- ---------------------------------------------------------------------------
+-- team_calendar() filters on the CALLER's membership, and the jwt claim set
+-- above outlives `reset role` — so the identity has to be put back first.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.team_calendar(:'team', current_date - 30, current_date + 60)) >= 2,
+  '19.6 the calendar gathers dates that already exist elsewhere');
+
+select public.assert(
+  (select count(*) from public.team_calendar(:'team', current_date - 30, current_date + 60)
+    where entry_kind = 'sprint_start') = 1,
+  '19.7 a sprint appears on the calendar by its start date');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.team_calendar(:'team', current_date - 30, current_date + 60)) = 0,
+  '19.8 a non-member sees nothing on the team calendar');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Leadership
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.transfer_team_leadership(%L, '22222222-2222-2222-2222-222222222222')$$, :'team'),
+  '19.9 an ordinary member cannot take the team over',
+  'only the current leader');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.transfer_team_leadership(%L, '55555555-5555-5555-5555-555555555555')$$, :'team'),
+  '19.10 leadership cannot be handed to someone outside the team',
+  'already be a member');
+
+select public.transfer_team_leadership(:'team', '22222222-2222-2222-2222-222222222222');
+reset role;
+
+select public.assert(
+  (select leader_id from public.teams where id = :'team') = '22222222-2222-2222-2222-222222222222',
+  '19.11 handing over changes who leads the team');
+
+select public.assert(
+  (select count(*) from public.team_members where team_id = :'team' and role = 'leader') = 1,
+  '19.12 a team is never left with two leaders or none');
+
+select public.assert(
+  (select role from public.team_members
+    where team_id = :'team' and profile_id = '11111111-1111-1111-1111-111111111111') = 'member',
+  '19.13 the previous leader stays on the team as a member');
+
+select public.assert(
+  (select count(*) from public.team_activity
+    where team_id = :'team' and verb = 'leadership_transferred') = 1,
+  '19.14 the handover is recorded in the team activity log');
+
+-- Permissions are per-team, so a leader can delegate without inventing roles.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.team_permissions (team_id, members_invite, members_create_tasks)
+values (:'team', true, false)
+on conflict (team_id) do update
+  set members_invite = excluded.members_invite,
+      members_create_tasks = excluded.members_create_tasks;
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.team_permission(:'team', 'members_invite') = true,
+  '19.15 a leader can grant members the right to invite');
+
+select public.assert(
+  public.team_permission(:'team', 'members_create_tasks') = false,
+  '19.16 and can take back the right to create tasks');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  public.team_permission(:'team', 'members_create_tasks') = true,
+  '19.17 the leader always keeps every permission regardless of the settings');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

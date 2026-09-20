@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 206 business-rule assertions
+scripts/test.sh                   # 223 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -179,12 +179,14 @@ Also built: the Incubator — startups with a stage ladder, an interactive Busin
 Model Canvas (editable, colourable, draggable cards), a ten-section business plan
 with real progress, and strategy with vision, mission, SWOT and SMART goals.
 
-Also built: the marketplace — listings with structured pay and advisory
+Also built: team documents, the team calendar and team settings — completing the
+workspace. And the marketplace — listings with structured pay and advisory
 requirements, evidence-backed applications, a poster's applicant queue, and team
 seats that route into the team's own decision queue instead of duplicating it.
 
-Still schema-only, awaiting screens: team documents and settings, and the team
-calendar.
+**Every module now has its screens.** What remains is not a missing feature but
+the step this repository cannot take for you: creating the Supabase project,
+running `supabase db push`, and exercising the interface against live data.
 Each already has its tables, policies and tested rules — see
 `docs/architecture.md`.
 

@@ -9,6 +9,9 @@ const TABS = [
   { href: '/projects', label: 'المشاريع' },
   { href: '/sprints', label: 'السبرنتات' },
   { href: '/members', label: 'الأعضاء' },
+  { href: '/calendar', label: 'التقويم' },
+  { href: '/documents', label: 'المستندات' },
+  { href: '/settings', label: 'الإعدادات' },
 ];
 
 export function TeamNav({ teamId }: { teamId: string }) {
