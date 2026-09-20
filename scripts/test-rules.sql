@@ -601,6 +601,85 @@ select public.assert(
   (select session_price_usd from public.mentor_levels where level = 'L6') = 100.00,
   '10.6 the published L1-L6 price ladder is loaded');
 
+-- ===========================================================================
+-- 11. Mentor review workflow and re-evaluation
+-- ===========================================================================
+insert into auth.users (id, email, raw_user_meta_data)
+values ('55555555-5555-5555-5555-555555555555', 'rana@example.com', '{"full_name":"رنا عبد الله"}');
+
+insert into public.profile_roles (profile_id, role, status)
+values ('55555555-5555-5555-5555-555555555555', 'mentor', 'approved');
+
+-- A second mentor must be able to read what the first one wrote, otherwise a
+-- re-review is done blind.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+
+-- Three by now: the changes_requested and approved rounds from section 3, plus
+-- the approval section 5 made while clearing the course's required work.
+select public.assert(
+  (select count(*) from public.evaluations where submission_id = :'first_submission') = 3,
+  '11.1 a second mentor reads the full evaluation history of a submission');
+
+select public.assert(
+  (select count(*) from public.submission_evidence se
+    join public.submission_versions sv on sv.id = se.version_id
+    where sv.submission_id = :'first_submission') = 2,
+  '11.2 a reviewing mentor reads the evidence of every version');
+
+-- A student contests the score.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.reevaluation_requests (submission_id, evaluation_id, requested_by, reason_ar)
+select :'first_submission',
+       (select id from public.evaluations where submission_id = :'first_submission' order by created_at desc limit 1),
+       '11111111-1111-1111-1111-111111111111',
+       'أضفت معالجة الحالات الحدّية التي طُلبت، أرجو إعادة التقييم.'
+returning id as reeval \gset
+
+select public.assert(
+  (select status from public.reevaluation_requests where id = :'reeval') = 'open',
+  '11.3 a student may open a re-evaluation request on their own work');
+
+-- but not on someone else's.
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$insert into public.reevaluation_requests (submission_id, evaluation_id, requested_by, reason_ar)
+           values (%L, (select id from public.evaluations where submission_id = %L limit 1),
+                   '11111111-1111-1111-1111-111111111111', 'طلب مزروع')$$,
+         :'first_submission', :'first_submission'),
+  '11.4 a student cannot open a re-evaluation request on behalf of someone else');
+
+-- The second mentor resolves it and records a fresh evaluation.
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.evaluate_submission(:'first_submission', 'approved', 5::smallint, 'المعالجة مكتملة الآن، ممتاز.');
+
+update public.reevaluation_requests
+   set status = 'resolved', resolved_at = now()
+ where id = :'reeval';
+reset role;
+
+select public.assert(
+  (select status from public.reevaluation_requests where id = :'reeval') = 'resolved',
+  '11.5 a mentor may resolve a re-evaluation request');
+
+select public.assert(
+  (select count(*) from public.evaluations where submission_id = :'first_submission') = 4,
+  '11.6 the re-review appends an evaluation and erases none of the earlier ones');
+
+select public.assert(
+  (select stars from public.evaluations
+    where submission_id = :'first_submission' order by created_at limit 1) = 2,
+  '11.7 the original 2-star evaluation still reads 2 after two re-reviews');
+
+-- XP is idempotent across re-reviews: the assignment pays once, at its best
+-- approved rating, not once per approval.
+select public.assert(
+  (select count(*) from public.xp_events
+    where profile_id = '11111111-1111-1111-1111-111111111111'
+      and source = 'assignment_evaluated'
+      and ref_id = :'first_submission') = 1,
+  '11.8 re-approving the same work does not pay XP twice');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

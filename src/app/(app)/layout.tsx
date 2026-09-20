@@ -42,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {(isAdmin || isMentor) && (
           <div className="nav-group">
             <div className="nav-group-label">المراجعة</div>
+            {(isMentor || isAdmin) && <NavLink href="/review">مراجعة الأعمال</NavLink>}
             {isAdmin && <NavLink href="/admin">لوحة الإدارة</NavLink>}
           </div>
         )}

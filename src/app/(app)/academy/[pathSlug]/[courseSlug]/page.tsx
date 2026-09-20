@@ -64,11 +64,20 @@ export default async function CoursePage({
 
   const submissionIds = (submissions ?? []).map((submission) => submission.id);
 
-  const { data: evaluations } = await supabase
-    .from('evaluations')
-    .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
-    .in('submission_id', submissionIds.length ? submissionIds : ['00000000-0000-0000-0000-000000000000'])
-    .order('created_at', { ascending: true });
+  const [{ data: evaluations }, { data: openReevaluations }] = await Promise.all([
+    supabase
+      .from('evaluations')
+      .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
+      .in('submission_id', submissionIds.length ? submissionIds : ['00000000-0000-0000-0000-000000000000'])
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('reevaluation_requests')
+      .select('submission_id')
+      .eq('status', 'open')
+      .in('submission_id', submissionIds.length ? submissionIds : ['00000000-0000-0000-0000-000000000000']),
+  ]);
+
+  const reevaluationOpenFor = new Set((openReevaluations ?? []).map((row) => row.submission_id));
 
   const { data: isComplete } = await supabase.rpc('is_course_complete', {
     p_profile: user.id,
@@ -91,6 +100,9 @@ export default async function CoursePage({
     submissionId
       ? ((evaluations ?? []) as Evaluation[]).filter((evaluation) => evaluation.submission_id === submissionId)
       : [];
+
+  const hasOpenReevaluation = (submissionId: string | undefined) =>
+    submissionId ? reevaluationOpenFor.has(submissionId) : false;
 
   return (
     <>
@@ -158,6 +170,7 @@ export default async function CoursePage({
                   requiredEvidence={assignment.required_evidence}
                   submission={submission}
                   evaluations={evaluationsFor(submission?.id)}
+                  hasOpenReevaluation={hasOpenReevaluation(submission?.id)}
                   revalidatePath={revalidate}
                 />
               );
@@ -173,6 +186,7 @@ export default async function CoursePage({
               requiredEvidence={courseTask.required_evidence}
               submission={submissionFor(courseTask.id)}
               evaluations={evaluationsFor(submissionFor(courseTask.id)?.id)}
+              hasOpenReevaluation={hasOpenReevaluation(submissionFor(courseTask.id)?.id)}
               revalidatePath={revalidate}
             />
           )}
@@ -185,6 +199,7 @@ export default async function CoursePage({
               requiredEvidence={courseProject.required_evidence}
               submission={submissionFor(courseProject.id)}
               evaluations={evaluationsFor(submissionFor(courseProject.id)?.id)}
+              hasOpenReevaluation={hasOpenReevaluation(submissionFor(courseProject.id)?.id)}
               revalidatePath={revalidate}
             />
           )}

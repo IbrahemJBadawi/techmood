@@ -1,10 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
 import { Stars } from '@/components/Stars';
 import type { EvidenceKind, Evaluation, Submission } from '@/lib/database.types';
 
+import { requestReevaluation } from '../review/actions';
 import { submitWork, type ActionState } from './actions';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
@@ -34,6 +35,7 @@ export function SubmissionPanel({
   submission,
   evaluations,
   revalidatePath,
+  hasOpenReevaluation = false,
 }: {
   assignmentId: string;
   title: string;
@@ -42,13 +44,20 @@ export function SubmissionPanel({
   submission: Submission | null;
   evaluations: Evaluation[];
   revalidatePath: string;
+  hasOpenReevaluation?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(submitWork, undefined as ActionState);
+  const [reevalState, reevalAction, reevalPending] = useActionState(
+    requestReevaluation,
+    undefined as ActionState,
+  );
+  const [showReevalForm, setShowReevalForm] = useState(false);
 
   const status = submission?.status ?? 'draft';
   const label = STATUS_LABELS[status] ?? STATUS_LABELS.draft;
   const isApproved = status === 'approved';
   const canSubmit = !isApproved;
+  const latestEvaluation = evaluations.length > 0 ? evaluations[evaluations.length - 1] : null;
 
   return (
     <div className="panel section-block">
@@ -131,6 +140,48 @@ export function SubmissionPanel({
         <p className="notice" style={{ marginTop: 14 }}>
           تم اعتماد هذا العمل ويُحتسب ضمن متطلبات الشهادة.
         </p>
+      )}
+
+      {/* Contesting a score is a right, not a favour: the student may ask for a
+          second look, and the request lands in the mentor review queue. */}
+      {latestEvaluation && !hasOpenReevaluation && !showReevalForm && (
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: 12 }}
+          onClick={() => setShowReevalForm(true)}
+        >
+          اطلب إعادة تقييم
+        </button>
+      )}
+
+      {hasOpenReevaluation && (
+        <p className="notice" style={{ marginTop: 12 }}>
+          طلب إعادة التقييم مفتوح وينتظر منتوراً.
+        </p>
+      )}
+
+      {latestEvaluation && showReevalForm && !hasOpenReevaluation && (
+        <form action={reevalAction} style={{ marginTop: 14 }}>
+          <input type="hidden" name="submission_id" value={submission?.id ?? ''} />
+          <input type="hidden" name="evaluation_id" value={latestEvaluation.id} />
+          <input type="hidden" name="revalidate" value={revalidatePath} />
+          <div className="field">
+            <label htmlFor={`reeval_${assignmentId}`}>لماذا تطلب إعادة التقييم؟</label>
+            <textarea id={`reeval_${assignmentId}`} name="reason" rows={3} required />
+          </div>
+          {reevalState?.error && (
+            <p className="notice notice-danger" style={{ marginBottom: 10 }}>{reevalState.error}</p>
+          )}
+          {reevalState?.ok && <p className="notice" style={{ marginBottom: 10 }}>{reevalState.ok}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={reevalPending}>
+              {reevalPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
+            </button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowReevalForm(false)}>
+              إلغاء
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

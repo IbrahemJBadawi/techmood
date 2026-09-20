@@ -145,6 +145,34 @@ export type Evaluation = {
   created_at: string;
 }
 
+export type ReevaluationRequest = {
+  id: string;
+  submission_id: string;
+  evaluation_id: string;
+  requested_by: string;
+  reason_ar: string;
+  status: 'open' | 'scheduled' | 'resolved' | 'declined';
+  booking_id: string | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export type SubmissionVersion = {
+  id: string;
+  submission_id: string;
+  version: number;
+  note_ar: string | null;
+  submitted_at: string;
+}
+
+export type SubmissionEvidence = {
+  id: string;
+  version_id: string;
+  kind: EvidenceKind;
+  url: string;
+  label: string | null;
+}
+
 export type Certificate = {
   id: string;
   certificate_code: string;
@@ -227,12 +255,9 @@ export type Database = {
         completed_at: string | null;
       }>;
       submissions: Table<Submission>;
-      submission_versions: Table<{
-        id: string; submission_id: string; version: number; note_ar: string | null; submitted_at: string;
-      }>;
-      submission_evidence: Table<{
-        id: string; version_id: string; kind: EvidenceKind; url: string; label: string | null;
-      }>;
+      submission_versions: Table<SubmissionVersion>;
+      submission_evidence: Table<SubmissionEvidence>;
+      reevaluation_requests: Table<ReevaluationRequest>;
       evaluations: Table<Evaluation>;
       certificates: Table<Certificate>;
       xp_events: Table<XpEvent>;
