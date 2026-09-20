@@ -1,0 +1,10 @@
+# Minimal Supabase CLI config. `supabase link --project-ref <ref>` then
+# `supabase db push` applies everything in supabase/migrations in order.
+project_id = "techmood"
+
+[db]
+major_version = 17
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
