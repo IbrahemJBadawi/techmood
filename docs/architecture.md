@@ -113,7 +113,7 @@ Two systems that must not be confused:
 | Bookings & payments | ✅ tested | ✅ full journey + admin verification |
 | Teams & workspace | ✅ tested | ✅ board, sprints, members, invites |
 | Messaging | ✅ tested | ✅ full chat with replies and reactions |
-| Wallet | ✅ tested | — ledger view next |
+| Wallet & payouts | ✅ tested | ✅ ledger, payout accounts, admin transfers |
 | Projects & Exhibition | ✅ tested | ✅ team projects, public gallery, admin review |
 | Marketplace, incubator | ✅ schema + RLS | — next |
 
@@ -178,3 +178,24 @@ them for their passport.
 
 A team earns its `project_completed` XP when the work is published, not when the
 last task is ticked: the reward attaches to work that survived review.
+
+## The wallet
+
+A balance is never stored; it is the sum of `wallet_entries`. That is what makes
+a payout safe to model:
+
+  * requesting one writes a negative `payout` row with status `available`, so the
+    money is held the instant the request exists and the same balance cannot be
+    requested twice
+  * approving flips that row to `paid` — and `available_usd` counts `available`
+    and `paid` together, so the balance stays reduced instead of bouncing back
+  * rejecting cancels the row, which is what returns the money
+
+A completed session credits the mentor their share and nothing else. The
+platform's cut is already excluded from `mentor_share_usd` and is recorded on the
+booking; an earlier version also debited it from the mentor, double-counting it.
+
+A refund credits the student's wallet — traceable — and cancels the mentor's
+earning for that session. If the mentor had already been paid out, the balance
+goes negative. That is the honest record of what happened, and the wallet says so
+rather than rounding it away.

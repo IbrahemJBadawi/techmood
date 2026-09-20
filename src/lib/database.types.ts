@@ -47,6 +47,52 @@ export type PaymentStatus =
   | 'pending' | 'under_review' | 'verified' | 'rejected' | 'failed' | 'refunded';
 
 export type SlotState = 'available' | 'pending' | 'booked' | 'unavailable';
+export type LedgerKind = 'earning' | 'fee' | 'commission' | 'payout' | 'refund';
+export type LedgerStatus = 'pending' | 'available' | 'paid' | 'cancelled';
+export type PayoutStatus = 'requested' | 'approved' | 'paid' | 'rejected';
+
+export type WalletEntry = {
+  id: string;
+  profile_id: string;
+  kind: LedgerKind;
+  amount_usd: number;
+  status: LedgerStatus;
+  description_ar: string;
+  ref_table: string | null;
+  ref_id: string | null;
+  created_at: string;
+}
+
+export type PayoutAccount = {
+  id: string;
+  profile_id: string;
+  method_key: string;
+  label_ar: string | null;
+  holder_name: string;
+  account_number: string | null;
+  wallet_number: string | null;
+  iban: string | null;
+  swift: string | null;
+  bank_name: string | null;
+  country: string | null;
+  is_default: boolean;
+  created_at: string;
+}
+
+export type PayoutRequest = {
+  id: string;
+  request_code: string;
+  profile_id: string;
+  account_id: string;
+  amount_usd: number;
+  status: PayoutStatus;
+  ledger_entry_id: string | null;
+  note_ar: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  paid_reference: string | null;
+  created_at: string;
+}
 
 export type TeamKind = 'learning' | 'project' | 'freelance' | 'startup';
 export type TeamStatus = 'active' | 'completed' | 'archived';
@@ -222,6 +268,7 @@ export type PaymentMethod = {
   requires_reference: boolean;
   reference_label_ar: string | null;
   supports_automatic_payment: boolean;
+  supports_payout: boolean;
 }
 
 export type Booking = {
@@ -580,6 +627,9 @@ export type Database = {
         id: string; mentor_id: string; day_of_week: number; start_time: string; end_time: string;
       }>;
       platform_settings: Table<{ key: string; value: string; description_ar: string | null }>;
+      wallet_entries: Table<WalletEntry>;
+      payout_accounts: Table<PayoutAccount>;
+      payout_requests: Table<PayoutRequest>;
       mentor_levels: Table<{
         level: MentorLevel; session_price_usd: number; platform_share_usd: number;
         mentor_share_usd: number; min_sessions: number; min_rating: number; sort_order: number;
@@ -598,7 +648,8 @@ export type Database = {
         conversation_id: string; profile_id: string; unread_count: number; last_message_at: string | null;
       }>;
       wallet_balance: View<{
-        profile_id: string; available_usd: number; pending_usd: number; total_earned_usd: number;
+        profile_id: string; available_usd: number; pending_usd: number;
+        total_earned_usd: number; total_paid_out_usd: number;
       }>;
     };
     Functions: {
@@ -641,6 +692,12 @@ export type Database = {
         Returns: undefined;
       };
       accept_team_invite: { Args: { p_token: string }; Returns: string };
+      request_payout: { Args: { p_account: string; p_amount: number }; Returns: PayoutRequest };
+      review_payout: {
+        Args: { p_request: string; p_approve: boolean; p_reference?: string | null; p_note?: string | null };
+        Returns: undefined;
+      };
+      refund_booking: { Args: { p_booking: string; p_reason?: string | null }; Returns: undefined };
       submit_to_exhibition: {
         Args: {
           p_project: string; p_summary: string; p_technologies?: string[];

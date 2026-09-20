@@ -1316,6 +1316,164 @@ select public.assert(
   (select count(*) from public.admin_review_queue where item_kind = 'exhibition_entry') = 0,
   '15.16 a reviewed entry leaves the admin queue');
 
+-- ===========================================================================
+-- 16. Wallet: payouts and refunds
+-- ===========================================================================
+
+-- The mentor keeps their whole share. The platform's cut lives on the booking,
+-- not as a second debit against the person who earned the money.
+select public.assert(
+  (select available_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = 10.00,
+  '16.1 a completed session leaves the mentor their full share, not share minus commission');
+
+select public.assert(
+  (select count(*) from public.wallet_entries where kind = 'commission') = 0,
+  '16.2 the double-counted commission rows are gone from member ledgers');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+
+insert into public.payout_accounts (profile_id, method_key, holder_name, wallet_number, is_default)
+values ('33333333-3333-3333-3333-333333333333', 'jawwal_pay', 'لمى الخطيب', '0599123456', true)
+returning id as payout_account \gset
+
+-- Below the platform minimum, and above the available balance: both refused.
+select public.assert_rejects(
+  format($$select public.request_payout(%L, 10)$$, :'payout_account'),
+  '16.3 a payout below the platform minimum is refused',
+  'minimum payout');
+
+select public.assert_rejects(
+  format($$select public.request_payout(%L, 500)$$, :'payout_account'),
+  '16.4 a payout larger than the available balance is refused',
+  'only');
+reset role;
+
+-- An admin lowers the minimum so the rest of the flow can be exercised.
+update public.platform_settings set value = '5' where key = 'payout_minimum_usd';
+
+-- You cannot pay yourself into someone else's account.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.request_payout(%L, 10)$$, :'payout_account'),
+  '16.5 a payout cannot be sent to someone else account',
+  'does not belong to you');
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select (public.request_payout(:'payout_account', 10)).id as payout \gset
+reset role;
+
+select public.assert(
+  (select status from public.payout_requests where id = :'payout') = 'requested',
+  '16.6 a payout request is recorded and waits for review');
+
+select public.assert(
+  (select available_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = 0.00,
+  '16.7 requesting a payout holds the money immediately');
+
+-- The same balance cannot be requested twice while the first request is open.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.request_payout(%L, 10)$$, :'payout_account'),
+  '16.8 the held balance cannot be requested a second time');
+
+select public.assert_rejects(
+  format($$select public.review_payout(%L, true, 'JP-1')$$, :'payout'),
+  '16.9 a member cannot approve their own payout',
+  'only an admin');
+reset role;
+
+-- Rejecting returns the money.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_payout(:'payout', false, null, 'بيانات الحساب غير مكتملة');
+reset role;
+
+select public.assert(
+  (select status from public.payout_requests where id = :'payout') = 'rejected',
+  '16.10 an admin can reject a payout request with a reason');
+
+select public.assert(
+  (select available_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = 10.00,
+  '16.11 rejecting a payout returns the held money to the member');
+
+select public.assert_rejects(
+  format($$select public.review_payout(%L, true, 'JP-2')$$, :'payout'),
+  '16.12 a settled payout request cannot be reviewed again',
+  'already settled');
+
+-- Approving a fresh request, and the balance stays reduced afterwards.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select (public.request_payout(:'payout_account', 10)).id as payout2 \gset
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_payout(:'payout2', true, 'JP-99887', 'حُوّل عبر Jawwal Pay');
+reset role;
+
+select public.assert(
+  (select available_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = 0.00,
+  '16.13 once paid, the balance stays reduced rather than bouncing back');
+
+select public.assert(
+  (select total_paid_out_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = 10.00,
+  '16.14 the wallet reports what has actually been paid out');
+
+-- Payout account details are personal financial data.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.payout_accounts where id = :'payout_account') = 0,
+  '16.15 another member cannot read someone payout account details');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Refunds
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.refund_booking(%L, 'أريد استرداد المبلغ')$$, :'booking'),
+  '16.16 a student cannot refund their own booking',
+  'only an admin');
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.refund_booking(:'booking', 'اعتذر المنتور بعد التأكيد');
+reset role;
+
+select public.assert(
+  (select status from public.bookings where id = :'booking') = 'refunded'
+  and (select status from public.payments where booking_id = :'booking') = 'refunded',
+  '16.17 refunding settles both the booking and its payment');
+
+select public.assert(
+  (select amount_usd from public.wallet_entries
+    where ref_id = :'booking' and kind = 'refund') = 15.00,
+  '16.18 the refund is credited to the student wallet, where it stays traceable');
+
+select public.assert(
+  (select status from public.wallet_entries
+    where ref_id = :'booking' and kind = 'earning') = 'cancelled',
+  '16.19 a refunded session is no longer earned by the mentor');
+
+-- The mentor was already paid for a session that was later refunded, so their
+-- balance goes negative. That is the honest record, not a bug to round away.
+select public.assert(
+  (select available_usd from public.wallet_balance
+    where profile_id = '33333333-3333-3333-3333-333333333333') = -10.00,
+  '16.20 a payout made before a refund leaves an honest negative balance');
+
+select public.assert(
+  (select count(*) from public.admin_review_queue where item_kind = 'payout_request') = 0,
+  '16.21 settled payout requests leave the admin queue');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

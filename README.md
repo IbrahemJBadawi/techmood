@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 146 business-rule assertions
+scripts/test.sh                   # 167 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -109,7 +109,10 @@ database constraint with a test, not a UI convention:
 13. **Exhibition contributions are derived, never self-reported.** Who built what
     is counted from completed tasks on the board, and an approved entry carries a
     frozen snapshot — so the gallery is public while the team behind it stays private.
-14. **The chat is not where work is tracked.** A blocked task must say what is
+14. **The wallet is a ledger, not a stored number.** A balance is the sum of its
+    entries; requesting a payout holds the money immediately so the same balance
+    cannot be requested twice, and rejecting returns it by cancelling the held row.
+15. **The chat is not where work is tracked.** A blocked task must say what is
     blocking it, every task carries an owner, a state and a date, and the chat only
     receives system messages reporting what happened on the board.
 
@@ -155,8 +158,12 @@ Also built: team projects and the Exhibition — a completed project is submitte
 reviewed by an admin, then published to a public gallery and onto the passport of
 everyone who worked on it.
 
+Also built: the wallet — ledger, payout accounts, payout requests with an admin
+transfer queue, and refunds that credit the student and cancel the mentor's
+earning.
+
 Still schema-only, awaiting screens: team documents and settings, the team
-calendar, the wallet ledger, the marketplace and the incubator.
+calendar, the marketplace and the incubator.
 Each already has its tables, policies and tested rules — see
 `docs/architecture.md`.
 

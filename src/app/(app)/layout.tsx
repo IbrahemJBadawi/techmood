@@ -50,6 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="nav-group-label">الإرشاد</div>
           <NavLink href="/mentors">المنتورز</NavLink>
           <NavLink href="/bookings">حجوزاتي</NavLink>
+          <NavLink href="/wallet">المحفظة</NavLink>
         </div>
 
         {(isAdmin || isMentor) && (
@@ -60,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {isAdmin && <NavLink href="/admin">لوحة الإدارة</NavLink>}
             {isAdmin && <NavLink href="/admin/payments">مراجعة المدفوعات</NavLink>}
             {isAdmin && <NavLink href="/admin/exhibition">مراجعة المعرض</NavLink>}
+            {isAdmin && <NavLink href="/admin/payouts">طلبات السحب</NavLink>}
           </div>
         )}
       </aside>

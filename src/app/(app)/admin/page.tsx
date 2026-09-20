@@ -11,6 +11,7 @@ const ITEM_LABELS: Record<string, string> = {
   payment: 'دفعة بانتظار التحقق',
   incubator_application: 'طلب حاضنة',
   exhibition_entry: 'مشروع للمعرض',
+  payout_request: 'طلب سحب',
   reevaluation_request: 'طلب إعادة تقييم',
 };
 
@@ -67,6 +68,11 @@ export default async function AdminPage() {
           {byKind('exhibition_entry').length > 0 && (
             <Link className="btn btn-sky btn-sm" href="/admin/exhibition">
               راجع المعرض ({byKind('exhibition_entry').length})
+            </Link>
+          )}
+          {byKind('payout_request').length > 0 && (
+            <Link className="btn btn-sky btn-sm" href="/admin/payouts">
+              راجع طلبات السحب ({byKind('payout_request').length})
             </Link>
           )}
         </div>
