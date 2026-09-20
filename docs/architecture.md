@@ -116,7 +116,7 @@ Two systems that must not be confused:
 | Wallet & payouts | ✅ tested | ✅ ledger, payout accounts, admin transfers |
 | Projects & Exhibition | ✅ tested | ✅ team projects, public gallery, admin review |
 | Incubator & startups | ✅ tested | ✅ canvas, plan, strategy, admin review |
-| Marketplace | ✅ schema + RLS | — next |
+| Marketplace | ✅ tested | ✅ listings, applications, applicant evidence |
 
 The order above is the recommended build order: the mentor review UI closes the
 loop a student already starts, and the booking flow is what turns the platform
@@ -233,3 +233,26 @@ applications on what they were, not on what they became afterwards.
 The canvas page talks to Supabase directly from the browser rather than
 round-tripping a server action per keystroke and drag. That is safe because RLS,
 not the component, decides who may write.
+
+## The marketplace
+
+What makes this different from a job board is that an applicant arrives with a
+record. `applicant_evidence()` returns XP, stars, certificates, published work
+and approved submissions — but only for an application made to the caller. A
+poster does not get a window onto anyone else's history; they get the record of
+the person who chose to apply to them.
+
+Requirements — minimum stars, a path certificate, named skills — are **advisory**.
+`opportunity_match()` reports honestly what is met and what is missing, to both
+sides, and nothing blocks the application. A platform whose point is growth must
+not tell someone they are not allowed to try; the human decides.
+
+Posting requires a reviewed role (company, founder, team leader or freelancer); a
+team seat additionally requires leading that team. A student-only account
+consumes the marketplace. This is what role review is for, and it was previously
+missing entirely — any account could advertise a paid job.
+
+A team seat does not open a second decision surface. Applying creates a request
+in the team's own queue, the leader decides there once, and a trigger syncs that
+answer back to the marketplace record, so the applicant never sees two different
+answers to the same question.

@@ -911,3 +911,22 @@ table.data tr:last-child td { border-bottom: none; }
 
 @media (max-width: 900px) { .roadmap-stages { grid-template-columns: 1fr 1fr 1fr; } }
 @media (max-width: 560px) { .roadmap-stages { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- marketplace ---------- */
+.opp-row {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.match-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.85rem;
+  padding: 7px 0;
+}
+.match-row .mark { width: 18px; flex: none; text-align: center; }
+.match-row.met .mark { color: var(--ok); }
+.match-row.unmet .mark { color: var(--warn); }

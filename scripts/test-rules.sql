@@ -1686,6 +1686,174 @@ select public.assert(
   (select count(*) from public.startup_stage_history where startup_id = :'startup2') = 1,
   '17.21 every startup starts with a recorded stage');
 
+-- ===========================================================================
+-- 18. Marketplace
+-- ===========================================================================
+
+-- A student-only account consumes the marketplace; posting needs a reviewed role.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert_rejects(
+  $$insert into public.opportunities (kind, title_ar, posted_by)
+    values ('job', 'مطوّر واجهات', '22222222-2222-2222-2222-222222222222')$$,
+  '18.1 a student-only account cannot post a paid job',
+  'row-level security');
+reset role;
+
+-- Give that account an approved company role, the way review would.
+insert into public.profile_roles (profile_id, role, status)
+values ('22222222-2222-2222-2222-222222222222', 'company', 'approved');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+insert into public.opportunities
+  (kind, title_ar, organization_ar, description_ar, posted_by, compensation_kind,
+   amount_min, amount_max, required_skills, min_stars, seats, tags)
+values
+  ('job', 'مطوّرة واجهات — دوام جزئي', 'شركة تقنية ناشئة',
+   'العمل على واجهة منتج قائم بـ React.', '22222222-2222-2222-2222-222222222222',
+   'monthly', 400, 700, array['React','CSS'], 3.0, 1, array['Frontend'])
+returning id as job \gset
+
+select public.assert(
+  (select count(*) from public.opportunities where id = :'job') = 1,
+  '18.2 an approved company role can post a job');
+
+-- You cannot apply to your own posting.
+select public.assert_rejects(
+  format($$select public.apply_to_opportunity(%L, 'أنا الناشر')$$, :'job'),
+  '18.3 a poster cannot apply to their own opportunity',
+  'your own posting');
+reset role;
+
+-- Matching is honest and advisory: it reports the gap, it does not slam a door.
+select public.assert(
+  (select meets_stars from public.opportunity_match(:'job', '11111111-1111-1111-1111-111111111111')) = true,
+  '18.4 the match reports whether the applicant meets the star bar');
+
+select public.assert(
+  (select array_length(missing_skills, 1)
+   from public.opportunity_match(:'job', '11111111-1111-1111-1111-111111111111')) = 2,
+  '18.5 the match names exactly which required skills are missing');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.apply_to_opportunity(:'job', 'عملت على مشروع مشابه ضمن فريق.')).id as job_app \gset
+
+select public.assert(
+  (select stage from public.opportunity_applications where id = :'job_app') = 'submitted',
+  '18.6 someone who does not meet every requirement may still apply');
+
+select public.assert_rejects(
+  format($$select public.decide_opportunity_application(%L, 'accepted')$$, :'job_app'),
+  '18.7 an applicant cannot accept their own application',
+  'only the poster');
+reset role;
+
+-- The poster sees the evidence, because the person applied to them.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select certificates from public.applicant_evidence(:'job_app')) >= 1,
+  '18.8 the poster sees the applicant verified record, not just a cover note');
+
+select public.decide_opportunity_application(:'job_app', 'shortlisted', 'سجل قوي — لنتحدث.');
+reset role;
+
+select public.assert(
+  (select stage from public.opportunity_applications where id = :'job_app') = 'shortlisted',
+  '18.9 the poster can move an application through its stages');
+
+select public.assert(
+  (select count(*) from public.notifications
+    where profile_id = '11111111-1111-1111-1111-111111111111'
+      and title_ar like '%القائمة المختصرة%') = 1,
+  '18.10 the applicant is told when their application moves');
+
+-- A third party can see neither the application nor the evidence.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+
+select public.assert(
+  (select count(*) from public.opportunity_applications where id = :'job_app') = 0,
+  '18.11 an unrelated member cannot read someone application');
+
+select public.assert_rejects(
+  format($$select * from public.applicant_evidence(%L)$$, :'job_app'),
+  '18.12 evidence is visible to the poster and the applicant, nobody else',
+  'applications made to you');
+reset role;
+
+-- Accepting fills the seat and closes a single-seat posting.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.decide_opportunity_application(:'job_app', 'accepted', 'مرحباً بك.');
+reset role;
+
+select public.assert(
+  (select filled_count from public.opportunities where id = :'job') = 1
+  and (select status from public.opportunities where id = :'job') = 'archived',
+  '18.13 accepting fills the seat and closes a one-seat posting');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.apply_to_opportunity(%L, 'متأخر')$$, :'job'),
+  '18.14 a closed opportunity takes no more applications',
+  'not open');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- A team seat is decided in the team, not in a second place
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.opportunities (kind, title_ar, posted_by, team_id, description_ar)
+values ('team_seat', 'مطوّر Backend للفريق', '11111111-1111-1111-1111-111111111111', :'team',
+        'ننفّذ مشروع متجر إلكتروني ونحتاج Backend.')
+returning id as seat \gset
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select (public.apply_to_opportunity(:'seat', 'أستطيع تولّي الـAPI.')).id as seat_app \gset
+reset role;
+
+select public.assert(
+  (select team_application_id from public.opportunity_applications where id = :'seat_app') is not null,
+  '18.15 applying for a team seat opens a request in the team own queue');
+
+-- The leader decides once, in the team, and the marketplace follows.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.decide_team_application(
+  (select team_application_id from public.opportunity_applications where id = :'seat_app'),
+  true
+);
+reset role;
+
+select public.assert(
+  (select stage from public.opportunity_applications where id = :'seat_app') = 'accepted',
+  '18.16 deciding in the team updates the marketplace record — one answer, not two');
+
+select public.assert(
+  (select count(*) from public.team_members
+    where team_id = :'team' and profile_id = '33333333-3333-3333-3333-333333333333') = 1,
+  '18.17 and the applicant is actually on the team');
+
+-- Withdrawing belongs to the applicant alone.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.decide_opportunity_application(%L, 'withdrawn')$$, :'seat_app'),
+  '18.18 only the applicant may withdraw their own application',
+  'only the applicant');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

@@ -54,6 +54,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="nav-group">
+          <div className="nav-group-label">العمل والفرص</div>
+          <NavLink href="/marketplace">سوق العمل</NavLink>
+          <NavLink href="/applications">طلباتي</NavLink>
+        </div>
+
+        <div className="nav-group">
           <div className="nav-group-label">ريادة الأعمال</div>
           <NavLink href="/startups">مشاريعي الناشئة</NavLink>
           <NavLink href="/incubator">الحاضنة</NavLink>

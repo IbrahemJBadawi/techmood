@@ -115,6 +115,49 @@ export type PlanSection =
   | 'competitive_analysis' | 'product_and_service' | 'marketing_and_sales'
   | 'operations' | 'team_and_management' | 'financial_plan' | 'risks_and_mitigation';
 export type SwotQuadrant = 'strength' | 'weakness' | 'opportunity' | 'threat';
+export type OpportunityKind = 'freelance' | 'job' | 'team_seat' | 'cofounder' | 'internship' | 'remote';
+export type CompensationKind = 'fixed' | 'hourly' | 'monthly' | 'equity' | 'revenue_share' | 'unpaid';
+export type ApplicationStage = 'submitted' | 'shortlisted' | 'accepted' | 'declined' | 'withdrawn';
+
+export type Opportunity = {
+  id: string;
+  kind: OpportunityKind;
+  title_ar: string;
+  organization_ar: string | null;
+  description_ar: string | null;
+  tags: string[];
+  compensation_ar: string | null;
+  compensation_kind: CompensationKind | null;
+  amount_min: number | null;
+  amount_max: number | null;
+  currency: string;
+  location_ar: string | null;
+  is_remote: boolean;
+  closes_on: string | null;
+  seats: number;
+  filled_count: number;
+  required_skills: string[];
+  min_stars: number | null;
+  required_path_id: string | null;
+  posted_by: string;
+  team_id: string | null;
+  status: 'draft' | 'published' | 'archived';
+  created_at: string;
+  updated_at: string;
+}
+
+export type OpportunityApplication = {
+  id: string;
+  opportunity_id: string;
+  profile_id: string;
+  cover_note_ar: string | null;
+  stage: ApplicationStage;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note_ar: string | null;
+  team_application_id: string | null;
+  created_at: string;
+}
 export type GoalStatus = 'planned' | 'on_track' | 'at_risk' | 'achieved' | 'missed';
 
 export type Startup = {
@@ -648,6 +691,8 @@ export type Database = {
         completed_at: string | null; created_at: string; updated_at: string;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
+      opportunities: Table<Opportunity>;
+      opportunity_applications: Table<OpportunityApplication>;
       startups: Table<Startup>;
       startup_members: Table<{
         startup_id: string; profile_id: string;
@@ -797,6 +842,28 @@ export type Database = {
         Returns: undefined;
       };
       accept_team_invite: { Args: { p_token: string }; Returns: string };
+      can_post_opportunity: { Args: { p_kind: OpportunityKind; p_team?: string | null }; Returns: boolean };
+      opportunity_match: {
+        Args: { p_opportunity: string; p_profile: string };
+        Returns: {
+          meets_stars: boolean; meets_path: boolean; matched_skills: string[];
+          missing_skills: string[]; profile_stars: number; profile_xp: number;
+        }[];
+      };
+      apply_to_opportunity: { Args: { p_opportunity: string; p_cover?: string | null }; Returns: OpportunityApplication };
+      decide_opportunity_application: {
+        Args: { p_application: string; p_stage: ApplicationStage; p_note?: string | null };
+        Returns: undefined;
+      };
+      applicant_evidence: {
+        Args: { p_application: string };
+        Returns: {
+          full_name: string; techmood_id: string; headline: string | null;
+          github_url: string | null; linkedin_url: string | null;
+          total_xp: number; stars_avg: number; certificates: number;
+          published_work: number; approved_submissions: number;
+        }[];
+      };
       move_canvas_card: { Args: { p_card: string; p_block: CanvasBlock; p_index?: number | null }; Returns: undefined };
       apply_to_incubator: { Args: { p_startup: string; p_pitch: string }; Returns: unknown };
       review_incubator_application: {

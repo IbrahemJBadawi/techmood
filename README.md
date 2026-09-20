@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 188 business-rule assertions
+scripts/test.sh                   # 206 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -118,7 +118,14 @@ database constraint with a test, not a UI convention:
 16. **SMART means SMART.** A goal needs a metric with numbers that move and a date
     range; progress is computed from those numbers and shown against time elapsed,
     so drift is visible before the deadline.
-17. **The chat is not where work is tracked.** A blocked task must say what is
+17. **Posting work requires a reviewed role; applying does not.** A student-only
+    account consumes the marketplace — that is what role review exists for. An
+    applicant arrives with their record, and the poster sees it only because that
+    person applied to them.
+18. **Requirements are advisory, never a gate.** A platform whose point is growth
+    must not tell someone they are not allowed to try: the match is shown honestly
+    to both sides and the human decides.
+19. **The chat is not where work is tracked.** A blocked task must say what is
     blocking it, every task carries an owner, a state and a date, and the chat only
     receives system messages reporting what happened on the board.
 
@@ -172,8 +179,12 @@ Also built: the Incubator — startups with a stage ladder, an interactive Busin
 Model Canvas (editable, colourable, draggable cards), a ten-section business plan
 with real progress, and strategy with vision, mission, SWOT and SMART goals.
 
-Still schema-only, awaiting screens: team documents and settings, the team
-calendar, and the marketplace.
+Also built: the marketplace — listings with structured pay and advisory
+requirements, evidence-backed applications, a poster's applicant queue, and team
+seats that route into the team's own decision queue instead of duplicating it.
+
+Still schema-only, awaiting screens: team documents and settings, and the team
+calendar.
 Each already has its tables, policies and tested rules — see
 `docs/architecture.md`.
 
