@@ -39,11 +39,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/certificates">الشهادات</NavLink>
         </div>
 
+        <div className="nav-group">
+          <div className="nav-group-label">الإرشاد</div>
+          <NavLink href="/mentors">المنتورز</NavLink>
+          <NavLink href="/bookings">حجوزاتي</NavLink>
+        </div>
+
         {(isAdmin || isMentor) && (
           <div className="nav-group">
             <div className="nav-group-label">المراجعة</div>
             {(isMentor || isAdmin) && <NavLink href="/review">مراجعة الأعمال</NavLink>}
+            {isMentor && <NavLink href="/mentor-requests">طلبات الجلسات</NavLink>}
             {isAdmin && <NavLink href="/admin">لوحة الإدارة</NavLink>}
+            {isAdmin && <NavLink href="/admin/payments">مراجعة المدفوعات</NavLink>}
           </div>
         )}
       </aside>

@@ -68,6 +68,17 @@ draft → payment_pending → payment_submitted → payment_verified
 does not hold the mentor's slot — an abandoned cart must not block other
 students — but every live state does, enforced by a GiST exclusion constraint.
 
+**Slot** — not a table. A slot is derived from the mentor's availability rules,
+their date-level exceptions, their time off, and the live bookings that overlap
+it. A "pending reservation" is a booking in `payment_pending` whose
+`reserved_until` is still in the future, so there is one source of truth for
+whether an hour is taken and no second table to drift.
+
+**Payment** — `pending → under_review → verified | rejected | failed`, with
+`refunded` reachable afterwards. A rejected receipt sends the booking back to
+`payment_pending` with a fresh hold, so the student keeps their appointment
+while they fix it.
+
 **Submission** — `draft → submitted → (changes_requested → submitted)* → approved`.
 Each pass through creates a new `submission_versions` row and a new `evaluations`
 row. Nothing is ever updated in place, so a re-evaluation can always be compared
@@ -90,11 +101,11 @@ Two systems that must not be confused:
 |---|---|---|
 | Identity, roles, review | ✅ tested | ✅ signup, passport, admin |
 | Academy catalogue | ✅ tested | ✅ paths, courses, lessons |
-| Submissions & evaluation | ✅ tested | ✅ student side; mentor review UI next |
+| Submissions & evaluation | ✅ tested | ✅ student side + mentor review queue |
 | XP & Stars | ✅ tested | ✅ passport, home |
 | Certificates & verification | ✅ tested | ✅ issue, list, public /verify |
-| Mentors, availability, levels | ✅ tested | — directory and profile next |
-| Bookings & payments | ✅ tested | — booking flow and payment upload next |
+| Mentors, availability, levels | ✅ tested | ✅ directory, profile, slots |
+| Bookings & payments | ✅ tested | ✅ full journey + admin verification |
 | Teams & workspace | ✅ tested | — team pages next |
 | Messaging | ✅ tested | — inbox next |
 | Wallet | ✅ tested | — ledger view next |

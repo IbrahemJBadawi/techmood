@@ -38,6 +38,112 @@ export type CertificateKind = 'course' | 'path';
 export type CertificateStatus = 'active' | 'revoked';
 export type MentorLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
 
+export type BookingStatus =
+  | 'draft' | 'payment_pending' | 'payment_submitted' | 'payment_verified'
+  | 'mentor_pending' | 'confirmed' | 'completed' | 'cancelled' | 'rejected'
+  | 'refunded' | 'expired';
+
+export type PaymentStatus =
+  | 'pending' | 'under_review' | 'verified' | 'rejected' | 'failed' | 'refunded';
+
+export type SlotState = 'available' | 'pending' | 'booked' | 'unavailable';
+
+export type SessionType = {
+  id: string;
+  slug: string;
+  name_ar: string;
+  name_en: string;
+  description_ar: string | null;
+  duration_minutes: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export type PaymentMethod = {
+  key: string;
+  name_ar: string;
+  name_en: string;
+  icon: string | null;
+  category: 'local' | 'international';
+  is_enabled: boolean;
+  sort_order: number;
+  instructions_ar: string | null;
+  recipient_name: string | null;
+  account_number: string | null;
+  wallet_number: string | null;
+  iban: string | null;
+  swift: string | null;
+  bank_name: string | null;
+  bank_address: string | null;
+  city: string | null;
+  country: string | null;
+  requires_receipt: boolean;
+  requires_reference: boolean;
+  reference_label_ar: string | null;
+  supports_automatic_payment: boolean;
+}
+
+export type Booking = {
+  id: string;
+  booking_code: string;
+  kind: 'student_mentor' | 'team_mentor';
+  student_id: string | null;
+  team_id: string | null;
+  mentor_id: string;
+  session_type_id: string | null;
+  scheduled_start: string;
+  scheduled_end: string;
+  status: BookingStatus;
+  seats: number;
+  price_usd: number;
+  platform_share_usd: number;
+  mentor_share_usd: number;
+  topic_ar: string | null;
+  session_goal_ar: string | null;
+  notes_ar: string | null;
+  reserved_until: string | null;
+  mentor_decided_at: string | null;
+  confirmed_at: string | null;
+  completed_at: string | null;
+  cancelled_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type Payment = {
+  id: string;
+  booking_id: string;
+  method_key: string;
+  amount_usd: number;
+  status: PaymentStatus;
+  reference: string | null;
+  proof_path: string | null;
+  submitted_at: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejection_reason: string | null;
+  failure_reason: string | null;
+  created_at: string;
+}
+
+export type BookingEvent = {
+  id: string;
+  booking_id: string;
+  event_key: string;
+  note_ar: string | null;
+  actor_id: string | null;
+  created_at: string;
+}
+
+export type BookingReviewItem = {
+  id: string;
+  booking_id: string;
+  item_kind: 'submission' | 'project' | 'course' | 'learning_path' | 'certificate' | 'career_goal';
+  item_id: string | null;
+  label_ar: string;
+  created_at: string;
+}
+
 export type XpSource =
   | 'lesson_completed' | 'assignment_evaluated' | 'course_project_evaluated'
   | 'course_completed' | 'path_project_evaluated' | 'path_completed'
@@ -55,6 +161,7 @@ export type Profile = {
   github_url: string | null;
   linkedin_url: string | null;
   website_url: string | null;
+  phone: string | null;
   is_public: boolean;
   created_at: string;
   updated_at: string;
@@ -273,6 +380,28 @@ export type Database = {
         domains: string[]; session_minutes: number; is_accepting: boolean;
         sessions_count: number; rating_avg: number | null;
       }>;
+      projects: Table<{
+        id: string; code: string; title_ar: string; description_ar: string | null;
+        owner_id: string; team_id: string | null; path_id: string | null;
+        status: 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
+        tags: string[]; is_public: boolean; created_at: string; updated_at: string;
+      }>;
+      teams: Table<{
+        id: string; slug: string; title_ar: string; description_ar: string | null;
+        leader_id: string; needs: string[]; is_open: boolean; path_id: string | null;
+        created_at: string; updated_at: string;
+      }>;
+      session_types: Table<SessionType>;
+      payment_methods: Table<PaymentMethod>;
+      bookings: Table<Booking>;
+      payments: Table<Payment>;
+      booking_events: Table<BookingEvent>;
+      booking_review_items: Table<BookingReviewItem>;
+      mentor_session_types: Table<{ mentor_id: string; session_type_id: string; is_active: boolean }>;
+      mentor_availability: Table<{
+        id: string; mentor_id: string; day_of_week: number; start_time: string; end_time: string;
+      }>;
+      platform_settings: Table<{ key: string; value: string; description_ar: string | null }>;
       mentor_levels: Table<{
         level: MentorLevel; session_price_usd: number; platform_share_usd: number;
         mentor_share_usd: number; min_sessions: number; min_rating: number; sort_order: number;
@@ -306,6 +435,29 @@ export type Database = {
         Returns: Certificate;
       };
       verify_certificate: { Args: { p_code: string }; Returns: VerifiedCertificate[] };
+      mentor_available_slots: {
+        Args: { p_mentor: string; p_from: string; p_to: string };
+        Returns: { slot_start: string; slot_end: string; state: SlotState }[];
+      };
+      create_booking_request: {
+        Args: {
+          p_mentor: string; p_session_type: string; p_starts_at: string;
+          p_method_key: string; p_goal?: string | null; p_review_items?: unknown;
+        };
+        Returns: Booking;
+      };
+      submit_payment_proof: {
+        Args: { p_booking_id: string; p_proof_path?: string | null; p_reference?: string | null };
+        Returns: undefined;
+      };
+      verify_payment: {
+        Args: { p_payment_id: string; p_approve: boolean; p_reason?: string | null };
+        Returns: undefined;
+      };
+      mentor_decide_booking: {
+        Args: { p_booking_id: string; p_accept: boolean; p_reason?: string | null };
+        Returns: undefined;
+      };
       is_course_complete: { Args: { p_profile: string; p_course: string }; Returns: boolean };
       is_path_complete: { Args: { p_profile: string; p_path: string }; Returns: boolean };
       is_admin: { Args: Record<string, never>; Returns: boolean };

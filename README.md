@@ -56,15 +56,16 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 63 business-rule assertions
+scripts/test.sh                   # 93 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
 
 The suite covers identity and TechMood IDs, role review, the XP economy,
-evaluation history, RLS isolation between users, certificate eligibility,
-mentor availability, the booking state machine, payment verification, message
-rules, team quotas and the admin surface.
+evaluation history, cross-mentor review visibility, RLS isolation between users,
+certificate eligibility, mentor availability and derived slots, price integrity,
+the booking state machine, reservation expiry, payment verification and receipt
+rules, message rules, team quotas and the admin surface.
 
 ---
 
@@ -84,7 +85,12 @@ database constraint with a test, not a UI convention:
 4. **Every evaluation is traceable.** Resubmitting creates a new version; the
    earlier submission, its feedback and its score all survive.
 5. **A booking is never confirmed before its payment is verified** and the
-   mentor has accepted it. The state machine lives in a trigger.
+   mentor has accepted it. Slot, booking and payment are three separate state
+   machines, so "paid but not yet accepted" is sayable instead of collapsing
+   into one misleading flag.
+5b. **The price is read from the mentor's level in the database.** Bookings are
+   created by `create_booking_request()` and clients hold no INSERT policy, so
+   nobody books a $100 session for $0.
 6. **Mentor prices come from the published L1–L6 ladder**, and the platform and
    mentor shares must always sum to the session price.
 7. **Availability is capped at 5 hours a day**, and a session needs 3 days'
@@ -122,11 +128,21 @@ docs/
 
 ## Status
 
-Built and tested: identity, roles and review, the academy catalogue, lesson
-progress, submissions and evaluation history, the XP economy, certificates and
-public verification, and the admin review queue.
+Built and tested end to end: identity and roles, the academy catalogue, lesson
+progress, submissions with evaluation history, the mentor review queue,
+certificates and public verification, the full booking and payment journey
+(mentor directory → session type → slot → goal → payment method → receipt →
+admin verification → mentor approval → confirmed), and the admin surface.
 
-Schema, rules and security are complete for the whole platform — mentors,
-bookings, payments, teams, messaging, wallet, marketplace and the incubator all
-have their tables, policies and tested business rules. What those modules still
-need is their screens; see `docs/architecture.md` for what exists behind each.
+Still schema-only, awaiting screens: teams and their workspace, messaging,
+the wallet ledger, the marketplace and the incubator. Each already has its
+tables, policies and tested rules — see `docs/architecture.md`.
+
+### Scheduled job
+
+`public.expire_stale_bookings()` releases slots held by reservations that were
+never paid for. Run it every few minutes with pg_cron:
+
+```sql
+select cron.schedule('expire-bookings', '*/5 * * * *', $$select public.expire_stale_bookings()$$);
+```

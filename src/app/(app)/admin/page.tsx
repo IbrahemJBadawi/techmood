@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -56,6 +57,11 @@ export default async function AdminPage() {
             </div>
           ))}
         </div>
+        {byKind('payment').length > 0 && (
+          <Link className="btn btn-primary btn-sm" style={{ marginTop: 14 }} href="/admin/payments">
+            راجع المدفوعات ({byKind('payment').length})
+          </Link>
+        )}
       </section>
 
       <section className="section-block">

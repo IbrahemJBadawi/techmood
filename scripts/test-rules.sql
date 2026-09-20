@@ -363,8 +363,8 @@ select public.assert_rejects(
       (kind, student_id, mentor_id, scheduled_start, scheduled_end, price_usd, platform_share_usd, mentor_share_usd)
     values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
             now() + interval '1 day', now() + interval '1 day 1 hour', 15, 5, 10)$$,
-  '6.3 a session cannot be booked less than 3 days ahead',
-  'at least 3 days');
+  '6.3 a session cannot be booked inside the 72-hour notice window',
+  'at least 72 hours');
 
 select public.assert_rejects(
   $$insert into public.bookings
@@ -408,8 +408,8 @@ select public.assert_rejects(
             date_trunc('day', now() + interval '7 days') + interval '11 hours 30 minutes', 15, 5, 10, 'payment_pending')$$,
   '6.7 a live booking blocks an overlapping slot for the same mentor');
 
-insert into public.payments (booking_id, method, amount_usd, status, reference, submitted_at)
-values (:'booking', 'jawwal_pay', 15, 'submitted', 'JP-99213', now())
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'booking', 'jawwal_pay', 15, 'under_review', 'JP-99213', now())
 returning id as payment \gset
 
 update public.bookings set status = 'payment_submitted' where id = :'booking';
@@ -679,6 +679,184 @@ select public.assert(
       and source = 'assignment_evaluated'
       and ref_id = :'first_submission') = 1,
   '11.8 re-approving the same work does not pay XP twice');
+
+-- ===========================================================================
+-- 12. Booking flow: slots, price integrity, payment, expiry
+-- ===========================================================================
+
+-- The mentor publishes which session types they offer.
+insert into public.mentor_session_types (mentor_id, session_type_id)
+select '33333333-3333-3333-3333-333333333333', id
+from public.session_types where slug in ('career_guidance', 'project_review');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+-- A type the mentor does not offer is refused.
+select public.assert_rejects(
+  format($$select public.create_booking_request(
+      '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'portfolio_review'),
+      date_trunc('day', now() + interval '10 days') + interval '11 hours',
+      'jawwal_pay')$$),
+  '12.1 a mentor cannot be booked for a session type they do not offer',
+  'does not offer');
+
+-- A payment method the admin turned off is refused.
+select public.assert_rejects(
+  format($$select public.create_booking_request(
+      '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      date_trunc('day', now() + interval '10 days') + interval '11 hours',
+      'fawateer')$$),
+  '12.2 a disabled payment method cannot be used',
+  'not available');
+
+-- A real request.
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  date_trunc('day', now() + interval '10 days') + interval '11 hours',
+  'jawwal_pay',
+  'أريد مراجعة مشروعي وتحديد خطوتي التالية.',
+  '[{"kind":"project","label":"مشروع GenAI"}]'::jsonb
+)).id as booking2 \gset
+reset role;
+
+select public.assert(
+  (select price_usd from public.bookings where id = :'booking2') = 15.00
+  and (select platform_share_usd from public.bookings where id = :'booking2') = 5.00
+  and (select mentor_share_usd from public.bookings where id = :'booking2') = 10.00,
+  '12.3 the price comes from the mentor level, never from the caller');
+
+select public.assert(
+  (select status from public.bookings where id = :'booking2') = 'payment_pending'
+  and (select reserved_until from public.bookings where id = :'booking2') > now(),
+  '12.4 a new request holds the slot while the student pays');
+
+select public.assert(
+  (select count(*) from public.booking_review_items where booking_id = :'booking2') = 1,
+  '12.5 what the student asked to be reviewed is attached to the booking');
+
+select public.assert(
+  (select state from public.mentor_available_slots(
+     '33333333-3333-3333-3333-333333333333',
+     (date_trunc('day', now() + interval '10 days'))::date,
+     (date_trunc('day', now() + interval '10 days'))::date)
+   where slot_start = date_trunc('day', now() + interval '10 days') + interval '11 hours') = 'pending',
+  '12.6 the held slot reads as pending on the mentor calendar');
+
+select public.assert(
+  (select state from public.mentor_available_slots(
+     '33333333-3333-3333-3333-333333333333',
+     (date_trunc('day', now() + interval '10 days'))::date,
+     (date_trunc('day', now() + interval '10 days'))::date)
+   where slot_start = date_trunc('day', now() + interval '10 days') + interval '12 hours') = 'available',
+  '12.7 a free hour in the same window still reads as available');
+
+select public.assert(
+  (select count(*) from public.mentor_available_slots(
+     '33333333-3333-3333-3333-333333333333', current_date, current_date)
+   where state = 'available') = 0,
+  '12.8 nothing inside the 72-hour notice window is bookable');
+
+-- A second student cannot take a held slot.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.create_booking_request(
+      '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      date_trunc('day', now() + interval '10 days') + interval '11 hours',
+      'jawwal_pay')$$),
+  '12.9 a held slot cannot be double-booked by another student');
+
+-- Receipt and reference requirements are re-checked in the database.
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.submit_payment_proof(%L, null, null)$$, :'booking2'),
+  '12.10 a method that requires a receipt refuses a submission without one',
+  'requires a receipt');
+
+select public.submit_payment_proof(
+  :'booking2',
+  '11111111-1111-1111-1111-111111111111/receipt-2.png',
+  'JP-77120'
+);
+reset role;
+
+select public.assert(
+  (select status from public.bookings where id = :'booking2') = 'payment_submitted'
+  and (select status from public.payments where booking_id = :'booking2') = 'under_review',
+  '12.11 submitting the receipt hands the payment to TechMood for review');
+
+-- A rejected receipt returns the booking to the student with the slot still held.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(
+  (select id from public.payments where booking_id = :'booking2'),
+  false,
+  'الإيصال غير واضح.'
+);
+reset role;
+
+select public.assert(
+  (select status from public.bookings where id = :'booking2') = 'payment_pending'
+  and (select reserved_until from public.bookings where id = :'booking2') > now(),
+  '12.12 a rejected payment returns the booking with a fresh hold on the slot');
+
+select public.assert(
+  (select rejection_reason from public.payments where booking_id = :'booking2') = 'الإيصال غير واضح.',
+  '12.13 the student can be told exactly why the receipt was rejected');
+
+-- An abandoned reservation releases its slot.
+update public.bookings set reserved_until = now() - interval '1 minute' where id = :'booking2';
+
+select public.assert(
+  public.expire_stale_bookings() >= 1,
+  '12.14 abandoned reservations are expired by the scheduled job');
+
+select public.assert(
+  (select status from public.bookings where id = :'booking2') = 'expired',
+  '12.15 the abandoned booking ends in expired, not cancelled');
+
+select public.assert(
+  (select state from public.mentor_available_slots(
+     '33333333-3333-3333-3333-333333333333',
+     (date_trunc('day', now() + interval '10 days'))::date,
+     (date_trunc('day', now() + interval '10 days'))::date)
+   where slot_start = date_trunc('day', now() + interval '10 days') + interval '11 hours') = 'available',
+  '12.16 an expired reservation gives the slot back');
+
+select public.assert(
+  (select count(*) from public.booking_events where booking_id = :'booking2') >= 5,
+  '12.17 every step of the booking is recorded on its timeline');
+
+select public.assert(
+  (select count(*) from public.booking_events
+    where booking_id = :'booking2' and event_key = 'payment_rejected') = 1,
+  '12.18 the timeline distinguishes payment events from booking events');
+
+-- Payment proof stays private to the payer and admins.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.payments where booking_id = :'booking2') = 0,
+  '12.19 the mentor still cannot read the receipt or its reference');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.payment_methods where key = 'fawateer') = 0,
+  '12.20 a student never sees a payment method the admin disabled');
+
+select public.assert(
+  (select count(*) from public.payment_methods) = 7,
+  '12.21 a student sees exactly the seven enabled methods');
+reset role;
+
+select public.assert(
+  (select count(*) from public.payment_methods) = 8,
+  '12.22 an admin still sees the disabled method in order to enable it');
 
 \echo ''
 \echo '================================================'
