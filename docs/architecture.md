@@ -114,6 +114,7 @@ Two systems that must not be confused:
 | Teams & workspace | ✅ tested | ✅ board, sprints, members, invites |
 | Messaging | ✅ tested | ✅ full chat with replies and reactions |
 | Wallet | ✅ tested | — ledger view next |
+| Projects & Exhibition | ✅ tested | ✅ team projects, public gallery, admin review |
 | Marketplace, incubator | ✅ schema + RLS | — next |
 
 The order above is the recommended build order: the mentor review UI closes the
@@ -154,3 +155,26 @@ Team XP lives in its own ledger (`team_xp_events`), separate from personal XP,
 so a team's reputation is neither the sum of its members' nor a way to inflate
 it. A completed task pays the team 2 XP, plus 5 when it landed on time, and the
 assignee a small fixed personal amount.
+
+## Exhibition
+
+The last link in the chain: Team → Project → Mentor → Evaluation → **Exhibition**
+→ Portfolio → Work. Without it a finished project stays inside a private
+workspace and never reaches anyone's professional record.
+
+Two decisions shape it:
+
+**Contributions are derived.** Who did what on a project is counted from the
+completed tasks that point at it, through `project_contributions()`. Asking
+people to describe their own contribution would invite a nicer story than the
+one the board tells, and the whole point of the platform is evidence.
+
+**Approval freezes a snapshot**, the same pattern as certificates. The gallery is
+public while most teams are private workspaces, so publishing copies what was
+approved — project, team name, members and their task counts, mentor reviews,
+evidence links — instead of opening a window into live data. `exhibition_gallery`
+reads snapshots only, and `profile_exhibition_entries()` finds a member inside
+them for their passport.
+
+A team earns its `project_completed` XP when the work is published, not when the
+last task is ticked: the reward attaches to work that survived review.

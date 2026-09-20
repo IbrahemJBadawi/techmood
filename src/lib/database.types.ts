@@ -57,6 +57,49 @@ export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
 export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
 export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
+export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
+export type ExhibitionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+
+/** Frozen at approval, so the public gallery never reads live workspace data. */
+export type ExhibitionSnapshot = {
+  project_code: string;
+  project_title: string;
+  description: string | null;
+  summary: string;
+  documentation: string | null;
+  technologies: string[];
+  demo_url: string | null;
+  completed_on: string;
+  team: { code: string; title: string } | null;
+  members: {
+    profile_id: string;
+    full_name: string;
+    techmood_id: string;
+    responsibility: string | null;
+    tasks_done: number;
+  }[];
+  mentors: { full_name: string; stars: number }[];
+  evidence: { kind: string; url: string; label: string | null }[];
+}
+
+export type ExhibitionEntry = {
+  id: string;
+  entry_code: string;
+  project_id: string;
+  team_id: string | null;
+  submitted_by: string;
+  summary_ar: string;
+  technologies: string[];
+  demo_url: string | null;
+  documentation_ar: string | null;
+  status: ExhibitionStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note_ar: string | null;
+  published_at: string | null;
+  snapshot: ExhibitionSnapshot | null;
+  created_at: string;
+}
 
 export type Team = {
   id: string;
@@ -481,8 +524,13 @@ export type Database = {
       projects: Table<{
         id: string; code: string; title_ar: string; description_ar: string | null;
         owner_id: string; team_id: string | null; path_id: string | null;
-        status: 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
-        tags: string[]; is_public: boolean; created_at: string; updated_at: string;
+        status: ProjectStatus; tags: string[]; is_public: boolean;
+        completed_at: string | null; created_at: string; updated_at: string;
+      }>;
+      exhibition_entries: Table<ExhibitionEntry>;
+      project_evidence: Table<{
+        id: string; project_id: string; kind: EvidenceKind; url: string;
+        label: string | null; created_at: string;
       }>;
       teams: Table<Team>;
       team_members: Table<TeamMember>;
@@ -543,6 +591,9 @@ export type Database = {
       admin_review_queue: View<ReviewQueueItem>;
       team_xp: View<{ team_id: string; total_xp: number }>;
       team_stars: View<{ team_id: string; stars_avg: number | null; reviews_count: number }>;
+      exhibition_gallery: View<{
+        entry_code: string; published_at: string; snapshot: ExhibitionSnapshot;
+      }>;
       conversation_unread: View<{
         conversation_id: string; profile_id: string; unread_count: number; last_message_at: string | null;
       }>;
@@ -590,6 +641,31 @@ export type Database = {
         Returns: undefined;
       };
       accept_team_invite: { Args: { p_token: string }; Returns: string };
+      submit_to_exhibition: {
+        Args: {
+          p_project: string; p_summary: string; p_technologies?: string[];
+          p_demo_url?: string | null; p_documentation?: string | null;
+        };
+        Returns: ExhibitionEntry;
+      };
+      review_exhibition_entry: {
+        Args: { p_entry: string; p_approve: boolean; p_note?: string | null };
+        Returns: undefined;
+      };
+      project_contributions: {
+        Args: { p_project: string };
+        Returns: {
+          profile_id: string; full_name: string; techmood_id: string;
+          responsibility_ar: string | null; tasks_done: number;
+        }[];
+      };
+      profile_exhibition_entries: {
+        Args: { p_profile: string };
+        Returns: {
+          entry_code: string; project_title: string; team_title: string | null;
+          published_at: string; tasks_done: number;
+        }[];
+      };
       team_permission: { Args: { p_team: string; p_permission: string }; Returns: boolean };
       is_team_member: { Args: { p_team: string }; Returns: boolean };
       is_team_leader: { Args: { p_team: string }; Returns: boolean };

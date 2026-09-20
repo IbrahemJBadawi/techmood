@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
@@ -44,6 +45,8 @@ export default async function PassportPage() {
       supabase.from('xp_events').select('id, source, xp, created_at').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(12),
       supabase.from('certificates').select('certificate_code, kind, issued_at, snapshot').eq('profile_id', user.id).eq('status', 'active'),
     ]);
+
+  const { data: exhibition } = await supabase.rpc('profile_exhibition_entries', { p_profile: user.id });
 
   const totalXp = xp?.total_xp ?? 0;
   const level = levelInfo(totalXp);
@@ -108,6 +111,31 @@ export default async function PassportPage() {
                       <td>{XP_SOURCE_LABELS[event.source] ?? event.source}</td>
                       <td className="eng">+{event.xp}</td>
                       <td className="eng">{new Date(event.created_at).toLocaleDateString('ar-EG')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="panel section-block">
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>🏛️ أعمال منشورة في المعرض</h3>
+            {(exhibition?.length ?? 0) === 0 ? (
+              <p className="muted" style={{ fontSize: '0.86rem' }}>
+                لا أعمال منشورة بعد — أكمل مشروعاً مع فريقك وقدّمه للمعرض ليظهر هنا كدليل مهني.
+              </p>
+            ) : (
+              <table className="data">
+                <thead><tr><th>المشروع</th><th>الفريق</th><th>مهامك</th><th></th></tr></thead>
+                <tbody>
+                  {exhibition!.map((entry) => (
+                    <tr key={entry.entry_code}>
+                      <td>{entry.project_title}</td>
+                      <td>{entry.team_title ?? '—'}</td>
+                      <td className="eng">{entry.tasks_done}</td>
+                      <td>
+                        <Link className="btn btn-ghost btn-sm" href={`/exhibition/${entry.entry_code}`}>عرض</Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

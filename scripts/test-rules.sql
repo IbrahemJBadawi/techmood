@@ -1191,6 +1191,131 @@ select public.assert(
   (select count(*) from public.messages where conversation_id = :'sara_admin_conv') = 2,
   '14.10 an admin can answer a support thread without joining it first');
 
+-- ===========================================================================
+-- 15. Exhibition — turning team work into professional evidence
+-- ===========================================================================
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into public.projects (title_ar, description_ar, owner_id, team_id, tags)
+values ('منصة تجارة إلكترونية', 'متجر متكامل بلوحة تحكم وتقارير مبيعات.',
+        '11111111-1111-1111-1111-111111111111', :'team', array['React','Node.js'])
+returning id as project \gset
+
+-- Contributions are read off the board, so the tasks have to point at the project.
+update public.team_tasks set project_id = :'project' where id = :'task';
+
+insert into public.team_tasks (team_id, project_id, title_ar, assignee_id, created_by, column_key)
+values (:'team', :'project', 'بناء واجهة المتجر', '11111111-1111-1111-1111-111111111111',
+        '11111111-1111-1111-1111-111111111111', 'done');
+
+-- An unfinished project has nothing to exhibit.
+select public.assert_rejects(
+  format($$select public.submit_to_exhibition(%L, 'ملخص المشروع')$$, :'project'),
+  '15.1 an unfinished project cannot be submitted to the exhibition',
+  'only a completed project');
+
+update public.projects set status = 'completed' where id = :'project';
+reset role;
+
+select public.assert(
+  (select completed_at from public.projects where id = :'project') is not null,
+  '15.2 marking a project complete stamps when it finished');
+
+-- Someone outside the project cannot submit it.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.submit_to_exhibition(%L, 'ملخص من شخص آخر')$$, :'project'),
+  '15.3 only the project owner or the team leader may submit it',
+  'only the project owner');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.submit_to_exhibition(
+  :'project',
+  'متجر إلكتروني كامل بُني ضمن فريق TechMood، مع لوحة تحكم وتقارير مبيعات.',
+  array['React','Node.js','PostgreSQL'],
+  'https://demo.example.com',
+  'التوثيق الكامل داخل مستودع المشروع.'
+)).id as entry \gset
+reset role;
+
+select public.assert(
+  (select status from public.exhibition_entries where id = :'entry') = 'submitted',
+  '15.4 a completed project can be submitted and waits for review');
+
+-- Nothing is public before an admin approves it.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 0,
+  '15.5 a submitted entry is not in the public gallery yet');
+
+select public.assert_rejects(
+  format($$select public.review_exhibition_entry(%L, true)$$, :'entry'),
+  '15.6 only an admin may approve an exhibition entry',
+  'only an admin');
+
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_exhibition_entry(:'entry', true, 'عمل موثّق ومكتمل.');
+reset role;
+
+select public.assert(
+  (select status from public.exhibition_entries where id = :'entry') = 'approved'
+  and (select published_at from public.exhibition_entries where id = :'entry') is not null,
+  '15.7 approval publishes the entry');
+
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 1,
+  '15.8 an approved entry appears in the public gallery');
+
+-- Contributions are derived, and frozen into the snapshot at approval.
+select public.assert(
+  (select jsonb_array_length(snapshot -> 'members') from public.exhibition_entries where id = :'entry') = 2,
+  '15.9 the snapshot records both members who completed work on the project');
+
+select public.assert(
+  (select (member ->> 'tasks_done')::integer
+   from public.exhibition_entries e
+   cross join lateral jsonb_array_elements(e.snapshot -> 'members') as member
+   where e.id = :'entry'
+     and (member ->> 'profile_id')::uuid = '11111111-1111-1111-1111-111111111111') = 1,
+  '15.10 each member contribution is counted from completed tasks, not self-reported');
+
+select public.assert(
+  (select snapshot #>> '{team,title}' from public.exhibition_entries where id = :'entry')
+    = (select title_ar from public.teams where id = :'team'),
+  '15.11 the snapshot carries the team that built it');
+
+-- Publishing must not open a window into a private workspace.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 1
+  and (select count(*) from public.teams where id = :'team') = 0
+  and (select count(*) from public.team_tasks where team_id = :'team') = 0,
+  '15.12 the gallery is public while the team behind it stays private');
+reset role;
+
+-- It reaches the members' professional record.
+select public.assert(
+  (select count(*) from public.profile_exhibition_entries('22222222-2222-2222-2222-222222222222')) = 1,
+  '15.13 a published project shows on the passport of everyone who built it');
+
+select public.assert(
+  (select count(*) from public.profile_exhibition_entries('33333333-3333-3333-3333-333333333333')) = 0,
+  '15.14 someone who did not work on it does not get credit for it');
+
+select public.assert(
+  (select count(*) from public.team_xp_events
+    where team_id = :'team' and source = 'project_completed') = 1,
+  '15.15 the team earns its project XP when the work is published, not before');
+
+select public.assert(
+  (select count(*) from public.admin_review_queue where item_kind = 'exhibition_entry') = 0,
+  '15.16 a reviewed entry leaves the admin queue');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

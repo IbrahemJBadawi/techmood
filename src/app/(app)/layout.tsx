@@ -37,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLink href="/passport">الجواز المهني</NavLink>
           <NavLink href="/academy">الأكاديمية</NavLink>
           <NavLink href="/certificates">الشهادات</NavLink>
+          <NavLink href="/exhibition">المعرض</NavLink>
         </div>
 
         <div className="nav-group">
@@ -58,6 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             {isMentor && <NavLink href="/mentor-requests">طلبات الجلسات</NavLink>}
             {isAdmin && <NavLink href="/admin">لوحة الإدارة</NavLink>}
             {isAdmin && <NavLink href="/admin/payments">مراجعة المدفوعات</NavLink>}
+            {isAdmin && <NavLink href="/admin/exhibition">مراجعة المعرض</NavLink>}
           </div>
         )}
       </aside>

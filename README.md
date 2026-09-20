@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 130 business-rule assertions
+scripts/test.sh                   # 146 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -106,7 +106,10 @@ database constraint with a test, not a UI convention:
     members and finished projects — never its work in progress.
 12. **A learning path is always open** — no cohorts, no intake windows. One
     permanent conversation per path, joined by enrolling, never closed.
-13. **The chat is not where work is tracked.** A blocked task must say what is
+13. **Exhibition contributions are derived, never self-reported.** Who built what
+    is counted from completed tasks on the board, and an approved entry carries a
+    frozen snapshot — so the gallery is public while the team behind it stays private.
+14. **The chat is not where work is tracked.** A blocked task must say what is
     blocking it, every task carries an owner, a state and a date, and the chat only
     receives system messages reporting what happened on the board.
 
@@ -148,8 +151,12 @@ members and invitations by TechMood ID, activity log, team XP and stars) and
 Messages — a private contextual chat with replies, reactions, read state and
 system messages, and no links, files or posts by design.
 
+Also built: team projects and the Exhibition — a completed project is submitted,
+reviewed by an admin, then published to a public gallery and onto the passport of
+everyone who worked on it.
+
 Still schema-only, awaiting screens: team documents and settings, the team
-calendar, the exhibition, the wallet ledger, the marketplace and the incubator.
+calendar, the wallet ledger, the marketplace and the incubator.
 Each already has its tables, policies and tested rules — see
 `docs/architecture.md`.
 

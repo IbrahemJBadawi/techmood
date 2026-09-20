@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 /** Routes a signed-out visitor may open. Everything else redirects to /login. */
-const PUBLIC_PREFIXES = ['/', '/login', '/signup', '/verify', '/auth'];
+const PUBLIC_PREFIXES = ['/', '/login', '/signup', '/verify', '/exhibition', '/auth'];
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some(

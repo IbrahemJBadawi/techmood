@@ -10,6 +10,7 @@ const ITEM_LABELS: Record<string, string> = {
   submission: 'تسليم بانتظار التقييم',
   payment: 'دفعة بانتظار التحقق',
   incubator_application: 'طلب حاضنة',
+  exhibition_entry: 'مشروع للمعرض',
   reevaluation_request: 'طلب إعادة تقييم',
 };
 
@@ -57,11 +58,18 @@ export default async function AdminPage() {
             </div>
           ))}
         </div>
-        {byKind('payment').length > 0 && (
-          <Link className="btn btn-primary btn-sm" style={{ marginTop: 14 }} href="/admin/payments">
-            راجع المدفوعات ({byKind('payment').length})
-          </Link>
-        )}
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          {byKind('payment').length > 0 && (
+            <Link className="btn btn-primary btn-sm" href="/admin/payments">
+              راجع المدفوعات ({byKind('payment').length})
+            </Link>
+          )}
+          {byKind('exhibition_entry').length > 0 && (
+            <Link className="btn btn-sky btn-sm" href="/admin/exhibition">
+              راجع المعرض ({byKind('exhibition_entry').length})
+            </Link>
+          )}
+        </div>
       </section>
 
       <section className="section-block">
