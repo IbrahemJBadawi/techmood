@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { enrolInPath } from '../actions';
 
 export default async function PathPage({ params }: { params: Promise<{ pathSlug: string }> }) {
   const { pathSlug } = await params;
@@ -40,6 +41,16 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const { data: pathComplete } = await supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id });
 
+  const [{ data: enrolment }, { data: pathConversation }] = await Promise.all([
+    supabase
+      .from('enrollments')
+      .select('id')
+      .eq('profile_id', user.id)
+      .eq('path_id', path.id)
+      .maybeSingle(),
+    supabase.from('conversations').select('id').eq('path_id', path.id).maybeSingle(),
+  ]);
+
   const { data: groupProject } = await supabase
     .from('assignments')
     .select('id, title_ar, brief_ar, required_evidence')
@@ -72,6 +83,27 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
         </div>
         <div className="progress-track" style={{ marginTop: 6 }}>
           <div className="progress-fill" style={{ width: `${percent}%` }} />
+        </div>
+
+        {/* A path never closes, so enrolling is simply joining — and it is what
+            gives you the path's conversation with everyone else on it. */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+          {enrolment ? (
+            <>
+              <span className="status-pill status-ok">أنت ملتحق بهذا المسار</span>
+              {pathConversation && (
+                <Link className="btn btn-ghost btn-sm" href={`/messages?c=${pathConversation.id}`}>
+                  محادثة المسار
+                </Link>
+              )}
+            </>
+          ) : (
+            <form action={enrolInPath}>
+              <input type="hidden" name="path_id" value={path.id} />
+              <input type="hidden" name="revalidate" value={`/academy/${path.slug}`} />
+              <button className="btn btn-primary btn-sm">التحق بالمسار</button>
+            </form>
+          )}
         </div>
       </section>
 

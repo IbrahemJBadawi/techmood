@@ -56,7 +56,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 120 business-rule assertions
+scripts/test.sh                   # 130 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -104,7 +104,9 @@ database constraint with a test, not a UI convention:
 11. **A team is a closed workspace.** Its tasks, chat and documents are members-only;
     a team may opt into a public professional profile, and that publishes its name,
     members and finished projects — never its work in progress.
-12. **The chat is not where work is tracked.** A blocked task must say what is
+12. **A learning path is always open** — no cohorts, no intake windows. One
+    permanent conversation per path, joined by enrolling, never closed.
+13. **The chat is not where work is tracked.** A blocked task must say what is
     blocking it, every task carries an owner, a state and a date, and the chat only
     receives system messages reporting what happened on the board.
 

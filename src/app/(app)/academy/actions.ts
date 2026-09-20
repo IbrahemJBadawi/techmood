@@ -88,3 +88,22 @@ export async function issueCertificate(_prev: ActionState, formData: FormData): 
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
   return { ok: 'تم إصدار الشهادة.' };
 }
+
+/**
+ * Enrols the caller in a path. A path is always open — there are no cohorts and
+ * no intake window — so this is idempotent, and it also joins the path's
+ * permanent conversation through a database trigger.
+ */
+export async function enrolInPath(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const pathId = String(formData.get('path_id') ?? '');
+
+  await supabase
+    .from('enrollments')
+    .upsert({ profile_id: user.id, path_id: pathId }, { onConflict: 'profile_id,path_id' });
+
+  revalidatePath(String(formData.get('revalidate') ?? '/academy'));
+}

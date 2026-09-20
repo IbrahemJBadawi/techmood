@@ -1098,6 +1098,99 @@ select public.assert(
       and profile_id = '55555555-5555-5555-5555-555555555555') = 0,
   '13.27 leaving a team leaves its chat');
 
+-- ===========================================================================
+-- 14. Always-open learning paths, path chat and the admin thread
+-- ===========================================================================
+
+select public.assert(
+  (select count(*) from public.conversations where kind = 'learning_path') = 6,
+  '14.1 every published path opens exactly one conversation');
+
+select public.assert(
+  (select count(*) from public.conversations c
+    join public.learning_paths lp on lp.id = c.path_id
+    where lp.slug = 'genai') = 1,
+  '14.2 a path has one permanent conversation — no cohorts, no splitting');
+
+-- Captured before switching role: RLS would hide it from a non-participant,
+-- which is precisely what the next assertion checks.
+select c.id as genai_conv from public.conversations c
+  join public.learning_paths lp on lp.id = c.path_id
+  where lp.slug = 'genai' \gset
+
+-- Not enrolled: the path chat is closed to you.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select count(*) from public.conversations where id = :'genai_conv') = 0,
+  '14.3 a student who has not enrolled cannot see the path conversation');
+
+-- Enrolling joins it.
+insert into public.enrollments (profile_id, path_id)
+select '22222222-2222-2222-2222-222222222222', id
+from public.learning_paths where slug = 'genai';
+reset role;
+
+select public.assert(
+  (select count(*) from public.conversation_participants
+    where conversation_id = :'genai_conv'
+      and profile_id = '22222222-2222-2222-2222-222222222222') = 1,
+  '14.4 enrolling in a path joins its conversation');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select count(*) from public.conversations where id = :'genai_conv') = 1,
+  '14.5 an enrolled student can now open the path chat');
+
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'genai_conv', '22222222-2222-2222-2222-222222222222', 'هل من توضيح إضافي عن الدرس الثاني؟');
+
+select public.assert(
+  (select count(*) from public.messages where conversation_id = :'genai_conv') = 1,
+  '14.6 an enrolled student can post in the path chat');
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- The administration thread
+-- ---------------------------------------------------------------------------
+select public.assert(
+  (select count(*) from public.conversations where kind = 'admin') = 5,
+  '14.7 every account is given a thread with TechMood administration');
+
+select c.id as sara_admin_conv
+from public.conversations c
+join public.conversation_participants cp on cp.conversation_id = c.id
+where c.kind = 'admin' and cp.profile_id = '11111111-1111-1111-1111-111111111111' \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'sara_admin_conv', '11111111-1111-1111-1111-111111111111', 'واجهت مشكلة في رفع إيصال الدفع');
+
+-- Another student must not reach someone else's support thread.
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.messages where conversation_id = :'sara_admin_conv') = 0,
+  '14.8 a support thread is private to its owner');
+
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar)
+           values (%L, '22222222-2222-2222-2222-222222222222', 'رسالة متطفلة')$$, :'sara_admin_conv'),
+  '14.9 another student cannot post into someone else support thread');
+
+-- An admin answers without being stored as a participant in every thread.
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'sara_admin_conv', '44444444-4444-4444-4444-444444444444', 'أهلاً سارة، جرّبي الرفع الآن من فضلك.');
+reset role;
+
+select public.assert(
+  (select count(*) from public.messages where conversation_id = :'sara_admin_conv') = 2,
+  '14.10 an admin can answer a support thread without joining it first');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

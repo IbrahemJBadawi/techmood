@@ -132,10 +132,23 @@ deliberate — it is what stops work from disappearing into a chat thread.
 ever exposes tasks, chat or documents, and the RLS policies name the leader
 explicitly so a creator can read back the team they just made.
 
-Conversations are never created by a person. A team gets its chat when it is
-created, members join and leave it with their membership, and a confirmed
-booking opens the mentor conversation. There is no "new chat" because every
-conversation must be backed by a relationship that already exists.
+Conversations are never created by a person. All four kinds are opened by the
+database: an admin thread when an account is created, a team chat when a team
+is, a mentor conversation when a booking is confirmed, and a path conversation
+when a path is published. Members join and leave the team chat with their
+membership, and enrolling in a path joins its chat. There is no "new chat",
+because every conversation must be backed by a relationship that already exists.
+
+**A learning path is always open.** This is a product decision, not an
+omission: there are no cohorts, no intake windows and no end date. So a path has
+exactly one conversation for as long as it exists, enrolment is idempotent, and
+the conversation is never closed or split. Anything that would need a per-intake
+chat — a dated cohort, a graduation — would be a change to the Academy, not to
+Messages.
+
+An admin answers support threads through a policy rather than by being stored in
+every one of them, so onboarding a new admin does not mean backfilling them into
+thousands of conversations.
 
 Team XP lives in its own ledger (`team_xp_events`), separate from personal XP,
 so a team's reputation is neither the sum of its members' nor a way to inflate
