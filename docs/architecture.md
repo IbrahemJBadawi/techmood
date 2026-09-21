@@ -199,6 +199,41 @@ A team earns its `project_completed` XP when the work survives review, not when
 the last task is ticked. The rating is quality, the XP is progress, and neither
 is computed from the other — the project page says so in as many words.
 
+## Skills come from approved work
+
+`profile_skills` has carried this comment since 0002 — *evidence-backed skills
+are the ones proven by an approved submission* — and nothing ever set
+`is_verified`. The `skills` table was empty too: fields and interests were
+seeded in 0029, skills never were. So a learner could tick skills in onboarding
+and the platform had no way to tell a claim from a fact, which is the opposite
+of what the rest of it does. 0040 closes both.
+
+A skill is attached to **the smallest thing that can teach it**, a lesson, and
+everything above is derived:
+
+```
+lesson_skills → course_skills() → path_skills()
+```
+
+A course's skills are the union of its lessons'; a path's are the union of its
+courses'. Nothing is stored twice, so a lesson that gains a skill gains it for
+every course and path carrying it, with no second table to update and no way
+for the three to disagree.
+
+**Approval is what writes a skill onto a profile.** When an evaluation lands
+with `decision = 'approved'`, `on_evaluation_grant_skills()` writes the skills
+of what was approved onto the learner as verified: a lesson assignment grants
+that lesson's, a course task or project the course's, a path project the
+path's. A skill the learner had already claimed becomes verified — one row, not
+two — and one they never claimed is added.
+
+Three choices worth stating. Nothing is ever taken away by this trigger:
+approval is a fact about a moment, and un-approving later does not unlearn.
+Group work credits the submission's owner, the same person the XP goes to —
+crediting every team member with every skill from one approval would make the
+record say more than the work does. And `profile_verified_skills()` respects
+the profile's own privacy flag, so a private profile publishes nothing.
+
 ## The certificate is a document, not a card
 
 A certificate is the artefact somebody attaches to an application, so it is

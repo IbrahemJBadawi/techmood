@@ -3535,6 +3535,111 @@ select public.assert(
 
 update public.courses set title_en = 'Python for Artificial Intelligence' where slug = 'python-for-ai';
 
+-- ===========================================================================
+-- 31. Skills come from approved work
+-- ===========================================================================
+select public.assert(
+  (select count(*) from public.skills where status = 'approved') > 0
+  and (select count(*) from public.lesson_skills) > 0,
+  '31.1 the catalogue says which skill each lesson teaches');
+
+-- A course's skills are its lessons', a path's are its courses'. Nothing is
+-- stored twice, so the three can never disagree.
+select public.assert(
+  (select count(*) from public.course_skills(
+     (select id from public.courses where slug = 'python-for-ai'))) = 2,
+  '31.2 a course''s skills are the union of its lessons''');
+
+select public.assert(
+  (select count(*) from public.path_skills(
+     (select id from public.learning_paths where slug = 'genai'))) >= 6,
+  '31.3 and a path''s are the union of its courses''');
+
+select public.assert(
+  not exists (
+    select 1 from public.course_skills((select id from public.courses where slug = 'python-for-ai')) cs
+     where cs.id not in (select ps.id from public.path_skills(
+       (select id from public.learning_paths where slug = 'genai')) ps)
+  ),
+  '31.4 every skill a course teaches is a skill its path teaches');
+
+-- The learner of section 3 had a lesson assignment approved, so the lesson's
+-- skills are on their profile and marked proven.
+select public.assert(
+  (select count(*) from public.profile_skills ps
+     join public.skills s on s.id = ps.skill_id
+    where ps.profile_id = '11111111-1111-1111-1111-111111111111'
+      and s.slug = 'python' and ps.is_verified) = 1,
+  '31.5 approving a lesson assignment writes its skills onto the profile, verified');
+
+-- A claim becomes a fact rather than a duplicate row.
+insert into public.profile_skills (profile_id, skill_id, is_verified)
+select '77777777-7777-7777-7777-777777777777', id, false
+  from public.skills where slug = 'sql'
+on conflict do nothing;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.submit_work(
+  (select a.id from public.assignments a
+     join public.lessons l on l.id = a.lesson_id
+    where l.slug = 'sql-analysis-l1'),
+  '[{"kind":"github","url":"https://github.com/example/sql","label":"repo"}]'::jsonb
+) as sql_submission \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.evaluate_submission(:'sql_submission', 'approved', 4::smallint, 'واضح');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select count(*) from public.profile_skills ps
+     join public.skills s on s.id = ps.skill_id
+    where ps.profile_id = '77777777-7777-7777-7777-777777777777' and s.slug = 'sql') = 1
+  and (select ps.is_verified from public.profile_skills ps
+         join public.skills s on s.id = ps.skill_id
+        where ps.profile_id = '77777777-7777-7777-7777-777777777777' and s.slug = 'sql'),
+  '31.6 a skill somebody had claimed becomes proven — one row, not two');
+
+-- Work that was sent back proves nothing.
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.submit_work(
+  (select a.id from public.assignments a
+     join public.lessons l on l.id = a.lesson_id
+    where l.slug = 'html-css-l1'),
+  '[{"kind":"github","url":"https://github.com/example/html","label":"repo"}]'::jsonb
+) as html_submission \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.evaluate_submission(:'html_submission', 'changes_requested', 2::smallint, 'أعد التنسيق');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select count(*) from public.profile_skills ps
+     join public.skills s on s.id = ps.skill_id
+    where ps.profile_id = '88888888-8888-8888-8888-888888888888' and s.slug = 'html') = 0,
+  '31.7 work sent back for changes proves nothing');
+
+-- A private profile does not publish what it has proven.
+set role anon;
+select public.assert(
+  (select count(*) from public.profile_verified_skills('11111111-1111-1111-1111-111111111111'))
+    = case when (select is_public from public.profiles
+                  where id = '11111111-1111-1111-1111-111111111111') then
+           (select count(*) from public.profile_skills
+             where profile_id = '11111111-1111-1111-1111-111111111111' and is_verified)
+      else 0 end,
+  '31.8 a profile publishes its proven skills only if it is public at all');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

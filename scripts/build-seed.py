@@ -63,6 +63,90 @@ EN_COURSE = {
 }
 
 
+# The skills the live catalogue actually teaches, and which lesson teaches each
+# one. This is the only place a skill is attached to content: a course's skills
+# and a path's are derived from these by course_skills() and path_skills().
+SKILLS = [
+ ('python', 'Python', 'Python'),
+ ('data-structures', 'هياكل البيانات', 'Data Structures'),
+ ('machine-learning', 'تعلّم الآلة', 'Machine Learning'),
+ ('pandas-numpy', 'Pandas وNumPy', 'Pandas & NumPy'),
+ ('llm', 'نماذج اللغة الكبيرة', 'Large Language Models'),
+ ('prompt-engineering', 'هندسة التوجيه', 'Prompt Engineering'),
+ ('excel', 'Excel', 'Excel'),
+ ('data-cleaning', 'تنظيف البيانات', 'Data Cleaning'),
+ ('pivot-tables', 'الجداول المحورية', 'Pivot Tables'),
+ ('sql', 'SQL', 'SQL'),
+ ('sql-joins', 'الدمج بين الجداول', 'SQL Joins'),
+ ('data-visualization', 'تصوير البيانات', 'Data Visualization'),
+ ('dashboards', 'لوحات التحكم', 'Dashboards'),
+ ('html', 'HTML', 'HTML'),
+ ('css', 'CSS', 'CSS'),
+ ('javascript', 'JavaScript', 'JavaScript'),
+ ('dom', 'التعامل مع DOM', 'DOM Scripting'),
+ ('react', 'React', 'React'),
+ ('state-management', 'إدارة الحالة', 'State Management'),
+ ('user-research', 'بحث المستخدم', 'User Research'),
+ ('personas', 'بناء Personas', 'Personas'),
+ ('ux-principles', 'مبادئ تجربة المستخدم', 'UX Principles'),
+ ('wireframing', 'الهياكل السلكية', 'Wireframing'),
+ ('product-metrics', 'مؤشرات المنتج', 'Product Metrics'),
+ ('go-to-market', 'استراتيجية الإطلاق', 'Go-to-Market'),
+ ('cloud-computing', 'الحوسبة السحابية', 'Cloud Computing'),
+ ('cloud-networking', 'الشبكات والتخزين السحابي', 'Cloud Networking & Storage'),
+ ('docker', 'Docker', 'Docker'),
+ ('ci-cd', 'CI/CD', 'CI/CD'),
+ ('monitoring', 'مراقبة الأنظمة', 'Systems Monitoring'),
+ ('infrastructure-automation', 'أتمتة البنية التحتية', 'Infrastructure Automation'),
+ ('opportunity-discovery', 'اكتشاف الفرص', 'Opportunity Discovery'),
+ ('market-research', 'بحث السوق', 'Market Research'),
+ ('customer-interviews', 'مقابلات العملاء', 'Customer Interviews'),
+ ('survey-design', 'تصميم الاستبيانات', 'Survey Design'),
+ ('business-modeling', 'نمذجة الأعمال', 'Business Modelling'),
+ ('pricing', 'التسعير', 'Pricing'),
+]
+
+# lesson title -> the skills finishing it proves
+LESSON_SKILLS = {
+ 'Python للمبتدئين': ['python'],
+ 'هياكل البيانات في Python': ['python', 'data-structures'],
+ 'مقدمة في Machine Learning': ['machine-learning'],
+ 'NumPy وPandas عملياً': ['pandas-numpy'],
+ 'مقدمة في نماذج اللغة الكبيرة (LLMs)': ['llm'],
+ 'أساسيات Prompt Engineering': ['prompt-engineering'],
+ 'تنظيف البيانات في Excel': ['excel', 'data-cleaning'],
+ 'الدوال والجداول المحورية': ['excel', 'pivot-tables'],
+ 'أساسيات الاستعلامات SQL': ['sql'],
+ 'الدمج بين الجداول (Joins)': ['sql', 'sql-joins'],
+ 'مبادئ تصميم لوحات التحكم': ['data-visualization'],
+ 'بناء لوحة تحكم تفاعلية': ['dashboards', 'data-visualization'],
+ 'بنية صفحات HTML': ['html'],
+ 'تنسيق الصفحات بـ CSS وFlexbox': ['css'],
+ 'أساسيات JavaScript وES6': ['javascript'],
+ 'التعامل مع DOM والأحداث': ['javascript', 'dom'],
+ 'مكوّنات React الأساسية': ['react'],
+ 'إدارة الحالة بـ Hooks': ['react', 'state-management'],
+ 'أساسيات بحث المستخدم': ['user-research'],
+ 'بناء Personas': ['personas', 'user-research'],
+ 'مبادئ UX الأساسية': ['ux-principles'],
+ 'بناء Wireframes': ['wireframing'],
+ 'مؤشرات نجاح المنتج': ['product-metrics'],
+ 'استراتيجيات الإطلاق': ['go-to-market'],
+ 'مقدمة في الخدمات السحابية': ['cloud-computing'],
+ 'الشبكات والتخزين السحابي': ['cloud-networking'],
+ 'مقدمة في Docker': ['docker'],
+ 'أساسيات CI/CD': ['ci-cd'],
+ 'مراقبة الأنظمة السحابية': ['monitoring'],
+ 'التشغيل الآلي للبنية التحتية': ['infrastructure-automation'],
+ 'كيف تجد فكرة مشروع': ['opportunity-discovery'],
+ 'تحليل السوق المبدئي': ['market-research'],
+ 'مقابلات التحقق من المشكلة': ['customer-interviews'],
+ 'بناء استبيان تحقق فعّال': ['survey-design'],
+ 'Business Model Canvas': ['business-modeling'],
+ 'أساسيات التسعير': ['pricing'],
+}
+
+
 V, A = 'video', 'article'
 PATHS = [
  dict(slug='genai', school='ai-data', num=14, title='مسار الذكاء الاصطناعي التوليدي',
@@ -643,7 +727,15 @@ out = ["""-- ===================================================================
 -- =============================================================================
 
 begin;
+
+-- ---------------------------------------------------------------------------
+-- The skills this catalogue teaches
+-- ---------------------------------------------------------------------------
 """]
+
+out.append("insert into public.skills (slug, name_ar, name_en, status) values\n  "
+           + ",\n  ".join(f"({q(slug)}, {q(ar)}, {q(en)}, 'approved')" for slug, ar, en in SKILLS)
+           + "\non conflict (slug) do nothing;\n")
 
 for p in PATHS:
     hours = sum(l[2] for c in p['courses'] for l in c[3]) // 60 + 1
@@ -686,6 +778,15 @@ select c.id, {q(ctitle.replace('دورة ', 'وحدة '))}, 1 from public.course
 insert into public.lessons (module_id, title_ar, title_en, kind, duration_minutes, summary_ar, sort_order)
 select m.id, {q(ltitle)}, {q(EN.get(ltitle, ltitle))}, '{lkind}', {ldur}, {q(summary)}, {li}
 from public.modules m join public.courses c on c.id = m.course_id where c.slug = {q(cslug)};
+
+insert into public.lesson_skills (lesson_id, skill_id)
+select l.id, s.id
+from public.lessons l
+join public.modules m on m.id = l.module_id
+join public.courses c on c.id = m.course_id
+join public.skills s on s.slug = any ({arr(LESSON_SKILLS.get(ltitle, []))})
+where c.slug = {q(cslug)} and l.title_ar = {q(ltitle)}
+on conflict do nothing;
 
 insert into public.assignments (kind, lesson_id, title_ar, brief_ar, required_evidence, is_required)
 select 'lesson_assignment', l.id, {q('تكليف: ' + ltitle)},

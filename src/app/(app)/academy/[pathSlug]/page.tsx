@@ -42,7 +42,10 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
     }),
   );
 
-  const { data: pathComplete } = await supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id });
+  const [{ data: pathComplete }, { data: pathSkills }] = await Promise.all([
+    supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id }),
+    supabase.rpc('path_skills', { p_path: path.id }),
+  ]);
 
   const [{ data: enrolment }, { data: pathConversation }] = await Promise.all([
     supabase
@@ -109,6 +112,21 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
           )}
         </div>
       </section>
+
+      {(pathSkills ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '0.98rem' }}>{t('مهارات هذا المسار', 'What this path teaches')}</h3>
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+            {t('مجموع ما تثبته دورات المسار. تُوثَّق على ملفك واحدة واحدة كلما اعتُمد عمل يثبتها.',
+               'The sum of what its courses prove — recorded on your profile one at a time, as the work proving each is approved.')}
+          </p>
+          <div className="tags-row" style={{ marginTop: 10 }}>
+            {(pathSkills ?? []).map((skill) => (
+              <span className="tag" key={skill.slug}>{skill.name_ar}</span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="detail-grid">
         <section>

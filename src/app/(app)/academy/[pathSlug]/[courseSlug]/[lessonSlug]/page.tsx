@@ -97,6 +97,18 @@ export default async function LessonPage({
     supabase.rpc('lesson_board', { p_lesson: lesson.id }),
   ]);
 
+  // What finishing this lesson proves. The rows live on the lesson; a course
+  // and a path read the same rows through course_skills() and path_skills(),
+  // so the three can never disagree about what is being taught.
+  const { data: lessonSkillRows } = await supabase
+    .from('lesson_skills')
+    .select('skill_id')
+    .eq('lesson_id', lesson.id);
+  const skillIds = (lessonSkillRows ?? []).map((row) => row.skill_id);
+  const { data: skills } = skillIds.length
+    ? await supabase.from('skills').select('slug, name_ar, name_en').in('id', skillIds)
+    : { data: [] };
+
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
   let submission: Submission | null = null;
@@ -171,6 +183,21 @@ export default async function LessonPage({
 
       <div className="detail-grid">
         <section>
+          {(skills ?? []).length > 0 && (
+            <section className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('ما يثبته هذا الدرس', 'What finishing this proves')}</h3>
+              <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+                {t('تُضاف هذه المهارات إلى ملفك موثّقة حين يعتمد المنتور تكليف هذا الدرس — لا قبل ذلك.',
+                   'These land on your profile as proven when a mentor approves this lesson\u2019s assignment — not before.')}
+              </p>
+              <div className="tags-row" style={{ marginTop: 10 }}>
+                {(skills ?? []).map((skill) => (
+                  <span className="tag" key={skill.slug}>{contentText(locale, skill.name_ar, skill.name_en)}</span>
+                ))}
+              </div>
+            </section>
+          )}
+
           {lesson.outcomes_ar.length > 0 && (
             <section className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>{t('ما ستتعلمه', 'What you will learn')}</h3>

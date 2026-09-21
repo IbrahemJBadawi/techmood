@@ -82,6 +82,8 @@ export default async function CoursePage({
 
   const reevaluationOpenFor = new Set((openReevaluations ?? []).map((row) => row.submission_id));
 
+  const { data: courseSkills } = await supabase.rpc('course_skills', { p_course: course.id });
+
   const { data: isComplete } = await supabase.rpc('is_course_complete', {
     p_profile: user.id,
     p_course: course.id,
@@ -125,6 +127,21 @@ export default async function CoursePage({
           {t(' كل الأعمال المطلوبة أدناه.', ' every required piece of work below approved.')}
         </p>
       </section>
+
+      {(courseSkills ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '0.98rem' }}>{t('مهارات هذه الدورة', 'What this course teaches')}</h3>
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+            {t('مجموع ما تثبته دروسها. كل مهارة تُوثَّق على ملفك حين يعتمد المنتور العمل الذي يثبتها.',
+               'The sum of what its lessons prove. Each one is recorded on your profile when a mentor approves the work that proves it.')}
+          </p>
+          <div className="tags-row" style={{ marginTop: 10 }}>
+            {(courseSkills ?? []).map((skill) => (
+              <span className="tag" key={skill.slug}>{skill.name_ar}</span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="detail-grid">
         <section>

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
-import { formatDate } from '@/lib/i18n';
+import { contentText, formatDate } from '@/lib/i18n';
 import { levelInfo } from '@/lib/xp';
 import { LogoMark } from '@/components/Logo';
 
@@ -61,7 +61,7 @@ export default async function PublicProfilePage({
     );
   }
 
-  const [{ data: xp }, { data: stars }, { data: projects }, { data: certificates }] = await Promise.all([
+  const [{ data: xp }, { data: stars }, { data: projects }, { data: certificates }, { data: skills }] = await Promise.all([
     supabase.from('profile_xp').select('total_xp').eq('profile_id', profile.id).maybeSingle(),
     supabase.from('profile_stars').select('stars_avg, rated_count').eq('profile_id', profile.id).maybeSingle(),
     supabase.rpc('profile_exhibition_entries', { p_profile: profile.id }),
@@ -70,6 +70,7 @@ export default async function PublicProfilePage({
       .select('certificate_code, kind, issued_at, snapshot')
       .eq('profile_id', profile.id)
       .eq('status', 'active'),
+    supabase.rpc('profile_verified_skills', { p_profile: profile.id }),
   ]);
 
   const totalXp = xp?.total_xp ?? 0;
@@ -111,6 +112,21 @@ export default async function PublicProfilePage({
              'Stars are quality, XP is progress. Neither is computed from the other.')}
         </p>
       </section>
+
+      {(skills ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h2 style={{ fontSize: '1rem' }}>{t('مهارات موثّقة', 'Proven skills')}</h2>
+          <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
+            {t('كل مهارة هنا أثبتها عمل اعتمده منتور — لا مهارة مكتوبة عن النفس.',
+               'Every skill here was proven by work a mentor approved — none of it is self-declared.')}
+          </p>
+          <div className="tags-row" style={{ marginTop: 12 }}>
+            {(skills ?? []).map((skill) => (
+              <span className="tag" key={skill.slug}>{contentText(locale, skill.name_ar, skill.name_en)}</span>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel section-block">
         <h2 style={{ fontSize: '1rem' }}>{t('مشاريع في المعرض', 'Projects in the exhibition')}</h2>
