@@ -84,6 +84,10 @@ export default async function AdminPage() {
               {t('راجع طلبات الحاضنة', 'Review incubator')} ({byKind('incubator_application').length})
             </Link>
           )}
+          {/* Not a queue: the catalogue is always open for writing. */}
+          <Link className="btn btn-ghost btn-sm" href="/admin/academy">
+            {t('اكتب محتوى الأكاديمية', 'Write academy content')}
+          </Link>
         </div>
       </section>
 

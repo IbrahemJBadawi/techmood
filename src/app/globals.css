@@ -1899,3 +1899,55 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 @media (max-width: 620px) {
   .goal-strip .btn { width: 100%; justify-content: center; }
 }
+
+/* ---------- authoring the catalogue ---------- */
+.admin-course-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.admin-course-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--panel);
+  font-size: 0.88rem;
+}
+.admin-course-list li > a { flex: 1; min-width: 180px; color: var(--royal-dark); text-decoration: none; }
+.admin-course-list li > a:hover { text-decoration: underline; }
+
+.publish-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.publish-form .notice { margin: 0; font-size: 0.78rem; padding: 6px 10px; }
+
+.admin-inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.admin-inline-form.panel { padding: 12px; }
+.admin-inline-form input,
+.admin-inline-form select {
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.84rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.admin-lesson { margin-bottom: 12px; }
+.admin-lesson > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  list-style-position: inside;
+}
+.admin-lesson > summary:focus-visible { outline: 2px solid var(--royal); outline-offset: 3px; }
+.admin-lesson-form { margin-top: 14px; }
+.admin-sub { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.admin-sub h4 { font-size: 0.86rem; margin-bottom: 8px; }
+.admin-mini-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.82rem; }
+.admin-mini-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-mini-list li > span { flex: 1; min-width: 120px; }
+.admin-mini-list a { font-size: 0.74rem; color: var(--ink-soft); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -3160,6 +3160,85 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 27. Writing the catalogue: nothing empty gets published
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+
+-- An outline course has no lessons. Publishing it would put an empty page
+-- behind a card that says "open".
+select public.assert_rejects(
+  $$update public.courses set status = 'published' where slug = 'typescript'$$,
+  '27.1 a course with no lessons cannot be published',
+  'بلا دروس');
+
+-- Write a lesson into it, and it can be published.
+insert into public.modules (course_id, title_ar, sort_order)
+select id, 'وحدة تجريبية', 1 from public.courses where slug = 'typescript';
+
+insert into public.lessons (module_id, title_ar, kind, sort_order)
+select m.id, 'درس TypeScript الأول', 'video', 1
+  from public.modules m
+  join public.courses c on c.id = m.course_id
+ where c.slug = 'typescript';
+
+update public.courses set status = 'published' where slug = 'typescript';
+
+select public.assert(
+  (select status from public.courses where slug = 'typescript') = 'published',
+  '27.2 once it has a lesson, it can');
+
+-- A path cannot go live while a course it requires is still an outline.
+select public.assert_rejects(
+  $$update public.learning_paths set status = 'published' where slug = 'js-ts'$$,
+  '27.3 a path cannot be published while its required courses are outlines',
+  'قبل نشر دوراته الأساسية');
+
+select public.assert(
+  (select status from public.learning_paths where slug = 'js-ts') = 'planned',
+  '27.4 and the refusal leaves it announced, not half published');
+
+-- Publishing recomputes the ladder, so a newly written course is not stuck at
+-- the default level.
+select public.assert(
+  (select level from public.courses where slug = 'typescript') is not null,
+  '27.5 a published course carries a level');
+
+-- Authoring is admin work, in the database and not only in the page.
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+-- An UPDATE a policy does not allow matches no rows rather than raising, so
+-- the thing to assert is that nothing moved.
+update public.lessons set title_ar = 'عنوان مكتوب من طالب' where slug = 'python-for-ai-l1';
+
+select public.assert(
+  (select title_ar from public.lessons where slug = 'python-for-ai-l1') = 'Python للمبتدئين',
+  '27.6 a learner rewriting a lesson changes nothing');
+
+select public.assert_rejects(
+  $$insert into public.lesson_videos (lesson_id, title_ar, url)
+    select id, 'فيديو مدسوس', 'https://example.com/x' from public.lessons where slug = 'python-for-ai-l1'$$,
+  '27.7 nor add a video to one',
+  'row-level security');
+
+update public.courses set status = 'draft' where slug = 'python-for-ai';
+
+select public.assert(
+  (select status from public.courses where slug = 'python-for-ai') = 'published',
+  '27.8 nor can they take a course off the catalogue');
+
+reset role;
+reset request.jwt.claim.sub;
+
+-- Undo the test's writes so the catalogue counts above stay true.
+delete from public.lessons where title_ar = 'درس TypeScript الأول';
+delete from public.modules where title_ar = 'وحدة تجريبية';
+update public.courses set status = 'draft' where slug = 'typescript';
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

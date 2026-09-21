@@ -619,6 +619,35 @@ because the order is the point — each rung stands on the one below it — and 
 milestone links to where it is actually earned (the teams page, the
 marketplace, the passport) rather than being awarded by the plan.
 
+## Writing the catalogue, and the guard that keeps it honest
+
+0033 drew the line between announced and written and leaned on one fact: a
+planned path has no lessons, so nobody can start it. That fact has to survive
+an author. The moment a status can be flipped in an admin screen, the academy
+can acquire a published course with nothing in it, and the discovery page's
+promise — what is open you can open — stops being true.
+
+So 0036 makes publishing a transition with conditions, enforced on the status
+change rather than in the page asking for it: a course with no lessons is
+refused, and a path is refused while any course it requires is still an
+outline. The refusal carries the reason, and the admin screen prints it. The
+guards run on UPDATE, because publishing in the product is always a move from
+draft or planned; `seed.sql` is the other case, loading a finished catalogue in
+one transaction with each course already published before its lessons exist.
+Publishing also re-runs `backfill_course_levels()`, so a newly written course
+never sits at the default level.
+
+`/admin/academy` is the authoring surface: the outlines waiting to be written,
+the published courses, and the announced paths with their publish button. The
+lesson form is the lesson page in the same order — what it is, what the learner
+will be able to do, videos, review material, the case, the challenge — and a
+field left empty renders no section, so a lesson can be written in passes
+without ever looking broken to a learner.
+
+None of these actions carry a permission of their own. The catalogue's admin
+policies from 0011 are what decides, which is why a learner who sends the same
+request updates no rows and inserts nothing.
+
 ## Bookings are written by functions, not by their parties
 
 0011 gave the student and the mentor a blanket update policy on `bookings`,
