@@ -584,6 +584,11 @@ export type LessonVideo = {
   sort_order: number;
 }
 
+export type GoalStepKind = 'course' | 'path' | 'milestone';
+
+export type GoalMilestone =
+  | 'assessment' | 'real_project' | 'portfolio' | 'mentorship' | 'team' | 'work' | 'startup';
+
 /** The column a lesson step sits in. Derived, never stored. */
 export type BoardColumn = 'todo' | 'doing' | 'done';
 
@@ -738,6 +743,12 @@ export type Database = {
       modules: Table<{ id: string; course_id: string; title_ar: string; sort_order: number }>;
       lessons: Table<Lesson>;
       lesson_videos: Table<LessonVideo>;
+      career_goals: Table<{
+        id: string; slug: string; title_ar: string; title_en: string | null;
+        description_ar: string | null; outcome_ar: string | null; tags: string[];
+        status: ContentStatus; sort_order: number; created_at: string;
+      }>;
+      profile_career_goals: Table<{ profile_id: string; goal_id: string; chosen_at: string }>;
       lesson_resources: Table<{
         id: string; lesson_id: string; label: string; url: string; kind: EvidenceKind;
       }>;
@@ -917,6 +928,26 @@ export type Database = {
           last_activity: string | null;
         }[];
       };
+      career_goals_catalogue: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; slug: string; title_ar: string; title_en: string | null;
+          description_ar: string | null; outcome_ar: string | null; tags: string[];
+          steps_total: number; steps_done: number; percent: number; is_chosen: boolean;
+        }[];
+      };
+      career_goal_plan: {
+        Args: { p_goal: string };
+        Returns: {
+          step_id: string; kind: GoalStepKind; sort_order: number;
+          title_ar: string; title_en: string | null; note_ar: string | null;
+          slug: string | null; path_slug: string | null;
+          milestone: GoalMilestone | null;
+          is_done: boolean; is_open: boolean; percent: number | null;
+        }[];
+      };
+      choose_career_goal: { Args: { p_goal: string }; Returns: void };
+      clear_career_goal: { Args: Record<string, never>; Returns: void };
       lesson_board: {
         Args: { p_lesson: string };
         Returns: {

@@ -3067,6 +3067,99 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 26. Career goals
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select public.assert(
+  (select count(*) from public.career_goals_catalogue()) = 3,
+  '26.1 the goals a learner can choose from are the published ones');
+
+select public.assert(
+  (select steps_total from public.career_goals_catalogue() where slug = 'data-analyst') = 16,
+  '26.2 a goal is a ladder, not a course list — it ends outside the catalogue');
+
+-- The trap this engine had to avoid: is_course_complete() says "nothing left
+-- to do", and an outline has nothing to do the day it is written.
+select public.assert(
+  (select is_open from public.career_goal_plan('data-analyst') where sort_order = 1) = false
+  and (select is_done from public.career_goal_plan('data-analyst') where sort_order = 1) = false,
+  '26.3 a step pointing at an outline is neither open nor finished');
+
+select public.assert(
+  (select is_open from public.career_goal_plan('data-analyst') where sort_order = 2) = true
+  and (select path_slug from public.career_goal_plan('data-analyst') where sort_order = 2) = 'data',
+  '26.4 a step on a live course is open, and carries a path to open it through');
+
+select public.assert(
+  (select percent from public.career_goals_catalogue() where slug = 'data-analyst') = 0,
+  '26.5 a plan made mostly of outlines does not report itself half finished');
+
+-- A milestone is read from the row that records it, not from a checkbox.
+select public.assert(
+  (select is_done from public.career_goal_plan('data-analyst') where milestone = 'team') = false,
+  '26.6 a milestone nobody has reached reads as not reached');
+
+reset role;
+reset request.jwt.claim.sub;
+
+insert into public.team_members (team_id, profile_id, role)
+select (select id from public.teams order by created_at limit 1),
+       '77777777-7777-7777-7777-777777777777', 'member'
+on conflict do nothing;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select public.assert(
+  (select is_done from public.career_goal_plan('data-analyst') where milestone = 'team') = true,
+  '26.7 joining a team moves the goal by itself — nothing is written twice');
+
+-- Choosing, and changing your mind.
+select public.choose_career_goal('data-analyst');
+
+select public.assert(
+  (select is_chosen from public.career_goals_catalogue() where slug = 'data-analyst') = true,
+  '26.8 choosing a goal is remembered');
+
+select public.choose_career_goal('front-end-developer');
+
+select public.assert(
+  (select count(*) from public.profile_career_goals
+    where profile_id = '77777777-7777-7777-7777-777777777777') = 1
+  and (select is_chosen from public.career_goals_catalogue() where slug = 'front-end-developer') = true,
+  '26.9 one goal at a time — changing your mind replaces it, it does not stack');
+
+select public.assert_rejects(
+  $$select public.choose_career_goal('astronaut')$$,
+  '26.10 a goal that does not exist cannot be chosen',
+  'لا يوجد هدف مهني');
+
+select public.clear_career_goal();
+
+select public.assert(
+  (select count(*) from public.profile_career_goals
+    where profile_id = '77777777-7777-7777-7777-777777777777') = 0,
+  '26.11 and it can be dropped again');
+
+-- The milestone reader takes a profile, so it is not something a client holds.
+select public.assert_rejects(
+  $$select public.has_reached_milestone('11111111-1111-1111-1111-111111111111', 'work')$$,
+  '26.12 a client cannot ask whether somebody else has a job',
+  'permission denied');
+
+-- And a goal cannot be set on somebody else's behalf.
+select public.assert_rejects(
+  $$insert into public.profile_career_goals (profile_id, goal_id)
+    select '11111111-1111-1111-1111-111111111111', id from public.career_goals where slug = 'data-analyst'$$,
+  '26.13 nor can a goal be pinned on another account',
+  'row-level security');
+
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

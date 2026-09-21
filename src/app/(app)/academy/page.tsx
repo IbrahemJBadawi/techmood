@@ -1,3 +1,4 @@
+import type { Database } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 
@@ -5,6 +6,7 @@ import { ContinueLearning, type Resume } from '../home/student/ContinueLearning'
 import { AcademyExplorer } from './AcademyExplorer';
 import { AcademyHero } from './AcademyHero';
 import { AcademyMap } from './AcademyMap';
+import { GoalStrip } from './GoalStrip';
 import { CourseCard } from './CourseCard';
 import { EmptyState } from './EmptyState';
 import { PathCard } from './PathCard';
@@ -12,6 +14,9 @@ import {
   LEVEL_ORDER, pathTitle,
   type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
 } from './types';
+
+type Goal = Database['public']['Functions']['career_goals_catalogue']['Returns'][number];
+type GoalStep = Database['public']['Functions']['career_goal_plan']['Returns'][number];
 
 const SUGGESTION_LIMIT = 3;
 const MY_COURSES_LIMIT = 6;
@@ -41,13 +46,24 @@ export default async function AcademyPage() {
     { data: resumeRows },
     { data: roadmapRows },
     { data: schoolRows },
+    { data: goalRows },
   ] = await Promise.all([
     supabase.rpc('academy_paths'),
     supabase.rpc('academy_courses'),
     supabase.rpc('continue_learning'),
     supabase.rpc('academy_roadmap'),
     supabase.from('schools').select('slug, name_ar, name_en').order('sort_order'),
+    supabase.rpc('career_goals_catalogue'),
   ]);
+
+  // The chosen goal, and the one rung in front of it. A learner who has chosen
+  // nothing costs one query; the plan is only fetched when there is a goal.
+  const goal = ((goalRows ?? []) as Goal[]).find((row) => row.is_chosen) ?? null;
+  let nextStep: GoalStep | null = null;
+  if (goal) {
+    const { data: planRows } = await supabase.rpc('career_goal_plan', { p_goal: goal.slug });
+    nextStep = ((planRows ?? []) as GoalStep[]).find((step) => !step.is_done && step.is_open) ?? null;
+  }
 
   const paths = (pathRows ?? []) as AcademyPath[];
   const courses = (courseRows ?? []) as AcademyCourse[];
@@ -114,6 +130,8 @@ export default async function AcademyPage() {
         lessonsCompleted={lessonsCompleted}
         action={heroAction}
       />
+
+      <GoalStrip goal={goal} next={nextStep} />
 
       <AcademyExplorer paths={paths} courses={courses} roadmap={roadmap}>
         {/* ---- my paths ---- */}

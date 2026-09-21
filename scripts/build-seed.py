@@ -712,6 +712,101 @@ from public.learning_paths lp, public.courses c
 where lp.slug = {q(p['slug'])} and c.slug = {q(cslug)}
 on conflict do nothing;""")
 
+
+# =============================================================================
+# Career goals
+#
+# The document asks the learner what they want to become, not which courses
+# they want. Each goal below is the ladder the document draws for it, mapped
+# onto courses that actually exist: the rungs already built point at published
+# courses, the rest point at outlines, and the plan says which is which rather
+# than pretending.
+#
+# A step is a course, a whole path, or a milestone the academy cannot award —
+# a real project, a portfolio, a team, work.
+# =============================================================================
+GOALS = [
+ dict(slug='data-analyst', ar='محلّل بيانات', en='Data Analyst',
+      desc='من جدول بيانات إلى قرار: تنظيف البيانات، الاستعلام عنها، تحليلها وعرضها.',
+      outcome='تصبح قادراً على أخذ بيانات خام وإخراج تقرير يُتخذ بناءً عليه قرار.',
+      tags=['Data','SQL','Excel'],
+      steps=['c:computer-essentials', 'c:data-excel', 'c:excel-functions', 'c:pivot-tables',
+             'c:sql-analysis', 'c:statistics', 'c:dashboards', 'c:python-basics',
+             'c:pandas-numpy', 'c:ba-foundations', 'c:ml-foundations',
+             'm:assessment', 'm:real_project', 'm:portfolio', 'm:team', 'm:work']),
+ dict(slug='full-stack-developer', ar='مطوّر متكامل', en='Full-Stack Developer',
+      desc='من الواجهة إلى قاعدة البيانات إلى النشر: تطبيق كامل تبنيه وتشغّله.',
+      outcome='تصبح قادراً على بناء تطبيق ويب كامل ونشره والعمل عليه ضمن فريق.',
+      tags=['Web','Full-Stack'],
+      steps=['c:html-css', 'c:modern-js', 'c:typescript', 'c:react', 'c:nextjs',
+             'c:http-apis', 'c:nodejs', 'c:nestjs', 'c:postgresql',
+             'c:testing-foundations', 'c:containers', 'c:cloud-foundations', 'c:generative-ai',
+             'm:real_project', 'm:team', 'm:portfolio', 'm:work']),
+ dict(slug='front-end-developer', ar='مطوّر واجهات', en='Front-End Developer',
+      desc='واجهات ويب حديثة تعمل على كل شاشة، مبنية بأدوات السوق.',
+      outcome='تصبح قادراً على بناء واجهة حقيقية والعمل ضمن فريق تطوير.',
+      tags=['Front-End','React'],
+      steps=['p:web', 'c:typescript', 'c:nextjs', 'm:real_project', 'm:portfolio', 'm:work']),
+]
+
+MILESTONES = {
+ 'assessment':   ('اجتز تقييماً معتمداً', 'Pass a graded assessment',
+                  'التقييم يثبت أن المهارة انتقلت من المشاهدة إلى القدرة.'),
+ 'real_project': ('نفّذ مشروعاً حقيقياً يُراجَع', 'Ship a real reviewed project',
+                  'مشروع دورة أو مسار يعتمده منتور — لا تمرين مغلق.'),
+ 'portfolio':    ('ابنِ معرض أعمال قابلاً للعرض', 'Build a portfolio you can show',
+                  'عمل معتمد يحمل رابطاً عاماً: مستودع، منشور، أو موقع.'),
+ 'mentorship':   ('اجلس مع منتور', 'Sit with a mentor',
+                  'جلسة مكتملة مع منتور في مجالك.'),
+ 'team':         ('اعمل داخل فريق', 'Work inside a team',
+                  'مقعد فعّال في فريق TechMood — العمل الحقيقي جماعي.'),
+ 'work':         ('احصل على فرصة عمل', 'Land an opportunity',
+                  'طلب مقبول على فرصة في سوق TechMood.'),
+ 'startup':      ('أسّس مشروعك', 'Found your startup',
+                  'مشروع ناشئ داخل حاضنة TechMood.'),
+}
+
+out.append("""
+
+-- ===========================================================================
+-- Career goals
+--
+-- A goal is an ordered ladder across paths and schools, ending outside the
+-- catalogue: a real project, a portfolio, a team, work. It stores no
+-- progress — every step is read from the rule that already owns it.
+-- ===========================================================================
+""")
+
+for gi, g in enumerate(GOALS, start=1):
+    out.append(f"""
+insert into public.career_goals (slug, title_ar, title_en, description_ar, outcome_ar, tags, status, sort_order)
+values ({q(g['slug'])}, {q(g['ar'])}, {q(g['en'])}, {q(g['desc'])}, {q(g['outcome'])}, {arr(g['tags'])}, 'published', {gi})
+on conflict (slug) do nothing;""")
+
+    for si, step in enumerate(g['steps'], start=1):
+        kind, key = step.split(':', 1)
+        if kind == 'c':
+            out.append(f"""
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, {si}
+from public.career_goals g, public.courses c
+where g.slug = {q(g['slug'])} and c.slug = {q(key)}
+on conflict do nothing;""")
+        elif kind == 'p':
+            out.append(f"""
+insert into public.career_goal_steps (goal_id, kind, path_id, sort_order)
+select g.id, 'path', lp.id, {si}
+from public.career_goals g, public.learning_paths lp
+where g.slug = {q(g['slug'])} and lp.slug = {q(key)}
+on conflict do nothing;""")
+        else:
+            ar, en, note = MILESTONES[key]
+            out.append(f"""
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', '{key}', {q(ar)}, {q(en)}, {q(note)}, {si}
+from public.career_goals g where g.slug = {q(g['slug'])}
+on conflict do nothing;""")
+
 out.append("""
 
 -- Course levels come from each course's position in its path, which is how the

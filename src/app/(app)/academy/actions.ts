@@ -110,3 +110,30 @@ export async function enrolInPath(formData: FormData) {
 
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
 }
+
+/**
+ * A career goal is chosen, changed and dropped by its owner.
+ *
+ * Both writes go through functions that resolve the caller themselves, so
+ * there is no profile id in the request for anyone to swap.
+ */
+export async function chooseGoal(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const slug = String(formData.get('goal') ?? '');
+  await supabase.rpc('choose_career_goal', { p_goal: slug });
+
+  revalidatePath(String(formData.get('revalidate') ?? '/academy/goals'));
+}
+
+export async function clearGoal(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  await supabase.rpc('clear_career_goal');
+
+  revalidatePath(String(formData.get('revalidate') ?? '/academy/goals'));
+}

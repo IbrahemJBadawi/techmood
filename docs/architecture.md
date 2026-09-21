@@ -576,6 +576,49 @@ Sections a lesson does not carry are not rendered. A lesson whose videos have
 not been authored yet simply has no video section; the page never shows an
 empty frame where content is meant to be.
 
+## Career goals: the ladder, not the shelf
+
+The academy document is explicit about the question to ask. Not "which courses
+do you want" but "what do you want to become", with the platform answering in
+skills, courses, projects and work. 0035 builds that.
+
+A goal is not a bigger path. Data Analyst crosses six paths in three schools
+and does not stop at the catalogue — it ends in a real project, a portfolio, a
+team and work. So `career_goals` holds the goal, and `career_goal_steps` holds
+an ordered list where a step is one of three things: a course, a whole path, or
+a milestone outside the academy.
+
+Two rules keep it from becoming a second progress system:
+
+* **A goal stores no progress.** Each step's state comes from the rule that
+  already owns it — `is_course_complete()`, `is_path_complete()`, an approved
+  submission, an active team seat, an accepted application. Finish a course
+  anywhere and the goal moves on its own.
+* **A goal invents no content.** Its steps point at courses and paths that
+  exist, which is how a plan can say "this rung is not built yet" instead of
+  pretending.
+
+That second rule had teeth. `is_course_complete()` answers *nothing left to
+do*, and an outline course — no lessons, no required work — has nothing left to
+do the moment it is created. A plan mostly made of outlines reported itself
+half finished on the day it was written. `is_goal_step_open()` is the guard: a
+step whose content is still an outline can be neither started nor counted, and
+both the catalogue and the plan run every step through it.
+
+`has_reached_milestone(profile, milestone)` takes a profile id, so it is
+revoked from clients entirely. It would otherwise answer "does this stranger
+have a team, a job, a startup" for any id dropped into a request. The two
+functions that use it are `SECURITY DEFINER` and call it for the caller only;
+`choose_career_goal()` and `clear_career_goal()` resolve the caller themselves,
+and `profile_career_goals` is keyed by profile with an own-row policy, so a
+goal cannot be pinned on somebody else's account.
+
+One goal at a time: the table is keyed by profile, so changing your mind
+replaces the row rather than stacking another. The plan renders as a timeline
+because the order is the point — each rung stands on the one below it — and a
+milestone links to where it is actually earned (the teams page, the
+marketplace, the passport) rather than being awarded by the plan.
+
 ## Bookings are written by functions, not by their parties
 
 0011 gave the student and the mentor a blanket update policy on `bookings`,

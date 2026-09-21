@@ -4192,6 +4192,250 @@ where lp.slug = 'research-thinking' and c.slug = 'data-interpretation'
 on conflict do nothing;
 
 
+-- ===========================================================================
+-- Career goals
+--
+-- A goal is an ordered ladder across paths and schools, ending outside the
+-- catalogue: a real project, a portfolio, a team, work. It stores no
+-- progress — every step is read from the rule that already owns it.
+-- ===========================================================================
+
+
+insert into public.career_goals (slug, title_ar, title_en, description_ar, outcome_ar, tags, status, sort_order)
+values ('data-analyst', 'محلّل بيانات', 'Data Analyst', 'من جدول بيانات إلى قرار: تنظيف البيانات، الاستعلام عنها، تحليلها وعرضها.', 'تصبح قادراً على أخذ بيانات خام وإخراج تقرير يُتخذ بناءً عليه قرار.', array['Data', 'SQL', 'Excel']::text[], 'published', 1)
+on conflict (slug) do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 1
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'computer-essentials'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 2
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'data-excel'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 3
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'excel-functions'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 4
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'pivot-tables'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 5
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'sql-analysis'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 6
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'statistics'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 7
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'dashboards'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 8
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'python-basics'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 9
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'pandas-numpy'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 10
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'ba-foundations'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 11
+from public.career_goals g, public.courses c
+where g.slug = 'data-analyst' and c.slug = 'ml-foundations'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'assessment', 'اجتز تقييماً معتمداً', 'Pass a graded assessment', 'التقييم يثبت أن المهارة انتقلت من المشاهدة إلى القدرة.', 12
+from public.career_goals g where g.slug = 'data-analyst'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'real_project', 'نفّذ مشروعاً حقيقياً يُراجَع', 'Ship a real reviewed project', 'مشروع دورة أو مسار يعتمده منتور — لا تمرين مغلق.', 13
+from public.career_goals g where g.slug = 'data-analyst'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'portfolio', 'ابنِ معرض أعمال قابلاً للعرض', 'Build a portfolio you can show', 'عمل معتمد يحمل رابطاً عاماً: مستودع، منشور، أو موقع.', 14
+from public.career_goals g where g.slug = 'data-analyst'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'team', 'اعمل داخل فريق', 'Work inside a team', 'مقعد فعّال في فريق TechMood — العمل الحقيقي جماعي.', 15
+from public.career_goals g where g.slug = 'data-analyst'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'work', 'احصل على فرصة عمل', 'Land an opportunity', 'طلب مقبول على فرصة في سوق TechMood.', 16
+from public.career_goals g where g.slug = 'data-analyst'
+on conflict do nothing;
+
+insert into public.career_goals (slug, title_ar, title_en, description_ar, outcome_ar, tags, status, sort_order)
+values ('full-stack-developer', 'مطوّر متكامل', 'Full-Stack Developer', 'من الواجهة إلى قاعدة البيانات إلى النشر: تطبيق كامل تبنيه وتشغّله.', 'تصبح قادراً على بناء تطبيق ويب كامل ونشره والعمل عليه ضمن فريق.', array['Web', 'Full-Stack']::text[], 'published', 2)
+on conflict (slug) do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 1
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'html-css'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 2
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'modern-js'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 3
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'typescript'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 4
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'react'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 5
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'nextjs'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 6
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'http-apis'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 7
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'nodejs'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 8
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'nestjs'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 9
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'postgresql'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 10
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'testing-foundations'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 11
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'containers'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 12
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'cloud-foundations'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 13
+from public.career_goals g, public.courses c
+where g.slug = 'full-stack-developer' and c.slug = 'generative-ai'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'real_project', 'نفّذ مشروعاً حقيقياً يُراجَع', 'Ship a real reviewed project', 'مشروع دورة أو مسار يعتمده منتور — لا تمرين مغلق.', 14
+from public.career_goals g where g.slug = 'full-stack-developer'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'team', 'اعمل داخل فريق', 'Work inside a team', 'مقعد فعّال في فريق TechMood — العمل الحقيقي جماعي.', 15
+from public.career_goals g where g.slug = 'full-stack-developer'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'portfolio', 'ابنِ معرض أعمال قابلاً للعرض', 'Build a portfolio you can show', 'عمل معتمد يحمل رابطاً عاماً: مستودع، منشور، أو موقع.', 16
+from public.career_goals g where g.slug = 'full-stack-developer'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'work', 'احصل على فرصة عمل', 'Land an opportunity', 'طلب مقبول على فرصة في سوق TechMood.', 17
+from public.career_goals g where g.slug = 'full-stack-developer'
+on conflict do nothing;
+
+insert into public.career_goals (slug, title_ar, title_en, description_ar, outcome_ar, tags, status, sort_order)
+values ('front-end-developer', 'مطوّر واجهات', 'Front-End Developer', 'واجهات ويب حديثة تعمل على كل شاشة، مبنية بأدوات السوق.', 'تصبح قادراً على بناء واجهة حقيقية والعمل ضمن فريق تطوير.', array['Front-End', 'React']::text[], 'published', 3)
+on conflict (slug) do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, path_id, sort_order)
+select g.id, 'path', lp.id, 1
+from public.career_goals g, public.learning_paths lp
+where g.slug = 'front-end-developer' and lp.slug = 'web'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 2
+from public.career_goals g, public.courses c
+where g.slug = 'front-end-developer' and c.slug = 'typescript'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, course_id, sort_order)
+select g.id, 'course', c.id, 3
+from public.career_goals g, public.courses c
+where g.slug = 'front-end-developer' and c.slug = 'nextjs'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'real_project', 'نفّذ مشروعاً حقيقياً يُراجَع', 'Ship a real reviewed project', 'مشروع دورة أو مسار يعتمده منتور — لا تمرين مغلق.', 4
+from public.career_goals g where g.slug = 'front-end-developer'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'portfolio', 'ابنِ معرض أعمال قابلاً للعرض', 'Build a portfolio you can show', 'عمل معتمد يحمل رابطاً عاماً: مستودع، منشور، أو موقع.', 5
+from public.career_goals g where g.slug = 'front-end-developer'
+on conflict do nothing;
+
+insert into public.career_goal_steps (goal_id, kind, milestone, label_ar, label_en, note_ar, sort_order)
+select g.id, 'milestone', 'work', 'احصل على فرصة عمل', 'Land an opportunity', 'طلب مقبول على فرصة في سوق TechMood.', 6
+from public.career_goals g where g.slug = 'front-end-developer'
+on conflict do nothing;
+
+
 -- Course levels come from each course's position in its path, which is how the
 -- catalogue above is built: three courses per path, each one building on the
 -- last. The rule itself lives in the migration so there is only one copy of it.

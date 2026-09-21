@@ -1878,3 +1878,24 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   direction: ltr;
   text-align: start;
 }
+
+/* ---------- career goals ---------- */
+.goal-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.goal-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.goal-plan .tl-label { font-weight: 500; }
+.goal-step { display: grid; gap: 6px; }
+.goal-step-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.goal-step-note { font-size: 0.78rem; }
+.goal-step-link { font-size: 0.82rem; color: var(--royal-dark); }
+.goal-plan li:not(.done):not(.current) .goal-step-meta .tag { opacity: 0.8; }
+
+@media (max-width: 620px) {
+  .goal-strip .btn { width: 100%; justify-content: center; }
+}
