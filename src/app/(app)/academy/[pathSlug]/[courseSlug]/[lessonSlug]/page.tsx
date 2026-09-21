@@ -97,17 +97,10 @@ export default async function LessonPage({
     supabase.rpc('lesson_board', { p_lesson: lesson.id }),
   ]);
 
-  // What finishing this lesson proves. The rows live on the lesson; a course
-  // and a path read the same rows through course_skills() and path_skills(),
-  // so the three can never disagree about what is being taught.
-  const { data: lessonSkillRows } = await supabase
-    .from('lesson_skills')
-    .select('skill_id')
-    .eq('lesson_id', lesson.id);
-  const skillIds = (lessonSkillRows ?? []).map((row) => row.skill_id);
-  const { data: skills } = skillIds.length
-    ? await supabase.from('skills').select('slug, name_ar, name_en').in('id', skillIds)
-    : { data: [] };
+  // What finishing this lesson proves: what the lesson teaches and what its
+  // own assignment demands. A course and a path read the same union through
+  // course_skills() and path_skills(), so the three cannot disagree.
+  const { data: skills } = await supabase.rpc('lesson_skills_all', { p_lesson: lesson.id });
 
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 

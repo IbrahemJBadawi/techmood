@@ -208,12 +208,20 @@ seeded in 0029, skills never were. So a learner could tick skills in onboarding
 and the platform had no way to tell a claim from a fact, which is the opposite
 of what the rest of it does. 0040 closes both.
 
-A skill is attached to **the smallest thing that can teach it**, a lesson, and
-everything above is derived:
+A skill is attached to **the smallest thing that demands it** — a lesson for
+what it teaches, an assignment for what the work itself asks — and everything
+above is derived:
 
 ```
-lesson_skills → course_skills() → path_skills()
+lesson_skills     ┐
+                  ├→ lesson_skills_all() → course_skills() → path_skills()
+assignment_skills ┘
 ```
+
+The second source (0041) exists because a path's capstone is built by a team,
+documented in a repository and walked through on video, and no single lesson in
+the path teaches any of that. Without it the only way to record teamwork was to
+pretend some lesson taught it.
 
 A course's skills are the union of its lessons'; a path's are the union of its
 courses'. Nothing is stored twice, so a lesson that gains a skill gains it for
@@ -224,7 +232,7 @@ for the three to disagree.
 with `decision = 'approved'`, `on_evaluation_grant_skills()` writes the skills
 of what was approved onto the learner as verified: a lesson assignment grants
 that lesson's, a course task or project the course's, a path project the
-path's. A skill the learner had already claimed becomes verified — one row, not
+path's — each of them plus whatever that assignment demanded in its own right. A skill the learner had already claimed becomes verified — one row, not
 two — and one they never claimed is added.
 
 Three choices worth stating. Nothing is ever taken away by this trigger:

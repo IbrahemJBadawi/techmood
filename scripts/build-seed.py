@@ -104,7 +104,19 @@ SKILLS = [
  ('survey-design', 'تصميم الاستبيانات', 'Survey Design'),
  ('business-modeling', 'نمذجة الأعمال', 'Business Modelling'),
  ('pricing', 'التسعير', 'Pricing'),
+ # what the work demands rather than what a lesson teaches
+ ('teamwork', 'العمل ضمن فريق', 'Teamwork'),
+ ('technical-writing', 'التوثيق التقني', 'Technical Writing'),
+ ('project-delivery', 'تسليم المشاريع', 'Project Delivery'),
+ ('presenting-work', 'عرض العمل', 'Presenting Work'),
 ]
+
+# Skills the assignment itself demands. A course project is handed in as a
+# repository, a write-up and a walkthrough — that is documentation and delivery,
+# and no lesson teaches it. A path's capstone is built by a team, which no
+# course in the path teaches either.
+COURSE_PROJECT_SKILLS = ['technical-writing', 'project-delivery']
+PATH_PROJECT_SKILLS   = ['teamwork', 'presenting-work', 'project-delivery']
 
 # lesson title -> the skills finishing it proves
 LESSON_SKILLS = {
@@ -753,7 +765,15 @@ select 'path_project', lp.id,
        {q('المشروع الجماعي لـ ' + p['title'].replace('مسار ', ''))},
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
-from public.learning_paths lp where lp.slug = {q(p['slug'])};""")
+from public.learning_paths lp where lp.slug = {q(p['slug'])};
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any ({arr(PATH_PROJECT_SKILLS)})
+where lp.slug = {q(p['slug'])} and a.kind = 'path_project'
+on conflict do nothing;""")
 
     for ci, (cslug, ctitle, cdesc, lessons, task) in enumerate(p['courses'], start=1):
         chours = sum(l[2] for l in lessons) // 60 + 1
@@ -808,7 +828,15 @@ insert into public.assignments (kind, course_id, title_ar, brief_ar, required_ev
 select 'course_project', c.id, {q('مشروع الدورة: ' + ctitle.replace('دورة ', ''))},
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
-from public.courses c where c.slug = {q(cslug)};""")
+from public.courses c where c.slug = {q(cslug)};
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any ({arr(COURSE_PROJECT_SKILLS)})
+where c.slug = {q(cslug)} and a.kind = 'course_project'
+on conflict do nothing;""")
 
 
 # ---------------------------------------------------------------------------

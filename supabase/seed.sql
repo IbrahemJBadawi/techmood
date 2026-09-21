@@ -52,7 +52,11 @@ insert into public.skills (slug, name_ar, name_en, status) values
   ('customer-interviews', 'مقابلات العملاء', 'Customer Interviews', 'approved'),
   ('survey-design', 'تصميم الاستبيانات', 'Survey Design', 'approved'),
   ('business-modeling', 'نمذجة الأعمال', 'Business Modelling', 'approved'),
-  ('pricing', 'التسعير', 'Pricing', 'approved')
+  ('pricing', 'التسعير', 'Pricing', 'approved'),
+  ('teamwork', 'العمل ضمن فريق', 'Teamwork', 'approved'),
+  ('technical-writing', 'التوثيق التقني', 'Technical Writing', 'approved'),
+  ('project-delivery', 'تسليم المشاريع', 'Project Delivery', 'approved'),
+  ('presenting-work', 'عرض العمل', 'Presenting Work', 'approved')
 on conflict (slug) do nothing;
 
 
@@ -70,6 +74,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'genai';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'genai' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('python-for-ai', 'دورة Python للذكاء الاصطناعي', 'Python for Artificial Intelligence', 'أساسيات Python وهياكل البيانات اللازمة للانطلاق في الذكاء الاصطناعي.', 'published', 2)
@@ -140,6 +152,14 @@ select 'course_project', c.id, 'مشروع الدورة: Python للذكاء ا�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'python-for-ai';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'python-for-ai' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('ml-foundations', 'دورة أساسيات تعلّم الآلة', 'Machine Learning Foundations', 'مدخل عملي لمفاهيم Machine Learning وأدوات تحليل البيانات.', 'published', 2)
 on conflict (slug) do nothing;
@@ -208,6 +228,14 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات تعلّ
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'ml-foundations';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'ml-foundations' and a.kind = 'course_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('generative-ai', 'دورة الذكاء الاصطناعي التوليدي', 'Generative AI', 'نماذج اللغة الكبيرة وPrompt Engineering وبناء أول تطبيق GenAI.', 'published', 2)
@@ -278,6 +306,14 @@ select 'course_project', c.id, 'مشروع الدورة: الذكاء الاصط
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'generative-ai';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'generative-ai' and a.kind = 'course_project'
+on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- مسار تحليل البيانات
 -- ---------------------------------------------------------------------------
@@ -292,6 +328,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'data';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'data' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('data-excel', 'دورة أساسيات البيانات وExcel', 'Data Foundations with Excel', 'تنظيف البيانات والتعامل مع الجداول والدوال المحورية.', 'published', 2)
@@ -362,6 +406,14 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات البي
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'data-excel';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'data-excel' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('sql-analysis', 'دورة SQL للتحليل', 'SQL for Analysis', 'كتابة استعلامات وربط الجداول لاستخراج تقارير دقيقة.', 'published', 2)
 on conflict (slug) do nothing;
@@ -430,6 +482,14 @@ select 'course_project', c.id, 'مشروع الدورة: SQL للتحليل',
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'sql-analysis';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'sql-analysis' and a.kind = 'course_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('dashboards', 'دورة لوحات التحكم والتقارير', 'Dashboards and Reporting', 'تصميم لوحات تحكم تفاعلية توصل الرسالة بوضوح.', 'published', 2)
@@ -500,6 +560,14 @@ select 'course_project', c.id, 'مشروع الدورة: لوحات التحكم
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'dashboards';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'dashboards' and a.kind = 'course_project'
+on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- مسار تطوير الويب
 -- ---------------------------------------------------------------------------
@@ -514,6 +582,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'web';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'web' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('html-css', 'دورة أساسيات HTML وCSS', 'Web Foundations: HTML and CSS', 'بنية الصفحات والتنسيق باستخدام Flexbox.', 'published', 2)
@@ -584,6 +660,14 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات HTML وC
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'html-css';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'html-css' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('modern-js', 'دورة JavaScript الحديث', 'Modern JavaScript', 'أساسيات اللغة وES6 والتعامل مع DOM والأحداث.', 'published', 2)
 on conflict (slug) do nothing;
@@ -652,6 +736,14 @@ select 'course_project', c.id, 'مشروع الدورة: JavaScript الحديث
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'modern-js';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'modern-js' and a.kind = 'course_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('react', 'دورة React وبناء الواجهات', 'React in Practice', 'مكوّنات React وإدارة الحالة عبر Hooks.', 'published', 2)
@@ -722,6 +814,14 @@ select 'course_project', c.id, 'مشروع الدورة: React وبناء الو
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'react';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'react' and a.kind = 'course_project'
+on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- مسار إدارة المنتجات
 -- ---------------------------------------------------------------------------
@@ -736,6 +836,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'product';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'product' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('user-research', 'دورة فهم المستخدم', 'User Research', 'بحث المستخدم وبناء Personas قبل أي قرار تصميم.', 'published', 1)
@@ -806,6 +914,14 @@ select 'course_project', c.id, 'مشروع الدورة: فهم المستخدم
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'user-research';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'user-research' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('product-design', 'دورة تصميم المنتج', 'Product Design', 'مبادئ UX وبناء Wireframes أولية.', 'published', 2)
 on conflict (slug) do nothing;
@@ -874,6 +990,14 @@ select 'course_project', c.id, 'مشروع الدورة: تصميم المنتج
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'product-design';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'product-design' and a.kind = 'course_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('launch-measure', 'دورة الإطلاق والقياس', 'Launch and Measure', 'مؤشرات النجاح واستراتيجيات إطلاق المنتج.', 'published', 1)
@@ -944,6 +1068,14 @@ select 'course_project', c.id, 'مشروع الدورة: الإطلاق والق
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'launch-measure';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'launch-measure' and a.kind = 'course_project'
+on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- مسار الحوسبة السحابية
 -- ---------------------------------------------------------------------------
@@ -958,6 +1090,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'cloud';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'cloud' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('cloud-foundations', 'دورة أساسيات الحوسبة السحابية', 'Cloud Foundations', 'الخدمات السحابية الأساسية والشبكات والتخزين.', 'published', 2)
@@ -1028,6 +1168,14 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات الحو
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'cloud-foundations';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'cloud-foundations' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('containers', 'دورة النشر والحاويات', 'Containers and Docker', 'Docker وأساسيات CI/CD لنشر موثوق.', 'published', 2)
 on conflict (slug) do nothing;
@@ -1096,6 +1244,14 @@ select 'course_project', c.id, 'مشروع الدورة: النشر والحاو
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'containers';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'containers' and a.kind = 'course_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('observability', 'دورة المراقبة والتشغيل الآلي', 'Monitoring and Operations', 'مراقبة الأنظمة وأتمتة عمليات النشر.', 'published', 2)
@@ -1166,6 +1322,14 @@ select 'course_project', c.id, 'مشروع الدورة: المراقبة وال
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'observability';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'observability' and a.kind = 'course_project'
+on conflict do nothing;
+
 -- ---------------------------------------------------------------------------
 -- مسار ريادة الأعمال الرقمية
 -- ---------------------------------------------------------------------------
@@ -1180,6 +1344,14 @@ select 'path_project', lp.id,
        'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'business';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.learning_paths lp on lp.id = a.path_id
+join public.skills s on s.slug = any (array['teamwork', 'presenting-work', 'project-delivery']::text[])
+where lp.slug = 'business' and a.kind = 'path_project'
+on conflict do nothing;
 
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('idea-to-opportunity', 'دورة من الفكرة إلى الفرصة', 'From Idea to Opportunity', 'كيف تجد فكرة مشروع وتحلل السوق المبدئي.', 'published', 1)
@@ -1250,6 +1422,14 @@ select 'course_project', c.id, 'مشروع الدورة: من الفكرة إل�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'idea-to-opportunity';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'idea-to-opportunity' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('validation', 'دورة التحقق من الفكرة', 'Validating the Problem', 'مقابلات واستبيانات للتحقق من المشكلة قبل البناء.', 'published', 1)
 on conflict (slug) do nothing;
@@ -1319,6 +1499,14 @@ select 'course_project', c.id, 'مشروع الدورة: التحقق من ال�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'validation';
 
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'validation' and a.kind = 'course_project'
+on conflict do nothing;
+
 insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
 values ('business-model', 'دورة نموذج العمل', 'Business Model and Pricing', 'Business Model Canvas وأساسيات التسعير.', 'published', 2)
 on conflict (slug) do nothing;
@@ -1387,6 +1575,14 @@ select 'course_project', c.id, 'مشروع الدورة: نموذج العمل',
        'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'business-model';
+
+insert into public.assignment_skills (assignment_id, skill_id)
+select a.id, s.id
+from public.assignments a
+join public.courses c on c.id = a.course_id
+join public.skills s on s.slug = any (array['technical-writing', 'project-delivery']::text[])
+where c.slug = 'business-model' and a.kind = 'course_project'
+on conflict do nothing;
 
 
 -- ===========================================================================

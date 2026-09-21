@@ -3547,8 +3547,8 @@ select public.assert(
 -- stored twice, so the three can never disagree.
 select public.assert(
   (select count(*) from public.course_skills(
-     (select id from public.courses where slug = 'python-for-ai'))) = 2,
-  '31.2 a course''s skills are the union of its lessons''');
+     (select id from public.courses where slug = 'python-for-ai'))) = 4,
+  '31.2 a course''s skills are what its lessons teach and what its own work demands');
 
 select public.assert(
   (select count(*) from public.path_skills(
@@ -3639,6 +3639,82 @@ select public.assert(
       else 0 end,
   '31.8 a profile publishes its proven skills only if it is public at all');
 reset role;
+
+-- ===========================================================================
+-- 32. Some skills belong to the work, not to the lesson
+-- ===========================================================================
+select public.assert(
+  (select count(*) from public.assignment_skills) > 0,
+  '32.1 a piece of work can demand a skill of its own');
+
+-- Teamwork is demanded by every path capstone and taught by no lesson in any
+-- path. Before this it could only be recorded by pretending a lesson taught it.
+select public.assert(
+  not exists (
+    select 1 from public.lesson_skills ls
+      join public.skills s on s.id = ls.skill_id
+     where s.slug = 'teamwork'),
+  '32.2 teamwork is taught by no lesson — it is what the capstone demands');
+
+select public.assert(
+  exists (
+    select 1 from public.path_skills((select id from public.learning_paths where slug = 'genai')) ps
+     where ps.slug = 'teamwork'),
+  '32.3 and the path that sets that capstone counts it among its skills');
+
+select public.assert(
+  exists (
+    select 1 from public.course_skills((select id from public.courses where slug = 'python-for-ai')) cs
+     where cs.slug = 'technical-writing'),
+  '32.4 a course counts what its own project demands, not only its lessons');
+
+-- The rollup still only goes one way: a path holds everything its courses do.
+select public.assert(
+  not exists (
+    select 1 from public.course_skills((select id from public.courses where slug = 'python-for-ai')) cs
+     where cs.id not in (select ps.id from public.path_skills(
+       (select id from public.learning_paths where slug = 'genai')) ps)),
+  '32.5 and a path still holds every skill its courses do');
+
+-- Approving a capstone proves what the capstone actually asked for.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.submit_work(
+  (select a.id from public.assignments a
+     join public.learning_paths lp on lp.id = a.path_id
+    where lp.slug = 'genai' and a.kind = 'path_project'),
+  '[{"kind":"github","url":"https://github.com/example/capstone","label":"repo"},
+    {"kind":"linkedin","url":"https://linkedin.com/posts/example","label":"post"},
+    {"kind":"youtube","url":"https://youtube.com/watch?v=example","label":"walkthrough"}]'::jsonb
+) as capstone \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.evaluate_submission(:'capstone', 'approved', 5::smallint, 'مشروع مكتمل');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select count(*) from public.profile_skills ps
+     join public.skills s on s.id = ps.skill_id
+    where ps.profile_id = '77777777-7777-7777-7777-777777777777'
+      and s.slug in ('teamwork', 'presenting-work') and ps.is_verified) = 2,
+  '32.6 approving a group capstone proves the teamwork it took, not only its topics');
+
+select public.assert(
+  (select count(*) from public.profile_skills ps
+     join public.skills s on s.id = ps.skill_id
+    where ps.profile_id = '77777777-7777-7777-7777-777777777777'
+      and s.slug = 'prompt-engineering' and ps.is_verified) = 1,
+  '32.7 and everything the path itself teaches, in one approval');
+
+-- A lesson's own page reads the same union.
+select public.assert(
+  (select count(*) from public.lesson_skills_all(
+     (select id from public.lessons where slug = 'python-for-ai-l1'))) >= 1,
+  '32.8 a lesson reports what it teaches and what its assignment demands together');
 
 \echo ''
 \echo '================================================'

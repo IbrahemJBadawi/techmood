@@ -756,6 +756,7 @@ export type Database = {
       interests: Table<TaxonomyTerm>;
       skills: Table<TaxonomyTerm>;
       lesson_skills: Table<{ lesson_id: string; skill_id: string }>;
+      assignment_skills: Table<{ assignment_id: string; skill_id: string }>;
       profile_fields: Table<{ profile_id: string; field_id: string; added_at: string; is_primary: boolean }>;
       focus_sessions: Table<{
         id: string; profile_id: string; planned_minutes: number;
@@ -984,6 +985,10 @@ export type Database = {
       };
       choose_career_goal: { Args: { p_goal: string }; Returns: void };
       clear_career_goal: { Args: Record<string, never>; Returns: void };
+      lesson_skills_all: {
+        Args: { p_lesson: string };
+        Returns: { id: string; slug: string; name_ar: string; name_en: string }[];
+      };
       course_skills: {
         Args: { p_course: string };
         Returns: { id: string; slug: string; name_ar: string; name_en: string }[];
