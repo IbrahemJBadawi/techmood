@@ -7,7 +7,7 @@ import { formatSlot, money } from '@/lib/booking';
 import { getT } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 
-import { decideBooking, setMeetingUrl } from './actions';
+import { decideBooking } from './actions';
 
 export default async function MentorRequestsPage() {
   const t = await getT();
@@ -23,7 +23,7 @@ export default async function MentorRequestsPage() {
   // Only bookings whose payment TechMood already verified reach a mentor.
   const { data: requests } = await supabase
     .from('bookings')
-    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id, meeting_url')
+    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id')
     .eq('mentor_id', user.id)
     .in('status', ['mentor_pending', 'confirmed'])
     .order('scheduled_start');
@@ -45,6 +45,13 @@ export default async function MentorRequestsPage() {
   const typeById = new Map((types ?? []).map((row) => [row.id, row]));
   const xpById = new Map((xp ?? []).map((row) => [row.profile_id, row.total_xp]));
   const starsById = new Map((stars ?? []).map((row) => [row.profile_id, row.stars_avg]));
+
+  // Confirming a booking opens its room; the mentor enters it the same way the
+  // learner does, from their account and at its time.
+  const { data: rooms } = bookingIds.length
+    ? await supabase.from('video_sessions').select('id, booking_id').in('booking_id', bookingIds)
+    : { data: [] as { id: string; booking_id: string | null }[] };
+  const roomOf = new Map((rooms ?? []).map((room) => [room.booking_id ?? '', room.id]));
 
   const pending = (requests ?? []).filter((row) => row.status === 'mentor_pending');
   const confirmed = (requests ?? []).filter((row) => row.status === 'confirmed');
@@ -169,20 +176,11 @@ export default async function MentorRequestsPage() {
                     </p>
                   </div>
 
-                  <form action={setMeetingUrl} className="meeting-url-form">
-                    <input type="hidden" name="booking_id" value={row.id} />
-                    <input
-                      type="url"
-                      name="meeting_url"
-                      dir="ltr"
-                      defaultValue={row.meeting_url ?? ''}
-                      placeholder="https://meet.example.com/…"
-                      aria-label={t('رابط اللقاء', 'Meeting link')}
-                    />
-                    <button className="btn btn-ghost btn-sm" type="submit">
-                      {row.meeting_url ? t('تحديث', 'Update') : t('حفظ', 'Save')}
-                    </button>
-                  </form>
+                  {roomOf.get(row.id) && (
+                    <Link className="btn btn-primary btn-sm" href={`/sessions/${roomOf.get(row.id)}`}>
+                      {t('غرفة الجلسة', 'Session room')}
+                    </Link>
+                  )}
 
                   <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>{t('التفاصيل', 'Details')}</Link>
                 </article>

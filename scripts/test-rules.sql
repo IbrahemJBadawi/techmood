@@ -3899,6 +3899,310 @@ select public.assert(
 reset role;
 update public.profiles set is_public = true where id = '11111111-1111-1111-1111-111111111111';
 
+-- ===========================================================================
+-- 35. Video sessions
+-- ===========================================================================
+-- The booking of section 6 was confirmed, so a session exists for it — and it
+-- exists because of that confirmation, not because anyone asked for a room.
+select public.assert(
+  (select count(*) from public.video_sessions where booking_id = :'booking') = 1,
+  '35.1 confirming a booking is what opens its session');
+
+select id as vsession from public.video_sessions where booking_id = :'booking' \gset
+
+select public.assert(
+  (select count(*) from public.video_session_participants where session_id = :'vsession') = 2,
+  '35.2 its participants are the two people the booking is between');
+
+-- The booking's own times are the session's, and the clock is the server's.
+select public.assert(
+  (select start_at from public.video_sessions where id = :'vsession')
+    = (select scheduled_start from public.bookings where id = :'booking'),
+  '35.3 the session runs for the hour that was booked, not a minute more');
+
+-- A session in the future is shut: not a link somebody can use early.
+update public.video_sessions
+   set start_at = now() + interval '2 hours', end_at = now() + interval '3 hours'
+ where id = :'vsession';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.session_phase(:'vsession') = 'waiting',
+  '35.4 before the lobby opens the session is simply shut');
+
+select public.assert_rejects(
+  format($$select public.join_video_session(%L)$$, :'vsession'),
+  '35.5 and nobody can enter it early, however they ask',
+  'خمس دقائق');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Five minutes before, the lobby opens.
+update public.video_sessions
+   set start_at = now() + interval '3 minutes', end_at = now() + interval '63 minutes'
+ where id = :'vsession';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.session_phase(:'vsession') = 'lobby'
+  and public.join_video_session(:'vsession') = 'lobby',
+  '35.6 five minutes before, the lobby opens');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Somebody who was not booked into it cannot enter, whatever they know.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.join_video_session(%L)$$, :'vsession'),
+  '35.7 a stranger with the session id is still not a participant',
+  'لست من المشاركين');
+
+select public.assert(
+  (select count(*) from public.video_sessions where id = :'vsession') = 0,
+  '35.8 and cannot even read that it exists');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Leaving and coming back is two more events, not a lost record.
+update public.video_sessions
+   set start_at = now() - interval '10 minutes', end_at = now() + interval '50 minutes',
+       status = 'live'
+ where id = :'vsession';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.leave_video_session(:'vsession');
+select public.join_video_session(:'vsession');
+select public.assert(
+  (select entries from public.session_attendance(:'vsession')
+    where profile_id = '11111111-1111-1111-1111-111111111111') = 2,
+  '35.9 leaving and coming back is recorded, not lost');
+
+select public.assert(
+  (select is_present from public.session_attendance(:'vsession')
+    where profile_id = '11111111-1111-1111-1111-111111111111'),
+  '35.10 and presence is read from the last event, not from a flag');
+reset role;
+reset request.jwt.claim.sub;
+
+-- When the hour is up, the door is shut for everyone.
+update public.video_sessions
+   set start_at = now() - interval '70 minutes', end_at = now() - interval '10 minutes'
+ where id = :'vsession';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.session_phase(:'vsession') = 'ended',
+  '35.11 when the booked hour is over the session is over');
+
+select public.assert_rejects(
+  format($$select public.join_video_session(%L)$$, :'vsession'),
+  '35.12 and nobody re-enters it, not even the people who were in it',
+  'انتهت هذه الجلسة');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Closing runs as its own statement: a row updated inside a statement is not
+-- visible to the rest of that same statement.
+select public.close_due_video_sessions() as closed \gset
+
+select public.assert(
+  :'closed'::int >= 1
+  and (select status from public.video_sessions where id = :'vsession') = 'completed',
+  '35.13 a session whose time has passed is closed, and one nobody attended reads as a no-show');
+
+-- A team's own time: free, and limited to the team rather than to each member.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.schedule_internal_session(:'team', now() + interval '1 day', now() + interval '1 day 1 hour')).id as internal1 \gset
+select (public.schedule_internal_session(:'team', now() + interval '2 days', now() + interval '2 days 1 hour')).id as internal2 \gset
+
+select public.assert_rejects(
+  format($$select public.schedule_internal_session(%L, now() + interval '3 days', now() + interval '3 days 1 hour')$$, :'team'),
+  '35.14 a team gets two internal sessions a week, and the limit is the team''s',
+  'حدّ اجتماعين');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Another member of the same team hits the same wall: the limit is not per person.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.schedule_internal_session(%L, now() + interval '4 days', now() + interval '4 days 1 hour')$$, :'team'),
+  '35.15 a second member cannot spend the same week again',
+  'حدّ اجتماعين');
+reset role;
+reset request.jwt.claim.sub;
+
+-- 7777 joined a team back in section 26, so the outsider here is 8888.
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert_rejects(
+  format($$select public.schedule_internal_session(%L, now() + interval '5 days', now() + interval '5 days 1 hour')$$, :'team'),
+  '35.16 and somebody outside the team cannot book its room at all',
+  'أعضاء الفريق فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 36. Rating a session: on criteria, and blind until both have spoken
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.rate_session(%L, '{"quality":5}'::jsonb)$$, :'booking2'),
+  '36.1 a session nobody had cannot be rated',
+  'بعد اكتمال الجلسة');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A session of its own to rate, walked through the real state machine: the
+-- earlier bookings were refunded and cancelled by the tests that own them.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '28 days') + interval '10 hours',
+        date_trunc('day', now() + interval '28 days') + interval '11 hours',
+        15, 5, 10, 'جلسة للتقييم', 'draft')
+returning id as booking4 \gset
+
+update public.bookings set status = 'payment_pending' where id = :'booking4';
+
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'booking4', 'jawwal_pay', 15, 'under_review', 'JP-55011', now())
+returning id as payment4 \gset
+
+update public.bookings set status = 'payment_submitted' where id = :'booking4';
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'payment4', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'booking4', true);
+reset role;
+reset request.jwt.claim.sub;
+
+update public.bookings set status = 'completed' where id = :'booking4';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.rate_session(
+  :'booking4',
+  '{"quality":5,"clarity":5,"usefulness":4,"punctuality":5,"communication":5}'::jsonb,
+  'جلسة واضحة ومفيدة') as student_rating \gset
+
+select public.assert(
+  (select stars from public.session_feedback where id = :'student_rating') = 5,
+  '36.2 the star that carries the mentor''s rating is the average of the criteria');
+
+select public.assert_rejects(
+  format($$select public.rate_session(%L, '{"quality":1}'::jsonb)$$, :'booking4'),
+  '36.3 one rating per person per session',
+  'قيّمت هذه الجلسة بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Until the mentor writes theirs, the mentor cannot read the student's.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  not public.session_feedback_is_open(:'booking4')
+  and (select count(*) from public.session_feedback_for(:'booking4')) = 0,
+  '36.4 a rating is sealed until the other side has written one too');
+
+select public.rate_session(
+  :'booking4',
+  '{"commitment":5,"preparation":4,"participation":5,"communication":5,"use_of_session":4}'::jsonb,
+  'طالب مستعد');
+
+select public.assert(
+  public.session_feedback_is_open(:'booking4')
+  and (select count(*) from public.session_feedback_for(:'booking4')) = 2,
+  '36.5 and both open at the same moment, once both have spoken');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.rate_session(%L, '{"quality":1}'::jsonb)$$, :'booking4'),
+  '36.6 somebody who was not in the session cannot rate it',
+  'طرفا الجلسة فقط');
+
+select public.assert(
+  (select count(*) from public.session_feedback_for(:'booking4')) = 0,
+  '36.7 nor read what the two of them said to each other');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 37. Telling people about their sessions
+-- ===========================================================================
+-- Nobody asked to be told: the session existing is what tells them, and every
+-- participant is told once — which is why the notification carries the room's
+-- own address and not a link anybody could pass on.
+select public.assert(
+  (select count(*) from public.notifications
+    where profile_id = '11111111-1111-1111-1111-111111111111'
+      and link = '/sessions/' || :'vsession') = 1,
+  '37.1 a session existing is what tells the people it is for');
+
+-- The reminders are the clock's, and they are written down as they are sent.
+update public.video_sessions
+   set start_at = now() + interval '3 minutes', end_at = now() + interval '63 minutes',
+       status = 'scheduled'
+ where id = :'vsession';
+
+select public.notify_due_sessions() as first_run \gset
+
+select public.assert(
+  (select count(*) from public.video_session_reminders
+    where session_id = :'vsession' and mark = 'lobby') = 1,
+  '37.2 five minutes before, everybody in the session is told the door is open');
+
+select count(*) as after_first from public.notifications where link = '/sessions/' || :'vsession' \gset
+select public.notify_due_sessions() as second_run \gset
+
+select public.assert(
+  (select count(*) from public.notifications where link = '/sessions/' || :'vsession') = :'after_first'::int,
+  '37.3 running the job again sends nothing twice');
+
+-- An hour that nobody turned up to is still worth a word.
+update public.video_sessions
+   set start_at = now() - interval '2 hours', end_at = now() - interval '1 hour', status = 'no_show'
+ where id = :'vsession';
+
+select public.notify_due_sessions() as third_run \gset
+
+select public.assert(
+  exists (select 1 from public.notifications
+           where link = '/sessions/' || :'vsession' and title_ar like '%دون حضور%'),
+  '37.4 and an hour nobody came to says exactly that');
+
+-- The job is the platform's, not a client's: it writes to everybody's inbox.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.notify_due_sessions()$$,
+  '37.5 a client cannot run the reminder job',
+  'permission denied');
+
+select public.assert_rejects(
+  format($$select public.notify_session(%L, 'day', 'x', 'y')$$, :'vsession'),
+  '37.6 nor send a notification to everybody in a session by hand',
+  'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

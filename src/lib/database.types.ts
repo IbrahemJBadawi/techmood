@@ -617,6 +617,17 @@ export type LessonVideo = {
   sort_order: number;
 }
 
+export type VideoSessionType = 'student_mentor' | 'team_mentor' | 'team_internal';
+export type VideoSessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
+export type SessionRole = 'mentor' | 'student' | 'member' | 'leader';
+/** Which door is open, decided by the server's clock. */
+export type SessionPhase = 'waiting' | 'lobby' | 'live' | 'ended';
+
+export type SessionCriterion =
+  | 'quality' | 'clarity' | 'usefulness' | 'punctuality' | 'guidance'
+  | 'commitment' | 'preparation' | 'participation' | 'use_of_session' | 'cooperation'
+  | 'communication';
+
 export type ProfileAudience = 'public' | 'professional' | 'private';
 
 export type ProfileSection =
@@ -799,6 +810,14 @@ export type Database = {
         status: ContentStatus; sort_order: number; created_at: string;
       }>;
       profile_career_goals: Table<{ profile_id: string; goal_id: string; chosen_at: string }>;
+      video_sessions: Table<{
+        id: string; session_code: string; booking_id: string | null; team_id: string | null;
+        session_type: VideoSessionType; start_at: string; end_at: string;
+        status: VideoSessionStatus; ended_at: string | null; created_at: string;
+      }>;
+      video_session_participants: Table<{
+        session_id: string; profile_id: string; role: SessionRole;
+      }>;
       profile_section_visibility: Table<{
         profile_id: string; section: ProfileSection; audience: ProfileAudience;
       }>;
@@ -1035,6 +1054,44 @@ export type Database = {
       submission_skills: {
         Args: { p_submission: string };
         Returns: { id: string; slug: string; name_ar: string; name_en: string }[];
+      };
+      my_sessions: {
+        Args: { p_past?: boolean };
+        Returns: {
+          id: string; session_code: string; session_type: VideoSessionType;
+          start_at: string; end_at: string; status: VideoSessionStatus;
+          phase: SessionPhase; my_role: SessionRole;
+          counterpart: string | null; participants: number;
+        }[];
+      };
+      session_phase: { Args: { p_session: string }; Returns: SessionPhase };
+      server_now: { Args: Record<string, never>; Returns: string };
+      join_video_session: { Args: { p_session: string }; Returns: SessionPhase };
+      leave_video_session: { Args: { p_session: string }; Returns: undefined };
+      schedule_internal_session: {
+        Args: { p_team: string; p_start: string; p_end: string; p_members?: string[] | null };
+        Returns: { id: string; session_code: string; start_at: string; end_at: string };
+      };
+      session_attendance: {
+        Args: { p_session: string };
+        Returns: {
+          profile_id: string; full_name: string; role: SessionRole;
+          first_joined: string | null; last_left: string | null;
+          entries: number; minutes: number; is_present: boolean;
+        }[];
+      };
+      rate_session: {
+        Args: { p_booking: string; p_scores: Partial<Record<SessionCriterion, number>>; p_comment?: string | null };
+        Returns: string;
+      };
+      session_feedback_is_open: { Args: { p_booking: string }; Returns: boolean };
+      session_feedback_for: {
+        Args: { p_booking: string };
+        Returns: {
+          from_profile: string; from_name: string; to_profile: string;
+          stars: number; comment_ar: string | null;
+          criteria: Partial<Record<SessionCriterion, number>>; created_at: string;
+        }[];
       };
       profile_card: {
         Args: { p_techmood_id: string };

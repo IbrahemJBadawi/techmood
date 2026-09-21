@@ -49,6 +49,18 @@ export default async function BookingDetailPage({
     ? await supabase.from('payment_methods').select('name_ar, name_en, icon').eq('key', payment.method_key).maybeSingle()
     : { data: null };
 
+  // Confirming the booking is what opens the room. There is no link to hand
+  // out: the session is entered from the account it was booked for.
+  const { data: videoSession } = await supabase
+    .from('video_sessions')
+    .select('id, session_code')
+    .eq('booking_id', bookingId)
+    .maybeSingle();
+
+  const { data: sessionPhase } = videoSession
+    ? await supabase.rpc('session_phase', { p_session: videoSession.id })
+    : { data: null };
+
   const status = BOOKING_STATUS[booking.status];
   const when = formatSlot(booking.scheduled_start);
   const isStudent = booking.student_id === user.id;
@@ -199,19 +211,26 @@ export default async function BookingDetailPage({
             </p>
           </div>
 
-          {booking.status === 'confirmed' && (
+          {videoSession && (
             <div className="panel section-block">
-              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>{t('رابط اللقاء', 'Meeting link')}</h3>
-              {booking.meeting_url ? (
-                <a className="btn btn-primary btn-sm" href={booking.meeting_url}
-                   target="_blank" rel="noreferrer noopener" style={{ width: '100%' }}>
-                  {t('ادخل الجلسة', 'Join the session')}
-                </a>
-              ) : (
-                <p className="muted" style={{ fontSize: '0.84rem' }}>
-                  {t('لم يضع المنتور الرابط بعد. سيصلك إشعار فور إضافته.', 'The mentor has not added the link yet. You will be notified the moment they do.')}
-                </p>
-              )}
+              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>{t('غرفة الجلسة', 'The session room')}</h3>
+              <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 10 }}>
+                <span className="eng">{videoSession.session_code}</span>
+                {' · '}
+                {sessionPhase === 'waiting'
+                  ? t('يفتح الباب قبل الموعد بخمس دقائق.', 'The door opens five minutes before the time.')
+                  : sessionPhase === 'ended'
+                    ? t('انتهت — الملخّص والتقييم بالداخل.', 'Over — the summary and the rating are inside.')
+                    : t('الباب مفتوح الآن.', 'The door is open now.')}
+              </p>
+              <Link className={`btn btn-sm ${sessionPhase === 'lobby' || sessionPhase === 'live' ? 'btn-primary' : 'btn-ghost'}`}
+                    href={`/sessions/${videoSession.id}`} style={{ width: '100%' }}>
+                {sessionPhase === 'ended' ? t('ملخّص الجلسة', 'Session summary') : t('ادخل الجلسة', 'Enter the session')}
+              </Link>
+              <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
+                {t('الدخول من حسابك ومن المشاركين المحجوزين فقط — لا يوجد رابط يمكن إرساله لأحد.',
+                   'Entry is from your own account, and only for the people the session was booked for — there is no link to forward.')}
+              </p>
             </div>
           )}
 

@@ -48,6 +48,19 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'رابط الجلسة يضعه المنتور',       en: 'The meeting link is set by the mentor.' },
   { match: 'لا يُضاف رابط إلا لجلسة مؤكدة',   en: 'A link can only be added to a confirmed session.' },
   { match: 'الرابط يجب أن يبدأ',            en: 'The link has to start with http or https.' },
+  // video sessions
+  { match: 'أعضاء الفريق فقط من يحجزون',     en: 'Only a team\u2019s own members book its meetings.' },
+  { match: 'وقت النهاية يجب أن يكون بعد البداية', en: 'The end time has to come after the start.' },
+  { match: 'حدّ اجتماعين داخليين في الأسبوع', en: 'Your team has reached its two internal meetings for this week.' },
+  { match: 'لست من المشاركين في هذه الجلسة',  en: 'You are not one of this session\u2019s participants.' },
+  { match: 'الباب يفتح قبل الموعد بخمس دقائق', en: 'The door opens five minutes before the session.' },
+  { match: 'انتهت هذه الجلسة',               en: 'This session is over.' },
+  // rating a session
+  { match: 'التقييم بعد اكتمال الجلسة فقط',   en: 'A session is rated once it has been completed.' },
+  { match: 'طرفا الجلسة فقط من يقيّمانها',    en: 'Only the two sides of a session rate it.' },
+  { match: 'لا يمكن تقييم نفسك',             en: 'You cannot rate yourself.' },
+  { match: 'قيّمت هذه الجلسة بالفعل',         en: 'You have already rated this session.' },
+  { match: 'التقييم يحتاج درجة واحدة على الأقل', en: 'A rating needs at least one score.' },
 ];
 
 /** Translates a database message when the interface is in English. */

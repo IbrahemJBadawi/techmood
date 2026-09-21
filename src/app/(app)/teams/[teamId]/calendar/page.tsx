@@ -7,6 +7,7 @@ import { getT } from '@/lib/i18n.server';
 import { CALENDAR_ENTRY } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
+import { MeetingForm } from './MeetingForm';
 
 const WINDOW_BACK_DAYS = 14;
 const WINDOW_FORWARD_DAYS = 60;
@@ -37,6 +38,18 @@ export default async function TeamCalendarPage({
     p_from: from,
     p_to: to,
   });
+
+  // The team's own hours. They are sessions like any other — the same room,
+  // the same clock, the same attendance log — they simply cost nothing.
+  const { data: meetings } = await supabase
+    .from('video_sessions')
+    .select('id, session_code, start_at, end_at, status')
+    .eq('team_id', teamId)
+    .eq('session_type', 'team_internal')
+    .gte('end_at', new Date().toISOString())
+    .order('start_at');
+
+  const { data: isMember } = await supabase.rpc('is_team_member', { p_team: teamId });
 
   // The calendar is a list of dates, grouped by day — the shape people read.
   const byDay = new Map<string, typeof entries>();
@@ -106,6 +119,41 @@ export default async function TeamCalendarPage({
       </section>
 
       <TeamNav teamId={teamId} />
+
+      <section className="section-block">
+        <h3 style={{ fontSize: '1rem', marginBottom: 6 }}>{t('اجتماعات الفريق', 'Team meetings')}</h3>
+        <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12, maxWidth: '64ch' }}>
+          {t('اجتماع الفريق الداخلي مجاني ولا يحتاج منتوراً — وللفريق اجتماعان في الأسبوع، محسوبان على الفريق لا على كل عضو.',
+             'An internal team meeting is free and needs no mentor — and a team gets two a week, counted for the team rather than for each member.')}
+        </p>
+
+        {(meetings ?? []).length > 0 && (
+          <div className="stack" style={{ marginBottom: 14 }}>
+            {(meetings ?? []).map((meeting) => (
+              <article className="panel session-row" key={meeting.id}>
+                <div>
+                  <strong style={{ fontSize: '0.9rem' }}>
+                    {new Date(meeting.start_at).toLocaleString('ar-EG', {
+                      weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </strong>
+                  <p className="muted" style={{ fontSize: '0.78rem' }}>
+                    <span className="eng">{meeting.session_code}</span>
+                    {' · '}
+                    {Math.round((new Date(meeting.end_at).getTime() - new Date(meeting.start_at).getTime()) / 60000)}
+                    {' '}{t('دقيقة', 'min')}
+                  </p>
+                </div>
+                <Link className="btn btn-ghost btn-sm" href={`/sessions/${meeting.id}`}>
+                  {t('غرفة الاجتماع', 'The room')}
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {isMember === true && <MeetingForm teamId={teamId} />}
+      </section>
 
       <section className="section-block">
         <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('القادم', 'Coming up')} ({t(`${upcoming.length} يوم`, `${upcoming.length} days`)})</h3>

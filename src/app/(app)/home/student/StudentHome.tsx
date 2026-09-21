@@ -88,7 +88,7 @@ export async function StudentHome({
     supabase.from('profile_fields').select('field_id').eq('profile_id', userId).eq('is_primary', true).maybeSingle(),
     supabase
       .from('bookings')
-      .select('id, topic_ar, scheduled_start, scheduled_end, status, mentor_id, meeting_url')
+      .select('id, topic_ar, scheduled_start, scheduled_end, status, mentor_id')
       .eq('student_id', userId)
       .in('status', ['confirmed', 'payment_verified', 'mentor_pending'])
       .gte('scheduled_start', new Date().toISOString())
@@ -146,6 +146,14 @@ export async function StudentHome({
   const boards = await loadBoards(since(windowKey));
 
   const nameOf = new Map((mentorNames ?? []).map((row) => [row.id, row.display_name ?? row.full_name]));
+
+  // A confirmed booking has a room of its own; the card links into it rather
+  // than to a link somebody could forward.
+  const bookingIds = (sessions ?? []).map((row) => row.id);
+  const { data: rooms } = bookingIds.length
+    ? await supabase.from('video_sessions').select('id, booking_id').in('booking_id', bookingIds)
+    : { data: [] as { id: string; booking_id: string | null }[] };
+  const roomOf = new Map((rooms ?? []).map((room) => [room.booking_id ?? '', room.id]));
   const displayName = profile.display_name ?? profile.full_name;
   const { data: primaryFieldRow } = primaryField?.field_id
     ? await supabase.from('fields').select('name_ar').eq('id', primaryField.field_id).maybeSingle()
@@ -265,11 +273,10 @@ export async function StudentHome({
                       ? t('مؤكّدة', 'Confirmed')
                       : t('بانتظار التأكيد', 'Awaiting confirmation')}
                   </span>
-                  {session.meeting_url && session.status === 'confirmed' && (
-                    <a className="btn btn-primary btn-sm" href={session.meeting_url}
-                       target="_blank" rel="noreferrer noopener">
-                      {t('ادخل الجلسة', 'Join the session')}
-                    </a>
+                  {roomOf.get(session.id) && (
+                    <Link className="btn btn-primary btn-sm" href={`/sessions/${roomOf.get(session.id)}`}>
+                      {t('ادخل الجلسة', 'Enter the session')}
+                    </Link>
                   )}
                   <Link className="btn btn-ghost btn-sm" href={`/bookings/${session.id}`}>{t('التفاصيل', 'Details')}</Link>
                 </div>

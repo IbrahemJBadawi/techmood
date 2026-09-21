@@ -20,20 +20,13 @@ export async function decideBooking(formData: FormData) {
   revalidatePath('/mentor-requests');
 }
 
-/**
- * Where the session happens. Only the booked mentor may set it, only on a
- * confirmed session, and only to an http(s) address — all three checked in
- * set_meeting_url(), not here.
+/*
+ * There is no setMeetingUrl here any more.
+ *
+ * A confirmed booking opens a room inside TechMood (0044), and that room is
+ * entered from the account it was booked for, at its own time. An external
+ * link was the one thing in this flow that could be forwarded to somebody the
+ * session was never booked for — so the mentor is no longer asked for one.
+ * bookings.meeting_url and set_meeting_url() still exist in the database and
+ * are now unused by any screen.
  */
-export async function setMeetingUrl(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  await supabase.rpc('set_meeting_url', {
-    p_booking: String(formData.get('booking_id') ?? ''),
-    p_url: String(formData.get('meeting_url') ?? '').trim(),
-  });
-
-  revalidatePath('/mentor-requests');
-}

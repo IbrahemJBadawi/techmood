@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import type { TaskColumn, TeamKind } from '@/lib/database.types';
 
@@ -203,4 +204,41 @@ export async function inviteMember(_prev: TeamState, formData: FormData): Promis
 
   revalidatePath(`/teams/${teamId}/members`);
   return { ok: t('أُرسلت الدعوة.', 'Invitation sent.') };
+}
+
+/**
+ * A team's own hour.
+ *
+ * It costs nothing and books no mentor, which is exactly why it is limited:
+ * the database allows a team two of these a week — counted for the team, not
+ * per member, so nobody gets around it by taking turns.
+ */
+export async function scheduleTeamMeeting(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const teamId = String(formData.get('team_id') ?? '');
+  const date = String(formData.get('date') ?? '');
+  const time = String(formData.get('time') ?? '');
+  const minutes = Number(formData.get('minutes') ?? 60);
+
+  if (!date || !time) return { error: t('اختر اليوم والساعة.', 'Pick the day and the hour.') };
+
+  const start = new Date(`${date}T${time}`);
+  if (Number.isNaN(start.getTime())) return { error: t('الموعد غير صالح.', 'That is not a valid time.') };
+
+  const end = new Date(start.getTime() + Math.min(180, Math.max(15, minutes)) * 60000);
+
+  const { error } = await supabase.rpc('schedule_internal_session', {
+    p_team: teamId,
+    p_start: start.toISOString(),
+    p_end: end.toISOString(),
+  });
+
+  revalidatePath(`/teams/${teamId}/calendar`);
+  if (error) return { error: dbError(t, error.message) };
+
+  return { ok: t('حُجز اجتماع الفريق، وسيصل الجميع إشعار به.', 'The meeting is booked, and everybody in the team has been told.') };
 }

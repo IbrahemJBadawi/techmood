@@ -135,6 +135,7 @@ const COMMON: NavGroup = {
   items: [
     { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
     { href: '/passport', label: { ar: 'الجواز المهني', en: 'Passport' }, icon: 'passport' },
+    { href: '/sessions', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
     { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
   ],
 };

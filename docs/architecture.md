@@ -845,11 +845,89 @@ from `authenticated` altogether, so a future policy cannot reopen it by
 accident. `cancel_booking()` and `set_meeting_url()` join the functions that
 were already there, each authorising its own caller and notifying the other
 side. `meeting_url` is only settable by the booked mentor, only on a confirmed
-session, and only as an http(s) address.
+session, and only as an http(s) address — and since 0044 gave a confirmed
+booking a room of its own, no screen asks for it any more: the column and
+`set_meeting_url()` remain in the database, unused, rather than being dropped
+under working data.
 
 The general rule this restates: where a table's rows carry money or state that
 other triggers act on, clients get `select` and nothing else, and every move
 goes through a function that can explain itself.
+
+## The call is part of the booking, not a link
+
+A booking has always carried who, when, how much and whether it was paid for.
+What it carried until 0044 was `meeting_url` — and a link is exactly what this
+system must not be, because a link can be forwarded to somebody the session was
+never booked for.
+
+So the call became an object with a life of its own:
+
+```
+Booking (confirmed) ──> VideoSession ──> VideoSessionParticipant
+                              │                └─ video_presence_events
+                              └─ scheduled → live → completed / no_show
+```
+
+Four rules shape it, and each is a line of SQL rather than a screen's good
+manners.
+
+**No session exists before the booking is confirmed.** `open_session_for_booking()`
+fires on the transition into `confirmed` and nowhere else, so a pending booking
+is not a room waiting to be entered. A team's own hour comes from
+`schedule_internal_session()` instead: free, no mentor, and limited to two a
+week *for the team* — counted across the team so nobody gets around it by taking
+turns.
+
+**The server is the clock.** `session_phase()` returns `waiting`, `lobby`,
+`live` or `ended` from `now()` against the session's own times, with the lobby
+opening five minutes before. `join_video_session()` asks the same function, so
+a browser with a helpful clock cannot open a door, and `server_now()` gives the
+page something to anchor its countdown to that is not the machine it is drawn
+on.
+
+**Attendance is a log; presence is derived.** Joining and leaving append to
+`video_presence_events`, never edit it, so a reconnect is two more lines rather
+than a lost record. `session_attendance()` pairs them into spans and counts the
+minutes; `is_present` is read from the last event. Leaving cancels nothing and
+ends nothing — the session runs until its time is up and the same person may
+come back.
+
+**Only named participants enter.** `video_sessions` is readable only through
+`is_session_participant()`, so a stranger holding the session id cannot join
+it, and cannot even read that it exists. A team booking admits the members it
+was booked for, which is what the seats were paid for.
+
+`close_due_video_sessions()` ends what the clock has ended, marking `no_show`
+when nobody came, and `notify_due_sessions()` (0046) sends the reminders that
+depend only on time — a day before, an hour before, the door opening, the start,
+the end. Each reminder is written to `video_session_reminders` as it is sent, so
+the job is safe to run as often as one likes. Both are revoked from clients:
+they are the platform's jobs, not anybody's API.
+
+### Rating: criteria, and blind until both have spoken
+
+`session_feedback` has existed since 0007 as one star and a comment. A mentor's
+rating rides on it, and a single number for a whole hour tells neither side what
+was good. 0045 gives it criteria — five per direction plus communication — and
+makes `stars` their average, so nobody can leave five stars without saying what
+was worth five.
+
+It was also visible the moment it was written, which invites an answer rather
+than a judgement. `session_feedback_is_open()` seals both sides until both have
+written, or until the week to write in has passed; the read policy, the reader
+and the writer all ask that same function.
+
+### What is not built
+
+The media path between participants. The camera and microphone in the room are
+the browser's own — `getUserMedia`, real tracks, real toggles — but there is no
+signalling channel and no SFU in this repository, so the other tiles show
+presence from the database rather than video, and the room says so rather than
+pretending. Everything around it (who may enter, when, the timer, attendance,
+the summary and the rating) is real and tested. Adding WebRTC over Supabase
+Realtime signalling, or an SFU, changes the tiles and nothing else: the
+authorization, the clock and the log stay where they are.
 
 ## Two languages
 

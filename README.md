@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 452 business-rule assertions
+scripts/test.sh                   # 481 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0013, applied in order
+  migrations/        0001-0046, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
@@ -212,6 +212,15 @@ workspace. And the marketplace — listings with structured pay and advisory
 requirements, evidence-backed applications, a poster's applicant queue, and team
 seats that route into the team's own decision queue instead of duplicating it.
 
+Also built: video sessions — a confirmed booking opens a room inside TechMood
+rather than a link that could be forwarded, with a lobby five minutes before,
+a timer anchored to the server's clock, an append-only attendance log, a
+post-session summary and a mutual rating on criteria that stays sealed until
+both sides have written. The one piece not built is the media path between
+participants (WebRTC signalling or an SFU); the camera and microphone in the
+room are real, and the other tiles show presence rather than pretending to show
+video.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.
@@ -225,4 +234,14 @@ never paid for. Run it every few minutes with pg_cron:
 
 ```sql
 select cron.schedule('expire-bookings', '*/5 * * * *', $$select public.expire_stale_bookings()$$);
+```
+
+`public.close_due_video_sessions()` ends sessions whose time has passed, marking
+a session nobody attended as a no-show, and `public.notify_due_sessions()` sends
+the session reminders that depend only on the clock. Both are revoked from
+clients and are safe to run repeatedly:
+
+```sql
+select cron.schedule('close-sessions',  '*/5 * * * *', $$select public.close_due_video_sessions()$$);
+select cron.schedule('notify-sessions', '*/5 * * * *', $$select public.notify_due_sessions()$$);
 ```
