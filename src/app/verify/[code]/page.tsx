@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { VerifiedCertificate } from '@/lib/database.types';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'Verify a certificate — TechMood' };
 
@@ -35,7 +36,7 @@ export default async function VerifyCertificatePage({
     <main className="landing" style={{ maxWidth: 720 }}>
       <nav className="landing-nav no-print">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <Link className="btn btn-ghost btn-sm" href="/verify">
@@ -70,7 +71,7 @@ export default async function VerifyCertificatePage({
 
           <section className="cert" style={{ marginTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-              <span className="logo-mark" />
+              <LogoMark />
               <strong>TechMood Technology</strong>
             </div>
 

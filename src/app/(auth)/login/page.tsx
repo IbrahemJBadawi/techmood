@@ -5,6 +5,7 @@ import { LanguagePicker } from '@/components/LanguagePicker';
 
 import { GoogleButton } from '../GoogleButton';
 import { LoginForm } from './LoginForm';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'Sign in — TechMood' };
 
@@ -21,7 +22,7 @@ export default async function LoginPage({
     <main className="landing auth-page">
       <div className="row-between" style={{ paddingTop: 20 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <LanguagePicker current={t.locale} />

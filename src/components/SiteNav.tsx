@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { getT } from '@/lib/i18n.server';
 import { LanguagePicker } from './LanguagePicker';
+import { LogoMark } from '@/components/Logo';
 
 /**
  * The public navigation.
@@ -26,7 +27,7 @@ export async function SiteNav() {
   return (
     <nav className="landing-nav" aria-label={t('روابط الموقع', 'Site links')}>
       <Link className="site-brand" href="/">
-        <span className="logo-mark" />
+        <LogoMark />
         TechMood
       </Link>
 

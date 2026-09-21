@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/i18n';
 import type { ExhibitionSnapshot, ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL, KIND_LABEL } from '../types';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'A project in the TechMood exhibition' };
 
@@ -49,7 +50,7 @@ export default async function ExhibitionEntryPage({
       <main className="landing" style={{ maxWidth: 860 }}>
         <nav className="landing-nav">
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-            <span className="logo-mark" />
+            <LogoMark />
             TechMood
           </Link>
           <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('كل المعرض', 'All projects')}</Link>
@@ -79,7 +80,7 @@ export default async function ExhibitionEntryPage({
     <main className="landing" style={{ maxWidth: 900 }}>
       <nav className="landing-nav">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('كل المعرض', 'All projects')}</Link>

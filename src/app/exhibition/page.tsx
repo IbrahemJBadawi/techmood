@@ -6,6 +6,7 @@ import { getT } from '@/lib/i18n.server';
 
 import { ExhibitionExplorer } from './ExhibitionExplorer';
 import type { GalleryEntry } from './types';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = {
   title: 'TechMood Exhibition',
@@ -50,7 +51,7 @@ export default async function ExhibitionPage() {
     <main className="landing">
       <nav className="landing-nav">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <Link className="btn btn-primary btn-sm" href="/signup">{t('ابدأ رحلتك', 'Start your journey')}</Link>

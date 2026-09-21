@@ -27,12 +27,17 @@ const mono = JetBrains_Mono({
  */
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
+  const description = t(
+    'منصة واحدة تربط التعلّم، الإرشاد، الفرق، العمل، وريادة الأعمال — حساب واحد وهوية مهنية واحدة.',
+    'One platform connecting learning, mentoring, teams, work and entrepreneurship — one account, one professional identity.',
+  );
+
   return {
     title: 'TechMood Technology',
-    description: t(
-      'منصة واحدة تربط التعلّم، الإرشاد، الفرق، العمل، وريادة الأعمال — حساب واحد وهوية مهنية واحدة.',
-      'One platform connecting learning, mentoring, teams, work and entrepreneurship — one account, one professional identity.',
-    ),
+    description,
+    // app/icon.png and app/apple-icon.png are picked up on their own; this is
+    // the mark a link preview shows.
+    openGraph: { title: 'TechMood Technology', description, images: ['/logo.png'] },
   };
 }
 

@@ -14,6 +14,7 @@ import { HeaderSearch } from './shell/HeaderSearch';
 import { Notifications } from './shell/Notifications';
 import { ProfileMenu } from './shell/ProfileMenu';
 import { ThemeToggle } from './shell/ThemeToggle';
+import { LogoMark } from '@/components/Logo';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const t = await getT();
@@ -60,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="app">
       <aside className="sidebar" aria-label={t('التنقّل', 'Navigation')}>
         <div className="sidebar-logo">
-          <span className="logo-mark" />
+          <LogoMark />
           <span className="sidebar-wordmark">TechMood</span>
         </div>
 

@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/i18n';
 import type { Database } from '@/lib/database.types';
 
 import { KIND_LABEL } from '../../types';
+import { LogoMark } from '@/components/Logo';
 
 type Verified = Database['public']['Functions']['verify_exhibition_entry']['Returns'][number];
 
@@ -50,7 +51,7 @@ export default async function VerifyProjectPage({
     <main className="landing" style={{ maxWidth: 720 }}>
       <nav className="landing-nav no-print">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'The exhibition')}</Link>

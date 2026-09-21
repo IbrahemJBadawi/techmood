@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import { levelInfo } from '@/lib/xp';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'A TechMood profile' };
 
@@ -37,7 +38,7 @@ export default async function PublicProfilePage({
     <main className="landing" style={{ maxWidth: 820 }}>
       <nav className="landing-nav">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
         <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'The exhibition')}</Link>

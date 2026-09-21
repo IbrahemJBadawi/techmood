@@ -123,21 +123,7 @@ button, input, select, textarea { font-family: inherit; }
   font-size: 1.05rem;
 }
 
-.logo-mark {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--royal), var(--sky));
-  position: relative;
-  flex: none;
-}
-.logo-mark::after {
-  content: "";
-  position: absolute;
-  inset: 7px;
-  border-radius: 2px;
-  background: var(--panel);
-}
+.logo-mark { flex: none; display: block; }
 
 .nav-group { padding: 6px 12px; }
 .nav-group-label {

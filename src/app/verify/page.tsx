@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { getT } from '@/lib/i18n.server';
+import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'Verify a certificate — TechMood' };
 
@@ -18,7 +19,7 @@ export default async function VerifyIndexPage() {
     <main className="landing" style={{ maxWidth: 520 }}>
       <nav className="landing-nav">
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <span className="logo-mark" />
+          <LogoMark />
           TechMood
         </Link>
       </nav>

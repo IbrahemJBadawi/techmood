@@ -9,6 +9,7 @@ import type { T } from '@/lib/i18n';
 import type { RoleStatus, TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
 
 import { finishOnboarding, requestRoles, saveBasics, saveTerms, suggestTerm } from './actions';
+import { LogoMark } from '@/components/Logo';
 
 type Term = { id: string; slug: string; name_ar: string; name_en: string; status: string };
 type RoleRow = { id: string; role: UserRole; status: RoleStatus; application_note: string | null };
@@ -55,7 +56,7 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
       <header className="onboarding-head">
         <div className="row-between">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
-            <span className="logo-mark" />
+            <LogoMark />
             TechMood
           </div>
           <span className="id-chip">{profile.techmood_id}</span>
