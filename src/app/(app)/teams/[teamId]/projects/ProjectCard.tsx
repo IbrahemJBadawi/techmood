@@ -5,7 +5,7 @@ import { useActionState, useState } from 'react';
 
 import type { ExhibitionStatus, ProjectStatus } from '@/lib/database.types';
 
-import { setProjectStatus, submitToExhibition, type ProjectState } from './actions';
+import { setExhibited, setProjectStatus, submitToExhibition, type ProjectState } from './actions';
 import { useT } from '@/lib/i18n.client';
 import type { Text } from '@/lib/i18n';
 
@@ -18,10 +18,13 @@ const PROJECT_STATUS: Record<ProjectStatus, { text: Text; className: string }> =
 };
 
 const ENTRY_STATUS: Record<ExhibitionStatus, { text: Text; className: string }> = {
-  draft:     { text: { ar: 'مسودّة',                  en: 'Draft' },              className: 'status-muted' },
-  submitted: { text: { ar: 'بانتظار مراجعة المعرض',  en: 'Awaiting review' },    className: 'status-pending' },
-  approved:  { text: { ar: 'منشور في المعرض',        en: 'In the exhibition' },  className: 'status-ok' },
-  rejected:  { text: { ar: 'لم يُقبل في المعرض',      en: 'Not accepted' },       className: 'status-danger' },
+  draft:             { text: { ar: 'مسودّة',                 en: 'Draft' },              className: 'status-muted' },
+  submitted:         { text: { ar: 'بانتظار مراجعة منتور',  en: 'Awaiting a mentor' },  className: 'status-pending' },
+  under_review:      { text: { ar: 'قيد المراجعة',          en: 'Under review' },       className: 'status-pending' },
+  revision_required: { text: { ar: 'مطلوب تعديل',           en: 'Revision required' },  className: 'status-danger' },
+  approved:          { text: { ar: 'معتمد — لم يُعرض بعد',  en: 'Approved — not on the wall yet' }, className: 'status-pending' },
+  exhibited:         { text: { ar: 'معروض في المعرض',       en: 'In the exhibition' },  className: 'status-ok' },
+  rejected:          { text: { ar: 'لم يُقبل في المعرض',     en: 'Not accepted' },       className: 'status-danger' },
 };
 
 export function ProjectCard({
@@ -44,12 +47,15 @@ export function ProjectCard({
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(submitToExhibition, undefined as ProjectState);
+  const [exhibitState, exhibitAction, exhibiting] = useActionState(setExhibited, undefined as ProjectState);
   const [showForm, setShowForm] = useState(false);
 
   const status = PROJECT_STATUS[project.status];
   const progress = taskCount > 0 ? Math.round((doneCount / taskCount) * 100) : 0;
-  const isPublished = entry?.status === 'approved';
-  const canSubmit = canManage && project.status === 'completed' && entry?.status !== 'approved';
+  const isPublished = entry?.status === 'exhibited';
+  // Approval is the mentor's judgement; going public is the builder's call.
+  const canExhibit = canManage && entry?.status === 'approved';
+  const canSubmit = canManage && project.status === 'completed' && !isPublished;
 
   return (
     <article className="panel section-block">
@@ -90,8 +96,30 @@ export function ProjectCard({
         </div>
       )}
 
-      {entry?.status === 'rejected' && entry.review_note_ar && (
+      {(entry?.status === 'revision_required' || entry?.status === 'rejected') && entry.review_note_ar && (
         <p className="notice notice-danger" style={{ marginTop: 12 }}>{entry.review_note_ar}</p>
+      )}
+
+      {(canExhibit || isPublished) && entry && canManage && (
+        <form action={exhibitAction} style={{ marginTop: 12 }}>
+          <input type="hidden" name="entry_id" value={entry.id} />
+          <input type="hidden" name="team_id" value={teamId} />
+          <input type="hidden" name="public" value={isPublished ? 'false' : 'true'} />
+          <button className={`btn btn-sm ${isPublished ? 'btn-ghost' : 'btn-primary'}`} disabled={exhibiting}>
+            {exhibiting
+              ? t('جارٍ…', 'Working…')
+              : isPublished
+                ? t('اسحبه من المعرض', 'Take it off the wall')
+                : t('اعرضه في المعرض', 'Put it on the wall')}
+          </button>
+          {exhibitState?.error && <p className="notice notice-danger" style={{ marginTop: 8 }}>{exhibitState.error}</p>}
+          {exhibitState?.ok && <p className="notice" style={{ marginTop: 8 }}>{exhibitState.ok}</p>}
+          {canExhibit && (
+            <p className="muted" style={{ fontSize: '0.76rem', marginTop: 8 }}>
+              {t('اعتمده منتور. عرضه قرارك أنت.', 'A mentor approved it. Whether it goes public is your call.')}
+            </p>
+          )}
+        </form>
       )}
 
       {canManage && (
@@ -139,6 +167,26 @@ export function ProjectCard({
           <div className="field">
             <label htmlFor={`demo-${project.id}`}>{t('رابط العرض التجريبي', 'Demo link')}</label>
             <input id={`demo-${project.id}`} name="demo_url" type="url" dir="ltr" placeholder="https://" />
+          </div>
+
+          <div className="field">
+            <label htmlFor={`problem-${project.id}`}>{t('المشكلة التي يعالجها', 'The problem it solves')}</label>
+            <textarea id={`problem-${project.id}`} name="problem" rows={2} />
+          </div>
+
+          <div className="field">
+            <label htmlFor={`solution-${project.id}`}>{t('الحل الذي بنيتموه', 'The solution you built')}</label>
+            <textarea id={`solution-${project.id}`} name="solution" rows={2} />
+          </div>
+
+          <div className="field">
+            <label htmlFor={`outcomes-${project.id}`}>{t('ماذا بُني فعلاً — سطر لكل شيء', 'What was actually built — one per line')}</label>
+            <textarea id={`outcomes-${project.id}`} name="outcomes" rows={4} />
+          </div>
+
+          <div className="field">
+            <label htmlFor={`cover-${project.id}`}>{t('صورة المشروع', 'A cover image')}</label>
+            <input id={`cover-${project.id}`} name="cover_url" type="url" dir="ltr" placeholder="https://" />
           </div>
 
           <div className="field">

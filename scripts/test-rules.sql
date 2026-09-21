@@ -1214,7 +1214,7 @@ values (:'team', :'project', 'بناء واجهة المتجر', '11111111-1111-
 select public.assert_rejects(
   format($$select public.submit_to_exhibition(%L, 'ملخص المشروع')$$, :'project'),
   '15.1 an unfinished project cannot be submitted to the exhibition',
-  'only a completed project');
+  'المشروع المكتمل فقط');
 
 update public.projects set status = 'completed' where id = :'project';
 reset role;
@@ -1229,7 +1229,7 @@ set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.assert_rejects(
   format($$select public.submit_to_exhibition(%L, 'ملخص من شخص آخر')$$, :'project'),
   '15.3 only the project owner or the team leader may submit it',
-  'only the project owner');
+  'صاحب المشروع أو قائد الفريق');
 
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select (public.submit_to_exhibition(
@@ -1245,30 +1245,63 @@ select public.assert(
   (select status from public.exhibition_entries where id = :'entry') = 'submitted',
   '15.4 a completed project can be submitted and waits for review');
 
--- Nothing is public before an admin approves it.
+-- Nothing is public before the work is judged.
 set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.assert(
   (select count(*) from public.exhibition_gallery) = 0,
   '15.5 a submitted entry is not in the public gallery yet');
 
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert_rejects(
   format($$select public.review_exhibition_entry(%L, true)$$, :'entry'),
-  '15.6 only an admin may approve an exhibition entry',
-  'only an admin');
+  '15.6 a learner cannot review work for the exhibition',
+  'للمنتورين والإدارة فقط');
 
-set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
-select public.review_exhibition_entry(:'entry', true, 'عمل موثّق ومكتمل.');
+-- A mentor judges it, criterion by criterion. A number with no criteria behind
+-- it is a number nobody can argue with.
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.review_exhibition_entry(%L, true, 'جيد')$$, :'entry'),
+  '15.6b approving without the rubric is refused',
+  'ينقص');
+
+select public.review_exhibition_entry(
+  :'entry', true, 'عمل موثّق ومكتمل.',
+  '{"requirements":5,"technical_quality":5,"ui_ux":4,"problem_solving":5,"documentation":4,"completeness":5}'::jsonb);
 reset role;
 
 select public.assert(
   (select status from public.exhibition_entries where id = :'entry') = 'approved'
+  and (select published_at from public.exhibition_entries where id = :'entry') is null,
+  '15.7 approval is the mentor''s judgement, not the decision to go public');
+
+select public.assert(
+  (select (snapshot #>> '{evaluation,rating}')::numeric from public.exhibition_entries where id = :'entry') = 4.7,
+  '15.7b the rating is the average of the criteria, not a number somebody typed');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.publish_exhibition_entry(%L)$$, :'entry'),
+  '15.7c a mentor cannot decide to make somebody else''s work public',
+  'صاحب المشروع أو قائد الفريق');
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.publish_exhibition_entry(:'entry');
+reset role;
+
+select public.assert(
+  (select status from public.exhibition_entries where id = :'entry') = 'exhibited'
   and (select published_at from public.exhibition_entries where id = :'entry') is not null,
-  '15.7 approval publishes the entry');
+  '15.8 exhibiting is the builder''s own decision, and it is what makes it public');
 
 select public.assert(
   (select count(*) from public.exhibition_gallery) = 1,
-  '15.8 an approved entry appears in the public gallery');
+  '15.8b an exhibited entry appears in the public gallery');
 
 -- Contributions are derived, and frozen into the snapshot at approval.
 select public.assert(
@@ -1310,7 +1343,7 @@ select public.assert(
 select public.assert(
   (select count(*) from public.team_xp_events
     where team_id = :'team' and source = 'project_completed') = 1,
-  '15.15 the team earns its project XP when the work is published, not before');
+  '15.15 the team earns its project XP when the work survives review, not before');
 
 select public.assert(
   (select count(*) from public.admin_review_queue where item_kind = 'exhibition_entry') = 0,
@@ -3238,6 +3271,143 @@ reset request.jwt.claim.sub;
 delete from public.lessons where title_ar = 'درس TypeScript الأول';
 delete from public.modules where title_ar = 'وحدة تجريبية';
 update public.courses set status = 'draft' where slug = 'typescript';
+
+-- ===========================================================================
+-- 28. The exhibition as verified evidence
+-- ===========================================================================
+-- A solo project: no team, no board, so no derived contributions — the
+-- builder is the owner and the snapshot has to say so.
+insert into public.projects (title_ar, description_ar, owner_id, tags, kind, status)
+values ('نظام جرد ذكي', 'نظام جرد بلوحة تحكم وتقارير.',
+        '77777777-7777-7777-7777-777777777777', array['C#','SQL Server'], 'personal', 'completed')
+returning id as solo \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select (public.submit_to_exhibition(
+  :'solo', 'نظام جرد كامل بُني ضمن مسار التطوير.',
+  array['C#','ASP.NET','SQL Server'], 'https://demo.example.com', null,
+  'المخزون يُدار على ورق فتضيع الكميات.', 'نظام يسجّل الحركة ويُخرج تقريراً.',
+  array['تسجيل الدخول', 'لوحة تحكم', 'تقارير'], 'https://example.com/cover.png'
+)).id as solo_entry \gset
+
+select public.assert(
+  (select version from public.exhibition_entries where id = :'solo_entry') = 1
+  and (select status from public.exhibition_entries where id = :'solo_entry') = 'submitted',
+  '28.1 a solo project can be submitted, and starts at version one');
+
+select public.assert_rejects(
+  format($$select public.start_exhibition_review(%L)$$, :'solo_entry'),
+  '28.2 a learner cannot pick up a review',
+  'للمنتورين والإدارة فقط');
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.start_exhibition_review(:'solo_entry');
+
+select public.assert(
+  (select status from public.exhibition_entries where id = :'solo_entry') = 'under_review',
+  '28.3 a mentor picking it up is visible to the builder');
+
+-- The document's ladder ends in a revision, not a closed door.
+select public.review_exhibition_entry(:'solo_entry', false, 'التوثيق ناقص — أضف شرح قاعدة البيانات.');
+
+select public.assert(
+  (select status from public.exhibition_entries where id = :'solo_entry') = 'revision_required',
+  '28.4 work that is not ready is sent back, not rejected');
+
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.submit_to_exhibition(
+  :'solo', 'نظام جرد كامل بُني ضمن مسار التطوير.',
+  array['C#','ASP.NET','SQL Server'], 'https://demo.example.com', 'توثيق قاعدة البيانات مضاف.',
+  'المخزون يُدار على ورق فتضيع الكميات.', 'نظام يسجّل الحركة ويُخرج تقريراً.',
+  array['تسجيل الدخول', 'لوحة تحكم', 'تقارير'], 'https://example.com/cover.png');
+
+select public.assert(
+  (select version from public.exhibition_entries where id = :'solo_entry') = 2
+  and (select status from public.exhibition_entries where id = :'solo_entry') = 'submitted',
+  '28.5 a revision is a new version of the same entry, not a second entry');
+
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.review_exhibition_entry(
+  :'solo_entry', true, 'صار مكتملاً وموثّقاً.',
+  '{"requirements":5,"technical_quality":4,"ui_ux":4,"problem_solving":5,"documentation":4,"completeness":4}'::jsonb);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select (snapshot #>> '{evaluation,rating}')::numeric from public.exhibition_entries where id = :'solo_entry') = 4.3,
+  '28.6 the rating is the average of the six criteria');
+
+select public.assert(
+  (select snapshot #>> '{creator,full_name}' from public.exhibition_entries where id = :'solo_entry') is not null
+  and (select snapshot -> 'team' from public.exhibition_entries where id = :'solo_entry') = 'null'::jsonb,
+  '28.7 a solo project is credited to its builder, not to an empty team');
+
+select public.assert(
+  (select jsonb_array_length(snapshot -> 'outcomes') from public.exhibition_entries where id = :'solo_entry') = 3
+  and (select snapshot ->> 'problem' from public.exhibition_entries where id = :'solo_entry') is not null,
+  '28.8 problem, solution and outcome are frozen with the work, not left to a summary');
+
+-- Approved is a judgement. It is not a decision to go public.
+set role anon;
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 1,
+  '28.9 an approved entry the builder has not exhibited is not in the gallery');
+
+select public.assert(
+  (select count(*) from public.exhibition_entries where id = :'solo_entry') = 0,
+  '28.10 nor is it readable by the public at all');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.publish_exhibition_entry(:'solo_entry');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 2,
+  '28.11 exhibiting it is what makes it public');
+reset role;
+
+select public.assert(
+  (select count(*) from public.profile_exhibition_entries('77777777-7777-7777-7777-777777777777')) = 1,
+  '28.12 and it reaches the builder''s passport, team or no team');
+
+-- The history the project page can show.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.exhibition_entry_reviews(:'solo_entry')) = 2
+  and (select decision from public.exhibition_entry_reviews(:'solo_entry') order by created_at limit 1)
+      = 'revision_required',
+  '28.13 every review is kept — the gallery shows the final one, the page can show the road');
+
+-- Taking it back down is the builder's decision too.
+select public.publish_exhibition_entry(:'solo_entry', false);
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 1,
+  '28.14 a builder can withdraw their work from the gallery');
+reset role;
+
+-- And a stranger cannot read the reviews of somebody else's work.
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert(
+  (select count(*) from public.exhibition_entry_reviews(:'solo_entry')) = 0,
+  '28.15 a mentor''s feedback belongs to the people it is about');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select kind from public.projects where id = :'solo') = 'personal',
+  '28.16 a project carries the kind the gallery filters on');
 
 \echo ''
 \echo '================================================'

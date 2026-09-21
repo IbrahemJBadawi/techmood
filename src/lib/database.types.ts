@@ -242,7 +242,18 @@ export type SmartGoal = {
   created_at: string;
   updated_at: string;
 }
-export type ExhibitionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type ExhibitionStatus =
+  | 'draft' | 'submitted' | 'under_review' | 'revision_required'
+  | 'approved' | 'exhibited' | 'rejected';
+
+/** What a mentor judges a project on. */
+export type ReviewCriterion =
+  | 'requirements' | 'technical_quality' | 'ui_ux'
+  | 'problem_solving' | 'documentation' | 'completeness';
+
+export type ExhibitionDecision = 'approved' | 'revision_required';
+
+export type ProjectKind = 'course' | 'path' | 'capstone' | 'team' | 'startup' | 'personal';
 
 /** Frozen at approval, so the public gallery never reads live workspace data. */
 export type ExhibitionSnapshot = {
@@ -251,9 +262,17 @@ export type ExhibitionSnapshot = {
   description: string | null;
   summary: string;
   documentation: string | null;
+  problem: string | null;
+  solution: string | null;
+  outcomes: string[];
   technologies: string[];
   demo_url: string | null;
+  cover_url: string | null;
+  kind: ProjectKind;
+  version: number;
   completed_on: string;
+  path: { slug: string; title: string } | null;
+  creator: { profile_id: string; full_name: string; techmood_id: string } | null;
   team: { code: string; title: string } | null;
   members: {
     profile_id: string;
@@ -262,7 +281,15 @@ export type ExhibitionSnapshot = {
     responsibility: string | null;
     tasks_done: number;
   }[];
-  mentors: { full_name: string; stars: number }[];
+  /** The judgement, frozen with the work it judged. */
+  evaluation: {
+    mentor_name: string;
+    mentor_id: string;
+    reviewed_on: string;
+    feedback: string | null;
+    rating: number | null;
+    criteria: Partial<Record<ReviewCriterion, number>>;
+  } | null;
   evidence: { kind: string; url: string; label: string | null }[];
 }
 
@@ -277,6 +304,11 @@ export type ExhibitionEntry = {
   demo_url: string | null;
   documentation_ar: string | null;
   status: ExhibitionStatus;
+  problem_ar: string | null;
+  solution_ar: string | null;
+  outcomes_ar: string[];
+  cover_url: string | null;
+  version: number;
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_note_ar: string | null;
@@ -794,7 +826,7 @@ export type Database = {
       projects: Table<{
         id: string; code: string; title_ar: string; description_ar: string | null;
         owner_id: string; team_id: string | null; path_id: string | null;
-        status: ProjectStatus; tags: string[]; is_public: boolean;
+        status: ProjectStatus; kind: ProjectKind; tags: string[]; is_public: boolean;
         completed_at: string | null; created_at: string; updated_at: string;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
@@ -1174,12 +1206,29 @@ export type Database = {
         Args: {
           p_project: string; p_summary: string; p_technologies?: string[];
           p_demo_url?: string | null; p_documentation?: string | null;
+          p_problem?: string | null; p_solution?: string | null;
+          p_outcomes?: string[]; p_cover_url?: string | null;
         };
         Returns: ExhibitionEntry;
       };
+      start_exhibition_review: { Args: { p_entry: string }; Returns: undefined };
       review_exhibition_entry: {
-        Args: { p_entry: string; p_approve: boolean; p_note?: string | null };
+        Args: {
+          p_entry: string; p_approve: boolean; p_note?: string | null;
+          p_scores?: Partial<Record<ReviewCriterion, number>>;
+        };
         Returns: undefined;
+      };
+      publish_exhibition_entry: {
+        Args: { p_entry: string; p_public?: boolean };
+        Returns: undefined;
+      };
+      exhibition_entry_reviews: {
+        Args: { p_entry: string };
+        Returns: {
+          version: number; mentor_name: string; decision: ExhibitionDecision;
+          feedback_ar: string | null; rating: number | null; created_at: string;
+        }[];
       };
       project_contributions: {
         Args: { p_project: string };

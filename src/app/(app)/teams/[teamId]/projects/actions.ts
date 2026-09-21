@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import type { ProjectStatus } from '@/lib/database.types';
 
@@ -63,16 +64,46 @@ export async function submitToExhibition(_prev: ProjectState, formData: FormData
       .filter(Boolean),
     p_demo_url: String(formData.get('demo_url') ?? '').trim() || null,
     p_documentation: String(formData.get('documentation') ?? '').trim() || null,
+    p_problem: String(formData.get('problem') ?? '').trim() || null,
+    p_solution: String(formData.get('solution') ?? '').trim() || null,
+    p_outcomes: String(formData.get('outcomes') ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean),
+    p_cover_url: String(formData.get('cover_url') ?? '').trim() || null,
   });
 
-  if (error) {
-    const message = error.message ?? '';
-    if (message.includes('completed project')) return { error: t('أكمل المشروع أولاً ثم قدّمه للمعرض.', 'Finish the project first, then submit it.') };
-    if (message.includes('owner or the team leader')) return { error: t('صاحب المشروع أو قائد الفريق فقط يستطيع تقديمه.', 'Only the project owner or the team lead can submit it.') };
-    if (message.includes('summary')) return { error: t('اكتب ملخصاً للعمل.', 'Write a summary of the work.') };
-    return { error: t('تعذّر التقديم للمعرض.', 'The submission could not be sent.') };
-  }
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath(`/teams/${teamId}/projects`);
   return { ok: t('قُدّم المشروع للمعرض، وينتظر مراجعة TechMood.', 'Submitted to the exhibition; it is now waiting on a TechMood review.') };
+}
+
+/**
+ * Exhibiting, and taking it back.
+ *
+ * Approval is the mentor's judgement; this is the builder's decision. The
+ * database refuses to exhibit work no mentor approved, and refuses to let
+ * anyone but the owner or the team lead make that call.
+ */
+export async function setExhibited(_prev: ProjectState, formData: FormData): Promise<ProjectState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const teamId = String(formData.get('team_id') ?? '');
+  const show = String(formData.get('public') ?? 'true') === 'true';
+
+  const { error } = await supabase.rpc('publish_exhibition_entry', {
+    p_entry: String(formData.get('entry_id') ?? ''),
+    p_public: show,
+  });
+
+  if (error) return { error: dbError(t, error.message) };
+
+  if (teamId) revalidatePath(`/teams/${teamId}/projects`);
+  revalidatePath('/exhibition');
+  return {
+    ok: show
+      ? t('صار المشروع معروضاً في المعرض.', 'The project is on the wall.')
+      : t('سُحب المشروع من المعرض.', 'The project is off the wall.'),
+  };
 }

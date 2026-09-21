@@ -39,7 +39,7 @@ export default async function AdminExhibitionPage() {
   // claim someone typed into the submission form.
   const contributions = await Promise.all(
     (entries ?? [])
-      .filter((entry) => entry.status === 'submitted')
+      .filter((entry) => entry.status === 'submitted' || entry.status === 'under_review')
       .map(async (entry) => {
         const { data } = await supabase.rpc('project_contributions', { p_project: entry.project_id });
         return { entryId: entry.id, rows: data ?? [] };
@@ -47,8 +47,11 @@ export default async function AdminExhibitionPage() {
   );
   const contributionsByEntry = new Map(contributions.map((row) => [row.entryId, row.rows]));
 
-  const waiting = (entries ?? []).filter((entry) => entry.status === 'submitted');
-  const settled = (entries ?? []).filter((entry) => entry.status !== 'submitted');
+  // A mentor may already be reading one; it is still waiting on a judgement.
+  const waiting = (entries ?? []).filter(
+    (entry) => entry.status === 'submitted' || entry.status === 'under_review');
+  const settled = (entries ?? []).filter(
+    (entry) => entry.status !== 'submitted' && entry.status !== 'under_review');
 
   return (
     <>
@@ -127,17 +130,17 @@ export default async function AdminExhibitionPage() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-                  <form action={reviewEntry}>
-                    <input type="hidden" name="entry_id" value={entry.id} />
-                    <input type="hidden" name="decision" value="approve" />
-                    <button className="btn btn-primary btn-sm">{t('اعتمد وانشر', 'Approve and publish')}</button>
-                  </form>
+                {/* Judging happens in one place, against the six criteria —
+                    an admin uses the same rubric a mentor does. */}
+                <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Link className="btn btn-primary btn-sm" href={`/review/exhibition/${entry.id}`}>
+                    {t('افتح التقييم', 'Open the rubric')}
+                  </Link>
                   <form action={reviewEntry} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
                     <input type="hidden" name="entry_id" value={entry.id} />
-                    <input type="hidden" name="decision" value="reject" />
-                    <input name="note" required placeholder={t('سبب الرفض — يظهر للفريق', 'Why — the team will see this')} style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
+                    <input type="hidden" name="decision" value="revision" />
+                    <input name="note" required placeholder={t('ما الذي يحتاج تعديلاً — يظهر للفريق', 'What needs changing — the team will see this')} style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-ghost btn-sm">{t('أعده للتعديل', 'Send back')}</button>
                   </form>
                 </div>
               </article>
@@ -161,8 +164,13 @@ export default async function AdminExhibitionPage() {
                   </td>
                   <td>{teamById.get(entry.team_id ?? '')?.title_ar ?? '—'}</td>
                   <td>
-                    <span className={`status-pill ${entry.status === 'approved' ? 'status-ok' : 'status-danger'}`}>
-                      {entry.status === 'approved' ? t('منشور', 'Published') : t('مرفوض', 'Rejected')}
+                    <span className={`status-pill ${
+                      entry.status === 'exhibited' ? 'status-ok'
+                        : entry.status === 'approved' ? 'status-pending' : 'status-danger'
+                    }`}>
+                      {entry.status === 'exhibited' ? t('معروض', 'On the wall')
+                        : entry.status === 'approved' ? t('معتمد — بانتظار قرار أصحابه', 'Approved — waiting on its builders')
+                        : t('أُعيد للتعديل', 'Sent back')}
                     </span>
                   </td>
                   <td className="eng">

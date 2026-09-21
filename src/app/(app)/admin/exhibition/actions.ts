@@ -5,7 +5,12 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 
-/** Approving publishes the entry and freezes its snapshot. */
+/**
+ * Sending an entry back for revision.
+ *
+ * Approving is not here any more: it needs the six criteria, so it happens on
+ * the rubric page an admin shares with the mentors. One judgement, one form.
+ */
 export async function reviewEntry(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -13,7 +18,7 @@ export async function reviewEntry(formData: FormData) {
 
   await supabase.rpc('review_exhibition_entry', {
     p_entry: String(formData.get('entry_id') ?? ''),
-    p_approve: formData.get('decision') === 'approve',
+    p_approve: false,
     p_note: String(formData.get('note') ?? '').slice(0, 500) || null,
   });
 

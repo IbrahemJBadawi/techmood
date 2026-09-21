@@ -1951,3 +1951,57 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .admin-mini-list li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .admin-mini-list li > span { flex: 1; min-width: 120px; }
 .admin-mini-list a { font-size: 0.74rem; color: var(--ink-soft); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- exhibition ---------- */
+.exhibit-card { gap: 9px; }
+.exhibit-builder { font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+.exhibit-rating { display: inline-flex; align-items: center; gap: 8px; font-size: 0.84rem; }
+.exhibit-badges {
+  list-style: none;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  font-size: 0.74rem;
+  color: var(--ok);
+}
+.exhibit-headline { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+.exhibit-cover {
+  width: 100%;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  margin-bottom: 14px;
+  display: block;
+}
+.exhibit-block { margin-top: 16px; }
+.exhibit-block h3 { font-size: 0.86rem; color: var(--ink-soft); margin-bottom: 6px; }
+.exhibit-block p { font-size: 0.92rem; }
+
+.exhibit-members { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.exhibit-members th,
+.exhibit-members td { text-align: start; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+.exhibit-members th { font-size: 0.78rem; color: var(--ink-soft); font-weight: 600; }
+.exhibit-members a { color: var(--royal-dark); text-decoration: none; }
+.exhibit-members a:hover { text-decoration: underline; }
+
+.exhibit-criteria { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.88rem; }
+.exhibit-criteria th,
+.exhibit-criteria td { text-align: start; padding: 8px; border-bottom: 1px solid var(--line); }
+.exhibit-criteria th { font-weight: 500; color: var(--ink-soft); }
+.exhibit-criteria select {
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.profile-meters { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 18px; }
+.profile-meters > div { display: grid; gap: 4px; }
+.profile-project-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; font-size: 0.88rem; }
+.profile-project-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.profile-project-list a { color: var(--royal-dark); text-decoration: none; }
+.profile-project-list a:hover { text-decoration: underline; }

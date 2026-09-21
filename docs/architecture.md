@@ -159,26 +159,45 @@ assignee a small fixed personal amount.
 
 ## Exhibition
 
-The last link in the chain: Team → Project → Mentor → Evaluation → **Exhibition**
+The last link in the chain: Team → Project → **Mentor evaluation** → Exhibition
 → Portfolio → Work. Without it a finished project stays inside a private
 workspace and never reaches anyone's professional record.
 
-Two decisions shape it:
+Four decisions shape it.
 
 **Contributions are derived.** Who did what on a project is counted from the
 completed tasks that point at it, through `project_contributions()`. Asking
 people to describe their own contribution would invite a nicer story than the
 one the board tells, and the whole point of the platform is evidence.
 
+**A mentor judges, against six criteria.** 0021 let only an admin approve an
+entry; 0037 makes it "a mentor or an admin", which is what every other piece of
+work on this platform has had since 0004. The rubric — requirements, technical
+quality, UI/UX, problem solving, documentation, completeness — is stored as six
+rows in `exhibition_review_scores`, and the overall rating is their average,
+computed by `exhibition_review_rating()` and never typed by anyone. Reviews are
+append-only: a second review of a second version is a second row, which is what
+makes a project's history readable without a parallel log.
+
+**Approving and exhibiting are separate decisions.** They used to be one step.
+Approval is the mentor's judgement; exhibiting is the builder's choice to make
+the work public, and `publish_exhibition_entry()` is theirs to call. This is the
+same rule the academy follows when it refuses to make anyone publish their work
+to be graded. The read policy had to move with it: 0019 opened `approved` to the
+world, and `approved` now means *judged but not published*, so only `exhibited`
+is public. That was the one real hole this change could have left.
+
 **Approval freezes a snapshot**, the same pattern as certificates. The gallery is
 public while most teams are private workspaces, so publishing copies what was
-approved — project, team name, members and their task counts, mentor reviews,
-evidence links — instead of opening a window into live data. `exhibition_gallery`
-reads snapshots only, and `profile_exhibition_entries()` finds a member inside
-them for their passport.
+approved — project, problem, solution, outcome, the builders and their task
+counts, the mentor's rubric and feedback, evidence links — instead of opening a
+window into live data. `exhibition_gallery` reads snapshots only, and
+`profile_exhibition_entries()` finds a person inside them for their passport and
+their public profile, whether they built it in a team or alone.
 
-A team earns its `project_completed` XP when the work is published, not when the
-last task is ticked: the reward attaches to work that survived review.
+A team earns its `project_completed` XP when the work survives review, not when
+the last task is ticked. The rating is quality, the XP is progress, and neither
+is computed from the other — the project page says so in as many words.
 
 ## The wallet
 
