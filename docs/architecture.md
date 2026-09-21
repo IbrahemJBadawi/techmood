@@ -536,6 +536,46 @@ studying could demote a course somebody is. A level describes where a course
 sits in what is actually being taught, so `backfill_course_levels()` now counts
 positions in published paths only.
 
+## A lesson is a place, not a row
+
+A lesson used to exist only as a line on the course page: a title, a duration
+and a checkbox. The academy document describes something else — videos, what
+you will learn, review material, an assignment, a case study, deliverables, a
+portfolio home, an optional challenge, the next lesson — with a board and a
+timer beside it. 0034 gives a lesson its own address and its own page.
+
+What that needed, and what it did not:
+
+| The document asks for | Where it lives |
+|---|---|
+| A lesson address (TM-CODE-L01) | `lessons.slug`, backfilled from the course and the lesson's place in it; a trigger numbers new ones |
+| Several videos | `lesson_videos`; the single unused `lessons.video_url` is dropped |
+| What you will learn, a case study, a challenge | `lessons.outcomes_ar`, `case_study_ar`, `case_question_ar`, `challenge_ar` |
+| Review material | `lesson_resources`, which already existed |
+| Deliverables | `assignments.required_evidence`, which already said exactly this |
+| The LinkedIn draft, the portfolio folder | **Nothing.** Both are a function of the path, the course and the lesson, so the page writes them from names it already has |
+| Next lesson | **Nothing.** The lessons are ordered; the next one is the next one |
+| A kanban for the lesson | **Nothing stored.** `lesson_board()` reads the rows that already record each step |
+| A pomodoro for the lesson | `focus_sessions.ref_table` / `ref_id`, which 0030 already carried |
+
+`lesson_board()` is the point worth keeping in mind. Its four steps — watch,
+do the assignment, get it reviewed, document it — are read from the progress
+row, the submission, that submission's status, and whether its evidence carries
+a public link. Move the work and the board moves with it; it cannot drift from
+the course page or from the mentor's review queue, because it is looking at the
+same rows they are. It resolves the caller through `auth.uid()`, so two people
+looking at the same lesson see two different boards and neither can ask for the
+other's.
+
+Publishing is a step and not a requirement unless the assignment itself asks
+for a public link. The page offers a draft post, already written from the
+lesson's own names, and says in as many words that publishing does not affect
+the grade — the mentor reviews what was submitted.
+
+Sections a lesson does not carry are not rendered. A lesson whose videos have
+not been authored yet simply has no video section; the page never shows an
+empty frame where content is meant to be.
+
 ## Bookings are written by functions, not by their parties
 
 0011 gave the student and the mentor a blanket update policy on `bookings`,

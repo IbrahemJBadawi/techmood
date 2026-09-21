@@ -1851,3 +1851,30 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .academy-school-list a { color: var(--royal-dark); text-decoration: none; }
 .academy-school-list a:hover { text-decoration: underline; }
 .academy-soon { font-size: 0.64rem; }
+
+/* ---------- a lesson of its own ---------- */
+.lesson-trail { display: flex; gap: 8px; align-items: center; font-size: 0.82rem; margin-bottom: 14px; }
+.lesson-trail a { color: var(--royal-dark); text-decoration: none; }
+.lesson-trail a:hover { text-decoration: underline; }
+.lesson-trail span { color: var(--ink-soft); }
+
+.lesson-open { font-size: 0.92rem; font-weight: 500; color: inherit; text-decoration: none; }
+.lesson-open:hover { color: var(--royal-dark); text-decoration: underline; }
+
+.lesson-outcomes { margin: 10px 0 0; padding-inline-start: 20px; display: grid; gap: 6px; font-size: 0.86rem; }
+.lesson-links { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; font-size: 0.88rem; }
+.lesson-links a { color: var(--royal-dark); }
+.lesson-links p { font-size: 0.8rem; margin-top: 3px; }
+
+.share-draft {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.82rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 12px;
+  margin: 10px 0;
+  direction: ltr;
+  text-align: start;
+}

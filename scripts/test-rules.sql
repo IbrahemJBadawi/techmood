@@ -2955,6 +2955,118 @@ select public.assert(
     where p.status = 'planned') = 0,
   '24.16 an announced path opens no conversation until it is published');
 
+-- ===========================================================================
+-- 25. A lesson of its own: address, videos, and a board that is not stored
+-- ===========================================================================
+select public.assert(
+  (select count(*) from public.lessons where slug is null) = 0
+  and (select count(distinct slug) from public.lessons) = (select count(*) from public.lessons),
+  '25.1 every lesson has its own address');
+
+select public.assert(
+  exists (select 1 from public.lessons where slug = 'python-for-ai-l1')
+  and exists (select 1 from public.lessons where slug = 'python-for-ai-l2'),
+  '25.2 and that address reads as the course and the lesson''s place in it');
+
+-- A new lesson is numbered without anyone having to think about it.
+insert into public.lessons (module_id, title_ar, kind, sort_order)
+select m.id, 'درس جديد للاختبار', 'article', 99
+  from public.modules m
+  join public.courses c on c.id = m.course_id
+ where c.slug = 'python-for-ai';
+
+select public.assert(
+  (select slug from public.lessons where title_ar = 'درس جديد للاختبار') = 'python-for-ai-l3',
+  '25.3 a lesson added later takes the next number in its course');
+
+delete from public.lessons where title_ar = 'درس جديد للاختبار';
+
+-- The one video column became a table, because a lesson has several.
+select public.assert(
+  not exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'lessons' and column_name = 'video_url'),
+  '25.4 the single video column is gone');
+
+insert into public.lesson_videos (lesson_id, title_ar, url, sort_order)
+select l.id, 'الفيديو الأول', 'https://example.com/v1', 1
+  from public.lessons l where l.slug = 'python-for-ai-l1';
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select public.assert(
+  (select count(*) from public.lesson_videos v
+     join public.lessons l on l.id = v.lesson_id
+    where l.slug = 'python-for-ai-l1') = 1,
+  '25.5 a lesson can carry several videos, and everyone can read them');
+
+-- A learner who has not touched the lesson: everything ahead of them.
+select public.assert(
+  (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'watch') = 'todo'
+  and (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'practice') = 'todo',
+  '25.6 an untouched lesson has every step ahead of you');
+
+reset role;
+reset request.jwt.claim.sub;
+
+-- The learner of section 3 finished this lesson's assignment and it was
+-- approved, with a GitHub link on it.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'practice') = 'done'
+  and (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'review') = 'done',
+  '25.7 a board reads the submission and its review, not a column of its own');
+
+select public.assert(
+  (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'publish') = 'done',
+  '25.8 documenting counts as done once the work carries a public link');
+
+-- The same lesson, two people, two boards.
+select public.assert(
+  (select count(*) from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1'))) = 4,
+  '25.9 a lesson board is four steps, no more');
+
+-- Publishing is a requirement only when the assignment asks for a link.
+select public.assert(
+  (select is_optional from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'publish') = false
+  and (select is_optional from public.lesson_board(
+     (select id from public.lessons where slug = 'ml-foundations-l2')) where step_key = 'publish') = true,
+  '25.10 nobody is made to publish unless the assignment itself asks for a link');
+
+-- Marking the lesson itself moves only the first step.
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+select '11111111-1111-1111-1111-111111111111',
+       (select id from public.lessons where slug = 'python-for-ai-l2'), 'completed', now()
+on conflict (profile_id, lesson_id) do update set status = 'completed';
+
+select public.assert(
+  (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l2')) where step_key = 'watch') = 'done',
+  '25.11 watching is a progress row, and the board reads it');
+
+reset role;
+reset request.jwt.claim.sub;
+
+-- And the board cannot be pointed at somebody else: it takes no profile.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select column_key from public.lesson_board(
+     (select id from public.lessons where slug = 'python-for-ai-l1')) where step_key = 'review') = 'todo',
+  '25.12 another learner sees their own board for the same lesson');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

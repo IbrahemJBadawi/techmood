@@ -18,7 +18,16 @@ const MINUTES = [15, 25, 45];
  * sitting with a timer produces nothing. What it gives back is an honest record
  * of where the hours went.
  */
-export function Pomodoro({ suggestion }: { suggestion: string | null }) {
+export function Pomodoro({
+  suggestion,
+  refTable = null,
+  refId = null,
+}: {
+  suggestion: string | null;
+  /** What the session is attached to, when it is started from that thing's own page. */
+  refTable?: string | null;
+  refId?: string | null;
+}) {
   const t = useT();
   const [planned, setPlanned] = useState(25);
   const [remaining, setRemaining] = useState(25 * 60);
@@ -40,12 +49,14 @@ export function Pomodoro({ suggestion }: { suggestion: string | null }) {
       profile_id: user.id,
       planned_minutes: planned,
       subject_ar: subject.trim() || null,
+      ref_table: refTable,
+      ref_id: refId,
       started_at: started.toISOString(),
       ended_at: new Date().toISOString(),
       was_completed: completed,
     });
     if (!error) setSaved((count) => count + 1);
-  }, [planned, subject]);
+  }, [planned, subject, refTable, refId]);
 
   useEffect(() => {
     if (phase !== 'running') return;

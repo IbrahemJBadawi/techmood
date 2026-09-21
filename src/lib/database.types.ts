@@ -560,14 +560,32 @@ export type Course = {
 export type Lesson = {
   id: string;
   module_id: string;
+  slug: string;
   title_ar: string;
   title_en: string | null;
   kind: LessonKind;
   duration_minutes: number | null;
   summary_ar: string | null;
-  video_url: string | null;
+  outcomes_ar: string[];
+  case_study_ar: string | null;
+  case_question_ar: string | null;
+  challenge_ar: string | null;
   sort_order: number;
 }
+
+export type LessonVideo = {
+  id: string;
+  lesson_id: string;
+  title_ar: string;
+  title_en: string | null;
+  description_ar: string | null;
+  url: string;
+  duration_minutes: number | null;
+  sort_order: number;
+}
+
+/** The column a lesson step sits in. Derived, never stored. */
+export type BoardColumn = 'todo' | 'doing' | 'done';
 
 export type Assignment = {
   id: string;
@@ -719,6 +737,10 @@ export type Database = {
       path_courses: Table<{ path_id: string; course_id: string; is_required: boolean; sort_order: number }>;
       modules: Table<{ id: string; course_id: string; title_ar: string; sort_order: number }>;
       lessons: Table<Lesson>;
+      lesson_videos: Table<LessonVideo>;
+      lesson_resources: Table<{
+        id: string; lesson_id: string; label: string; url: string; kind: EvidenceKind;
+      }>;
       assignments: Table<Assignment>;
       lesson_progress: Table<{
         profile_id: string;
@@ -893,6 +915,14 @@ export type Database = {
           is_enrolled: boolean; is_complete: boolean; status: LearningStatus;
           level_from: CourseLevel | null; level_to: CourseLevel | null;
           last_activity: string | null;
+        }[];
+      };
+      lesson_board: {
+        Args: { p_lesson: string };
+        Returns: {
+          step_key: string; title_ar: string; title_en: string | null;
+          column_key: BoardColumn; detail_ar: string | null;
+          is_optional: boolean; sort_order: number;
         }[];
       };
       academy_roadmap: {

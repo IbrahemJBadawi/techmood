@@ -39,12 +39,12 @@ export default async function CoursePage({
 
   const { data: modules } = await supabase
     .from('modules')
-    .select('id, title_ar, sort_order, lessons(id, title_ar, title_en, kind, duration_minutes, summary_ar, sort_order)')
+    .select('id, title_ar, sort_order, lessons(id, slug, title_ar, title_en, kind, duration_minutes, summary_ar, sort_order)')
     .eq('course_id', course.id)
     .order('sort_order');
 
   const lessons = (modules ?? [])
-    .flatMap((module) => (module.lessons as unknown as { id: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number }[]) ?? [])
+    .flatMap((module) => (module.lessons as unknown as { id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number }[]) ?? [])
     .sort((a, b) => a.sort_order - b.sort_order);
 
   const lessonIds = lessons.map((lesson) => lesson.id);
@@ -149,7 +149,9 @@ export default async function CoursePage({
                     </button>
                   </form>
                   <div className="lesson-info">
-                    <span style={{ fontSize: '0.92rem', fontWeight: 500 }}>{lesson.title_ar}</span>
+                    <Link className="lesson-open" href={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`}>
+                      {lesson.title_ar}
+                    </Link>
                     {lesson.summary_ar && (
                       <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>{lesson.summary_ar}</p>
                     )}
