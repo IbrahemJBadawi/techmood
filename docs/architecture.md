@@ -383,3 +383,103 @@ one question — is this the same person as last time — and nothing else is re
 from or written to the Google account. `handle_new_user()` takes the name and
 picture Google supplies so onboarding does not ask for them again; the profile,
 the TechMood ID and the reputation are TechMood's own.
+
+## The student home page
+
+Home is not a brochure. It is the place a student works from, and it reads top
+to bottom as a sequence of questions: where do I stand, what do I do now, what
+am I on, who am I seeing, who am I with, what is open to me, what have I earned,
+how far have I come, what is my standing, where am I ranked, who could help,
+what else is here.
+
+Sections that belong to data the person does not have — no team, no booked
+session — are not rendered as empty boxes. They are replaced by the single
+action that would fill them.
+
+### Activity and the streak are derived
+
+Every qualifying act is already written down somewhere: a finished lesson, a
+submission, an assessment attempt, an attended session, a closed team task,
+joining a path. `activity_days(from, to)` gathers them into one row per day, and
+`current_streak()` counts back from today over the days that have any.
+
+Nothing is stored. A `streak` column would be a number that can drift from the
+facts it claims to summarise, and the first time it drifted nobody would know
+which one to believe.
+
+The streak tolerates an empty today and counts from yesterday instead: a day is
+not over until it is over, and losing a forty-day streak at nine in the morning
+would be a lie about the person's week.
+
+Opening the app is not activity. Neither is a focus session — see below.
+
+### One agenda, five sources
+
+`student_agenda()` puts lessons, the student's own submitted work, unpassed
+assessments, booked sessions and assigned team tasks into four columns: today,
+in progress, upcoming, completed.
+
+It gathers; it does not own. A team task stays on its team's board and a lesson
+stays in its course, so the cards do not offer drag-and-drop — a card that moved
+here would have to lie about where the truth lives. Each card links to the place
+that can actually change it.
+
+### The pomodoro is recorded, and earns nothing
+
+`focus_sessions` stores the timer: how long was planned, what the person said
+they were working on, when it started and ended, and whether it ran out.
+
+It awards no XP and does not feed the streak. XP is for work a mentor can look
+at; sitting with a timer produces nothing to look at. What the table gives back
+is an honest record of where the hours went, which a number nobody keeps cannot.
+
+### Leaderboards
+
+Four boards — students, mentors, teams, companies — each ranked, each windowed
+by `p_since` (this month, this year, all time), and `my_leaderboard_rank()`
+answers "where am I?" over everyone rather than over the page on screen.
+
+Points are XP and rating is stars, the same two numbers the passport shows, and
+they are never added into one figure. Neither is ever a count of followers,
+logins or posts.
+
+Companies are the exception worth naming: they are ranked on opportunities
+published, seats filled and people accepted, because **nothing in TechMood rates
+an employer yet**. Their rating column shows a dash rather than a number
+invented to fill it. Giving companies a real rating is a product decision — who
+rates them, after what, and with what right of reply — not a formula.
+
+### Everything reads as the caller
+
+`activity_days`, `current_streak`, `continue_learning`, `student_agenda`,
+`student_progress`, `suggested_opportunities` and `suggested_mentors` take no
+profile argument at all. They resolve the caller through `auth.uid()`, so the
+home page cannot be pointed at somebody else by editing an id — there is no id
+to edit.
+
+## Bookings are written by functions, not by their parties
+
+0011 gave the student and the mentor a blanket update policy on `bookings`,
+written for "the student cancels and the mentor decides". 0016 then moved both
+of those into `SECURITY DEFINER` functions, but the policy stayed, and it never
+said which columns may change.
+
+So any student could, with one PostgREST call against their own booking:
+
+* set `status = 'confirmed'`, skipping the mentor's decision — which the booking
+  document forbids in as many words;
+* set `status = 'completed'`, firing `on_booking_completed()` and so crediting
+  the mentor's wallet and awarding session XP for a session that never happened;
+* rewrite `price_usd` and `mentor_share_usd`, after `create_booking_request()`
+  had deliberately taken the price out of the client's hands.
+
+0031 drops the policy and revokes `insert`, `update` and `delete` on the table
+from `authenticated` altogether, so a future policy cannot reopen it by
+accident. `cancel_booking()` and `set_meeting_url()` join the functions that
+were already there, each authorising its own caller and notifying the other
+side. `meeting_url` is only settable by the booked mentor, only on a confirmed
+session, and only as an http(s) address.
+
+The general rule this restates: where a table's rows carry money or state that
+other triggers act on, clients get `select` and nothing else, and every move
+goes through a function that can explain itself.

@@ -26,6 +26,7 @@ export type RoleRequestEvent =
 
 export type TaxonomyStatus = 'approved' | 'pending_review' | 'rejected';
 export type TaxonomyKind = 'field' | 'interest' | 'skill';
+export type AgendaColumn = 'today' | 'in_progress' | 'upcoming' | 'completed';
 export type UiLanguage = 'ar' | 'en';
 
 export type LessonKind = 'video' | 'article' | 'reading' | 'exercise' | 'live';
@@ -414,6 +415,7 @@ export type Booking = {
   topic_ar: string | null;
   session_goal_ar: string | null;
   notes_ar: string | null;
+  meeting_url: string | null;
   reserved_until: string | null;
   mentor_decided_at: string | null;
   confirmed_at: string | null;
@@ -682,9 +684,23 @@ export type Database = {
       fields: Table<TaxonomyTerm>;
       interests: Table<TaxonomyTerm>;
       skills: Table<TaxonomyTerm>;
-      profile_fields: Table<{ profile_id: string; field_id: string; added_at: string }>;
+      profile_fields: Table<{ profile_id: string; field_id: string; added_at: string; is_primary: boolean }>;
+      focus_sessions: Table<{
+        id: string; profile_id: string; planned_minutes: number;
+        subject_ar: string | null; ref_table: string | null; ref_id: string | null;
+        started_at: string; ended_at: string | null; was_completed: boolean;
+      }>;
       profile_interests: Table<{ profile_id: string; interest_id: string; added_at: string }>;
       profile_skills: Table<{ profile_id: string; skill_id: string; is_verified: boolean }>;
+      achievements: Table<{
+        id: string; slug: string; name_ar: string;
+        description_ar: string | null; icon: string | null; xp_award: number;
+      }>;
+      profile_achievements: Table<{ profile_id: string; achievement_id: string; awarded_at: string }>;
+      reputation_dimensions: Table<{ slug: string; name_ar: string; weight: number }>;
+      reputation_scores: Table<{
+        profile_id: string; dimension: string; value: number; updated_at: string;
+      }>;
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
       path_courses: Table<{ path_id: string; course_id: string; is_required: boolean; sort_order: number }>;
@@ -848,6 +864,85 @@ export type Database = {
       }>;
     };
     Functions: {
+      activity_days: {
+        Args: { p_from: string; p_to: string };
+        Returns: { on_date: string; sources: string[] }[];
+      };
+      current_streak: { Args: Record<string, never>; Returns: number };
+      continue_learning: {
+        Args: Record<string, never>;
+        Returns: {
+          path_id: string; path_slug: string; path_title: string;
+          course_id: string; course_slug: string; course_title: string;
+          lesson_id: string; lesson_title: string;
+          path_percent: number; course_percent: number; last_activity: string;
+        }[];
+      };
+      student_agenda: {
+        Args: { p_horizon_days?: number };
+        Returns: {
+          entry_kind: string; entry_id: string; title_ar: string;
+          detail_ar: string | null; bucket: AgendaColumn;
+          due_on: string | null; link: string;
+        }[];
+      };
+      student_progress: {
+        Args: Record<string, never>;
+        Returns: {
+          paths_joined: number; paths_completed: number; courses_completed: number;
+          lessons_completed: number; work_approved: number; assessments_passed: number;
+          sessions_attended: number; team_tasks_done: number; certificates: number;
+          achievements: number; skills_total: number; skills_verified: number;
+        }[];
+      };
+      suggested_opportunities: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string; title_ar: string; kind: OpportunityKind;
+          organization_ar: string | null; tags: string[];
+          required_skills: string[]; matched_skills: string[]; is_eligible: boolean;
+        }[];
+      };
+      suggested_mentors: {
+        Args: { p_limit?: number };
+        Returns: {
+          profile_id: string; full_name: string; display_name: string | null;
+          avatar_url: string | null; headline_ar: string | null; level: MentorLevel;
+          rating_avg: number; sessions_count: number; price_usd: number;
+          shared_fields: string[];
+        }[];
+      };
+      leaderboard_students_ranked: {
+        Args: { p_since?: string | null; p_limit?: number };
+        Returns: {
+          rank: number; profile_id: string; techmood_id: string; name: string;
+          avatar_url: string | null; points: number; stars: number; achievements: number;
+        }[];
+      };
+      leaderboard_mentors_ranked: {
+        Args: { p_since?: string | null; p_limit?: number };
+        Returns: {
+          rank: number; profile_id: string; name: string; avatar_url: string | null;
+          points: number; stars: number; sessions: number; evaluations: number;
+        }[];
+      };
+      leaderboard_teams_ranked: {
+        Args: { p_since?: string | null; p_limit?: number };
+        Returns: {
+          rank: number; team_id: string; name: string; avatar_url: string | null;
+          points: number; stars: number; projects: number; members: number;
+        }[];
+      };
+      leaderboard_companies_ranked: {
+        Args: { p_since?: string | null; p_limit?: number };
+        Returns: {
+          rank: number; profile_id: string; name: string; avatar_url: string | null;
+          opportunities: number; seats_filled: number; accepted: number;
+        }[];
+      };
+      my_leaderboard_rank: { Args: { p_since?: string | null }; Returns: number };
+      cancel_booking: { Args: { p_booking: string; p_reason?: string | null }; Returns: undefined };
+      set_meeting_url: { Args: { p_booking: string; p_url: string }; Returns: undefined };
       is_username_available: { Args: { p_username: string }; Returns: boolean };
       can_enter_role: { Args: { p_role: UserRole }; Returns: boolean };
       suggest_taxonomy_term: {

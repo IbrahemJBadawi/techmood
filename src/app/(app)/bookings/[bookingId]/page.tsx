@@ -189,6 +189,22 @@ export default async function BookingDetailPage({
             </p>
           </div>
 
+          {booking.status === 'confirmed' && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>رابط اللقاء</h3>
+              {booking.meeting_url ? (
+                <a className="btn btn-primary btn-sm" href={booking.meeting_url}
+                   target="_blank" rel="noreferrer noopener" style={{ width: '100%' }}>
+                  ادخل الجلسة
+                </a>
+              ) : (
+                <p className="muted" style={{ fontSize: '0.84rem' }}>
+                  لم يضع المنتور الرابط بعد. سيصلك إشعار فور إضافته.
+                </p>
+              )}
+            </div>
+          )}
+
           {isStudent && ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending'].includes(booking.status) && (
             <form action={cancelBooking} className="panel">
               <input type="hidden" name="booking_id" value={bookingId} />

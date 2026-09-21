@@ -5,7 +5,7 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
 
-import { decideBooking } from './actions';
+import { decideBooking, setMeetingUrl } from './actions';
 
 export default async function MentorRequestsPage() {
   const supabase = await createClient();
@@ -20,7 +20,7 @@ export default async function MentorRequestsPage() {
   // Only bookings whose payment TechMood already verified reach a mentor.
   const { data: requests } = await supabase
     .from('bookings')
-    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id')
+    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id, meeting_url')
     .eq('mentor_id', user.id)
     .in('status', ['mentor_pending', 'confirmed'])
     .order('scheduled_start');
@@ -149,25 +149,43 @@ export default async function MentorRequestsPage() {
       {confirmed.length > 0 && (
         <section className="section-block">
           <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>جلساتك المؤكدة</h3>
-          <table className="data">
-            <thead>
-              <tr><th>الطالب</th><th>الجلسة</th><th>الموعد</th><th>حصتك</th><th></th></tr>
-            </thead>
-            <tbody>
-              {confirmed.map((row) => {
-                const when = formatSlot(row.scheduled_start);
-                return (
-                  <tr key={row.id}>
-                    <td>{studentById.get(row.student_id ?? '')?.full_name}</td>
-                    <td>{typeById.get(row.session_type_id ?? '')?.name_ar}</td>
-                    <td>{when.date} · <span className="eng">{when.time}</span></td>
-                    <td className="eng">{money(row.mentor_share_usd)}</td>
-                    <td><Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>التفاصيل</Link></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
+            ضع رابط اللقاء لكل جلسة — يراه الطالب في صفحته الرئيسية وتصله رسالة به.
+          </p>
+          <div className="stack">
+            {confirmed.map((row) => {
+              const when = formatSlot(row.scheduled_start);
+              return (
+                <article className="panel session-row" key={row.id}>
+                  <div>
+                    <strong>{studentById.get(row.student_id ?? '')?.full_name}</strong>
+                    <p className="muted" style={{ fontSize: '0.84rem' }}>
+                      {typeById.get(row.session_type_id ?? '')?.name_ar} · {when.date} ·{' '}
+                      <span className="eng">{when.time}</span> ·{' '}
+                      <span className="eng">{money(row.mentor_share_usd)}</span>
+                    </p>
+                  </div>
+
+                  <form action={setMeetingUrl} className="meeting-url-form">
+                    <input type="hidden" name="booking_id" value={row.id} />
+                    <input
+                      type="url"
+                      name="meeting_url"
+                      dir="ltr"
+                      defaultValue={row.meeting_url ?? ''}
+                      placeholder="https://meet.example.com/…"
+                      aria-label="رابط اللقاء"
+                    />
+                    <button className="btn btn-ghost btn-sm" type="submit">
+                      {row.meeting_url ? 'تحديث' : 'حفظ'}
+                    </button>
+                  </form>
+
+                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>التفاصيل</Link>
+                </article>
+              );
+            })}
+          </div>
         </section>
       )}
     </>

@@ -45,7 +45,14 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
   redirect(`/bookings/${bookingId}`);
 }
 
-/** The student calls off a booking they no longer want. */
+/**
+ * The student calls off a booking they no longer want.
+ *
+ * This used to write the status straight onto the row, which is exactly the
+ * door 0031 closed: a client that may set `cancelled` may also set `completed`.
+ * cancel_booking() checks who is asking and which states can still be called
+ * off, and tells the other side.
+ */
 export async function cancelBooking(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -53,11 +60,10 @@ export async function cancelBooking(formData: FormData) {
 
   const bookingId = String(formData.get('booking_id') ?? '');
 
-  await supabase
-    .from('bookings')
-    .update({ status: 'cancelled', cancelled_reason: 'ألغاه الطالب' })
-    .eq('id', bookingId)
-    .eq('student_id', user.id);
+  await supabase.rpc('cancel_booking', {
+    p_booking: bookingId,
+    p_reason: String(formData.get('reason') ?? '').slice(0, 500) || null,
+  });
 
   revalidatePath('/bookings');
   revalidatePath(`/bookings/${bookingId}`);

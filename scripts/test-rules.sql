@@ -2410,6 +2410,362 @@ select public.assert(
         where profile_id = '99999999-9999-9999-9999-999999999999' and role = 'student') = 'approved',
   '20.50 Google signs you in — it does not finish your onboarding or grant a role');
 
+-- ===========================================================================
+-- 21. The student command centre
+-- ===========================================================================
+
+-- Sara finished the lessons of python-for-ai back in section 2; joining the
+-- path is what makes that progress part of a journey.
+insert into public.enrollments (profile_id, path_id)
+select '11111111-1111-1111-1111-111111111111', id
+from public.learning_paths where slug = 'genai'
+on conflict do nothing;
+
+-- --- daily activity and the streak ------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.activity_days(current_date - 6, current_date)) = 7,
+  '21.1 the week strip is seven days, present or absent');
+
+select public.assert(
+  (select 'lesson' = any (sources) from public.activity_days(current_date, current_date)),
+  '21.2 a day you finished a lesson counts as an active day');
+
+select public.assert(
+  public.current_streak() >= 1,
+  '21.3 today''s work starts a streak');
+
+-- A pomodoro is recorded, but it is not an achievement.
+insert into public.focus_sessions (profile_id, planned_minutes, subject_ar, was_completed, ended_at)
+values ('11111111-1111-1111-1111-111111111111', 25, 'مراجعة الدرس', true, now());
+
+select public.assert(
+  (select count(*) from public.focus_sessions
+    where profile_id = '11111111-1111-1111-1111-111111111111') = 1,
+  '21.4 a focus session is stored, not thrown away when the tab closes');
+
+select public.assert(
+  not exists (select 1 from public.xp_events
+               where profile_id = '11111111-1111-1111-1111-111111111111'
+                 and ref_table = 'focus_sessions'),
+  '21.5 sitting with a timer earns no XP');
+
+select public.assert(
+  not exists (
+    select 1 from public.activity_days(current_date, current_date)
+     where 'focus' = any (sources)
+  ),
+  '21.6 and it does not count towards the streak — the streak measures what you produced');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- a pomodoro is yours alone ----------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.focus_sessions) = 0,
+  '21.7 nobody else can read your focus sessions');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- where was I? -----------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select path_slug from public.continue_learning()) = 'genai',
+  '21.8 resume knows which path you are on');
+
+select public.assert(
+  (select course_slug from public.continue_learning()) = 'python-for-ai',
+  '21.9 and which course');
+
+select public.assert(
+  (select course_percent from public.continue_learning()) = 100,
+  '21.10 course progress is derived from lessons, not stored on a row that can drift');
+
+select public.assert(
+  (select path_percent from public.continue_learning()) between 0 and 100,
+  '21.11 path progress is the share of its courses that are complete');
+
+-- --- the agenda --------------------------------------------------------------
+select public.assert(
+  (select count(*) from public.student_agenda()) > 0,
+  '21.12 the board gathers work from across the platform');
+
+select public.assert(
+  exists (select 1 from public.student_agenda() where entry_kind = 'lesson'),
+  '21.13 lessons appear on it');
+
+select public.assert(
+  exists (select 1 from public.student_agenda() where entry_kind = 'work'),
+  '21.14 so does your own submitted work');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A team task assigned to you lands in the column its board already puts it in.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+update public.team_tasks
+   set assignee_id = '22222222-2222-2222-2222-222222222222', column_key = 'doing'
+ where id = :'task';
+
+select public.assert(
+  (select bucket from public.student_agenda() where entry_id = :'task') = 'in_progress',
+  '21.15 a team task you are working on shows as in progress, not as a second to-do');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The board takes no profile argument, so there is no id to change.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  not exists (select 1 from public.student_agenda() where entry_id = :'task'),
+  '21.16 the agenda is the caller''s own — it cannot be pointed at someone else');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- the progress picture ----------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select lessons_completed from public.student_progress()) = 2
+  and (select paths_joined from public.student_progress()) >= 1
+  and (select certificates from public.student_progress()) >= 1,
+  '21.17 progress counts recorded facts, nothing invented');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- one primary field --------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+update public.profile_fields set is_primary = true
+ where profile_id = '77777777-7777-7777-7777-777777777777'
+   and field_id = (select id from public.fields where slug = 'frontend-development');
+
+select public.assert(
+  (select count(*) from public.profile_fields
+    where profile_id = '77777777-7777-7777-7777-777777777777' and is_primary) = 1,
+  '21.18 one of your fields is the one you lead with');
+
+select public.assert_rejects($$
+  update public.profile_fields set is_primary = true
+   where profile_id = '77777777-7777-7777-7777-777777777777'
+     and field_id = (select id from public.fields where slug = 'ux-design')$$,
+  '21.19 but only one', 'profile_fields_one_primary');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- suggestions ---------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+insert into public.opportunities
+  (kind, title_ar, organization_ar, description_ar, posted_by, compensation_kind,
+   amount_min, amount_max, required_skills, seats, tags)
+values
+  ('freelance', 'تحسين أداء واجهة', 'شركة تقنية ناشئة',
+   'قياس وتحسين زمن التحميل.', '22222222-2222-2222-2222-222222222222',
+   'fixed', 150, 300, array['React'], 2, array['frontend-development'])
+returning id as job2 \gset
+
+select public.assert(
+  not exists (select 1 from public.suggested_opportunities(20) where id = :'job2'),
+  '21.20 you are not offered the opportunity you posted yourself');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  exists (select 1 from public.suggested_opportunities(20) where id = :'job2'),
+  '21.21 an open opportunity you have not applied to is offered to you');
+
+select public.assert(
+  not exists (select 1 from public.suggested_opportunities(20) where id = :'job'),
+  '21.21b but not one you already applied to');
+
+select public.assert(
+  not exists (
+    select 1 from public.suggested_mentors(20)
+     where profile_id = '88888888-8888-8888-8888-888888888888'
+  ) or (select approved_at is not null from public.mentor_profiles
+         where profile_id = '88888888-8888-8888-8888-888888888888'),
+  '21.22 only approved, accepting mentors are suggested');
+reset role;
+reset request.jwt.claim.sub;
+
+-- --- leaderboards ---------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select points from public.leaderboard_students_ranked(null, 50)
+    where profile_id = '11111111-1111-1111-1111-111111111111')
+  = (select coalesce(sum(xp), 0) from public.xp_events
+      where profile_id = '11111111-1111-1111-1111-111111111111'),
+  '21.23 points on the board are XP — the same number the passport shows');
+
+select public.assert(
+  (select rank from public.leaderboard_students_ranked(null, 50)
+    where profile_id = '11111111-1111-1111-1111-111111111111')
+  = public.my_leaderboard_rank(),
+  '21.24 "your rank" agrees with the table it sits under');
+
+select public.assert(
+  (select coalesce(sum(points), 0) from public.leaderboard_students_ranked(now() + interval '1 day', 50)) = 0,
+  '21.25 a time window really filters — no XP was earned tomorrow');
+
+select public.assert(
+  (select count(*) from public.leaderboard_students_ranked(null, 2)) = 2,
+  '21.26 the board is paged, not dumped');
+
+select public.assert(
+  (select opportunities from public.leaderboard_companies_ranked(null, 50)
+    where profile_id = '22222222-2222-2222-2222-222222222222') = 2,
+  '21.27 a company is ranked on what it actually published, filled posts included');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 22. A booking is written by functions, never by its parties
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert_rejects(
+  format($$update public.bookings set status = 'confirmed' where id = %L$$, :'booking2'),
+  '22.1 a student cannot confirm their own booking and skip the mentor',
+  'permission denied');
+
+select public.assert_rejects(
+  format($$update public.bookings set status = 'completed' where id = %L$$, :'booking2'),
+  '22.2 nor mark it completed, which would credit a wallet for a session that never happened',
+  'permission denied');
+
+select public.assert_rejects(
+  format($$update public.bookings set price_usd = 1, mentor_share_usd = 1 where id = %L$$, :'booking2'),
+  '22.3 nor rewrite the price the platform set',
+  'permission denied');
+
+select public.assert_rejects(
+  format($$delete from public.bookings where id = %L$$, :'booking2'),
+  '22.4 nor delete the record',
+  'permission denied');
+
+select public.assert(
+  (select status from public.bookings where id = :'booking2') <> 'completed',
+  '22.5 the booking is exactly where the functions left it');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A fresh booking walked through the real state machine, because a confirmed
+-- session is the only one that can carry a link.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '21 days') + interval '13 hours',
+        date_trunc('day', now() + interval '21 days') + interval '14 hours',
+        15, 5, 10, 'مراجعة قبل التسليم', 'draft')
+returning id as booking3 \gset
+
+update public.bookings set status = 'payment_pending' where id = :'booking3';
+
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'booking3', 'jawwal_pay', 15, 'under_review', 'JP-77120', now())
+returning id as payment3 \gset
+
+update public.bookings set status = 'payment_submitted' where id = :'booking3';
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'payment3', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'booking3', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.set_meeting_url(%L, 'https://meet.example.com/x')$$, :'booking3'),
+  '22.6 a student cannot set the meeting link',
+  'يضعه المنتور');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.set_meeting_url(%L, 'javascript:alert(1)')$$, :'booking3'),
+  '22.7 and the link must be a real http(s) address',
+  'http');
+
+select public.set_meeting_url(:'booking3', 'https://meet.example.com/techmood-1');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select meeting_url from public.bookings where id = :'booking3') = 'https://meet.example.com/techmood-1',
+  '22.8 the mentor sets it, and it is stored on the booking');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select meeting_url from public.bookings where id = :'booking3') is not null,
+  '22.9 the student in the session can read it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  not exists (select 1 from public.bookings where id = :'booking3'),
+  '22.10 and nobody else can see the booking at all, link included');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Cancelling goes through the function too.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.cancel_booking(%L)$$, :'booking3'),
+  '22.11 a stranger cannot cancel your session', 'ليس لك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.cancel_booking(:'booking3', 'تعارض في الموعد');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.bookings where id = :'booking3') = 'cancelled'
+  and (select cancelled_reason from public.bookings where id = :'booking3') = 'تعارض في الموعد',
+  '22.12 the student can call off their own booking, with a reason');
+
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = (select mentor_id from public.bookings where id = :'booking3')
+             and n.kind = 'booking' and n.title_ar = 'أُلغيت جلسة'),
+  '22.13 and the mentor is told — a cancellation nobody hears about is a no-show');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.cancel_booking(%L)$$, :'booking3'),
+  '22.14 a cancelled booking cannot be cancelled twice', 'هذه الحالة');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

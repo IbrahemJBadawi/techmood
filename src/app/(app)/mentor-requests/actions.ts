@@ -19,3 +19,21 @@ export async function decideBooking(formData: FormData) {
 
   revalidatePath('/mentor-requests');
 }
+
+/**
+ * Where the session happens. Only the booked mentor may set it, only on a
+ * confirmed session, and only to an http(s) address — all three checked in
+ * set_meeting_url(), not here.
+ */
+export async function setMeetingUrl(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  await supabase.rpc('set_meeting_url', {
+    p_booking: String(formData.get('booking_id') ?? ''),
+    p_url: String(formData.get('meeting_url') ?? '').trim(),
+  });
+
+  revalidatePath('/mentor-requests');
+}

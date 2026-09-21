@@ -1,27 +1,39 @@
-import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { ACTIVE_ROLE_COOKIE, defaultRole, navFor, ROLE_BY_VALUE } from '@/lib/roles';
-import type { UserRole } from '@/lib/database.types';
+import type { UiLanguage, UserRole } from '@/lib/database.types';
 
-import { signOut } from '../(auth)/actions';
+import Link from 'next/link';
+
+import { Icon } from '@/components/Icon';
+
 import { NavLink } from './NavLink';
 import { RoleSwitcher } from './RoleSwitcher';
+import { HeaderSearch } from './shell/HeaderSearch';
+import { Notifications } from './shell/Notifications';
+import { ProfileMenu } from './shell/ProfileMenu';
+import { ThemeToggle } from './shell/ThemeToggle';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: notifications }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('full_name, display_name, techmood_id, avatar_url, primary_role, onboarding_completed_at')
+      .select('full_name, display_name, username, techmood_id, avatar_url, language, primary_role, onboarding_completed_at')
       .eq('id', user.id)
       .single(),
     supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
+    supabase
+      .from('notifications')
+      .select('id, kind, title_ar, body_ar, link, is_read, created_at')
+      .eq('profile_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(12),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -41,6 +53,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const groups = navFor(active);
   const displayName = profile.display_name ?? profile.full_name;
+  const inbox = notifications ?? [];
+  const unread = inbox.filter((row) => !row.is_read).length;
 
   return (
     <div className="app">
@@ -70,14 +84,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="main">
         <header className="topbar">
           <div className="topbar-inner">
-            <h1>{displayName}</h1>
+            <HeaderSearch />
+
             <div className="topbar-actions">
               <RoleSwitcher roles={held} active={active} />
-              <span className="id-chip">{profile.techmood_id}</span>
-              <Link className="btn btn-ghost btn-sm" href="/passport">ملفي</Link>
-              <form action={signOut}>
-                <button className="btn btn-ghost btn-sm" type="submit">خروج</button>
-              </form>
+              <Link className="icon-button" href="/messages" title="الرسائل" aria-label="الرسائل">
+                <Icon name="message" />
+              </Link>
+              <Notifications items={inbox} unread={unread} />
+              <ThemeToggle />
+              <ProfileMenu
+                name={displayName}
+                techmoodId={profile.techmood_id}
+                username={profile.username}
+                avatarUrl={profile.avatar_url}
+                language={profile.language as UiLanguage}
+              />
             </div>
           </div>
         </header>
