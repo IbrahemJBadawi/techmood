@@ -105,7 +105,7 @@ Two systems that must not be confused:
 | Module | Schema + rules + RLS | Screens |
 |---|---|---|
 | Identity, roles, review | ✅ tested | ✅ signup, passport, admin |
-| Academy catalogue | ✅ tested | ✅ paths, courses, lessons |
+| Academy catalogue | ✅ tested | ✅ discovery hub, paths, courses, lessons |
 | Submissions & evaluation | ✅ tested | ✅ student side + mentor review queue |
 | XP & Stars | ✅ tested | ✅ passport, home |
 | Certificates & verification | ✅ tested | ✅ issue, list, public /verify |
@@ -456,6 +456,47 @@ rates them, after what, and with what right of reply — not a formula.
 profile argument at all. They resolve the caller through `auth.uid()`, so the
 home page cannot be pointed at somebody else by editing an id — there is no id
 to edit.
+
+## The academy is a place to discover learning, not a catalogue
+
+`/academy` answers three questions in order: what is here, what am I on, and
+where do I go next. It is not a detail page — a path and a course each keep
+their own — and it is not a list of every row in `learning_paths` either.
+
+Two functions do the work, `academy_paths()` and `academy_courses()` (0032).
+Each returns one row per card, already carrying this caller's standing: how many
+courses are done, what percent that is, whether the path is joined, and which of
+the three words the academy uses — not started, in progress, completed — applies.
+Three reasons they live in the database rather than in the page:
+
+* **One definition of complete.** Both call `is_course_complete()` and
+  `is_path_complete()`, the same helpers the path page and the certificate rule
+  use. A card cannot average lesson ticks and disagree with the certificate.
+* **One round trip.** The alternative is a query per card — the catalogue, then
+  each path's courses, then each course's lessons, then this learner's progress
+  against all of them. The page makes two calls and renders.
+* **No id to tamper with.** Like the home page functions, they take no profile
+  argument and resolve the caller through `auth.uid()`.
+
+`courses.level` is a real column, not a guess made at render time. A course's
+level is the position it holds in its path — first, second, third — because that
+is how the catalogue was built: three courses per path, each building on the one
+before. `backfill_course_levels()` holds that rule once and is called twice, by
+the migration for a database that already has a catalogue and by `seed.sql`,
+which loads the catalogue after every migration has run. A path has no level of
+its own; it reports the **range** its courses cover, because all six paths start
+from zero and a single label would be a lie.
+
+A course belongs to no school. Its domain is whichever published paths carry it,
+which is what the domain filter matches on, and why a course card says "part
+of …" rather than naming one field.
+
+The page fetches the whole catalogue once and filters in the browser: search,
+category, level and status narrow both lists together, the search is debounced,
+and the results page in. While a search or a filter is on, the learner's own
+sections — my paths, continue learning, the suggestions — step aside, so the
+same card is never on screen twice. Continue learning is not rebuilt here; it is
+the component the home page already uses, reading the same `continue_learning()`.
 
 ## Bookings are written by functions, not by their parties
 

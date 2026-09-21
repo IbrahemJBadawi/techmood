@@ -1021,4 +1021,9 @@ select 'course_project', c.id, 'مشروع الدورة: نموذج العمل',
 from public.courses c where c.slug = 'business-model';
 
 
+-- Course levels come from each course's position in its path, which is how the
+-- catalogue above is built: three courses per path, each one building on the
+-- last. The rule itself lives in the migration so there is only one copy of it.
+select public.backfill_course_levels();
+
 commit;

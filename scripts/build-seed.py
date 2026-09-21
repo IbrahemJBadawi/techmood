@@ -183,6 +183,14 @@ select 'course_project', c.id, {q('مشروع الدورة: ' + ctitle.replace('
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = {q(cslug)};""")
 
-out.append("\n\ncommit;\n")
+out.append("""
+
+-- Course levels come from each course's position in its path, which is how the
+-- catalogue above is built: three courses per path, each one building on the
+-- last. The rule itself lives in the migration so there is only one copy of it.
+select public.backfill_course_levels();
+
+commit;
+""")
 pathlib.Path(__file__).resolve().parent.parent.joinpath('supabase/seed.sql').write_text("\n".join(out))
 print("seed.sql written")

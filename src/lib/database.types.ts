@@ -33,6 +33,12 @@ export type LessonKind = 'video' | 'article' | 'reading' | 'exercise' | 'live';
 
 export type ProgressStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
+/** Where a course sits on the ladder. Read off its position in its path. */
+export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
+
+/** The one vocabulary the academy uses for "how far am I". */
+export type LearningStatus = 'not_started' | 'in_progress' | 'completed';
+
 export type SubmissionKind =
   | 'lesson_assignment' | 'course_project' | 'path_project' | 'course_task' | 'portfolio_evidence';
 
@@ -542,6 +548,7 @@ export type Course = {
   description_ar: string | null;
   status: 'draft' | 'published' | 'archived';
   estimated_hours: number | null;
+  level: CourseLevel;
 }
 
 export type Lesson = {
@@ -869,6 +876,31 @@ export type Database = {
         Returns: { on_date: string; sources: string[] }[];
       };
       current_streak: { Args: Record<string, never>; Returns: number };
+      academy_paths: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; slug: string; title_ar: string; title_en: string | null;
+          description_ar: string | null; tagline_ar: string | null;
+          tags: string[]; estimated_hours: number | null;
+          school_slug: string | null; school_name_ar: string | null; school_name_en: string | null;
+          courses_total: number; courses_done: number; percent: number;
+          is_enrolled: boolean; is_complete: boolean; status: LearningStatus;
+          level_from: CourseLevel | null; level_to: CourseLevel | null;
+          last_activity: string | null;
+        }[];
+      };
+      academy_courses: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; slug: string; title_ar: string; title_en: string | null;
+          description_ar: string | null; estimated_hours: number | null; level: CourseLevel;
+          modules_count: number; lessons_count: number; lessons_done: number;
+          percent: number; is_complete: boolean; status: LearningStatus;
+          xp_award: number | null;
+          path_slugs: string[]; path_titles_ar: string[]; path_titles_en: string[];
+          school_slugs: string[]; in_enrolled_path: boolean;
+        }[];
+      };
       continue_learning: {
         Args: Record<string, never>;
         Returns: {

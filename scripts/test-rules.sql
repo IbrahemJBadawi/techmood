@@ -2766,6 +2766,104 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 23. The academy as a discovery surface
+-- ===========================================================================
+
+-- Levels come from the catalogue's own shape, not from a guess.
+select public.assert(
+  (select level from public.courses where slug = 'python-for-ai') = 'beginner'
+  and (select level from public.courses where slug = 'ml-foundations') = 'intermediate'
+  and (select level from public.courses where slug = 'generative-ai') = 'advanced',
+  '23.1 a course level is its position in its path — first, second, third');
+
+select public.assert(
+  (select count(distinct level) from public.courses) = 3,
+  '23.2 all three levels are actually in use, not one default everywhere');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.academy_paths()) = 6,
+  '23.3 every published path comes back as one row');
+
+select public.assert(
+  (select level_from || '→' || level_to from public.academy_paths() where slug = 'genai')
+    = 'beginner→advanced',
+  '23.4 a path reports the range it covers, not a single level it would be wrong about');
+
+-- Sara finished python-for-ai in section 2 and joined genai in section 21.
+select public.assert(
+  (select courses_done from public.academy_paths() where slug = 'genai') >= 1
+  and (select percent from public.academy_paths() where slug = 'genai') > 0,
+  '23.5 path progress counts the courses the database calls complete');
+
+select public.assert(
+  (select status from public.academy_paths() where slug = 'genai') = 'in_progress',
+  '23.6 a path with work started but not finished reads as in progress');
+
+select public.assert(
+  (select is_enrolled from public.academy_paths() where slug = 'genai') = true
+  and (select is_enrolled from public.academy_paths() where slug = 'cloud') = false,
+  '23.7 enrolment is per path and per person');
+
+select public.assert(
+  (select status from public.academy_paths() where slug = 'cloud') = 'not_started',
+  '23.8 a path you never touched reads as not started, whatever its percentage');
+
+select public.assert(
+  (select last_activity from public.academy_paths() where slug = 'genai') is not null,
+  '23.9 last activity is derived from the progress rows, not stored twice');
+
+-- Courses
+select public.assert(
+  (select count(*) from public.academy_courses()) = 18,
+  '23.10 every published course comes back as one row');
+
+select public.assert(
+  (select status from public.academy_courses() where slug = 'python-for-ai') = 'completed',
+  '23.11 course status uses is_course_complete(), the same rule the certificate uses');
+
+select public.assert(
+  (select status from public.academy_courses() where slug = 'react') = 'not_started',
+  '23.12 an untouched course reads as not started');
+
+select public.assert(
+  (select lessons_count from public.academy_courses() where slug = 'python-for-ai') = 2
+  and (select modules_count from public.academy_courses() where slug = 'python-for-ai') = 1,
+  '23.13 a card knows how much is in the course without a second round trip');
+
+select public.assert(
+  (select xp_award from public.academy_courses() where slug = 'react') = 25,
+  '23.14 the XP shown on a card is the rule the database will actually award');
+
+select public.assert(
+  (select path_slugs from public.academy_courses() where slug = 'python-for-ai') = array['genai'],
+  '23.15 a course has no school of its own — its domain is the path carrying it');
+
+select public.assert(
+  (select school_slugs from public.academy_courses() where slug = 'python-for-ai') = array['ai-data'],
+  '23.16 and that path''s school is what a domain filter can match on');
+
+select public.assert(
+  (select in_enrolled_path from public.academy_courses() where slug = 'python-for-ai') = true
+  and (select in_enrolled_path from public.academy_courses() where slug = 'containers') = false,
+  '23.17 a course counts as yours when you joined a path that carries it');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The two functions take no profile argument, so one person's academy cannot
+-- be rendered as another's.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select percent from public.academy_paths() where slug = 'genai') = 0
+  and (select status from public.academy_courses() where slug = 'python-for-ai') = 'not_started',
+  '23.18 another learner sees their own standing, not the first one''s');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
