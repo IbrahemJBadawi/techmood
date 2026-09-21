@@ -2026,3 +2026,185 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 @media (max-width: 560px) {
   .verify-rows > div { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* ---------- the certificate document ---------- */
+/*
+ * One markup, three sizes: a card on a phone, a sheet on a screen, an A4
+ * landscape page in print. Everything inside is measured in container units
+ * (cqw), so the whole document scales with its own width and no second layout
+ * has to be kept in step with the first.
+ */
+.certificate {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 297 / 210;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  box-shadow: 0 18px 50px rgba(9, 21, 48, 0.22);
+  background: #fdfdff;
+  color: #10203f;
+  isolation: isolate;
+}
+
+.certificate-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  object-fit: fill;
+}
+
+.certificate-watermark {
+  position: absolute;
+  z-index: 1;
+  width: 56cqw;
+  height: auto;
+  inset-inline-start: 50%;
+  top: 44%;
+  transform: translate(-50%, -50%);
+  opacity: 0.045;
+  filter: grayscale(0.55);
+  pointer-events: none;
+}
+
+.certificate-body {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 3.6cqw 13cqw 9.8cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  direction: ltr;
+}
+
+.certificate-seal { width: 13cqw; height: auto; margin-bottom: 0.8cqw; }
+
+.certificate-org {
+  font-size: 1.9cqw;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #1b3f80;
+  font-weight: 600;
+}
+
+.certificate-title {
+  font-size: 3cqw;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #0d2a5e;
+  margin: 0.8cqw 0 1.6cqw;
+  font-weight: 700;
+}
+
+.certificate-lead { font-size: 1.55cqw; color: #4a5a76; }
+
+.certificate-holder {
+  font-size: 4.1cqw;
+  font-weight: 700;
+  color: #0b1f45;
+  margin: 0.8cqw 0 1cqw;
+  line-height: 1.15;
+}
+
+.certificate-subject {
+  font-size: 2.3cqw;
+  font-weight: 600;
+  color: #12428f;
+  margin: 0.7cqw 0;
+}
+
+.certificate-rule {
+  width: 56cqw;
+  height: 1px;
+  margin: auto 0 1.4cqw;
+  background: linear-gradient(90deg, transparent, #c8a13c, transparent);
+}
+
+.certificate-foot {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  align-items: end;
+  gap: 2cqw;
+  text-align: start;
+}
+
+.certificate-label {
+  font-size: 1.05cqw;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6b7a93;
+}
+
+.certificate-value { font-size: 1.5cqw; font-weight: 600; color: #10203f; margin-bottom: 0.7cqw; }
+.certificate-code { font-family: var(--font-mono), monospace; letter-spacing: 0.04em; }
+
+.certificate-sign { position: relative; text-align: center; }
+.certificate-signature { width: 22cqw; height: auto; margin-bottom: -0.6cqw; }
+.certificate-sign .certificate-value { margin-bottom: 0.2cqw; }
+.certificate-stamp {
+  position: absolute;
+  width: 11cqw;
+  height: auto;
+  inset-inline-end: -4.8cqw;
+  bottom: -1.6cqw;
+  opacity: 0.26;
+  transform: rotate(-11deg);
+  pointer-events: none;
+}
+
+.certificate-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8cqw;
+  margin-top: 0.8cqw;
+}
+.certificate-brand img { width: 2.4cqw; height: auto; }
+.certificate-brand span {
+  font-size: 1.05cqw;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #1b3f80;
+  font-weight: 600;
+}
+
+.certificate-verify { justify-self: center; text-align: center; }
+.certificate-verify img {
+  width: 9.6cqw;
+  height: 9.6cqw;
+  border-radius: 0.6cqw;
+  background: #fff;
+  padding: 0.4cqw;
+  display: block;
+  margin: 0 auto 0.6cqw;
+}
+.certificate-url {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.92cqw;
+  color: #6b7a93;
+  margin-top: 0.3cqw;
+  word-break: break-all;
+}
+
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  .certificate {
+    max-width: none;
+    width: 297mm;
+    height: 210mm;
+    border-radius: 0;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
+.certificate-sheet { margin-top: 20px; }
+@media print {
+  .certificate-sheet { margin: 0; }
+  .landing { padding: 0; max-width: none; }
+}

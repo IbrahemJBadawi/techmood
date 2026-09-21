@@ -7,6 +7,9 @@ import { formatDate } from '@/lib/i18n';
 import type { VerifiedCertificate } from '@/lib/database.types';
 import { LogoMark } from '@/components/Logo';
 
+import { Certificate } from './Certificate';
+import { PrintButton } from './PrintButton';
+
 export const metadata = { title: 'Verify a certificate — TechMood' };
 
 /**
@@ -69,39 +72,33 @@ export default async function VerifyCertificatePage({
                   `⚠ This certificate has been revoked.${certificate.revoked_reason ? ` Reason: ${certificate.revoked_reason}` : ''}`)}
           </p>
 
-          <section className="cert" style={{ marginTop: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-              <LogoMark />
-              <strong>TechMood Technology</strong>
+          {certificate.status === 'active' && qrDataUrl ? (
+            <div className="certificate-sheet">
+              <Certificate certificate={certificate} qrDataUrl={qrDataUrl} verifyUrl={verifyUrl} />
             </div>
-
-            <p className="cert-kicker" style={{ marginTop: 20 }}>
-              {certificate.kind === 'path'
-                ? t('شهادة إتمام مسار كامل', 'Certificate of completion — full path')
-                : t('شهادة إتمام دورة', 'Certificate of completion — course')}
-            </p>
-
-            <p className="cert-name">{certificate.holder_name}</p>
-            <p className="muted" style={{ fontSize: '0.95rem' }}>{certificate.title}</p>
-
-            <div className="tags-row" style={{ justifyContent: 'center', marginTop: 18 }}>
-              <span className="id-chip">{certificate.techmood_id}</span>
-              <span className="id-chip">{certificate.certificate_code}</span>
-              <span className="id-chip">{formatDate(t.locale, certificate.issued_at)}</span>
-            </div>
-
-            {qrDataUrl && (
-              <div className="cert-qr">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrDataUrl}
-                     alt={t(`رمز التحقق من الشهادة ${certificate.certificate_code}`,
-                            `Verification code for certificate ${certificate.certificate_code}`)} />
-                <span className="muted eng" style={{ fontSize: '0.72rem' }}>{verifyUrl}</span>
+          ) : (
+            /* A revoked certificate is not rendered as a document: what is left
+               to say is that it was withdrawn, and by whom it was issued. */
+            <section className="cert" style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                <LogoMark />
+                <strong>TechMood Technology</strong>
               </div>
-            )}
-          </section>
+              <p className="cert-name">{certificate.holder_name}</p>
+              <p className="muted" style={{ fontSize: '0.95rem' }}>{certificate.title}</p>
+              <div className="tags-row" style={{ justifyContent: 'center', marginTop: 18 }}>
+                <span className="id-chip">{certificate.techmood_id}</span>
+                <span className="id-chip">{certificate.certificate_code}</span>
+                <span className="id-chip">{formatDate(t.locale, certificate.issued_at)}</span>
+              </div>
+            </section>
+          )}
 
           <div className="cta-row no-print">
+            {certificate.status === 'active' && <PrintButton />}
+            <Link className="btn btn-ghost btn-sm" href={`/u/${certificate.techmood_id}`}>
+              {t('ملف صاحب الشهادة', 'The holder\u2019s profile')}
+            </Link>
             <Link className="btn btn-ghost btn-sm" href="/verify">
               {t('تحقّق من شهادة أخرى', 'Verify another certificate')}
             </Link>

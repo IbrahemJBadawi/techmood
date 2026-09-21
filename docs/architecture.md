@@ -199,6 +199,36 @@ A team earns its `project_completed` XP when the work survives review, not when
 the last task is ticked. The rating is quality, the XP is progress, and neither
 is computed from the other — the project page says so in as many words.
 
+## The certificate is a document, not a card
+
+A certificate is the artefact somebody attaches to an application, so it is
+built as a document: A4 landscape, the gold seal at the top, the same seal very
+faint behind the words, the holder's name as the largest thing on the sheet, and
+a footer carrying the date, the certificate id, the signature and the QR.
+
+Three things keep it honest.
+
+**It renders from the snapshot.** `verify_certificate()` returns what was frozen
+when the certificate was issued, so renaming a course afterwards cannot rewrite
+somebody's certificate. The page adds nothing of its own except the signatory,
+which is the platform's, not the holder's.
+
+**One markup, three sizes.** The sheet is a container query: everything inside
+is measured in `cqw`, so it is a card on a phone, a sheet on a screen and an A4
+landscape page in print with no second layout to keep in step. Printing is what
+produces the PDF people attach — the browser's own dialogue, no server-side
+renderer to maintain.
+
+**A revoked certificate is not drawn as a document.** There is nothing to
+present: the page says it was withdrawn and by whom it was issued, and stops.
+Rendering the full sheet with a small "revoked" note would hand somebody a
+screenshot that looks exactly like a valid certificate.
+
+The QR points at this same verification page rather than at the holder's
+profile: a verifier is checking one claim, and the page they land on answers it
+and links on to the profile. The profile lists the certificates in the other
+direction, so the two meet.
+
 ## Proving a project outside TechMood
 
 A project on the wall is evidence only if somebody without a TechMood account
