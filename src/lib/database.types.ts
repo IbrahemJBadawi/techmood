@@ -617,6 +617,19 @@ export type LessonVideo = {
   sort_order: number;
 }
 
+export type ProfileAudience = 'public' | 'professional' | 'private';
+
+export type ProfileSection =
+  | 'about' | 'identity' | 'stats' | 'skills' | 'achievements' | 'certificates'
+  | 'learning' | 'projects' | 'evaluations' | 'teams' | 'experience' | 'education'
+  | 'links' | 'external_exhibitions';
+
+export type LinkKind =
+  | 'linkedin' | 'github' | 'behance' | 'dribbble' | 'kaggle' | 'youtube'
+  | 'portfolio' | 'website' | 'x' | 'other';
+
+export type ExperienceKind = 'job' | 'freelance' | 'volunteer' | 'internship' | 'techmood';
+
 export type GoalStepKind = 'course' | 'path' | 'milestone';
 
 export type GoalMilestone =
@@ -786,6 +799,28 @@ export type Database = {
         status: ContentStatus; sort_order: number; created_at: string;
       }>;
       profile_career_goals: Table<{ profile_id: string; goal_id: string; chosen_at: string }>;
+      profile_section_visibility: Table<{
+        profile_id: string; section: ProfileSection; audience: ProfileAudience;
+      }>;
+      profile_links: Table<{
+        id: string; profile_id: string; kind: LinkKind;
+        label: string | null; url: string; sort_order: number;
+      }>;
+      profile_education: Table<{
+        id: string; profile_id: string; institution: string; degree: string | null;
+        field: string | null; started_on: string | null; ended_on: string | null; is_current: boolean;
+      }>;
+      profile_experience: Table<{
+        id: string; profile_id: string; organisation: string; title: string;
+        kind: ExperienceKind; summary: string | null;
+        started_on: string | null; ended_on: string | null; is_current: boolean;
+      }>;
+      external_exhibitions: Table<{
+        id: string; profile_id: string; title: string; organiser: string | null;
+        role_ar: string | null; result_ar: string | null; evidence_url: string | null;
+        held_on: string | null; status: TaxonomyStatus; reviewed_by: string | null;
+        reviewed_at: string | null; review_note: string | null; created_at: string;
+      }>;
       lesson_resources: Table<{
         id: string; lesson_id: string; label: string; url: string; kind: EvidenceKind;
       }>;
@@ -1000,6 +1035,31 @@ export type Database = {
       submission_skills: {
         Args: { p_submission: string };
         Returns: { id: string; slug: string; name_ar: string; name_en: string }[];
+      };
+      profile_card: {
+        Args: { p_techmood_id: string };
+        Returns: {
+          profile_id: string; techmood_id: string; full_name: string;
+          display_name: string | null; username: string | null;
+          headline: string | null; bio: string | null; avatar_url: string | null;
+          primary_field: string | null; level_no: number | null; level_title: string | null;
+          points: number; stars_avg: number | null; rated_count: number;
+          projects: number; certificates: number; courses_done: number; paths_done: number;
+          sessions: number; teams: number; achievements: number; skills_proven: number;
+          updated_at: string;
+        }[];
+      };
+      profile_reputation: {
+        Args: { p_profile: string };
+        Returns: { dimension: string; name_ar: string; value: number }[];
+      };
+      can_see_profile_section: {
+        Args: { p_profile: string; p_section: ProfileSection };
+        Returns: boolean;
+      };
+      review_external_exhibition: {
+        Args: { p_entry: string; p_approve: boolean; p_note?: string | null };
+        Returns: undefined;
       };
       profile_verified_skills: {
         Args: { p_profile: string };

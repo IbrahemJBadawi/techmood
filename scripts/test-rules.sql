@@ -3716,6 +3716,139 @@ select public.assert(
      (select id from public.lessons where slug = 'python-for-ai-l1'))) >= 1,
   '32.8 a lesson reports what it teaches and what its assignment demands together');
 
+-- ===========================================================================
+-- 33. The profile in three layers
+-- ===========================================================================
+-- Nobody has to configure anything to be visible: a section with no row is
+-- public, and the profile's own switch still decides first.
+set role anon;
+select public.assert(
+  public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'skills'),
+  '33.1 a section nobody narrowed is public');
+reset role;
+
+insert into public.profile_section_visibility (profile_id, section, audience)
+values ('11111111-1111-1111-1111-111111111111', 'experience', 'professional'),
+       ('11111111-1111-1111-1111-111111111111', 'education', 'private')
+on conflict (profile_id, section) do update set audience = excluded.audience;
+
+set role anon;
+select public.assert(
+  not public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'experience')
+  and not public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'education'),
+  '33.2 a signed-out visitor sees neither the professional layer nor the private one');
+reset role;
+
+-- A learner is signed in, but carries no working role: still not professional.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  not public.is_professional_viewer()
+  and not public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'experience'),
+  '33.3 being signed in is not the professional layer');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A mentor is.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  public.is_professional_viewer()
+  and public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'experience'),
+  '33.4 a mentor, a team leader, a company or a founder is');
+
+select public.assert(
+  not public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'education'),
+  '33.5 and the private layer stays private even from them');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The owner always sees their own, and so does an admin.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'education'),
+  '33.6 the owner sees every layer of their own profile');
+reset role;
+reset request.jwt.claim.sub;
+
+-- One switch still turns everything off.
+update public.profiles set is_public = false where id = '11111111-1111-1111-1111-111111111111';
+
+set role anon;
+select public.assert(
+  not public.can_see_profile_section('11111111-1111-1111-1111-111111111111', 'skills')
+  and (select count(*) from public.profile_card(
+    (select techmood_id from public.profiles where id = '11111111-1111-1111-1111-111111111111'))) = 0,
+  '33.7 a profile switched off publishes nothing, whatever its sections say');
+reset role;
+
+update public.profiles set is_public = true where id = '11111111-1111-1111-1111-111111111111';
+
+-- The card counts what the platform recorded, and nothing else. The expected
+-- number is read here, outside the anonymous session, because RLS would hide
+-- the rows from the comparison itself.
+select count(*)::text as issued from public.certificates
+ where profile_id = '11111111-1111-1111-1111-111111111111' and status = 'active' \gset
+
+set role anon;
+select public.assert(
+  (select certificates from public.profile_card(
+     (select techmood_id from public.profiles where id = '11111111-1111-1111-1111-111111111111')))
+   = :'issued'::int,
+  '33.8 the card counts certificates the platform issued, not a number typed in');
+
+select public.assert(
+  (select skills_proven from public.profile_card(
+     (select techmood_id from public.profiles where id = '11111111-1111-1111-1111-111111111111'))) > 0
+  and (select level_no from public.profile_card(
+     (select techmood_id from public.profiles where id = '11111111-1111-1111-1111-111111111111'))) >= 1,
+  '33.9 and the level comes from the XP ladder, not from a column somebody can set');
+reset role;
+
+-- The three link columns became a list.
+select public.assert(
+  (select count(*) from public.profile_links) >= 0
+  and exists (select 1 from information_schema.tables
+               where table_schema = 'public' and table_name = 'profile_links'),
+  '33.10 external profiles are a list, not three columns');
+
+-- An external exhibition is a claim until somebody checks it.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+insert into public.external_exhibitions (profile_id, title, organiser, role_ar, held_on)
+values ('77777777-7777-7777-7777-777777777777', 'معرض غزة للابتكار 2026', 'Gaza Innovation', 'مشارك', '2026-05-01')
+returning id as ext \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.external_exhibitions where id = :'ext') = 0,
+  '33.11 an unverified external claim is not published at all');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.review_external_exhibition(%L, true)$$, :'ext'),
+  '33.12 and its owner cannot verify it themselves',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_external_exhibition(:'ext', true, 'شهادة مشاركة مرفقة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.external_exhibitions where id = :'ext') = 1,
+  '33.13 once an admin verifies it, it becomes part of the record');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

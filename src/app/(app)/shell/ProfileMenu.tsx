@@ -52,6 +52,12 @@ export function ProfileMenu({
           <Link className="header-dropdown-item" href="/passport" onClick={() => setOpen(false)}>
             {t('الجواز المهني', 'Professional passport')}
           </Link>
+          <Link className="header-dropdown-item" href={`/u/${techmoodId}`} onClick={() => setOpen(false)}>
+            {t('ملفي العام', 'My public profile')}
+          </Link>
+          <Link className="header-dropdown-item" href="/settings/profile" onClick={() => setOpen(false)}>
+            {t('تحرير الملف والخصوصية', 'Edit profile & privacy')}
+          </Link>
           <Link className="header-dropdown-item" href="/settings/roles" onClick={() => setOpen(false)}>
             {t('أدواري', 'My roles')}
           </Link>

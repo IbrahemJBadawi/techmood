@@ -199,6 +199,44 @@ A team earns its `project_completed` XP when the work survives review, not when
 the last task is ticked. The rating is quality, the XP is progress, and neither
 is computed from the other — the project page says so in as many words.
 
+## The profile is an identity in three layers
+
+A profile used to be one row with three link columns and a single boolean,
+`is_public`, which answers "may anyone see me" and nothing else. 0042 makes it
+the professional identity the platform is for.
+
+Visibility is now a decision per section, `profile_section_visibility`:
+
+* **public** — anyone, signed in or not;
+* **professional** — signed-in members carrying an approved working role (a
+  mentor, team leader, company or founder), plus admins;
+* **private** — the owner and admins only.
+
+`profiles.is_public` stays and still wins: a profile switched off publishes
+nothing whatever its sections say. Per-section settings narrow, never widen —
+one switch to disappear, finer control while visible. `can_see_profile_section()`
+is the only place that rule is written, and every query on a profile asks it
+rather than reimplementing it.
+
+**The card is the hero and the thing people share.** `profile_card()` returns
+it in one row and every number on it is counted from the record: the level from
+the XP ladder, the stars from approved evaluations, the counts from
+certificates issued, projects exhibited, sessions completed, skills proven.
+Nothing on the card can be typed in, which is what makes it worth sharing —
+and `/u/<id>/card` is the same component at 9:16 for a story, with the QR
+walking whoever sees it back to the profile.
+
+**What the platform did not witness is marked as such.** External profiles,
+education and experience are lists the owner writes, and they read as what they
+are. An external exhibition goes further: it is the one claim about something
+that happened elsewhere, so it is filed `pending_review`, nobody but its owner
+and the admins can see it, and it becomes part of the record only after an
+admin has opened the evidence. Its owner cannot verify their own claim.
+
+The three link columns on `profiles` became `profile_links`, a list that can
+hold Behance, Kaggle, YouTube and the rest — the old columns could hold exactly
+GitHub, LinkedIn and one website.
+
 ## Skills come from approved work
 
 `profile_skills` has carried this comment since 0002 — *evidence-backed skills

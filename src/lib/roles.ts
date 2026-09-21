@@ -252,6 +252,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/admin', label: { ar: 'لوحة الإدارة', en: 'Admin panel' }, icon: 'shield' },
         { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
         { href: '/admin/taxonomy', label: { ar: 'المصطلحات المقترحة', en: 'Suggested terms' }, icon: 'settings' },
+        { href: '/admin/external', label: { ar: 'مشاركات خارجية', en: 'External claims' }, icon: 'application' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
       ],
