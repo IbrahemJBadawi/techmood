@@ -211,7 +211,15 @@ Three things keep it honest.
 **It renders from the snapshot.** `verify_certificate()` returns what was frozen
 when the certificate was issued, so renaming a course afterwards cannot rewrite
 somebody's certificate. The page adds nothing of its own except the signatory,
-which is the platform's, not the holder's.
+which is the platform's, not the holder's. That is why the English title of the
+work is frozen too (0039): the document is read in English, and reading the
+title live would let a later rename change a certificate already in somebody's
+hands.
+
+**The QR carries one thing: the holder's public profile.** A certificate proves
+one course; the profile is the record it belongs to, and it lists this
+certificate among the rest — so a scan lands on the person, not on a single
+claim, and the sheet needs no printed URL under the code.
 
 **One markup, three sizes.** The sheet is a container query: everything inside
 is measured in `cqw`, so it is a card on a phone, a sheet on a screen and an A4

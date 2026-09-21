@@ -30,9 +30,12 @@ export default async function VerifyCertificatePage({
   const certificate = (data as VerifiedCertificate[] | null)?.[0] ?? null;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
-  const verifyUrl = `${siteUrl}/verify/${encodeURIComponent(certificate?.certificate_code ?? code)}`;
-  const qrDataUrl = certificate
-    ? await QRCode.toDataURL(verifyUrl, { margin: 1, width: 264 })
+  // The QR on the document opens the holder's public record — one certificate
+  // proves one course, the profile is what it belongs to, and it lists this
+  // certificate among the rest.
+  const portfolioUrl = certificate ? `${siteUrl}/u/${certificate.techmood_id}` : null;
+  const qrDataUrl = portfolioUrl
+    ? await QRCode.toDataURL(portfolioUrl, { margin: 1, width: 300 })
     : null;
 
   return (
@@ -74,7 +77,7 @@ export default async function VerifyCertificatePage({
 
           {certificate.status === 'active' && qrDataUrl ? (
             <div className="certificate-sheet">
-              <Certificate certificate={certificate} qrDataUrl={qrDataUrl} verifyUrl={verifyUrl} />
+              <Certificate certificate={certificate} qrDataUrl={qrDataUrl} />
             </div>
           ) : (
             /* A revoked certificate is not rendered as a document: what is left

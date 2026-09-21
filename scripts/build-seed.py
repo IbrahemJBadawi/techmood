@@ -29,6 +29,40 @@ EN = {
  'Business Model Canvas':'Business Model Canvas','أساسيات التسعير':'Pricing Fundamentals',
 }
 
+# The live catalogue in English. A certificate is issued in English, and the
+# name of the work it was earned on has to be English too — so this is not
+# decoration, it is the line that appears on the document.
+EN_PATH = {
+ 'genai':    'Generative AI',
+ 'data':     'Data Analysis',
+ 'web':      'Web Development',
+ 'product':  'Product Management',
+ 'cloud':    'Cloud Computing',
+ 'business': 'Digital Entrepreneurship',
+}
+
+EN_COURSE = {
+ 'python-for-ai':       'Python for Artificial Intelligence',
+ 'ml-foundations':      'Machine Learning Foundations',
+ 'generative-ai':       'Generative AI',
+ 'data-excel':          'Data Foundations with Excel',
+ 'sql-analysis':        'SQL for Analysis',
+ 'dashboards':          'Dashboards and Reporting',
+ 'html-css':            'Web Foundations: HTML and CSS',
+ 'modern-js':           'Modern JavaScript',
+ 'react':               'React in Practice',
+ 'user-research':       'User Research',
+ 'product-design':      'Product Design',
+ 'launch-measure':      'Launch and Measure',
+ 'cloud-foundations':   'Cloud Foundations',
+ 'containers':          'Containers and Docker',
+ 'observability':       'Monitoring and Operations',
+ 'idea-to-opportunity': 'From Idea to Opportunity',
+ 'validation':          'Validating the Problem',
+ 'business-model':      'Business Model and Pricing',
+}
+
+
 V, A = 'video', 'article'
 PATHS = [
  dict(slug='genai', school='ai-data', num=14, title='مسار الذكاء الاصطناعي التوليدي',
@@ -617,8 +651,8 @@ for p in PATHS:
 -- ---------------------------------------------------------------------------
 -- {p['title']}
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select {q(p['slug'])}, s.id, {q(p['title'])}, {q(p['desc'])}, {q(p['tagline'])}, {arr(p['tags'])}, 'published', {hours}, {p['num']}
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select {q(p['slug'])}, s.id, {q(p['title'])}, {q(EN_PATH.get(p['slug']))}, {q(p['desc'])}, {q(p['tagline'])}, {arr(p['tags'])}, 'published', {hours}, {p['num']}
 from public.schools s where s.slug = {q(p['school'])}
 on conflict (slug) do nothing;
 
@@ -632,8 +666,8 @@ from public.learning_paths lp where lp.slug = {q(p['slug'])};""")
     for ci, (cslug, ctitle, cdesc, lessons, task) in enumerate(p['courses'], start=1):
         chours = sum(l[2] for l in lessons) // 60 + 1
         out.append(f"""
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ({q(cslug)}, {q(ctitle)}, {q(cdesc)}, 'published', {chours})
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ({q(cslug)}, {q(ctitle)}, {q(EN_COURSE.get(cslug))}, {q(cdesc)}, 'published', {chours})
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)

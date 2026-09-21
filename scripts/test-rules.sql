@@ -265,7 +265,7 @@ select public.assert_rejects(
   format($$select public.issue_certificate('course', %L)$$,
     (select id from public.courses where slug = 'python-for-ai')),
   '5.1 a certificate is refused while required work is unapproved',
-  'requirements are not met');
+  'لم تكتمل متطلبات الدورة');
 reset role;
 
 -- Approve the rest of the course's required work, the way a mentor would.
@@ -3512,6 +3512,28 @@ select public.assert(
   (select count(*) from public.exhibition_entries
     where snapshot is not null and snapshot -> 'school' is not null) >= 0,
   '29.11 a snapshot carries the school of the path it came from, when it had one');
+
+-- ===========================================================================
+-- 30. The certificate reads in English
+-- ===========================================================================
+select public.assert(
+  (select count(*) from public.courses where status = 'published' and title_en is null) = 0
+  and (select count(*) from public.learning_paths where status = 'published' and title_en is null) = 0,
+  '30.1 everything being taught has an English name, because a certificate carries one');
+
+select public.assert(
+  (select title_en from public.verify_certificate(:'cert')) is not null,
+  '30.2 and the certificate carries it, frozen with the rest of the snapshot');
+
+-- The snapshot is the point: renaming the course afterwards must not rewrite
+-- a certificate somebody already holds.
+update public.courses set title_en = 'A Renamed Course' where slug = 'python-for-ai';
+
+select public.assert(
+  (select title_en from public.verify_certificate(:'cert')) <> 'A Renamed Course',
+  '30.3 renaming the course later does not rewrite a certificate already issued');
+
+update public.courses set title_en = 'Python for Artificial Intelligence' where slug = 'python-for-ai';
 
 \echo ''
 \echo '================================================'

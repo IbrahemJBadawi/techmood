@@ -715,6 +715,8 @@ export type VerifiedCertificate = {
   holder_name: string;
   techmood_id: string;
   title: string;
+  /** The certificate is issued in English; this is the title printed on it. */
+  title_en: string | null;
   kind: CertificateKind;
   issued_at: string;
   status: CertificateStatus;

@@ -15,8 +15,8 @@ begin;
 -- ---------------------------------------------------------------------------
 -- مسار الذكاء الاصطناعي التوليدي
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'genai', s.id, 'مسار الذكاء الاصطناعي التوليدي', 'مجموعة دورات من أساسيات Python إلى بناء تطبيقات GenAI حقيقية.', 'من الكود إلى الذكاء — نبني مستقبلك خطوة بخطوة.', array['AI', 'Python']::text[], 'published', 4, 14
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'genai', s.id, 'مسار الذكاء الاصطناعي التوليدي', 'Generative AI', 'مجموعة دورات من أساسيات Python إلى بناء تطبيقات GenAI حقيقية.', 'من الكود إلى الذكاء — نبني مستقبلك خطوة بخطوة.', array['AI', 'Python']::text[], 'published', 4, 14
 from public.schools s where s.slug = 'ai-data'
 on conflict (slug) do nothing;
 
@@ -27,8 +27,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'genai';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('python-for-ai', 'دورة Python للذكاء الاصطناعي', 'أساسيات Python وهياكل البيانات اللازمة للانطلاق في الذكاء الاصطناعي.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('python-for-ai', 'دورة Python للذكاء الاصطناعي', 'Python for Artificial Intelligence', 'أساسيات Python وهياكل البيانات اللازمة للانطلاق في الذكاء الاصطناعي.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -78,8 +78,8 @@ select 'course_project', c.id, 'مشروع الدورة: Python للذكاء ا�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'python-for-ai';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('ml-foundations', 'دورة أساسيات تعلّم الآلة', 'مدخل عملي لمفاهيم Machine Learning وأدوات تحليل البيانات.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('ml-foundations', 'دورة أساسيات تعلّم الآلة', 'Machine Learning Foundations', 'مدخل عملي لمفاهيم Machine Learning وأدوات تحليل البيانات.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -129,8 +129,8 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات تعلّ
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'ml-foundations';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('generative-ai', 'دورة الذكاء الاصطناعي التوليدي', 'نماذج اللغة الكبيرة وPrompt Engineering وبناء أول تطبيق GenAI.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('generative-ai', 'دورة الذكاء الاصطناعي التوليدي', 'Generative AI', 'نماذج اللغة الكبيرة وPrompt Engineering وبناء أول تطبيق GenAI.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -183,8 +183,8 @@ from public.courses c where c.slug = 'generative-ai';
 -- ---------------------------------------------------------------------------
 -- مسار تحليل البيانات
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'data', s.id, 'مسار تحليل البيانات', 'مجموعة دورات من Excel وSQL إلى لوحات تحكم وتقارير احترافية.', 'من الأرقام إلى القرارات — بيانات تتحدث.', array['Data', 'SQL']::text[], 'published', 4, 17
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'data', s.id, 'مسار تحليل البيانات', 'Data Analysis', 'مجموعة دورات من Excel وSQL إلى لوحات تحكم وتقارير احترافية.', 'من الأرقام إلى القرارات — بيانات تتحدث.', array['Data', 'SQL']::text[], 'published', 4, 17
 from public.schools s where s.slug = 'ai-data'
 on conflict (slug) do nothing;
 
@@ -195,8 +195,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'data';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('data-excel', 'دورة أساسيات البيانات وExcel', 'تنظيف البيانات والتعامل مع الجداول والدوال المحورية.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('data-excel', 'دورة أساسيات البيانات وExcel', 'Data Foundations with Excel', 'تنظيف البيانات والتعامل مع الجداول والدوال المحورية.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -246,8 +246,8 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات البي
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'data-excel';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('sql-analysis', 'دورة SQL للتحليل', 'كتابة استعلامات وربط الجداول لاستخراج تقارير دقيقة.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('sql-analysis', 'دورة SQL للتحليل', 'SQL for Analysis', 'كتابة استعلامات وربط الجداول لاستخراج تقارير دقيقة.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -297,8 +297,8 @@ select 'course_project', c.id, 'مشروع الدورة: SQL للتحليل',
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'sql-analysis';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('dashboards', 'دورة لوحات التحكم والتقارير', 'تصميم لوحات تحكم تفاعلية توصل الرسالة بوضوح.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('dashboards', 'دورة لوحات التحكم والتقارير', 'Dashboards and Reporting', 'تصميم لوحات تحكم تفاعلية توصل الرسالة بوضوح.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -351,8 +351,8 @@ from public.courses c where c.slug = 'dashboards';
 -- ---------------------------------------------------------------------------
 -- مسار تطوير الويب
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'web', s.id, 'مسار تطوير الويب', 'مجموعة دورات لبناء واجهات وتطبيقات ويب حديثة من الصفر حتى النشر.', 'من السطر الأول إلى الإطلاق — نبني الويب معاً.', array['Web', 'React']::text[], 'published', 5, 1
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'web', s.id, 'مسار تطوير الويب', 'Web Development', 'مجموعة دورات لبناء واجهات وتطبيقات ويب حديثة من الصفر حتى النشر.', 'من السطر الأول إلى الإطلاق — نبني الويب معاً.', array['Web', 'React']::text[], 'published', 5, 1
 from public.schools s where s.slug = 'software-engineering'
 on conflict (slug) do nothing;
 
@@ -363,8 +363,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'web';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('html-css', 'دورة أساسيات HTML وCSS', 'بنية الصفحات والتنسيق باستخدام Flexbox.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('html-css', 'دورة أساسيات HTML وCSS', 'Web Foundations: HTML and CSS', 'بنية الصفحات والتنسيق باستخدام Flexbox.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -414,8 +414,8 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات HTML وC
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'html-css';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('modern-js', 'دورة JavaScript الحديث', 'أساسيات اللغة وES6 والتعامل مع DOM والأحداث.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('modern-js', 'دورة JavaScript الحديث', 'Modern JavaScript', 'أساسيات اللغة وES6 والتعامل مع DOM والأحداث.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -465,8 +465,8 @@ select 'course_project', c.id, 'مشروع الدورة: JavaScript الحديث
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'modern-js';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('react', 'دورة React وبناء الواجهات', 'مكوّنات React وإدارة الحالة عبر Hooks.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('react', 'دورة React وبناء الواجهات', 'React in Practice', 'مكوّنات React وإدارة الحالة عبر Hooks.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -519,8 +519,8 @@ from public.courses c where c.slug = 'react';
 -- ---------------------------------------------------------------------------
 -- مسار إدارة المنتجات
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'product', s.id, 'مسار إدارة المنتجات', 'مجموعة دورات من فهم المستخدم إلى بناء وإطلاق منتج رقمي.', 'من الفكرة إلى المنتج — نصمم لتجربة أفضل.', array['Product', 'UX']::text[], 'published', 3, 36
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'product', s.id, 'مسار إدارة المنتجات', 'Product Management', 'مجموعة دورات من فهم المستخدم إلى بناء وإطلاق منتج رقمي.', 'من الفكرة إلى المنتج — نصمم لتجربة أفضل.', array['Product', 'UX']::text[], 'published', 3, 36
 from public.schools s where s.slug = 'design-creative'
 on conflict (slug) do nothing;
 
@@ -531,8 +531,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'product';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('user-research', 'دورة فهم المستخدم', 'بحث المستخدم وبناء Personas قبل أي قرار تصميم.', 'published', 1)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('user-research', 'دورة فهم المستخدم', 'User Research', 'بحث المستخدم وبناء Personas قبل أي قرار تصميم.', 'published', 1)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -582,8 +582,8 @@ select 'course_project', c.id, 'مشروع الدورة: فهم المستخدم
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'user-research';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('product-design', 'دورة تصميم المنتج', 'مبادئ UX وبناء Wireframes أولية.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('product-design', 'دورة تصميم المنتج', 'Product Design', 'مبادئ UX وبناء Wireframes أولية.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -633,8 +633,8 @@ select 'course_project', c.id, 'مشروع الدورة: تصميم المنتج
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'product-design';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('launch-measure', 'دورة الإطلاق والقياس', 'مؤشرات النجاح واستراتيجيات إطلاق المنتج.', 'published', 1)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('launch-measure', 'دورة الإطلاق والقياس', 'Launch and Measure', 'مؤشرات النجاح واستراتيجيات إطلاق المنتج.', 'published', 1)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -687,8 +687,8 @@ from public.courses c where c.slug = 'launch-measure';
 -- ---------------------------------------------------------------------------
 -- مسار الحوسبة السحابية
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'cloud', s.id, 'مسار الحوسبة السحابية', 'مجموعة دورات في أساسيات البنية التحتية والنشر والتشغيل الآلي.', 'من الخادم إلى النظام الذكي — نؤتمت المستقبل.', array['Cloud', 'DevOps']::text[], 'published', 4, 13
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'cloud', s.id, 'مسار الحوسبة السحابية', 'Cloud Computing', 'مجموعة دورات في أساسيات البنية التحتية والنشر والتشغيل الآلي.', 'من الخادم إلى النظام الذكي — نؤتمت المستقبل.', array['Cloud', 'DevOps']::text[], 'published', 4, 13
 from public.schools s where s.slug = 'cyber-infrastructure'
 on conflict (slug) do nothing;
 
@@ -699,8 +699,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'cloud';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('cloud-foundations', 'دورة أساسيات الحوسبة السحابية', 'الخدمات السحابية الأساسية والشبكات والتخزين.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('cloud-foundations', 'دورة أساسيات الحوسبة السحابية', 'Cloud Foundations', 'الخدمات السحابية الأساسية والشبكات والتخزين.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -750,8 +750,8 @@ select 'course_project', c.id, 'مشروع الدورة: أساسيات الحو
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'cloud-foundations';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('containers', 'دورة النشر والحاويات', 'Docker وأساسيات CI/CD لنشر موثوق.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('containers', 'دورة النشر والحاويات', 'Containers and Docker', 'Docker وأساسيات CI/CD لنشر موثوق.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -801,8 +801,8 @@ select 'course_project', c.id, 'مشروع الدورة: النشر والحاو
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'containers';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('observability', 'دورة المراقبة والتشغيل الآلي', 'مراقبة الأنظمة وأتمتة عمليات النشر.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('observability', 'دورة المراقبة والتشغيل الآلي', 'Monitoring and Operations', 'مراقبة الأنظمة وأتمتة عمليات النشر.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -855,8 +855,8 @@ from public.courses c where c.slug = 'observability';
 -- ---------------------------------------------------------------------------
 -- مسار ريادة الأعمال الرقمية
 -- ---------------------------------------------------------------------------
-insert into public.learning_paths (slug, school_id, title_ar, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
-select 'business', s.id, 'مسار ريادة الأعمال الرقمية', 'مجموعة دورات من الفكرة إلى التحقق من السوق وبناء نموذج عمل.', 'من الفكرة إلى الشركة — نبني رواد الأعمال.', array['Business', 'Growth']::text[], 'published', 3, 39
+insert into public.learning_paths (slug, school_id, title_ar, title_en, description_ar, tagline_ar, tags, status, estimated_hours, sort_order)
+select 'business', s.id, 'مسار ريادة الأعمال الرقمية', 'Digital Entrepreneurship', 'مجموعة دورات من الفكرة إلى التحقق من السوق وبناء نموذج عمل.', 'من الفكرة إلى الشركة — نبني رواد الأعمال.', array['Business', 'Growth']::text[], 'published', 3, 39
 from public.schools s where s.slug = 'business-management'
 on conflict (slug) do nothing;
 
@@ -867,8 +867,8 @@ select 'path_project', lp.id,
        array['github','linkedin','youtube']::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'business';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('idea-to-opportunity', 'دورة من الفكرة إلى الفرصة', 'كيف تجد فكرة مشروع وتحلل السوق المبدئي.', 'published', 1)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('idea-to-opportunity', 'دورة من الفكرة إلى الفرصة', 'From Idea to Opportunity', 'كيف تجد فكرة مشروع وتحلل السوق المبدئي.', 'published', 1)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -918,8 +918,8 @@ select 'course_project', c.id, 'مشروع الدورة: من الفكرة إل�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'idea-to-opportunity';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('validation', 'دورة التحقق من الفكرة', 'مقابلات واستبيانات للتحقق من المشكلة قبل البناء.', 'published', 1)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('validation', 'دورة التحقق من الفكرة', 'Validating the Problem', 'مقابلات واستبيانات للتحقق من المشكلة قبل البناء.', 'published', 1)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)
@@ -969,8 +969,8 @@ select 'course_project', c.id, 'مشروع الدورة: التحقق من ال�
        array['github','linkedin','youtube']::public.evidence_kind[], true
 from public.courses c where c.slug = 'validation';
 
-insert into public.courses (slug, title_ar, description_ar, status, estimated_hours)
-values ('business-model', 'دورة نموذج العمل', 'Business Model Canvas وأساسيات التسعير.', 'published', 2)
+insert into public.courses (slug, title_ar, title_en, description_ar, status, estimated_hours)
+values ('business-model', 'دورة نموذج العمل', 'Business Model and Pricing', 'Business Model Canvas وأساسيات التسعير.', 'published', 2)
 on conflict (slug) do nothing;
 
 insert into public.path_courses (path_id, course_id, is_required, sort_order)

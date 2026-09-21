@@ -1,14 +1,19 @@
 import Image from 'next/image';
+import { Outfit } from 'next/font/google';
 
 import type { VerifiedCertificate } from '@/lib/database.types';
 
+/**
+ * The certificate has its own typeface.
+ *
+ * The rest of TechMood is set in an Arabic-first family; this document is
+ * English, printed, and read by someone who has never seen the platform, so it
+ * gets a geometric sans that carries wide letterspacing without falling apart.
+ */
+const display = Outfit({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700'] });
+
 /** Who signs. The platform has one signatory; this is not per-certificate data. */
 const SIGNATORY = { name: 'Ibrahem J. Badawi', title: 'Director — TechMood' };
-
-const KIND_LINE: Record<string, string> = {
-  course: 'Certificate of Completion',
-  path: 'Certificate of Completion',
-};
 
 const KIND_OBJECT: Record<string, string> = {
   course: 'course',
@@ -24,25 +29,27 @@ const KIND_OBJECT: Record<string, string> = {
  * units, so the same markup is a card on a phone, a sheet on a screen and an
  * A4 landscape page in print, with no second layout to keep in step.
  *
- * It is written in English on purpose: it is the artefact people attach to a
- * CV, a LinkedIn profile or an application, and that audience is not only
- * Arabic-reading. The work's own title stays in the language it was taught in.
+ * The QR carries one thing: the holder's public profile. A certificate proves
+ * one course; the profile is the record it belongs to, and it lists this
+ * certificate among the rest — so whoever scans it lands on the person, not on
+ * a single claim.
  */
 export function Certificate({
   certificate,
   qrDataUrl,
-  verifyUrl,
 }: {
   certificate: VerifiedCertificate;
   qrDataUrl: string;
-  verifyUrl: string;
 }) {
   const issued = new Date(certificate.issued_at).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
 
   return (
-    <article className="certificate" aria-label={`Certificate ${certificate.certificate_code}`}>
+    <article
+      className={`certificate ${display.className}`}
+      aria-label={`Certificate ${certificate.certificate_code}`}
+    >
       {/* the sheet: frame, then the seal again as a watermark behind the words */}
       <Image className="certificate-frame" src="/certificate/frame.jpg" alt="" fill priority />
       <Image
@@ -64,7 +71,7 @@ export function Certificate({
         />
 
         <p className="certificate-org">TechMood Academy</p>
-        <h1 className="certificate-title">{KIND_LINE[certificate.kind] ?? 'Certificate'}</h1>
+        <h1 className="certificate-title">Certificate of Completion</h1>
 
         <p className="certificate-lead">This certificate is proudly presented to</p>
         <p className="certificate-holder">{certificate.holder_name}</p>
@@ -72,7 +79,9 @@ export function Certificate({
         <p className="certificate-lead">
           for successfully completing the {KIND_OBJECT[certificate.kind] ?? 'programme'}
         </p>
-        <p className="certificate-subject">{certificate.title}</p>
+        {/* the English title is frozen in the snapshot; the Arabic one is the
+            fallback for a certificate issued before the catalogue had both */}
+        <p className="certificate-subject">{certificate.title_en ?? certificate.title}</p>
         <p className="certificate-lead">at TechMood Academy</p>
 
         <div className="certificate-rule" />
@@ -81,10 +90,6 @@ export function Certificate({
           <div className="certificate-meta">
             <p className="certificate-label">Date of Issue</p>
             <p className="certificate-value">{issued}</p>
-            <p className="certificate-label">Certificate ID</p>
-            <p className="certificate-value certificate-code">{certificate.certificate_code}</p>
-            <p className="certificate-label">Holder ID</p>
-            <p className="certificate-value certificate-code">{certificate.techmood_id}</p>
           </div>
 
           <div className="certificate-sign">
@@ -108,9 +113,8 @@ export function Certificate({
 
           <div className="certificate-verify">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrDataUrl} alt={`Verification code for ${certificate.certificate_code}`} />
-            <p className="certificate-label">Scan to verify</p>
-            <p className="certificate-url">{verifyUrl.replace(/^https?:\/\//, '')}</p>
+            <img src={qrDataUrl} alt={`Profile of ${certificate.holder_name}`} />
+            <p className="certificate-code">{certificate.certificate_code}</p>
           </div>
         </footer>
 
