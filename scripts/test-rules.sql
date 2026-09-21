@@ -3328,15 +3328,24 @@ select public.assert(
   and (select status from public.exhibition_entries where id = :'solo_entry') = 'submitted',
   '28.5 a revision is a new version of the same entry, not a second entry');
 
+reset role;
+reset request.jwt.claim.sub;
+
+-- Evidence has to be there before the judgement: the snapshot freezes what was
+-- approved, not what was added afterwards.
+insert into public.project_evidence (project_id, kind, url, label)
+values (:'solo', 'github', 'https://github.com/example/inventory', 'repo');
+
+set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.review_exhibition_entry(
   :'solo_entry', true, 'صار مكتملاً وموثّقاً.',
-  '{"requirements":5,"technical_quality":4,"ui_ux":4,"problem_solving":5,"documentation":4,"completeness":4}'::jsonb);
+  '{"requirements":5,"technical_quality":4,"ui_ux":5,"problem_solving":5,"documentation":4,"completeness":5}'::jsonb);
 reset role;
 reset request.jwt.claim.sub;
 
 select public.assert(
-  (select (snapshot #>> '{evaluation,rating}')::numeric from public.exhibition_entries where id = :'solo_entry') = 4.3,
+  (select (snapshot #>> '{evaluation,rating}')::numeric from public.exhibition_entries where id = :'solo_entry') = 4.7,
   '28.6 the rating is the average of the six criteria');
 
 select public.assert(
@@ -3408,6 +3417,101 @@ reset request.jwt.claim.sub;
 select public.assert(
   (select kind from public.projects where id = :'solo') = 'personal',
   '28.16 a project carries the kind the gallery filters on');
+
+-- ===========================================================================
+-- 29. Proving a project outside TechMood
+-- ===========================================================================
+-- The solo entry of section 28 was withdrawn from the wall; put it back.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.publish_exhibition_entry(:'solo_entry');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A scan is an anonymous request. That is the whole point of a QR.
+set role anon;
+
+select public.assert(
+  (select count(*) from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) = 1,
+  '29.1 a project code verifies without an account');
+
+select public.assert(
+  (select rating from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) = 4.7
+  and (select mentor_name from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) is not null,
+  '29.2 and it answers with the mentor and what they gave it');
+
+select public.assert(
+  (select is_team from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) = false
+  and (select built_by from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) is not null,
+  '29.3 a solo project verifies to its builder, a team project to its team');
+
+select public.assert(
+  (select count(*) from public.verify_exhibition_entry('TMX-NOTREAL')) = 0,
+  '29.4 a code nobody issued verifies to nothing');
+
+-- The history a stranger may read: the road, never the notes.
+select public.assert(
+  (select count(*) from public.exhibition_entry_history(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) = 2,
+  '29.5 the public history shows every version the work went through');
+
+select public.assert(
+  not exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'exhibition_entry_history'
+       and column_name like '%feedback%'),
+  '29.6 and it carries no feedback text — that was written to the builders');
+
+-- Featured is a bar, not a ranking.
+select public.assert(
+  (select count(*) from public.exhibition_featured(6)) = 1,
+  '29.7 a project clearing the bar is featured');
+
+reset role;
+
+-- Take the evidence away and it stops clearing it, with nothing to re-rank.
+delete from public.project_evidence where project_id = :'solo';
+
+update public.exhibition_entries
+   set snapshot = jsonb_set(snapshot, '{evidence}', '[]'::jsonb)
+ where id = :'solo_entry';
+
+set role anon;
+select public.assert(
+  (select count(*) from public.exhibition_featured(6)) = 0,
+  '29.8 without evidence anyone can open, it is not');
+
+select public.assert(
+  (select count(*) from public.exhibition_gallery) = 2,
+  '29.9 and it is still on the wall — featured is a bar, not a filter on the wall');
+reset role;
+
+-- Withdrawn work must not verify, or the code would out-live the decision.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.publish_exhibition_entry(:'solo_entry', false);
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.verify_exhibition_entry(
+     (select entry_code from public.exhibition_entries where id = :'solo_entry'))) = 0,
+  '29.10 a withdrawn project stops verifying — the code follows the decision');
+reset role;
+
+-- The school rides along in the snapshot, so the wall can be explored by field
+-- without reaching into a workspace.
+select public.assert(
+  (select count(*) from public.exhibition_entries
+    where snapshot is not null and snapshot -> 'school' is not null) >= 0,
+  '29.11 a snapshot carries the school of the path it came from, when it had one');
 
 \echo ''
 \echo '================================================'

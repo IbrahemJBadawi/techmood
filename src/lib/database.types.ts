@@ -272,6 +272,7 @@ export type ExhibitionSnapshot = {
   version: number;
   completed_on: string;
   path: { slug: string; title: string } | null;
+  school: { slug: string; name: string } | null;
   creator: { profile_id: string; full_name: string; techmood_id: string } | null;
   team: { code: string; title: string } | null;
   members: {
@@ -1222,6 +1223,27 @@ export type Database = {
       publish_exhibition_entry: {
         Args: { p_entry: string; p_public?: boolean };
         Returns: undefined;
+      };
+      verify_exhibition_entry: {
+        Args: { p_code: string };
+        Returns: {
+          entry_code: string; project_title: string; project_code: string;
+          built_by: string | null; is_team: boolean; kind: ProjectKind;
+          path_title: string | null; completed_on: string; published_at: string;
+          mentor_name: string | null; reviewed_on: string | null;
+          rating: number | null; is_verified: boolean;
+        }[];
+      };
+      exhibition_entry_history: {
+        Args: { p_code: string };
+        Returns: {
+          version: number; decision: ExhibitionDecision;
+          rating: number | null; reviewed_on: string;
+        }[];
+      };
+      exhibition_featured: {
+        Args: { p_limit?: number };
+        Returns: { entry_code: string; published_at: string; snapshot: ExhibitionSnapshot }[];
       };
       exhibition_entry_reviews: {
         Args: { p_entry: string };

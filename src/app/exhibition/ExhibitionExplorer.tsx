@@ -33,6 +33,7 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
   const [path, setPath] = useState('');
   const [minRating, setMinRating] = useState(0);
   const [sort, setSort] = useState<Sort>('recent');
+  const [school, setSchool] = useState('');
   const [shown, setShown] = useState(PAGE);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
     return () => clearTimeout(id);
   }, [typed]);
 
-  const filterKey = `${query}|${who}|${kind}|${tech}|${path}|${minRating}|${sort}`;
+  const filterKey = `${query}|${who}|${kind}|${tech}|${path}|${school}|${minRating}|${sort}`;
   const [lastKey, setLastKey] = useState(filterKey);
   if (lastKey !== filterKey) {
     setLastKey(filterKey);
@@ -54,16 +55,24 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
 
   // The filter options are read off what is actually exhibited, so the gallery
   // can never offer a technology no project uses.
-  const { technologies, paths } = useMemo(() => {
+  const { technologies, paths, categories } = useMemo(() => {
     const techSet = new Set<string>();
     const pathMap = new Map<string, string>();
+    const schoolMap = new Map<string, { name: string; count: number }>();
     for (const entry of entries) {
       for (const item of entry.snapshot.technologies ?? []) techSet.add(item);
       if (entry.snapshot.path) pathMap.set(entry.snapshot.path.slug, entry.snapshot.path.title);
+      const field = entry.snapshot.school;
+      if (field) {
+        const found = schoolMap.get(field.slug);
+        if (found) found.count += 1;
+        else schoolMap.set(field.slug, { name: field.name, count: 1 });
+      }
     }
     return {
       technologies: [...techSet].sort(),
       paths: [...pathMap.entries()].sort((a, b) => a[1].localeCompare(b[1])),
+      categories: [...schoolMap.entries()].sort((a, b) => b[1].count - a[1].count),
     };
   }, [entries]);
 
@@ -76,6 +85,7 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
       if (kind && snapshot.kind !== kind) return false;
       if (tech && !(snapshot.technologies ?? []).includes(tech)) return false;
       if (path && snapshot.path?.slug !== path) return false;
+      if (school && snapshot.school?.slug !== school) return false;
       if (minRating > 0 && (snapshot.evaluation?.rating ?? 0) < minRating) return false;
       return true;
     });
@@ -83,14 +93,15 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
     return sort === 'rating'
       ? [...rows].sort((a, b) => (b.snapshot.evaluation?.rating ?? 0) - (a.snapshot.evaluation?.rating ?? 0))
       : rows;
-  }, [entries, haystacks, query, who, kind, tech, path, minRating, sort]);
+  }, [entries, haystacks, query, who, kind, tech, path, school, minRating, sort]);
 
   const clear = () => {
     setTyped(''); setQuery(''); setWho('all'); setKind(''); setTech(''); setPath('');
-    setMinRating(0); setSort('recent');
+    setSchool(''); setMinRating(0); setSort('recent');
   };
 
-  const narrowed = query !== '' || who !== 'all' || kind !== '' || tech !== '' || path !== '' || minRating > 0;
+  const narrowed = query !== '' || who !== 'all' || kind !== ''
+    || tech !== '' || path !== '' || school !== '' || minRating > 0;
 
   return (
     <>
@@ -105,6 +116,28 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
           autoComplete="off"
         />
       </form>
+
+      {categories.length > 0 && (
+        <section style={{ marginTop: 22 }}>
+          <h2 className="academy-heading">{t('تصفّح حسب المجال', 'Explore by category')}</h2>
+          <div className="category-row">
+            {categories.map(([slug, field]) => (
+              <button
+                type="button"
+                key={slug}
+                className={`category-tile ${school === slug ? 'is-on' : ''}`}
+                aria-pressed={school === slug}
+                onClick={() => setSchool(school === slug ? '' : slug)}
+              >
+                <span className="category-name">{field.name}</span>
+                <span className="category-count eng">
+                  {field.count} {t(field.count === 1 ? 'مشروع' : 'مشاريع', field.count === 1 ? 'project' : 'projects')}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="explore-row" role="group" aria-label={t('من بناه', 'Who built it')} style={{ marginTop: 16 }}>
         {([

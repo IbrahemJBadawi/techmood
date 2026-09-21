@@ -2005,3 +2005,38 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .profile-project-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .profile-project-list a { color: var(--royal-dark); text-decoration: none; }
 .profile-project-list a:hover { text-decoration: underline; }
+
+/* ---------- categories, featured, verification ---------- */
+.category-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+.category-tile {
+  display: grid;
+  gap: 4px;
+  text-align: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.category-tile:hover { border-color: var(--royal); }
+.category-tile.is-on { border-color: var(--royal); background: var(--sky-tint); }
+.category-name { font-size: 0.9rem; font-weight: 600; }
+.category-count { font-size: 0.76rem; color: var(--ink-soft); }
+.category-tile.is-on .category-count { color: var(--royal-dark); }
+
+.exhibit-featured { border-color: var(--royal); }
+.exhibit-featured .kicker { color: var(--royal-dark); }
+
+.verify-rows { display: grid; gap: 10px; margin: 20px 0 4px; text-align: start; }
+.verify-rows > div { display: grid; grid-template-columns: 150px 1fr; gap: 12px; }
+.verify-rows dt { color: var(--ink-soft); font-size: 0.82rem; }
+.verify-rows dd { margin: 0; font-size: 0.9rem; }
+@media (max-width: 560px) {
+  .verify-rows > div { grid-template-columns: 1fr; gap: 2px; }
+}

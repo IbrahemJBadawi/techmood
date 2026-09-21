@@ -199,6 +199,36 @@ A team earns its `project_completed` XP when the work survives review, not when
 the last task is ticked. The rating is quality, the XP is progress, and neither
 is computed from the other — the project page says so in as many words.
 
+## Proving a project outside TechMood
+
+A project on the wall is evidence only if somebody without a TechMood account
+can check it. A certificate already had that — a code, a QR, and
+`verify_certificate()` answering with what a verifier needs and nothing more —
+so 0038 gives a project the same, built the same way.
+
+`verify_exhibition_entry()` answers for **exhibited** entries only. That is the
+line that matters: work a mentor approved but whose builders have not published
+it is nobody else's business, and a withdrawn project stops verifying. The code
+follows the decision rather than outliving it.
+
+**The public history** says how many versions the work went through and what
+each review decided — and deliberately carries no feedback text. A revision note
+was written to the people who built the thing; the same sentence read by a
+stranger years later is a different document. `exhibition_entry_reviews()` still
+carries the notes to the people they were written for.
+
+**Featured is a bar, not a ranking.** `exhibition_featured()` returns everything
+that clears stated conditions — a full six-criterion rubric, 4.5 or better, a
+described outcome, evidence anyone can open — newest first. A numbered top three
+would make the wall a competition, which is not what it is for. Losing the bar
+(evidence removed, say) drops a project out of the featured set and changes
+nothing about its place on the wall.
+
+**Categories** come from the school of the project's path, copied into the
+snapshot and backfilled for entries frozen before this migration. It is
+catalogue data about the project, not a window into the workspace it was built
+in, so grouping the wall by field still reads snapshots only.
+
 ## The wallet
 
 A balance is never stored; it is the sum of `wallet_entries`. That is what makes

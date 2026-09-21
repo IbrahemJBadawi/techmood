@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
@@ -24,12 +25,16 @@ export default async function ExhibitionPage() {
   const t = await getT();
   const supabase = await createClient();
 
-  const { data } = await supabase
-    .from('exhibition_gallery')
-    .select('entry_code, published_at, snapshot')
-    .order('published_at', { ascending: false });
+  const [{ data }, { data: featuredRows }] = await Promise.all([
+    supabase
+      .from('exhibition_gallery')
+      .select('entry_code, published_at, snapshot')
+      .order('published_at', { ascending: false }),
+    supabase.rpc('exhibition_featured', { p_limit: 3 }),
+  ]);
 
   const entries = (data ?? []) as GalleryEntry[];
+  const featured = (featuredRows ?? []) as GalleryEntry[];
 
   // Counted from what is on the wall, not from a number kept somewhere.
   const teams = new Set(entries.map((entry) => entry.snapshot.team?.code).filter(Boolean));
@@ -80,6 +85,40 @@ export default async function ExhibitionPage() {
           <span className="lbl">{t('منتورون قيّموا', 'Mentors who evaluated')}</span>
         </div>
       </section>
+
+      {featured.length > 0 && (
+        <section className="section-block">
+          <h2 className="academy-heading">{t('مشاريع مميّزة', 'Featured projects')}</h2>
+          <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
+            {t('كل مشروع هنا استوفى الشرط نفسه: تقييم كامل على المعايير الستة بمتوسط ٤٫٥ فأعلى، وما بُني موصوف، ودليل يمكن فتحه. لا ترتيب ولا أرقام — من استوفى الشرط ظهر.',
+               'Every project here met the same bar: a full rubric averaging 4.5 or better, a described outcome, and evidence anyone can open. No ranking and no numbers — whatever clears the bar is here.')}
+          </p>
+          <div className="card-grid">
+            {featured.map((entry) => (
+              <article className="card exhibit-card exhibit-featured" key={entry.entry_code}>
+                <div className="row-between academy-card-head">
+                  <span className="kicker">{t('مميّز', 'Featured')}</span>
+                  <span className="id-chip">{entry.snapshot.project_code}</span>
+                </div>
+                <h3>{entry.snapshot.project_title}</h3>
+                <p className="exhibit-builder">
+                  {entry.snapshot.team?.title ?? entry.snapshot.creator?.full_name}
+                </p>
+                <p>{entry.snapshot.summary}</p>
+                {entry.snapshot.evaluation?.rating != null && (
+                  <p className="exhibit-rating">
+                    <Stars value={entry.snapshot.evaluation.rating} />
+                    <span className="eng">{entry.snapshot.evaluation.rating.toFixed(1)} / 5</span>
+                  </p>
+                )}
+                <Link className="btn btn-ghost btn-sm" href={`/exhibition/${entry.entry_code}`}>
+                  {t('عرض المشروع', 'View project')}
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       {entries.length === 0 ? (
         <p className="notice">{t('لا مشاريع معروضة بعد.', 'Nothing on the wall yet.')}</p>

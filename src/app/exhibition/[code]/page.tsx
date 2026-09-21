@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import QRCode from 'qrcode';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
@@ -33,11 +34,15 @@ export default async function ExhibitionEntryPage({
   const { code } = await params;
   const supabase = await createClient();
 
-  const { data: entry } = await supabase
-    .from('exhibition_gallery')
-    .select('entry_code, published_at, snapshot')
-    .eq('entry_code', decodeURIComponent(code).toUpperCase())
-    .maybeSingle();
+  const entryCode = decodeURIComponent(code).toUpperCase();
+  const [{ data: entry }, { data: historyRows }] = await Promise.all([
+    supabase
+      .from('exhibition_gallery')
+      .select('entry_code, published_at, snapshot')
+      .eq('entry_code', entryCode)
+      .maybeSingle(),
+    supabase.rpc('exhibition_entry_history', { p_code: entryCode }),
+  ]);
 
   if (!entry) {
     return (
@@ -63,6 +68,12 @@ export default async function ExhibitionEntryPage({
 
   const snapshot = entry.snapshot as ExhibitionSnapshot;
   const evaluation = snapshot.evaluation;
+  const history = historyRows ?? [];
+
+  // The QR a CV, a presentation or a printed page can carry.
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const verifyUrl = `${siteUrl}/exhibition/${entry.entry_code}/verify`;
+  const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
 
   return (
     <main className="landing" style={{ maxWidth: 900 }}>
@@ -271,6 +282,48 @@ export default async function ExhibitionEntryPage({
           <p style={{ fontSize: '0.9rem', marginTop: 8, whiteSpace: 'pre-wrap' }}>{snapshot.documentation}</p>
         </section>
       )}
+
+      {history.length > 1 && (
+        <section className="panel section-block">
+          <h2 style={{ fontSize: '1rem' }}>{t('كيف وصل إلى هنا', 'How it got here')}</h2>
+          <ol className="timeline" style={{ marginTop: 12 }}>
+            {history.map((review) => (
+              <li className={review.decision === 'approved' ? 'done' : ''} key={`${review.version}-${review.reviewed_on}`}>
+                <span className="tl-dot" aria-hidden />
+                <span className="tl-label">
+                  <span className="eng">v{review.version}</span>
+                  {' · '}
+                  {review.decision === 'approved'
+                    ? t('اعتمده منتور', 'A mentor approved it')
+                    : t('أُعيد لأصحابه للتعديل', 'Sent back to its builders')}
+                  {review.rating !== null && <span className="eng"> · {review.rating}/5</span>}
+                  <span className="muted eng"> · {formatDate(locale, review.reviewed_on)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
+            {t('النسخة المعروضة هي المعتمدة. ملاحظات المنتور على النسخ السابقة كُتبت لأصحاب العمل ولا تظهر هنا.',
+               'What is on the wall is the approved version. The mentor’s notes on earlier versions were written to the builders and are not shown here.')}
+          </p>
+        </section>
+      )}
+
+      {/* ---- verification ---- */}
+      <section className="panel section-block">
+        <h2 style={{ fontSize: '1rem' }}>{t('تحقّق من هذا المشروع', 'Verify this project')}</h2>
+        <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
+          {t('امسح الرمز أو افتح الرابط: يفتح صفحة تحقّق مستقلة تعمل بلا حساب — ضعها في سيرتك أو عرضك التقديمي.',
+             'Scan it or open the link: it resolves to a standalone verification page that works without an account — put it on a CV or in a deck.')}
+        </p>
+        <div className="cert-qr" style={{ marginTop: 14 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrDataUrl} alt={t('رمز التحقق', 'Verification QR')} />
+          <Link className="eng" href={`/exhibition/${entry.entry_code}/verify`} style={{ fontSize: '0.76rem' }}>
+            {verifyUrl}
+          </Link>
+        </div>
+      </section>
 
       <p className="muted" style={{ fontSize: '0.76rem', textAlign: 'center', margin: '24px 0 48px' }}>
         {t('هذه الصفحة تعرض النسخة المعتمدة من المشروع كما جُمّدت لحظة اعتمادها. ',

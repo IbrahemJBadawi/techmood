@@ -355,6 +355,12 @@ begin
       select jsonb_build_object('slug', lp.slug, 'title', lp.title_ar)
         from public.learning_paths lp where lp.id = v_project.path_id
     ),
+    'school', (
+      select jsonb_build_object('slug', s.slug, 'name', s.name_ar)
+        from public.learning_paths lp
+        join public.schools s on s.id = lp.school_id
+       where lp.id = v_project.path_id
+    ),
     'creator', case when v_team.id is not null then null else jsonb_build_object(
       'profile_id',  v_owner.id,
       'full_name',   v_owner.full_name,
