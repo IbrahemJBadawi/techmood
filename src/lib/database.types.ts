@@ -1049,6 +1049,21 @@ export type Database = {
           updated_at: string;
         }[];
       };
+      profile_learning: {
+        Args: { p_profile: string };
+        Returns: {
+          path_slug: string; title_ar: string; title_en: string | null;
+          school_name: string | null; courses_total: number; courses_done: number;
+          percent: number; is_complete: boolean; last_activity: string | null;
+        }[];
+      };
+      profile_focus: {
+        Args: { p_profile: string };
+        Returns: {
+          path_slug: string; path_title: string; course_slug: string;
+          course_title: string; lesson_title: string;
+        }[];
+      };
       profile_reputation: {
         Args: { p_profile: string };
         Returns: { dimension: string; name_ar: string; value: number }[];

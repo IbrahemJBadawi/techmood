@@ -226,6 +226,14 @@ Nothing on the card can be typed in, which is what makes it worth sharing —
 and `/u/<id>/card` is the same component at 9:16 for a story, with the QR
 walking whoever sees it back to the profile.
 
+**The learning record is public by default** (0043). The academy's own
+functions read as the caller and take no profile argument, which is what keeps
+them from being pointed at somebody else; `profile_learning()` and
+`profile_focus()` are the read-only, someone-else's view, and they ask
+`can_see_profile_section()` before they answer at all. A profile says where its
+owner is going — the paths they are on, how far, and the lesson they last
+opened — not only where they have been.
+
 **What the platform did not witness is marked as such.** External profiles,
 education and experience are lists the owner writes, and they read as what they
 are. An external exhibition goes further: it is the one claim about something

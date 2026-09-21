@@ -3849,6 +3849,56 @@ select public.assert(
   '33.13 once an admin verifies it, it becomes part of the record');
 reset role;
 
+-- ===========================================================================
+-- 34. A learning record on a public profile
+-- ===========================================================================
+-- The academy's own functions read as the caller and take no profile, which is
+-- what keeps them from being pointed at somebody else. These answer about
+-- somebody else on purpose, so they ask the profile's own rule first.
+set role anon;
+select public.assert(
+  (select count(*) from public.profile_learning('11111111-1111-1111-1111-111111111111')) > 0,
+  '34.1 a visitor can read what somebody has joined and how far they are');
+
+select public.assert(
+  (select percent from public.profile_learning('11111111-1111-1111-1111-111111111111')
+    where path_slug = 'genai')
+   between 0 and 100,
+  '34.2 the percentage is counted, not stored');
+reset role;
+
+-- Narrowed to the professional layer, it stops answering a stranger.
+insert into public.profile_section_visibility (profile_id, section, audience)
+values ('11111111-1111-1111-1111-111111111111', 'learning', 'professional')
+on conflict (profile_id, section) do update set audience = excluded.audience;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.profile_learning('11111111-1111-1111-1111-111111111111')) = 0
+  and (select count(*) from public.profile_focus('11111111-1111-1111-1111-111111111111')) = 0,
+  '34.3 narrowing the section closes both the paths and the current lesson');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.profile_learning('11111111-1111-1111-1111-111111111111')) > 0,
+  '34.4 while a mentor still reads it');
+reset role;
+reset request.jwt.claim.sub;
+
+delete from public.profile_section_visibility
+ where profile_id = '11111111-1111-1111-1111-111111111111' and section = 'learning';
+
+-- And the profile switch still decides first.
+update public.profiles set is_public = false where id = '11111111-1111-1111-1111-111111111111';
+set role anon;
+select public.assert(
+  (select count(*) from public.profile_learning('11111111-1111-1111-1111-111111111111')) = 0,
+  '34.5 a profile switched off says nothing about what it is learning either');
+reset role;
+update public.profiles set is_public = true where id = '11111111-1111-1111-1111-111111111111';
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

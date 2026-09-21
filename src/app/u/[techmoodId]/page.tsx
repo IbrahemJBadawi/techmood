@@ -112,6 +112,8 @@ export default async function PublicProfilePage({
     { data: experience },
     { data: external },
     { data: achievements },
+    { data: learning },
+    { data: focusRows },
   ] = await Promise.all([
     can('identity')
       ? supabase.from('profile_roles').select('role, status').eq('profile_id', card.profile_id).eq('status', 'approved')
@@ -140,7 +142,13 @@ export default async function PublicProfilePage({
     can('achievements')
       ? supabase.from('profile_achievements').select('achievement_id, awarded_at').eq('profile_id', card.profile_id).order('awarded_at', { ascending: false })
       : { data: [] },
+    can('learning') ? supabase.rpc('profile_learning', { p_profile: card.profile_id }) : { data: [] },
+    can('learning') ? supabase.rpc('profile_focus', { p_profile: card.profile_id }) : { data: [] },
   ]);
+
+  const focus = (focusRows ?? [])[0] ?? null;
+  const onPaths = (learning ?? []).filter((row) => !row.is_complete);
+  const donePaths = (learning ?? []).filter((row) => row.is_complete);
 
   const achievementIds = (achievements ?? []).map((row) => row.achievement_id);
   const { data: achievementRows } = achievementIds.length
@@ -276,6 +284,62 @@ export default async function PublicProfilePage({
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {can('learning') && (learning ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">{t('رحلة التعلّم', 'Learning journey')}</h2>
+
+          {focus && (
+            <p className="muted profile-focus">
+              {t('يتعلّم الآن: ', 'Currently learning: ')}
+              <strong>{focus.course_title}</strong>
+              {' · '}{focus.lesson_title}
+              <span className="muted"> — {focus.path_title}</span>
+            </p>
+          )}
+
+          {onPaths.length > 0 && (
+            <div className="profile-journey">
+              {onPaths.map((row) => (
+                <div key={row.path_slug}>
+                  <div className="row-between">
+                    <Link href={`/academy/${row.path_slug}`}>{contentText(locale, row.title_ar, row.title_en)}</Link>
+                    <span className="eng">{row.percent}%</span>
+                  </div>
+                  <div
+                    className="progress-track"
+                    role="progressbar"
+                    aria-valuenow={row.percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={contentText(locale, row.title_ar, row.title_en)}
+                  >
+                    <div className="progress-fill" style={{ width: `${row.percent}%` }} />
+                  </div>
+                  <p className="muted" style={{ fontSize: '0.76rem', marginTop: 4 }}>
+                    {t(`${row.courses_done} من ${row.courses_total} دورات`, `${row.courses_done} of ${row.courses_total} courses`)}
+                    {row.school_name && ` · ${row.school_name}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {donePaths.length > 0 && (
+            <>
+              <p className="profile-label">{t('مسارات مكتملة', 'Paths completed')}</p>
+              <ul className="profile-list">
+                {donePaths.map((row) => (
+                  <li key={row.path_slug}>
+                    <Link href={`/academy/${row.path_slug}`}>{contentText(locale, row.title_ar, row.title_en)}</Link>
+                    <span className="status-pill status-ok">{t('✓ مكتمل', '✓ Complete')}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       )}
 
