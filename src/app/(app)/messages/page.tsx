@@ -68,6 +68,13 @@ export default async function MessagesPage({
   const activeId = c && conversationIds.includes(c) ? c : ordered[0]?.id;
   const active = ordered.find((row) => row.id === activeId);
 
+  // A booking conversation leads to the room that booking opened, not to a
+  // link — the same door, reached from wherever the two of them are talking.
+  const { data: bookingRoom } = active?.booking_id
+    ? await supabase.from('video_sessions').select('id').eq('booking_id', active.booking_id).maybeSingle()
+    : { data: null };
+  const room = bookingRoom?.id ?? null;
+
   // Last line of each conversation, for the list.
   const { data: recent } = await supabase
     .from('messages')
@@ -191,6 +198,15 @@ export default async function MessagesPage({
                       href={`/bookings/${active.booking_id}`}
                     >
                       {t('تفاصيل الجلسة ↗', 'Session details ↗')}
+                    </Link>
+                  )}
+                  {room && (
+                    <Link
+                      className="muted"
+                      style={{ fontSize: '0.78rem' }}
+                      href={`/sessions/${room}`}
+                    >
+                      {t('غرفة الجلسة ↗', 'The session room ↗')}
                     </Link>
                   )}
                 </header>
