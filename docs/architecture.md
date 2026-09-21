@@ -483,3 +483,60 @@ session, and only as an http(s) address.
 The general rule this restates: where a table's rows carry money or state that
 other triggers act on, clients get `select` and nothing else, and every move
 goes through a function that can explain itself.
+
+## Two languages
+
+TechMood is written in Arabic first. The Arabic is the source text, not a
+translation of an English original, so the English lives beside it at the point
+of use rather than behind a key in a table somewhere else:
+
+```tsx
+t('حجوزاتي', 'My bookings')
+```
+
+The reason is what changes together. A key table drifts: a string gets reworded
+in Arabic, its key keeps the old English, and nobody notices because the two
+live in different files. Here they cannot drift, because they are one call.
+
+A server component gets `t` from `await getT()`; a client component gets the
+same function from `useT()`. Library modules that carry labels (roles, booking
+states, task columns) hold them as `Text` pairs — `{ ar, en }` — which the same
+`t` unwraps.
+
+### What is translated, and what is not
+
+The **interface** is translated. **Content is not**: a course description, a
+mentor's bio, a team's name, a message somebody wrote, the note an admin left on
+a rejected application. Those are data, and machine-guessing them would put
+words in people's mouths.
+
+Where a row carries its own English — `courses.title_en`, `fields.name_en`,
+`session_types.name_en` — `contentText()` uses it. Where it does not, the Arabic
+is shown as written and marked `dir="rtl"` so an English reader sees Arabic text
+laid out correctly rather than mangled into a left-to-right paragraph.
+
+The database speaks Arabic too: every `raise exception` in the migrations is
+Arabic, because the message has to be right for the person who usually reads it.
+`dbError()` maps the ones a client can actually trigger onto English wording, and
+falls back to the original Arabic for anything unlisted — showing the real reason
+in the wrong language is more useful than hiding it in the right one.
+
+### Where the choice lives
+
+`profiles.language` is the durable copy that follows the account onto a new
+device. A cookie is what every render actually reads, because it is the same
+answer without a database round trip and it is the only answer a signed-out
+visitor has. Signing in copies the profile onto the cookie; the switch writes
+both.
+
+### Direction
+
+`<html dir>` is decided on the server from that cookie, so the first frame is
+already laid out the right way round. Every rule in the stylesheet was already
+written with logical properties — `border-inline-start`, `inset-inline-end`,
+`margin-inline` — so flipping the direction needed no second, mirrored
+stylesheet and no change to the design system.
+
+Numbers use Latin digits in both languages. They sit next to code, prices and
+XP, and switching digit shapes between screens reads as a bug rather than as a
+translation.

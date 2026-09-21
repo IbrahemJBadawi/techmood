@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 export type PaymentState = { error?: string; ok?: string } | undefined;
 
@@ -13,6 +14,7 @@ export type PaymentState = { error?: string; ok?: string } | undefined;
  * through here, and the database re-checks that this method actually needed it.
  */
 export async function submitPaymentProof(_prev: PaymentState, formData: FormData): Promise<PaymentState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -23,7 +25,7 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
 
   // A path a client sends must live in that client's own folder.
   if (proofPath && !proofPath.startsWith(`${user.id}/`)) {
-    return { error: 'ملف الإيصال غير صالح.' };
+    return { error: t('ملف الإيصال غير صالح.', 'That receipt file is not valid.') };
   }
 
   const { error } = await supabase.rpc('submit_payment_proof', {
@@ -34,11 +36,11 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
 
   if (error) {
     const message = error.message ?? '';
-    if (message.includes('requires a receipt')) return { error: 'هذه الطريقة تتطلب رفع إيصال الدفع.' };
-    if (message.includes('requires')) return { error: 'هذه الطريقة تتطلب إدخال الرقم المرجعي.' };
-    if (message.includes('expired')) return { error: 'انتهت مهلة حجز الموعد — اختر موعداً من جديد.' };
-    if (message.includes('not waiting')) return { error: 'هذا الحجز ليس في مرحلة الدفع.' };
-    return { error: 'تعذّر إرسال الدفع — حاول مرة أخرى.' };
+    if (message.includes('requires a receipt')) return { error: t('هذه الطريقة تتطلب رفع إيصال الدفع.', 'This method requires a payment receipt.') };
+    if (message.includes('requires')) return { error: t('هذه الطريقة تتطلب إدخال الرقم المرجعي.', 'This method requires a reference number.') };
+    if (message.includes('expired')) return { error: t('انتهت مهلة حجز الموعد — اختر موعداً من جديد.', 'The slot hold has expired — pick a new time.') };
+    if (message.includes('not waiting')) return { error: t('هذا الحجز ليس في مرحلة الدفع.', 'This booking is not at the payment stage.') };
+    return { error: t('تعذّر إرسال الدفع — حاول مرة أخرى.', 'The payment could not be sent — try again.') };
   }
 
   revalidatePath(`/bookings/${bookingId}`);

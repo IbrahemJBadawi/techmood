@@ -1,21 +1,38 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { isLocale, LOCALE_COOKIE } from '@/lib/i18n';
+import { getT } from '@/lib/i18n.server';
 
 export type AuthState = { error?: string } | undefined;
 
-/** Where a fresh session lands: onboarding first, the app once it is done. */
+/**
+ * Where a fresh session lands: onboarding first, the app once it is done.
+ *
+ * Signing in is also where the account's language is copied onto the cookie
+ * that every render reads, so the choice follows the person to a new device
+ * instead of starting over in Arabic.
+ */
 async function landingFor(userId: string): Promise<string> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('profiles')
-    .select('onboarding_completed_at')
+    .select('onboarding_completed_at, language')
     .eq('id', userId)
     .single();
+
+  if (isLocale(data?.language)) {
+    const jar = await cookies();
+    jar.set(LOCALE_COOKIE, data.language, {
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
 
   return data?.onboarding_completed_at ? '/home' : '/onboarding';
 }
@@ -41,6 +58,7 @@ async function siteOrigin(): Promise<string> {
  * provider error, and the message below says so rather than pretending.
  */
 export async function signInWithGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = await getT();
   const supabase = await createClient();
   const next = String(formData.get('next') ?? '') || '/onboarding';
 
@@ -53,13 +71,17 @@ export async function signInWithGoogle(_prev: AuthState, formData: FormData): Pr
   });
 
   if (error || !data?.url) {
-    return { error: 'تعذّر بدء الدخول عبر Google — مزوّد Google غير مفعّل بعد على هذا المشروع.' };
+    return {
+      error: t('تعذّر بدء الدخول عبر Google — مزوّد Google غير مفعّل بعد على هذا المشروع.',
+               'Could not start Google sign-in — the Google provider is not enabled on this project yet.'),
+    };
   }
 
   redirect(data.url);
 }
 
 export async function login(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = await getT();
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -68,7 +90,10 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   });
 
   if (error || !data.user) {
-    return { error: 'تعذّر تسجيل الدخول — تأكد من البريد وكلمة المرور.' };
+    return {
+      error: t('تعذّر تسجيل الدخول — تأكد من البريد وكلمة المرور.',
+               'Could not sign you in — check the email and password.'),
+    };
   }
 
   const next = String(formData.get('next') ?? '');
@@ -84,11 +109,12 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
  * for — is settled in onboarding, where each of those has room to be explained.
  */
 export async function signup(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const t = await getT();
   const supabase = await createClient();
 
   const fullName = String(formData.get('full_name') ?? '').trim();
   if (fullName.length < 2) {
-    return { error: 'الرجاء إدخال الاسم الكامل.' };
+    return { error: t('الرجاء إدخال الاسم الكامل.', 'Please enter your full name.') };
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -98,12 +124,19 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   });
 
   if (error) {
-    return { error: error.message.includes('already') ? 'هذا البريد مسجّل بالفعل.' : 'تعذّر إنشاء الحساب.' };
+    return {
+      error: error.message.includes('already')
+        ? t('هذا البريد مسجّل بالفعل.', 'That email is already registered.')
+        : t('تعذّر إنشاء الحساب.', 'Could not create the account.'),
+    };
   }
 
   if (!data.session) {
     // Email confirmation is on; there is nothing to redirect into yet.
-    return { error: 'تم إنشاء الحساب — تحقّق من بريدك لتأكيد التسجيل ثم سجّل الدخول.' };
+    return {
+      error: t('تم إنشاء الحساب — تحقّق من بريدك لتأكيد التسجيل ثم سجّل الدخول.',
+               'Account created — check your email to confirm it, then sign in.'),
+    };
   }
 
   revalidatePath('/', 'layout');

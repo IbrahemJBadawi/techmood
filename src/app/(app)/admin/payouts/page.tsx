@@ -2,19 +2,22 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { money } from '@/lib/booking';
 import { PAYOUT_STATUS } from '@/lib/wallet';
 
 import { reviewPayout } from './actions';
 
 export default async function AdminPayoutsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (isAdmin !== true) {
-    return <p className="notice notice-danger">هذه الصفحة للمشرفين فقط.</p>;
+    return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
   const { data: requests } = await supabase
@@ -45,20 +48,20 @@ export default async function AdminPayoutsPage() {
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>طلبات السحب</h2>
-          <Link className="btn btn-ghost btn-sm" href="/admin">لوحة الإدارة</Link>
+          <h2 style={{ fontSize: '1.2rem' }}>{t('طلبات السحب', 'Payout requests')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/admin">{t('لوحة الإدارة', 'Admin panel')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          المبلغ محجوز من رصيد العضو منذ لحظة الطلب. الاعتماد يثبّت الخصم، والرفض يعيد المبلغ
-          إلى رصيده.
+          {t('المبلغ محجوز من رصيد العضو منذ لحظة الطلب. الاعتماد يثبّت الخصم، والرفض يعيد المبلغ إلى رصيده.',
+             'The amount is held against the member\u2019s balance from the moment they ask. Approving makes the deduction final; rejecting puts it back.')}
         </p>
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>بانتظار التحويل ({waiting.length})</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('بانتظار التحويل', 'Awaiting transfer')} ({waiting.length})</h3>
 
         {waiting.length === 0 ? (
-          <p className="notice">لا طلبات سحب بانتظار المراجعة 🎉</p>
+          <p className="notice">{t('لا طلبات سحب بانتظار المراجعة 🎉', 'No payout requests waiting 🎉')}</p>
         ) : (
           waiting.map((request) => {
             const member = profileById.get(request.profile_id);
@@ -81,22 +84,22 @@ export default async function AdminPayoutsPage() {
 
                 <div className="summary-rows" style={{ marginTop: 14 }}>
                   <div className="summary-row">
-                    <span className="muted">طريقة الاستلام</span>
+                    <span className="muted">{t('طريقة الاستلام', 'Payout method')}</span>
                     <span>{method?.icon} {method?.name_ar}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="muted">صاحب الحساب</span>
+                    <span className="muted">{t('صاحب الحساب', 'Account holder')}</span>
                     <span>{account?.holder_name}</span>
                   </div>
                   {account?.wallet_number && (
                     <div className="summary-row">
-                      <span className="muted">رقم المحفظة</span>
+                      <span className="muted">{t('رقم المحفظة', 'Wallet number')}</span>
                       <span className="eng">{account.wallet_number}</span>
                     </div>
                   )}
                   {account?.account_number && (
                     <div className="summary-row">
-                      <span className="muted">رقم الحساب</span>
+                      <span className="muted">{t('رقم الحساب', 'Account number')}</span>
                       <span className="eng">{account.account_number}</span>
                     </div>
                   )}
@@ -114,16 +117,16 @@ export default async function AdminPayoutsPage() {
                   )}
                   {account?.bank_name && (
                     <div className="summary-row">
-                      <span className="muted">البنك</span>
+                      <span className="muted">{t('البنك', 'Bank')}</span>
                       <span>{account.bank_name}{account.country ? ` — ${account.country}` : ''}</span>
                     </div>
                   )}
                   <div className="summary-row">
-                    <span className="muted">رصيده بعد الحجز</span>
+                    <span className="muted">{t('رصيده بعد الحجز', 'Balance after the hold')}</span>
                     <span className="eng">{money(balanceById.get(request.profile_id) ?? 0)}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="muted">تاريخ الطلب</span>
+                    <span className="muted">{t('تاريخ الطلب', 'Requested on')}</span>
                     <span className="eng">{new Date(request.created_at).toLocaleDateString('ar-EG')}</span>
                   </div>
                 </div>
@@ -132,14 +135,14 @@ export default async function AdminPayoutsPage() {
                   <form action={reviewPayout} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 280 }}>
                     <input type="hidden" name="request_id" value={request.id} />
                     <input type="hidden" name="decision" value="approve" />
-                    <input name="reference" required placeholder="مرجع التحويل" style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-primary btn-sm">أكّد التحويل</button>
+                    <input name="reference" required placeholder={t('مرجع التحويل', 'Transfer reference')} style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-primary btn-sm">{t('أكّد التحويل', 'Confirm transfer')}</button>
                   </form>
                   <form action={reviewPayout} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 280 }}>
                     <input type="hidden" name="request_id" value={request.id} />
                     <input type="hidden" name="decision" value="reject" />
-                    <input name="note" required placeholder="سبب الرفض — يظهر للعضو" style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-ghost btn-sm">رفض</button>
+                    <input name="note" required placeholder={t('سبب الرفض — يظهر للعضو', 'Why — the member will see this')} style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
                   </form>
                 </div>
               </article>
@@ -150,10 +153,10 @@ export default async function AdminPayoutsPage() {
 
       {settled.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>سجلّ السحوبات</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('سجلّ السحوبات', 'Payout history')}</h3>
           <table className="data">
             <thead>
-              <tr><th>الطلب</th><th>العضو</th><th>المبلغ</th><th>الحالة</th><th>مرجع التحويل</th><th>تاريخ المراجعة</th></tr>
+              <tr><th>{t('الطلب', 'Request')}</th><th>{t('العضو', 'Member')}</th><th>{t('المبلغ', 'Amount')}</th><th>{t('الحالة', 'Status')}</th><th>{t('مرجع التحويل', 'Reference')}</th><th>{t('تاريخ المراجعة', 'Reviewed')}</th></tr>
             </thead>
             <tbody>
               {settled.map((request) => (
@@ -163,7 +166,7 @@ export default async function AdminPayoutsPage() {
                   <td className="eng">{money(request.amount_usd)}</td>
                   <td>
                     <span className={`status-pill ${PAYOUT_STATUS[request.status].className}`}>
-                      {PAYOUT_STATUS[request.status].text}
+                      {t(PAYOUT_STATUS[request.status].text)}
                     </span>
                   </td>
                   <td className="eng">{request.paid_reference ?? '—'}</td>

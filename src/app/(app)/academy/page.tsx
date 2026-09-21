@@ -1,8 +1,10 @@
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 export default async function AcademyPage() {
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: schools } = await supabase
@@ -19,10 +21,10 @@ export default async function AcademyPage() {
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>الأكاديمية</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('الأكاديمية', 'Academy')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          كل دورة تُكمَل بمشروع يُراجَع، وكل مسار يُختم بمشروع جماعي. الشهادة تأتي من العمل المعتمد،
-          لا من عدد الدروس المفتوحة.
+          {t('كل دورة تُكمَل بمشروع يُراجَع، وكل مسار يُختم بمشروع جماعي. الشهادة تأتي من العمل المعتمد، لا من عدد الدروس المفتوحة.',
+             'Every course ends in a project that gets reviewed, and every path ends in a group project. A certificate comes from approved work, not from how many lessons you opened.')}
         </p>
       </section>
 
@@ -44,7 +46,7 @@ export default async function AcademyPage() {
                   {path.estimated_hours && (
                     <p className="muted eng" style={{ fontSize: '0.76rem' }}>~{path.estimated_hours}h</p>
                   )}
-                  <Link className="btn btn-ghost btn-sm" href={`/academy/${path.slug}`}>ابدأ المسار</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/academy/${path.slug}`}>{t('ابدأ المسار', 'Start the path')}</Link>
                 </article>
               ))}
             </div>

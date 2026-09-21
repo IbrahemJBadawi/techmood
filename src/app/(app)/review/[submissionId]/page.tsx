@@ -3,24 +3,26 @@ import { notFound, redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import type { EvidenceKind } from '@/lib/database.types';
+import { getT } from '@/lib/i18n.server';
+import { type Text } from '@/lib/i18n';
+import { EvidenceKind } from '@/lib/database.types';
 
 import { EvaluationForm } from '../EvaluationForm';
 
-const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
-  github: 'المستودع',
-  linkedin: 'منشور التوثيق',
-  youtube: 'فيديو الشرح',
-  drive: 'الملفات',
-  portfolio: 'معرض الأعمال',
-  website: 'الموقع',
-  file: 'ملف',
+const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
+  github:    { ar: 'المستودع',        en: 'Repository' },
+  linkedin:  { ar: 'منشور التوثيق',   en: 'Write-up' },
+  youtube:   { ar: 'فيديو الشرح',     en: 'Walkthrough' },
+  drive:     { ar: 'الملفات',         en: 'Files' },
+  portfolio: { ar: 'معرض الأعمال',    en: 'Portfolio' },
+  website:   { ar: 'الموقع',          en: 'Website' },
+  file:      { ar: 'ملف',             en: 'File' },
 };
 
-const DECISION_LABELS: Record<string, { text: string; className: string }> = {
-  approved: { text: 'معتمد', className: 'status-ok' },
-  changes_requested: { text: 'مطلوب تعديل', className: 'status-pending' },
-  rejected: { text: 'غير معتمد', className: 'status-danger' },
+const DECISION_LABELS: Record<string, { text: Text; className: string }> = {
+  approved:          { text: { ar: 'معتمد',        en: 'Approved' },          className: 'status-ok' },
+  changes_requested: { text: { ar: 'مطلوب تعديل', en: 'Changes requested' }, className: 'status-pending' },
+  rejected:          { text: { ar: 'غير معتمد',   en: 'Not approved' },      className: 'status-danger' },
 };
 
 export default async function ReviewSubmissionPage({
@@ -29,6 +31,7 @@ export default async function ReviewSubmissionPage({
   params: Promise<{ submissionId: string }>;
 }) {
   const { submissionId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -40,7 +43,7 @@ export default async function ReviewSubmissionPage({
   ]);
 
   if (isMentor !== true && isAdmin !== true) {
-    return <p className="notice notice-danger">هذه الصفحة للمنتورز المعتمدين.</p>;
+    return <p className="notice notice-danger">{t('هذه الصفحة للمنتورز المعتمدين.', 'This page is for approved mentors.')}</p>;
   }
 
   const { data: submission } = await supabase
@@ -110,7 +113,7 @@ export default async function ReviewSubmissionPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/review">→ رجوع لقائمة المراجعة</Link>
+      <Link className="btn btn-ghost btn-sm" href="/review">{t('→ رجوع لقائمة المراجعة', '← Back to the review queue')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
@@ -119,7 +122,7 @@ export default async function ReviewSubmissionPage({
             {context && <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>{context}</p>}
           </div>
           <span className="badge-pill">
-            {assignment?.is_group_work ? 'عمل جماعي' : 'عمل فردي'}
+            {assignment?.is_group_work ? t('عمل جماعي', 'Group work') : t('عمل فردي', 'Individual work')}
           </span>
         </div>
 
@@ -136,7 +139,7 @@ export default async function ReviewSubmissionPage({
 
       {reeval && (
         <p className="notice section-block">
-          <strong>طلب إعادة تقييم:</strong> {reeval.reason_ar}
+          <strong>{t('طلب إعادة تقييم:', 'Re-evaluation request:')}</strong> {reeval.reason_ar}
         </p>
       )}
 
@@ -144,7 +147,7 @@ export default async function ReviewSubmissionPage({
         <section>
           <div className="panel section-block">
             <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>
-              التسليمات ({versions?.length ?? 0})
+              {t('التسليمات', 'Submissions')} ({versions?.length ?? 0})
             </h3>
 
             {(versions ?? []).map((version, index) => (
@@ -158,8 +161,8 @@ export default async function ReviewSubmissionPage({
               >
                 <div className="row-between">
                   <strong style={{ fontSize: '0.9rem' }}>
-                    النسخة {version.version}
-                    {index === 0 && <span className="badge-pill" style={{ marginInlineStart: 8 }}>الأحدث</span>}
+                    {t(`النسخة ${version.version}`, `Version ${version.version}`)}
+                    {index === 0 && <span className="badge-pill" style={{ marginInlineStart: 8 }}>{t('الأحدث', 'Latest')}</span>}
                   </strong>
                   <span className="muted eng" style={{ fontSize: '0.76rem' }}>
                     {new Date(version.submitted_at).toLocaleDateString('ar-EG')}
@@ -180,11 +183,11 @@ export default async function ReviewSubmissionPage({
                       rel="noreferrer noopener"
                       style={{ textDecoration: 'none' }}
                     >
-                      ↗ {EVIDENCE_LABELS[item.kind] ?? item.kind}
+                      ↗ {EVIDENCE_LABELS[item.kind] ? t(EVIDENCE_LABELS[item.kind]) : item.kind}
                     </a>
                   ))}
                   {evidenceFor(version.id).length === 0 && (
-                    <span className="muted" style={{ fontSize: '0.8rem' }}>لا روابط مرفقة</span>
+                    <span className="muted" style={{ fontSize: '0.8rem' }}>{t('لا روابط مرفقة', 'No links attached')}</span>
                   )}
                 </div>
               </div>
@@ -193,11 +196,11 @@ export default async function ReviewSubmissionPage({
 
           <div className="panel">
             <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>
-              سجل التقييم ({evaluations?.length ?? 0})
+              {t('سجل التقييم', 'Evaluation history')} ({evaluations?.length ?? 0})
             </h3>
 
             {(evaluations?.length ?? 0) === 0 ? (
-              <p className="muted" style={{ fontSize: '0.86rem' }}>لم يُقيَّم هذا العمل بعد.</p>
+              <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لم يُقيَّم هذا العمل بعد.', 'This work has not been evaluated yet.')}</p>
             ) : (
               evaluations!.map((evaluation, index) => {
                 const decision = DECISION_LABELS[evaluation.decision] ?? DECISION_LABELS.rejected;
@@ -213,11 +216,11 @@ export default async function ReviewSubmissionPage({
                     }}
                   >
                     <div className="row-between">
-                      <span className={`status-pill ${decision.className}`}>{decision.text}</span>
+                      <span className={`status-pill ${decision.className}`}>{t(decision.text)}</span>
                       <span className="muted eng" style={{ fontSize: '0.74rem' }}>
                         v{version?.version ?? '?'} ·{' '}
                         {new Date(evaluation.created_at).toLocaleDateString('ar-EG')}
-                        {evaluation.evaluator_id === user.id ? ' · أنت' : ''}
+                        {evaluation.evaluator_id === user.id ? t(' · أنت', ' · you') : ''}
                       </span>
                     </div>
                     {evaluation.stars !== null && (

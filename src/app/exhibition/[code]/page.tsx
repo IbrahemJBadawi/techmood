@@ -2,15 +2,17 @@ import Link from 'next/link';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { ExhibitionSnapshot } from '@/lib/database.types';
 
-export const metadata = { title: 'مشروع في معرض TechMood' };
+export const metadata = { title: 'A project in the TechMood exhibition' };
 
 export default async function ExhibitionEntryPage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
+  const t = await getT();
   const { code } = await params;
   const supabase = await createClient();
 
@@ -27,14 +29,14 @@ export default async function ExhibitionEntryPage({
           <span className="logo-mark" />
           TechMood
         </Link>
-        <Link className="btn btn-ghost btn-sm" href="/exhibition">كل المعرض</Link>
+        <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('كل المعرض', 'All projects')}</Link>
       </nav>
 
       {!entry ? (
         <section className="panel" style={{ marginTop: 32 }}>
-          <h1 style={{ fontSize: '1.1rem' }}>لا يوجد مشروع بهذا الرقم</h1>
+          <h1 style={{ fontSize: '1.1rem' }}>{t('لا يوجد مشروع بهذا الرقم', 'No project with that number')}</h1>
           <p className="muted" style={{ fontSize: '0.9rem', marginTop: 8 }}>
-            الرقم <span className="id-chip">{decodeURIComponent(code)}</span> غير منشور في المعرض.
+            {t('الرقم ', 'The number ')}<span className="id-chip">{decodeURIComponent(code)}</span>{t(' غير منشور في المعرض.', ' is not published in the exhibition.')}
           </p>
         </section>
       ) : (
@@ -59,7 +61,7 @@ export default async function ExhibitionEntryPage({
 
                 <div className="tags-row" style={{ marginTop: 14 }}>
                   {snapshot.team && <span className="badge-pill">{snapshot.team.title}</span>}
-                  <span className="badge-pill eng">اكتمل {snapshot.completed_on}</span>
+                  <span className="badge-pill eng">{t('اكتمل', 'Finished')} {snapshot.completed_on}</span>
                 </div>
 
                 {snapshot.demo_url && (
@@ -70,27 +72,27 @@ export default async function ExhibitionEntryPage({
                     target="_blank"
                     rel="noreferrer noopener"
                   >
-                    شاهد العرض التجريبي ↗
+                    {t('شاهد العرض التجريبي ↗', 'See the live demo ↗')}
                   </a>
                 )}
               </section>
 
               {snapshot.description && (
                 <section className="panel section-block" style={{ marginTop: 18 }}>
-                  <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>عن المشروع</h2>
+                  <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>{t('عن المشروع', 'About the project')}</h2>
                   <p style={{ fontSize: '0.9rem' }}>{snapshot.description}</p>
                 </section>
               )}
 
               <section className="panel section-block">
-                <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>من بنى هذا المشروع</h2>
+                <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('من بنى هذا المشروع', 'Who built this')}</h2>
                 <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 12 }}>
-                  نصيب كل عضو محسوب من المهام التي أنجزها فعلاً على لوحة الفريق.
+                  {t('نصيب كل عضو محسوب من المهام التي أنجزها فعلاً على لوحة الفريق.', 'Each member’s share is computed from the tasks they actually closed on the team board.')}
                 </p>
 
                 <table className="data">
                   <thead>
-                    <tr><th>العضو</th><th>TechMood ID</th><th>المسؤولية</th><th>مهام منجزة</th></tr>
+                    <tr><th>{t('العضو', 'Member')}</th><th>TechMood ID</th><th>{t('المسؤولية', 'Responsibility')}</th><th>{t('مهام منجزة', 'Tasks closed')}</th></tr>
                   </thead>
                   <tbody>
                     {(snapshot.members ?? []).map((member) => (
@@ -107,7 +109,7 @@ export default async function ExhibitionEntryPage({
 
               {(snapshot.mentors?.length ?? 0) > 0 && (
                 <section className="panel section-block">
-                  <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>مراجعة المنتور</h2>
+                  <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('مراجعة المنتور', 'Mentor review')}</h2>
                   {snapshot.mentors.map((mentor) => (
                     <div className="row-between" key={mentor.full_name} style={{ marginBottom: 8 }}>
                       <span style={{ fontSize: '0.9rem' }}>{mentor.full_name}</span>
@@ -119,7 +121,7 @@ export default async function ExhibitionEntryPage({
 
               {(snapshot.evidence?.length ?? 0) > 0 && (
                 <section className="panel section-block">
-                  <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>المخرجات والتوثيق</h2>
+                  <h2 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('المخرجات والتوثيق', 'Deliverables and documentation')}</h2>
                   <div className="tags-row">
                     {snapshot.evidence.map((item) => (
                       <a

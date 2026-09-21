@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+import { formatDate } from '@/lib/i18n';
+
 import { markNotificationsRead } from './actions';
 
 export type NotificationRow = {
@@ -19,8 +22,12 @@ export type NotificationRow = {
  * The notifications table and notify() have existed since the messaging
  * migration; nothing rendered them until now, so every "we told the applicant"
  * in the role review was a row nobody could read. This is that reader.
+ *
+ * The notification text itself is written by the database in Arabic and is not
+ * translated here: it often quotes a person's own words back to them.
  */
 export function Notifications({ items, unread }: { items: NotificationRow[]; unread: number }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,7 +36,9 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
         type="button"
         className="icon-button"
         aria-expanded={open}
-        aria-label={unread > 0 ? `الإشعارات — ${unread} غير مقروء` : 'الإشعارات'}
+        aria-label={unread > 0
+          ? t(`الإشعارات — ${unread} غير مقروء`, `Notifications — ${unread} unread`)
+          : t('الإشعارات', 'Notifications')}
         onClick={() => setOpen((value) => !value)}
       >
         <Bell />
@@ -39,25 +48,27 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
       {open && (
         <div className="header-dropdown" role="menu">
           <div className="header-dropdown-head">
-            <strong>الإشعارات</strong>
+            <strong>{t('الإشعارات', 'Notifications')}</strong>
             {unread > 0 && (
               <form action={markNotificationsRead}>
-                <button className="link-button" type="submit">تعليم الكل كمقروء</button>
+                <button className="link-button" type="submit">
+                  {t('تعليم الكل كمقروء', 'Mark all as read')}
+                </button>
               </form>
             )}
           </div>
 
-          {items.length === 0 && <p className="header-dropdown-empty">لا إشعارات بعد.</p>}
+          {items.length === 0 && (
+            <p className="header-dropdown-empty">{t('لا إشعارات بعد.', 'Nothing yet.')}</p>
+          )}
 
           <ul className="notification-list">
             {items.map((item) => {
               const body = (
                 <>
-                  <strong>{item.title_ar}</strong>
-                  {item.body_ar && <span className="muted">{item.body_ar}</span>}
-                  <time dateTime={item.created_at}>
-                    {new Date(item.created_at).toLocaleDateString('ar')}
-                  </time>
+                  <strong dir="rtl">{item.title_ar}</strong>
+                  {item.body_ar && <span className="muted" dir="rtl">{item.body_ar}</span>}
+                  <time dateTime={item.created_at}>{formatDate(t.locale, item.created_at)}</time>
                 </>
               );
               return (

@@ -3,18 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { useT } from '@/lib/i18n.client';
+
 const TABS = [
-  { href: '', label: 'نظرة عامة' },
-  { href: '/tasks', label: 'المهام' },
-  { href: '/projects', label: 'المشاريع' },
-  { href: '/sprints', label: 'السبرنتات' },
-  { href: '/members', label: 'الأعضاء' },
-  { href: '/calendar', label: 'التقويم' },
-  { href: '/documents', label: 'المستندات' },
-  { href: '/settings', label: 'الإعدادات' },
+  { href: '',          label: { ar: 'نظرة عامة',  en: 'Overview' } },
+  { href: '/tasks',     label: { ar: 'المهام',      en: 'Tasks' } },
+  { href: '/projects',  label: { ar: 'المشاريع',    en: 'Projects' } },
+  { href: '/sprints',   label: { ar: 'السبرنتات',   en: 'Sprints' } },
+  { href: '/members',   label: { ar: 'الأعضاء',     en: 'Members' } },
+  { href: '/calendar',  label: { ar: 'التقويم',     en: 'Calendar' } },
+  { href: '/documents', label: { ar: 'المستندات',   en: 'Documents' } },
+  { href: '/settings',  label: { ar: 'الإعدادات',   en: 'Settings' } },
 ];
 
 export function TeamNav({ teamId }: { teamId: string }) {
+  const t = useT();
   const pathname = usePathname();
   const base = `/teams/${teamId}`;
 
@@ -30,7 +33,7 @@ export function TeamNav({ teamId }: { teamId: string }) {
             className={`date-tab${active ? ' selected' : ''}`}
             style={{ textDecoration: 'none', minWidth: 0, padding: '8px 16px' }}
           >
-            {tab.label}
+            {t(tab.label)}
           </Link>
         );
       })}

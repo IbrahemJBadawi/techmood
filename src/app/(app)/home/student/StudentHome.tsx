@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { contentText, formatDate, formatDateTime, type Text } from '@/lib/i18n';
 
 import { Avatar } from '../../shell/ProfileMenu';
 import { ContinueLearning, type Resume } from './ContinueLearning';
@@ -10,13 +12,13 @@ import { Leaderboard, type Boards, type WindowKey } from './Leaderboard';
 import { Pomodoro } from './Pomodoro';
 import { StudentHero, type ActivityDay } from './StudentHero';
 
-const KIND_LABEL: Record<string, string> = {
-  freelance: 'عمل حر',
-  job: 'وظيفة',
-  team_seat: 'مقعد في فريق',
-  cofounder: 'شريك مؤسس',
-  internship: 'تدريب',
-  remote: 'عن بُعد',
+const KIND_LABEL: Record<string, Text> = {
+  freelance:  { ar: 'عمل حر',        en: 'Freelance' },
+  job:        { ar: 'وظيفة',         en: 'Job' },
+  team_seat:  { ar: 'مقعد في فريق',  en: 'Team seat' },
+  cofounder:  { ar: 'شريك مؤسس',     en: 'Co-founder' },
+  internship: { ar: 'تدريب',         en: 'Internship' },
+  remote:     { ar: 'عن بُعد',       en: 'Remote' },
 };
 
 function since(windowKey: WindowKey): string | null {
@@ -52,6 +54,7 @@ export async function StudentHome({
   };
   windowKey: WindowKey;
 }) {
+  const t = await getT();
   const supabase = await createClient();
   const today = new Date();
   const from = new Date(today);
@@ -153,7 +156,7 @@ export async function StudentHome({
   const { data: pathDetails } = pathIds.length
     ? await supabase
         .from('learning_paths')
-        .select('id, slug, title_ar, description_ar, tags')
+        .select('id, slug, title_ar, title_en, description_ar, tags')
         .in('id', pathIds)
     : { data: [] };
   const pathById = new Map((pathDetails ?? []).map((row) => [row.id, row]));
@@ -183,7 +186,7 @@ export async function StudentHome({
 
       {/* 2 — continue learning, the board, and the timer */}
       <section className="section-block">
-        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>أكمل تعلّمك</h2>
+        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>{t('أكمل تعلّمك', 'Carry on learning')}</h2>
         <div className="learning-row">
           <ContinueLearning resume={resume} />
           <Pomodoro suggestion={resume?.lesson_title ?? null} />
@@ -195,34 +198,35 @@ export async function StudentHome({
       {/* 3 — my paths */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>مساراتي</h2>
-          <Link className="btn btn-ghost btn-sm" href="/academy">كل المسارات</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('مساراتي', 'My paths')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/academy">{t('كل المسارات', 'All paths')}</Link>
         </div>
 
         {pathRows.length === 0 ? (
           <p className="panel muted">
-            لم تنضم إلى مسار بعد. المسارات مفتوحة دائماً —{' '}
-            <Link href="/academy">ابدأ من هنا</Link>.
+            {t('لم تنضم إلى مسار بعد. المسارات مفتوحة دائماً — ',
+               'You have not joined a path yet. Paths are always open — ')}
+            <Link href="/academy">{t('ابدأ من هنا', 'start here')}</Link>.
           </p>
         ) : (
           <div className="card-grid">
             {pathRows.map((row) => (
               <article className="card" key={row.path!.id}>
                 <div className="row-between">
-                  <h3>{row.path!.title_ar}</h3>
+                  <h3>{contentText(t.locale, row.path!.title_ar, row.path!.title_en)}</h3>
                   <span className={`pill pill-${row.completedAt ? 'ok' : 'ask'}`}>
-                    {row.completedAt ? 'مكتمل' : 'نشِط'}
+                    {row.completedAt ? t('مكتمل', 'Completed') : t('نشِط', 'Active')}
                   </span>
                 </div>
                 <div className="tags-row">
                   {row.path!.tags?.map((tag) => <span className="tag eng" key={tag}>{tag}</span>)}
                 </div>
-                <p className="muted">{row.path!.description_ar}</p>
+                <p className="muted" dir="rtl">{row.path!.description_ar}</p>
                 <p className="muted" style={{ fontSize: '0.76rem' }}>
-                  انضممت في {new Date(row.enrolledAt).toLocaleDateString('ar')}
+                  {t('انضممت في ', 'Joined ')}{formatDate(t.locale, row.enrolledAt)}
                 </p>
                 <Link className="btn btn-ghost btn-sm" href={`/academy/${row.path!.slug}`}>
-                  {row.completedAt ? 'عرض المسار' : 'تابع'}
+                  {row.completedAt ? t('عرض المسار', 'View path') : t('تابع', 'Continue')}
                 </Link>
               </article>
             ))}
@@ -233,41 +237,41 @@ export async function StudentHome({
       {/* 4 — upcoming mentor sessions */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>جلسات الإرشاد القادمة</h2>
-          <Link className="btn btn-ghost btn-sm" href="/bookings">كل حجوزاتي</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('جلسات الإرشاد القادمة', 'Upcoming mentor sessions')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/bookings">{t('كل حجوزاتي', 'All my bookings')}</Link>
         </div>
 
         {(sessions ?? []).length === 0 ? (
           <div className="panel empty-state">
-            <p className="muted">لا جلسات قادمة.</p>
-            <Link className="btn btn-primary btn-sm" href="/mentors">ابحث عن منتور</Link>
+            <p className="muted">{t('لا جلسات قادمة.', 'No sessions coming up.')}</p>
+            <Link className="btn btn-primary btn-sm" href="/mentors">{t('ابحث عن منتور', 'Find a mentor')}</Link>
           </div>
         ) : (
           <div className="stack">
             {(sessions ?? []).map((session) => (
               <article className="panel session-row" key={session.id}>
                 <div>
-                  <strong>{nameOf.get(session.mentor_id) ?? 'منتور'}</strong>
-                  <p className="muted">{session.topic_ar ?? 'جلسة إرشاد'}</p>
+                  <strong>{nameOf.get(session.mentor_id) ?? t('منتور', 'Mentor')}</strong>
+                  <p className="muted">{session.topic_ar ?? t('جلسة إرشاد', 'Mentoring session')}</p>
                   <p className="muted" style={{ fontSize: '0.8rem' }}>
-                    {new Date(session.scheduled_start).toLocaleString('ar')} ·{' '}
-                    {Math.round(
-                      (new Date(session.scheduled_end).getTime() -
-                        new Date(session.scheduled_start).getTime()) / 60000,
-                    )} دقيقة
+                    {formatDateTime(t.locale, session.scheduled_start)} ·{' '}
+                    {t(`${Math.round((new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime()) / 60000)} دقيقة`,
+                       `${Math.round((new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime()) / 60000)} min`)}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span className={`pill pill-${session.status === 'confirmed' ? 'ok' : 'wait'}`}>
-                    {session.status === 'confirmed' ? 'مؤكّدة' : 'بانتظار التأكيد'}
+                    {session.status === 'confirmed'
+                      ? t('مؤكّدة', 'Confirmed')
+                      : t('بانتظار التأكيد', 'Awaiting confirmation')}
                   </span>
                   {session.meeting_url && session.status === 'confirmed' && (
                     <a className="btn btn-primary btn-sm" href={session.meeting_url}
                        target="_blank" rel="noreferrer noopener">
-                      ادخل الجلسة
+                      {t('ادخل الجلسة', 'Join the session')}
                     </a>
                   )}
-                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${session.id}`}>التفاصيل</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${session.id}`}>{t('التفاصيل', 'Details')}</Link>
                 </div>
               </article>
             ))}
@@ -277,26 +281,32 @@ export async function StudentHome({
 
       {/* 5 — my team */}
       <section className="section-block">
-        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>فريقي</h2>
+        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>{t('فريقي', 'My team')}</h2>
         {team ? (
           <article className="panel team-row">
             <Avatar name={team.title_ar} url={team.avatar_url} size={48} />
             <div style={{ flex: 1 }}>
               <strong>{team.title_ar}</strong>
               <p className="muted" style={{ fontSize: '0.84rem' }}>
-                يقوده {team.leaderName} · دورك: {membership?.[0]?.title_ar ?? (membership?.[0]?.role === 'leader' ? 'قائد' : 'عضو')}
+                {t('يقوده ', 'Led by ')}{team.leaderName}
+                {t(' · دورك: ', ' · your role: ')}
+                {membership?.[0]?.title_ar
+                  ?? (membership?.[0]?.role === 'leader' ? t('قائد', 'Leader') : t('عضو', 'Member'))}
               </p>
               <div className="tags-row" style={{ marginTop: 6 }}>
-                <span className="tag">{team.openTasks} مهمة مفتوحة</span>
+                <span className="tag">
+                  {t(`${team.openTasks} مهمة مفتوحة`,
+                     `${team.openTasks} open ${team.openTasks === 1 ? 'task' : 'tasks'}`)}
+                </span>
                 {team.stars > 0 && <span className="tag"><Stars value={team.stars} /></span>}
               </div>
             </div>
-            <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>افتح الفريق</Link>
+            <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>{t('افتح الفريق', 'Open the team')}</Link>
           </article>
         ) : (
           <div className="panel empty-state">
-            <p className="muted">أغلب العمل الحقيقي يحدث ضمن فريق.</p>
-            <Link className="btn btn-primary btn-sm" href="/teams">انضم إلى فريق أو أنشئ واحداً</Link>
+            <p className="muted">{t('أغلب العمل الحقيقي يحدث ضمن فريق.', 'Most real work happens in a team.')}</p>
+            <Link className="btn btn-primary btn-sm" href="/teams">{t('انضم إلى فريق أو أنشئ واحداً', 'Join a team, or start one')}</Link>
           </div>
         )}
       </section>
@@ -304,27 +314,28 @@ export async function StudentHome({
       {/* 6 — opportunities that fit */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>فرص تناسبك</h2>
-          <Link className="btn btn-ghost btn-sm" href="/marketplace">كل الفرص</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('فرص تناسبك', 'Openings that fit you')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('كل الفرص', 'All openings')}</Link>
         </div>
         {(suggestions ?? []).length === 0 ? (
-          <p className="panel muted">لا فرص مفتوحة تطابق مجالاتك الآن.</p>
+          <p className="panel muted">{t('لا فرص مفتوحة تطابق مجالاتك الآن.', 'No open postings match your fields right now.')}</p>
         ) : (
           <div className="card-grid">
             {(suggestions ?? []).map((item) => (
               <article className="card" key={item.id}>
                 <div className="row-between">
-                  <span className="tag">{KIND_LABEL[item.kind] ?? item.kind}</span>
-                  {!item.is_eligible && <span className="pill pill-wait">لم تستوفِ الشروط بعد</span>}
+                  <span className="tag">{KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]) : item.kind}</span>
+                  {!item.is_eligible && <span className="pill pill-wait">{t('لم تستوفِ الشروط بعد', 'Not eligible yet')}</span>}
                 </div>
                 <h3>{item.title_ar}</h3>
                 {item.organization_ar && <p className="muted">{item.organization_ar}</p>}
                 {item.required_skills?.length > 0 && (
                   <p className="muted" style={{ fontSize: '0.8rem' }}>
-                    تطابق {item.matched_skills?.length ?? 0} من {item.required_skills.length} مهارة مطلوبة
+                    {t(`تطابق ${item.matched_skills?.length ?? 0} من ${item.required_skills.length} مهارة مطلوبة`,
+                       `${item.matched_skills?.length ?? 0} of ${item.required_skills.length} required skills matched`)}
                   </p>
                 )}
-                <Link className="btn btn-ghost btn-sm" href={`/marketplace/${item.id}`}>عرض الفرصة</Link>
+                <Link className="btn btn-ghost btn-sm" href={`/marketplace/${item.id}`}>{t('عرض الفرصة', 'View opening')}</Link>
               </article>
             ))}
           </div>
@@ -334,25 +345,25 @@ export async function StudentHome({
       {/* 7 — achievements */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>إنجازاتي</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">الجواز المهني</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('إنجازاتي', 'My achievements')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/passport">{t('الجواز المهني', 'Passport')}</Link>
         </div>
         <div className="stat-tiles">
           <Link className="stat-tile" href="/academy">
             <div className="val eng">{progress?.courses_completed ?? 0}</div>
-            <div className="lbl">دورات مكتملة</div>
+            <div className="lbl">{t('دورات مكتملة', 'Courses completed')}</div>
           </Link>
           <Link className="stat-tile" href="/academy">
             <div className="val eng">{progress?.assessments_passed ?? 0}</div>
-            <div className="lbl">اختبارات مجتازة</div>
+            <div className="lbl">{t('اختبارات مجتازة', 'Assessments passed')}</div>
           </Link>
           <Link className="stat-tile" href="/certificates">
             <div className="val eng">{progress?.certificates ?? 0}</div>
-            <div className="lbl">شهادات موثّقة</div>
+            <div className="lbl">{t('شهادات موثّقة', 'Verified certificates')}</div>
           </Link>
           <Link className="stat-tile" href="/passport">
             <div className="val eng">{progress?.achievements ?? 0}</div>
-            <div className="lbl">أوسمة</div>
+            <div className="lbl">{t('أوسمة', 'Badges')}</div>
           </Link>
         </div>
 
@@ -373,17 +384,17 @@ export async function StudentHome({
       {/* 8 — progress */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>تقدّمي</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">التفاصيل الكاملة</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('تقدّمي', 'My progress')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/passport">{t('التفاصيل الكاملة', 'Full detail')}</Link>
         </div>
         <div className="panel progress-grid">
-          <ProgressBar label="دروس أُكملت" value={progress?.lessons_completed ?? 0} />
-          <ProgressBar label="أعمال معتمدة" value={progress?.work_approved ?? 0} />
-          <ProgressBar label="اختبارات مجتازة" value={progress?.assessments_passed ?? 0} />
-          <ProgressBar label="جلسات حضرتها" value={progress?.sessions_attended ?? 0} />
-          <ProgressBar label="مهام فريق أنجزتها" value={progress?.team_tasks_done ?? 0} />
+          <ProgressBar label={t('دروس أُكملت', 'Lessons completed')} value={progress?.lessons_completed ?? 0} />
+          <ProgressBar label={t('أعمال معتمدة', 'Work approved')} value={progress?.work_approved ?? 0} />
+          <ProgressBar label={t('اختبارات مجتازة', 'Assessments passed')} value={progress?.assessments_passed ?? 0} />
+          <ProgressBar label={t('جلسات حضرتها', 'Sessions attended')} value={progress?.sessions_attended ?? 0} />
+          <ProgressBar label={t('مهام فريق أنجزتها', 'Team tasks closed')} value={progress?.team_tasks_done ?? 0} />
           <ProgressBar
-            label="مهارات موثّقة"
+            label={t('مهارات موثّقة', 'Verified skills')}
             value={progress?.skills_verified ?? 0}
             outOf={progress?.skills_total ?? 0}
           />
@@ -393,28 +404,29 @@ export async function StudentHome({
       {/* 9 — reputation */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>سمعتي</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">عرض السمعة</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('سمعتي', 'My reputation')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/passport">{t('عرض السمعة', 'View reputation')}</Link>
         </div>
         <div className="panel">
           <div className="reputation-head">
             <div>
-              <span className="muted">التقييم العام</span>
+              <span className="muted">{t('التقييم العام', 'Overall rating')}</span>
               <Stars value={stars?.stars_avg ?? 0} />
               <span className="muted" style={{ fontSize: '0.8rem' }}>
-                من {stars?.rated_count ?? 0} عمل مُقيَّم
+                {t(`من ${stars?.rated_count ?? 0} عمل مُقيَّم`,
+                   `from ${stars?.rated_count ?? 0} rated ${(stars?.rated_count ?? 0) === 1 ? 'piece' : 'pieces'}`)}
               </span>
             </div>
             <div>
-              <span className="muted">نقاط TechMood</span>
+              <span className="muted">{t('نقاط TechMood', 'TechMood points')}</span>
               <div className="xp-badge eng">{xp?.total_xp ?? 0} XP</div>
             </div>
           </div>
 
           {(reputation ?? []).length === 0 ? (
             <p className="muted" style={{ marginTop: 12, fontSize: '0.84rem' }}>
-              مقاييس السمعة تُحسب من مراجعات المنتورز وتقييمات الفرق. لم يُسجَّل
-              لك تقييم بعد.
+              {t('مقاييس السمعة تُحسب من مراجعات المنتورز وتقييمات الفرق. لم يُسجَّل لك تقييم بعد.',
+                 'Reputation meters are computed from mentor reviews and team ratings. Nothing has been recorded for you yet.')}
             </p>
           ) : (
             <div className="reputation-bars">
@@ -435,8 +447,8 @@ export async function StudentHome({
           )}
 
           <p className="muted" style={{ fontSize: '0.78rem', marginTop: 12 }}>
-            النجوم جودة، والنقاط كمّية. لا يُجمعان في رقم واحد، ولا يُشترى أحدهما
-            بالآخر.
+            {t('النجوم جودة، والنقاط كمّية. لا يُجمعان في رقم واحد، ولا يُشترى أحدهما بالآخر.',
+               'Stars are quality, points are quantity. They are never added into one figure, and neither buys the other.')}
           </p>
         </div>
       </section>
@@ -447,11 +459,11 @@ export async function StudentHome({
       {/* 11 — find a mentor */}
       <section className="section-block">
         <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>منتورز قد يناسبونك</h2>
-          <Link className="btn btn-ghost btn-sm" href="/mentors">تصفّح المنتورز</Link>
+          <h2 style={{ fontSize: '1.05rem' }}>{t('منتورز قد يناسبونك', 'Mentors who might suit you')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/mentors">{t('تصفّح المنتورز', 'Browse mentors')}</Link>
         </div>
         {(mentors ?? []).length === 0 ? (
-          <p className="panel muted">لا منتورز متاحين في مجالاتك الآن.</p>
+          <p className="panel muted">{t('لا منتورز متاحين في مجالاتك الآن.', 'No mentors available in your fields right now.')}</p>
         ) : (
           <div className="card-grid">
             {(mentors ?? []).map((mentor) => (
@@ -469,12 +481,13 @@ export async function StudentHome({
                 </div>
                 <div className="row-between">
                   <span className="muted" style={{ fontSize: '0.8rem' }}>
-                    {mentor.sessions_count} جلسة
+                    {t(`${mentor.sessions_count} جلسة`,
+                       `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}
                   </span>
                   <span className="xp-badge eng">${mentor.price_usd}</span>
                 </div>
                 <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentor.profile_id}`}>
-                  عرض الملف
+                  {t('عرض الملف', 'View profile')}
                 </Link>
               </article>
             ))}
@@ -484,14 +497,14 @@ export async function StudentHome({
 
       {/* 12 — explore */}
       <section className="section-block">
-        <h2 style={{ fontSize: '0.95rem', marginBottom: 10 }}>استكشف TechMood</h2>
+        <h2 style={{ fontSize: '0.95rem', marginBottom: 10 }}>{t('استكشف TechMood', 'Explore TechMood')}</h2>
         <div className="explore-row">
-          <Link className="explore-chip" href="/academy">الأكاديمية</Link>
-          <Link className="explore-chip" href="/mentors">المنتورز</Link>
-          <Link className="explore-chip" href="/teams">الفرق</Link>
-          <Link className="explore-chip" href="/marketplace">سوق العمل</Link>
-          <Link className="explore-chip" href="/startups">الشركات الناشئة</Link>
-          <Link className="explore-chip" href="/exhibition">المعرض</Link>
+          <Link className="explore-chip" href="/academy">{t('الأكاديمية', 'Academy')}</Link>
+          <Link className="explore-chip" href="/mentors">{t('المنتورز', 'Mentors')}</Link>
+          <Link className="explore-chip" href="/teams">{t('الفرق', 'Teams')}</Link>
+          <Link className="explore-chip" href="/marketplace">{t('سوق العمل', 'Work')}</Link>
+          <Link className="explore-chip" href="/startups">{t('الشركات الناشئة', 'Startups')}</Link>
+          <Link className="explore-chip" href="/exhibition">{t('المعرض', 'Exhibition')}</Link>
         </div>
       </section>
     </>

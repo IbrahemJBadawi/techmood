@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { PLAN_SECTIONS } from '@/lib/incubator';
 import type { BusinessPlanSection } from '@/lib/database.types';
 
@@ -14,6 +15,7 @@ export default async function BusinessPlanPage({
   params: Promise<{ startupId: string }>;
 }) {
   const { startupId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,17 +37,18 @@ export default async function BusinessPlanPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar} — خطة العمل</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar}{t(' — خطة العمل', ' — business plan')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          عشرة أقسام. اكتب ما تعرفه الآن، وعلّم القسم مكتملاً حين يصبح جاهزاً — لا يمكن تعليم قسم
-          فارغ كمكتمل.
+          {t('عشرة أقسام. اكتب ما تعرفه الآن، وعلّم القسم مكتملاً حين يصبح جاهزاً — لا يمكن تعليم قسم فارغ كمكتمل.',
+             'Ten sections. Write what you know now and mark a section complete when it is ready — an empty section cannot be marked complete.')}
         </p>
 
         <div className="row-between" style={{ marginTop: 16 }}>
           <span className="muted" style={{ fontSize: '0.82rem' }}>
-            {progress?.completed_sections ?? 0} من 10 أقسام مكتملة
+            {t(`${progress?.completed_sections ?? 0} من 10 أقسام مكتملة`,
+               `${progress?.completed_sections ?? 0} of 10 sections complete`)}
           </span>
           <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>{percent}%</span>
         </div>

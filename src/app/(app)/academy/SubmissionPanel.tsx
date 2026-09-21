@@ -3,28 +3,30 @@
 import { useActionState, useState } from 'react';
 
 import { Stars } from '@/components/Stars';
+import { useT } from '@/lib/i18n.client';
+import type { Text } from '@/lib/i18n';
 import type { EvidenceKind, Evaluation, Submission } from '@/lib/database.types';
 
 import { requestReevaluation } from '../review/actions';
 import { submitWork, type ActionState } from './actions';
 
-const EVIDENCE_LABELS: Record<EvidenceKind, string> = {
-  github: 'رابط المستودع (GitHub)',
-  linkedin: 'رابط منشور التوثيق (LinkedIn)',
-  youtube: 'رابط فيديو الشرح (YouTube)',
-  drive: 'رابط الملفات (Drive)',
-  portfolio: 'رابط معرض الأعمال',
-  website: 'رابط الموقع',
-  file: 'رابط الملف',
+const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
+  github:    { ar: 'رابط المستودع (GitHub)',          en: 'Repository link (GitHub)' },
+  linkedin:  { ar: 'رابط منشور التوثيق (LinkedIn)',   en: 'Write-up link (LinkedIn)' },
+  youtube:   { ar: 'رابط فيديو الشرح (YouTube)',      en: 'Walkthrough video (YouTube)' },
+  drive:     { ar: 'رابط الملفات (Drive)',            en: 'Files link (Drive)' },
+  portfolio: { ar: 'رابط معرض الأعمال',               en: 'Portfolio link' },
+  website:   { ar: 'رابط الموقع',                     en: 'Website link' },
+  file:      { ar: 'رابط الملف',                      en: 'File link' },
 };
 
-const STATUS_LABELS: Record<string, { text: string; className: string }> = {
-  draft: { text: 'لم يُسلَّم بعد', className: 'status-muted' },
-  submitted: { text: 'بانتظار المراجعة', className: 'status-pending' },
-  under_review: { text: 'قيد المراجعة', className: 'status-pending' },
-  changes_requested: { text: 'مطلوب تعديل', className: 'status-danger' },
-  approved: { text: 'معتمد', className: 'status-ok' },
-  rejected: { text: 'غير معتمد', className: 'status-danger' },
+const STATUS_LABELS: Record<string, { text: Text; className: string }> = {
+  draft:             { text: { ar: 'لم يُسلَّم بعد',    en: 'Not submitted' },      className: 'status-muted' },
+  submitted:         { text: { ar: 'بانتظار المراجعة', en: 'Awaiting review' },    className: 'status-pending' },
+  under_review:      { text: { ar: 'قيد المراجعة',     en: 'Under review' },       className: 'status-pending' },
+  changes_requested: { text: { ar: 'مطلوب تعديل',      en: 'Changes requested' },  className: 'status-danger' },
+  approved:          { text: { ar: 'معتمد',            en: 'Approved' },           className: 'status-ok' },
+  rejected:          { text: { ar: 'غير معتمد',        en: 'Not approved' },       className: 'status-danger' },
 };
 
 export function SubmissionPanel({
@@ -46,6 +48,7 @@ export function SubmissionPanel({
   revalidatePath: string;
   hasOpenReevaluation?: boolean;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(submitWork, undefined as ActionState);
   const [reevalState, reevalAction, reevalPending] = useActionState(
     requestReevaluation,
@@ -63,7 +66,7 @@ export function SubmissionPanel({
     <div className="panel section-block">
       <div className="row-between">
         <h3 style={{ fontSize: '0.98rem' }}>{title}</h3>
-        <span className={`status-pill ${label.className}`}>{label.text}</span>
+        <span className={`status-pill ${label.className}`}>{t(label.text)}</span>
       </div>
 
       {brief && <p className="muted" style={{ fontSize: '0.85rem', marginTop: 8 }}>{brief}</p>}
@@ -71,7 +74,8 @@ export function SubmissionPanel({
       {evaluations.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <p className="muted" style={{ fontSize: '0.78rem', marginBottom: 8 }}>
-            سجل التقييم ({evaluations.length}) — كل مراجعة محفوظة، ولا تُمحى بإعادة التسليم
+            {t(`سجل التقييم (${evaluations.length}) — كل مراجعة محفوظة، ولا تُمحى بإعادة التسليم`,
+               `Evaluation history (${evaluations.length}) — every review is kept, and resubmitting never erases one`)}
           </p>
           {evaluations.map((evaluation, index) => (
             <div
@@ -104,13 +108,13 @@ export function SubmissionPanel({
 
           {requiredEvidence.length === 0 && (
             <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
-              هذه المهمة لا تتطلب روابط — أرفق ملاحظة توضح ما نفّذته.
+              {t('هذه المهمة لا تتطلب روابط — أرفق ملاحظة توضح ما نفّذته.', 'This task needs no links — leave a note explaining what you did.')}
             </p>
           )}
 
           {requiredEvidence.map((kind) => (
             <div className="field" key={kind}>
-              <label htmlFor={`url_${kind}_${assignmentId}`}>{EVIDENCE_LABELS[kind]}</label>
+              <label htmlFor={`url_${kind}_${assignmentId}`}>{t(EVIDENCE_LABELS[kind])}</label>
               <input
                 id={`url_${kind}_${assignmentId}`}
                 name={`url_${kind}`}
@@ -123,7 +127,7 @@ export function SubmissionPanel({
           ))}
 
           <div className="field">
-            <label htmlFor={`note_${assignmentId}`}>ملاحظة للمراجع (اختياري)</label>
+            <label htmlFor={`note_${assignmentId}`}>{t('ملاحظة للمراجع (اختياري)', 'A note for the reviewer (optional)')}</label>
             <textarea id={`note_${assignmentId}`} name="note" rows={2} />
           </div>
 
@@ -131,14 +135,18 @@ export function SubmissionPanel({
           {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
           <button className="btn btn-primary btn-sm" disabled={pending}>
-            {pending ? 'جارٍ الإرسال…' : status === 'draft' ? 'تسليم العمل' : 'إعادة التسليم بعد التعديل'}
+            {pending
+              ? t('جارٍ الإرسال…', 'Sending…')
+              : status === 'draft'
+                ? t('تسليم العمل', 'Submit the work')
+                : t('إعادة التسليم بعد التعديل', 'Resubmit after changes')}
           </button>
         </form>
       )}
 
       {isApproved && (
         <p className="notice" style={{ marginTop: 14 }}>
-          تم اعتماد هذا العمل ويُحتسب ضمن متطلبات الشهادة.
+          {t('تم اعتماد هذا العمل ويُحتسب ضمن متطلبات الشهادة.', 'This work is approved and counts towards the certificate.')}
         </p>
       )}
 
@@ -150,13 +158,13 @@ export function SubmissionPanel({
           style={{ marginTop: 12 }}
           onClick={() => setShowReevalForm(true)}
         >
-          اطلب إعادة تقييم
+          {t('اطلب إعادة تقييم', 'Ask for a re-evaluation')}
         </button>
       )}
 
       {hasOpenReevaluation && (
         <p className="notice" style={{ marginTop: 12 }}>
-          طلب إعادة التقييم مفتوح وينتظر منتوراً.
+          {t('طلب إعادة التقييم مفتوح وينتظر منتوراً.', 'Your re-evaluation request is open and waiting for a mentor.')}
         </p>
       )}
 
@@ -166,7 +174,7 @@ export function SubmissionPanel({
           <input type="hidden" name="evaluation_id" value={latestEvaluation.id} />
           <input type="hidden" name="revalidate" value={revalidatePath} />
           <div className="field">
-            <label htmlFor={`reeval_${assignmentId}`}>لماذا تطلب إعادة التقييم؟</label>
+            <label htmlFor={`reeval_${assignmentId}`}>{t('لماذا تطلب إعادة التقييم؟', 'Why are you asking for a re-evaluation?')}</label>
             <textarea id={`reeval_${assignmentId}`} name="reason" rows={3} required />
           </div>
           {reevalState?.error && (
@@ -175,10 +183,10 @@ export function SubmissionPanel({
           {reevalState?.ok && <p className="notice" style={{ marginBottom: 10 }}>{reevalState.ok}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary btn-sm" disabled={reevalPending}>
-              {reevalPending ? 'جارٍ الإرسال…' : 'إرسال الطلب'}
+              {reevalPending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال الطلب', 'Send request')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowReevalForm(false)}>
-              إلغاء
+              {t('إلغاء', 'Cancel')}
             </button>
           </div>
         </form>

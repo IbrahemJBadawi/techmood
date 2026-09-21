@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { getT } from '@/lib/i18n.server';
+import { LanguagePicker } from './LanguagePicker';
+
 /**
  * The public navigation.
  *
@@ -7,26 +10,28 @@ import Link from 'next/link';
  * signed-out visitor who opens one is asked to sign in and is then taken there —
  * the link is real, and nothing here is a dead end.
  */
-const LINKS = [
-  { href: '/', label: 'الرئيسية' },
-  { href: '/academy', label: 'الأكاديمية' },
-  { href: '/mentors', label: 'المنتورز' },
-  { href: '/teams', label: 'الفرق' },
-  { href: '/marketplace', label: 'سوق العمل' },
-  { href: '/startups', label: 'الشركات الناشئة' },
-  { href: '/about', label: 'عن TechMood' },
-];
+export async function SiteNav() {
+  const t = await getT();
 
-export function SiteNav() {
+  const links = [
+    { href: '/', label: t('الرئيسية', 'Home') },
+    { href: '/academy', label: t('الأكاديمية', 'Academy') },
+    { href: '/mentors', label: t('المنتورز', 'Mentors') },
+    { href: '/teams', label: t('الفرق', 'Teams') },
+    { href: '/marketplace', label: t('سوق العمل', 'Work') },
+    { href: '/startups', label: t('الشركات الناشئة', 'Startups') },
+    { href: '/about', label: t('عن TechMood', 'About') },
+  ];
+
   return (
-    <nav className="landing-nav" aria-label="روابط الموقع">
+    <nav className="landing-nav" aria-label={t('روابط الموقع', 'Site links')}>
       <Link className="site-brand" href="/">
         <span className="logo-mark" />
         TechMood
       </Link>
 
       <ul className="site-links">
-        {LINKS.map((link) => (
+        {links.map((link) => (
           <li key={link.href}>
             <Link href={link.href}>{link.label}</Link>
           </li>
@@ -34,8 +39,9 @@ export function SiteNav() {
       </ul>
 
       <div className="site-actions">
-        <Link className="btn btn-ghost btn-sm" href="/login">تسجيل الدخول</Link>
-        <Link className="btn btn-primary btn-sm" href="/signup">أنشئ حسابك</Link>
+        <LanguagePicker current={t.locale} />
+        <Link className="btn btn-ghost btn-sm" href="/login">{t('تسجيل الدخول', 'Sign in')}</Link>
+        <Link className="btn btn-primary btn-sm" href="/signup">{t('أنشئ حسابك', 'Create account')}</Link>
       </div>
     </nav>
   );

@@ -2,10 +2,13 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { enrolInPath } from '../actions';
 
 export default async function PathPage({ params }: { params: Promise<{ pathSlug: string }> }) {
   const { pathSlug } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -63,7 +66,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/academy">→ رجوع للأكاديمية</Link>
+      <Link className="btn btn-ghost btn-sm" href="/academy">{t('→ رجوع للأكاديمية', '← Back to the academy')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="tags-row">
@@ -76,7 +79,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
         )}
 
         <div className="row-between" style={{ marginTop: 18 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>الدورات المكتملة</span>
+          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('الدورات المكتملة', 'Courses completed')}</span>
           <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>
             {doneCount}/{courses.length} · {percent}%
           </span>
@@ -90,10 +93,10 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
         <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
           {enrolment ? (
             <>
-              <span className="status-pill status-ok">أنت ملتحق بهذا المسار</span>
+              <span className="status-pill status-ok">{t('أنت ملتحق بهذا المسار', 'You are on this path')}</span>
               {pathConversation && (
                 <Link className="btn btn-ghost btn-sm" href={`/messages?c=${pathConversation.id}`}>
-                  محادثة المسار
+                  {t('محادثة المسار', 'Path conversation')}
                 </Link>
               )}
             </>
@@ -101,7 +104,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
             <form action={enrolInPath}>
               <input type="hidden" name="path_id" value={path.id} />
               <input type="hidden" name="revalidate" value={`/academy/${path.slug}`} />
-              <button className="btn btn-primary btn-sm">التحق بالمسار</button>
+              <button className="btn btn-primary btn-sm">{t('التحق بالمسار', 'Join the path')}</button>
             </form>
           )}
         </div>
@@ -118,13 +121,13 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
                     Course {index + 1} / {courses.length}
                   </span>
                   <span className={`status-pill ${complete ? 'status-ok' : 'status-muted'}`}>
-                    {complete ? 'مكتملة' : course.isRequired ? 'مطلوبة' : 'اختيارية'}
+                    {complete ? t('مكتملة', 'Completed') : course.isRequired ? t('مطلوبة', 'Required') : t('اختيارية', 'Elective')}
                   </span>
                 </div>
                 <h3>{course.title_ar}</h3>
                 <p>{course.description_ar}</p>
                 <Link className="btn btn-ghost btn-sm" href={`/academy/${path.slug}/${course.slug}`}>
-                  افتح الدورة
+                  {t('افتح الدورة', 'Open the course')}
                 </Link>
               </article>
             );
@@ -135,21 +138,23 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
           {groupProject && (
             <div className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>🏆 {groupProject.title_ar}</h3>
-              <span className="badge-pill" style={{ marginTop: 8 }}>مشروع جماعي</span>
+              <span className="badge-pill" style={{ marginTop: 8 }}>{t('مشروع جماعي', 'Group project')}</span>
               <p className="muted" style={{ fontSize: '0.85rem', marginTop: 10 }}>{groupProject.brief_ar}</p>
             </div>
           )}
 
           <div className="panel">
-            <h3 style={{ fontSize: '0.98rem' }}>شهادة المسار</h3>
+            <h3 style={{ fontSize: '0.98rem' }}>{t('شهادة المسار', 'Path certificate')}</h3>
             <p className="muted" style={{ fontSize: '0.84rem', marginTop: 8 }}>
               {pathComplete
-                ? 'اكتملت متطلبات المسار — يمكنك إصدار شهادته من صفحة الشهادات.'
-                : 'تُصدَر بعد اعتماد كل الأعمال المطلوبة في دورات المسار ومشروعه الجماعي.'}
+                ? t('اكتملت متطلبات المسار — يمكنك إصدار شهادته من صفحة الشهادات.',
+                    'The path requirements are met — you can issue its certificate from the certificates page.')
+                : t('تُصدَر بعد اعتماد كل الأعمال المطلوبة في دورات المسار ومشروعه الجماعي.',
+                    'Issued once every required piece of work in the path\u2019s courses and its group project has been approved.')}
             </p>
             {pathComplete && (
               <Link className="btn btn-sky btn-sm" style={{ marginTop: 10 }} href="/certificates">
-                إصدار الشهادة
+                {t('إصدار الشهادة', 'Issue the certificate')}
               </Link>
             )}
           </div>

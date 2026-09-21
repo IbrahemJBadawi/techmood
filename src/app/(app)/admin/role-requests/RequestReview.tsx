@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+import type { Text } from '@/lib/i18n';
 import type { RoleStatus } from '@/lib/database.types';
 
 import { decideRequest, type ReviewState } from './actions';
@@ -10,23 +12,24 @@ type Decision = 'approved' | 'rejected' | 'more_info_requested' | 'suspended' | 
 
 const NEEDS_NOTE: Decision[] = ['rejected', 'more_info_requested'];
 
-const LABEL: Record<Decision, string> = {
-  approved: 'اعتماد',
-  rejected: 'رفض',
-  more_info_requested: 'طلب معلومات إضافية',
-  suspended: 'إيقاف',
-  reinstated: 'إعادة تفعيل',
+const LABEL: Record<Decision, Text> = {
+  approved:            { ar: 'اعتماد',                en: 'Approve' },
+  rejected:            { ar: 'رفض',                   en: 'Reject' },
+  more_info_requested: { ar: 'طلب معلومات إضافية',    en: 'Request more information' },
+  suspended:           { ar: 'إيقاف',                 en: 'Suspend' },
+  reinstated:          { ar: 'إعادة تفعيل',           en: 'Reinstate' },
 };
 
-const PROMPT: Record<Decision, string> = {
-  approved: 'ملاحظة للمتقدّم (اختيارية)',
-  rejected: 'سبب الرفض — سيقرأه المتقدّم',
-  more_info_requested: 'ما المعلومات التي تحتاجها منه؟',
-  suspended: 'سبب الإيقاف',
-  reinstated: 'ملاحظة (اختيارية)',
+const PROMPT: Record<Decision, Text> = {
+  approved:            { ar: 'ملاحظة للمتقدّم (اختيارية)',      en: 'A note for the applicant (optional)' },
+  rejected:            { ar: 'سبب الرفض — سيقرأه المتقدّم',     en: 'Why — the applicant will read this' },
+  more_info_requested: { ar: 'ما المعلومات التي تحتاجها منه؟',  en: 'What do you need from them?' },
+  suspended:           { ar: 'سبب الإيقاف',                     en: 'Why you are suspending it' },
+  reinstated:          { ar: 'ملاحظة (اختيارية)',               en: 'A note (optional)' },
 };
 
 export function RequestReview({ requestId, status }: { requestId: string; status: RoleStatus }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(decideRequest, undefined as ReviewState);
   const [decision, setDecision] = useState<Decision | null>(null);
 
@@ -47,7 +50,7 @@ export function RequestReview({ requestId, status }: { requestId: string; status
               className={`btn btn-sm ${option === 'approved' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setDecision(option)}
             >
-              {LABEL[option]}
+              {t(LABEL[option])}
             </button>
           ))}
         </div>
@@ -58,7 +61,7 @@ export function RequestReview({ requestId, status }: { requestId: string; status
           <input type="hidden" name="request_id" value={requestId} />
           <input type="hidden" name="decision" value={decision} />
           <div className="field">
-            <label htmlFor={`note_${requestId}`}>{PROMPT[decision]}</label>
+            <label htmlFor={`note_${requestId}`}>{t(PROMPT[decision])}</label>
             <textarea
               id={`note_${requestId}`}
               name="note"
@@ -70,10 +73,12 @@ export function RequestReview({ requestId, status }: { requestId: string; status
           {state?.error && <p className="notice notice-danger">{state.error}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary btn-sm" disabled={pending}>
-              {pending ? 'جارٍ الحفظ…' : `تأكيد: ${LABEL[decision]}`}
+              {pending
+                ? t('جارٍ الحفظ…', 'Saving…')
+                : t(`تأكيد: ${t(LABEL[decision])}`, `Confirm: ${t(LABEL[decision])}`)}
             </button>
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setDecision(null)}>
-              إلغاء
+              {t('إلغاء', 'Cancel')}
             </button>
           </div>
         </form>

@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+import type { UiLanguage } from '@/lib/database.types';
+
 import { signOut } from '../../(auth)/actions';
 import { setLanguage } from './actions';
-import type { UiLanguage } from '@/lib/database.types';
 
 export function ProfileMenu({
   name,
@@ -20,6 +22,7 @@ export function ProfileMenu({
   avatarUrl: string | null;
   language: UiLanguage;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   return (
@@ -47,20 +50,23 @@ export function ProfileMenu({
           </div>
 
           <Link className="header-dropdown-item" href="/passport" onClick={() => setOpen(false)}>
-            الجواز المهني
+            {t('الجواز المهني', 'Professional passport')}
           </Link>
           <Link className="header-dropdown-item" href="/settings/roles" onClick={() => setOpen(false)}>
-            أدواري
+            {t('أدواري', 'My roles')}
+          </Link>
+          <Link className="header-dropdown-item" href="/settings/fields" onClick={() => setOpen(false)}>
+            {t('مجالاتي ومهاراتي', 'Fields & skills')}
           </Link>
           <Link className="header-dropdown-item" href="/certificates" onClick={() => setOpen(false)}>
-            شهاداتي
+            {t('شهاداتي', 'My certificates')}
           </Link>
           <Link className="header-dropdown-item" href="/wallet" onClick={() => setOpen(false)}>
-            المحفظة
+            {t('المحفظة', 'Wallet')}
           </Link>
 
           <div className="header-dropdown-section">
-            <span className="muted">اللغة</span>
+            <span className="muted">{t('اللغة', 'Language')}</span>
             <form action={setLanguage} className="language-row">
               <button
                 className={`language-option${language === 'ar' ? ' is-on' : ''}`}
@@ -80,13 +86,15 @@ export function ProfileMenu({
               </button>
             </form>
             <p className="header-note">
-              الاختيار محفوظ على حسابك ويضبط تنسيق التواريخ والأرقام. نصوص الواجهة
-              ما زالت بالعربية حتى تكتمل الترجمة.
+              {t('الاختيار محفوظ على حسابك، فيرافقك إلى أي جهاز. ما يكتبه الناس — وصف دورة، نبذة منتور، رسالة — يبقى بلغته.',
+                 'Your choice is saved on your account, so it follows you to any device. What people write — a course description, a mentor bio, a message — stays in the language they wrote it in.')}
             </p>
           </div>
 
           <form action={signOut}>
-            <button className="header-dropdown-item is-danger" type="submit">تسجيل الخروج</button>
+            <button className="header-dropdown-item is-danger" type="submit">
+              {t('تسجيل الخروج', 'Sign out')}
+            </button>
           </form>
         </div>
       )}

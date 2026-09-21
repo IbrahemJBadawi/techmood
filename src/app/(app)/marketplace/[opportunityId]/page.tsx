@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { APPLICATION_STAGE, OPPORTUNITY_KIND, compensationLabel } from '@/lib/marketplace';
-import type { Opportunity } from '@/lib/database.types';
+import { Opportunity } from '@/lib/database.types';
 
 import { ApplyForm } from './ApplyForm';
 import { ApplicantRow } from './ApplicantRow';
@@ -15,6 +17,7 @@ export default async function OpportunityPage({
   params: Promise<{ opportunityId: string }>;
 }) {
   const { opportunityId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -62,15 +65,15 @@ export default async function OpportunityPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/marketplace">→ رجوع للسوق</Link>
+      <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
           <div>
             <div className="tags-row">
-              <span className="tag">{OPPORTUNITY_KIND[opportunity.kind].label}</span>
-              {opportunity.is_remote && <span className="badge-pill">عن بُعد</span>}
-              {!isOpen && <span className="status-pill status-muted">مغلقة</span>}
+              <span className="tag">{t(OPPORTUNITY_KIND[opportunity.kind].label)}</span>
+              {opportunity.is_remote && <span className="badge-pill">{t('عن بُعد', 'Remote')}</span>}
+              {!isOpen && <span className="status-pill status-muted">{t('مغلقة', 'Closed')}</span>}
             </div>
             <h2 style={{ fontSize: '1.25rem', marginTop: 10 }}>{opportunity.title_ar}</h2>
             <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
@@ -80,11 +83,11 @@ export default async function OpportunityPage({
           </div>
           <div style={{ textAlign: 'start' }}>
             <div className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', fontSize: '1.05rem' }}>
-              {compensationLabel(opportunity)}
+              {compensationLabel(t.locale, opportunity)}
             </div>
             {opportunity.closes_on && (
               <p className="muted eng" style={{ fontSize: '0.76rem', marginTop: 6 }}>
-                يغلق {opportunity.closes_on}
+                {t('يغلق ', 'Closes ')}{opportunity.closes_on}
               </p>
             )}
           </div>
@@ -98,14 +101,14 @@ export default async function OpportunityPage({
           {opportunity.required_skills.map((skill) => <span className="badge-pill eng" key={skill}>{skill}</span>)}
           {opportunity.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}
           {opportunity.seats > 1 && (
-            <span className="badge-pill eng">{opportunity.filled_count}/{opportunity.seats} مقاعد</span>
+            <span className="badge-pill eng">{opportunity.filled_count}/{opportunity.seats} {t('مقاعد', 'seats')}</span>
           )}
         </div>
 
         {isPoster && opportunity.status === 'published' && (
           <form action={closeOpportunity} style={{ marginTop: 16 }}>
             <input type="hidden" name="opportunity_id" value={opportunityId} />
-            <button className="btn btn-ghost btn-sm">أغلق الفرصة</button>
+            <button className="btn btn-ghost btn-sm">{t('أغلق الفرصة', 'Close the opening')}</button>
           </form>
         )}
       </section>
@@ -115,11 +118,11 @@ export default async function OpportunityPage({
           {isPoster ? (
             <div className="panel">
               <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>
-                المتقدّمون ({applications?.length ?? 0})
+                {t('المتقدّمون', 'Applicants')} ({applications?.length ?? 0})
               </h3>
 
               {(applications?.length ?? 0) === 0 ? (
-                <p className="muted" style={{ fontSize: '0.86rem' }}>لا طلبات بعد.</p>
+                <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا طلبات بعد.', 'No applications yet.')}</p>
               ) : (
                 applications!.map((application) => (
                   <ApplicantRow
@@ -135,7 +138,7 @@ export default async function OpportunityPage({
 
               {opportunity.kind === 'team_seat' && (
                 <p className="muted" style={{ fontSize: '0.8rem', marginTop: 12 }}>
-                  مقاعد الفرق تُقرَّر من صفحة الفريق، والقرار ينعكس هنا تلقائياً.
+                  {t('مقاعد الفرق تُقرَّر من صفحة الفريق، والقرار ينعكس هنا تلقائياً.', 'Team seats are decided from the team page, and the decision shows up here automatically.')}
                 </p>
               )}
             </div>
@@ -149,22 +152,22 @@ export default async function OpportunityPage({
         </section>
 
         <aside className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>مدى المطابقة</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('مدى المطابقة', 'How well you match')}</h3>
           <p className="muted" style={{ fontSize: '0.78rem', marginBottom: 12 }}>
-            إرشادية فقط — لا تمنعك من التقدّم. القرار للناشر.
+            {t('إرشادية فقط — لا تمنعك من التقدّم. القرار للناشر.', 'Advisory only — nothing here stops you applying. The poster decides.')}
           </p>
 
           {opportunity.min_stars !== null && (
             <div className={`match-row ${matchInfo?.meets_stars ? 'met' : 'unmet'}`}>
               <span className="mark">{matchInfo?.meets_stars ? '✓' : '○'}</span>
-              <span>تقييم {opportunity.min_stars} نجوم فأعلى</span>
+              <span>{t(`تقييم ${opportunity.min_stars} نجوم فأعلى`, `${opportunity.min_stars} stars or above`)}</span>
             </div>
           )}
 
           {opportunity.required_path_id && (
             <div className={`match-row ${matchInfo?.meets_path ? 'met' : 'unmet'}`}>
               <span className="mark">{matchInfo?.meets_path ? '✓' : '○'}</span>
-              <span>شهادة {(path as { title_ar: string } | null)?.title_ar ?? 'مسار مطلوب'}</span>
+              <span>{t('شهادة ', 'Certificate: ')}{(path as { title_ar: string } | null)?.title_ar ?? t('مسار مطلوب', 'a required path')}</span>
             </div>
           )}
 
@@ -185,15 +188,15 @@ export default async function OpportunityPage({
           {opportunity.min_stars === null &&
             !opportunity.required_path_id &&
             opportunity.required_skills.length === 0 && (
-              <p className="muted" style={{ fontSize: '0.84rem' }}>لم يحدد الناشر متطلبات.</p>
+              <p className="muted" style={{ fontSize: '0.84rem' }}>{t('لم يحدد الناشر متطلبات.', 'The poster set no requirements.')}</p>
             )}
 
           {myApplication && (
             <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 12 }}>
               <div className="row-between">
-                <span className="muted" style={{ fontSize: '0.82rem' }}>حالة طلبك</span>
+                <span className="muted" style={{ fontSize: '0.82rem' }}>{t('حالة طلبك', 'Your application')}</span>
                 <span className={`status-pill ${APPLICATION_STAGE[myApplication.stage].className}`}>
-                  {APPLICATION_STAGE[myApplication.stage].text}
+                  {t(APPLICATION_STAGE[myApplication.stage].text)}
                 </span>
               </div>
               {myApplication.decision_note_ar && (

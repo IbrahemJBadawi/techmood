@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+
 import { signInWithGoogle, type AuthState } from './actions';
 
 /**
@@ -12,6 +14,7 @@ import { signInWithGoogle, type AuthState } from './actions';
  * TechMood's own, and nothing is read from or written to a Google account.
  */
 export function GoogleButton({ next, label }: { next?: string; label: string }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(signInWithGoogle, undefined as AuthState);
 
   return (
@@ -20,7 +23,7 @@ export function GoogleButton({ next, label }: { next?: string; label: string }) 
         {next && <input type="hidden" name="next" value={next} />}
         <button className="btn btn-google" disabled={pending} type="submit">
           <GoogleMark />
-          {pending ? 'جارٍ التحويل…' : label}
+          {pending ? t('جارٍ التحويل…', 'Redirecting…') : label}
         </button>
       </form>
       {state?.error && <p className="notice notice-danger" style={{ marginTop: 10 }}>{state.error}</p>}

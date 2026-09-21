@@ -2,19 +2,22 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { BOOKING_STATUS, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
 
 import { ReceiptLink } from './ReceiptLink';
 import { reviewPayment } from './actions';
 
 export default async function AdminPaymentsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (isAdmin !== true) {
-    return <p className="notice notice-danger">هذه الصفحة للمشرفين فقط.</p>;
+    return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
   const { data: payments } = await supabase
@@ -53,22 +56,22 @@ export default async function AdminPaymentsPage() {
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>مراجعة المدفوعات</h2>
-          <Link className="btn btn-ghost btn-sm" href="/admin">لوحة الإدارة</Link>
+          <h2 style={{ fontSize: '1.2rem' }}>{t('مراجعة المدفوعات', 'Review payments')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/admin">{t('لوحة الإدارة', 'Admin panel')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          التحقق من الدفع لا يؤكد الجلسة — بعده يذهب الطلب إلى المنتور ليوافق. كل قرار هنا
-          يُسجَّل في سجل التدقيق باسمك ووقته.
+          {t('التحقق من الدفع لا يؤكد الجلسة — بعده يذهب الطلب إلى المنتور ليوافق. كل قرار هنا يُسجَّل في سجل التدقيق باسمك ووقته.',
+             'Verifying a payment does not confirm the session — the request then goes to the mentor to accept. Every decision here is written to the audit log with your name and the time.')}
         </p>
       </section>
 
       <section className="section-block">
         <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>
-          بانتظار التحقق ({waiting.length})
+          {t('بانتظار التحقق', 'Awaiting verification')} ({waiting.length})
         </h3>
 
         {waiting.length === 0 ? (
-          <p className="notice">لا مدفوعات بانتظار المراجعة 🎉</p>
+          <p className="notice">{t('لا مدفوعات بانتظار المراجعة 🎉', 'No payments waiting 🎉')}</p>
         ) : (
           waiting.map((payment) => {
             const booking = bookingById.get(payment.booking_id);
@@ -93,23 +96,23 @@ export default async function AdminPaymentsPage() {
 
                 <div className="summary-rows" style={{ marginTop: 14 }}>
                   <div className="summary-row">
-                    <span className="muted">موعد الجلسة</span>
+                    <span className="muted">{t('موعد الجلسة', 'Session time')}</span>
                     <span>{when ? `${when.date} · ${when.time}` : '—'}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="muted">{method?.reference_label_ar ?? 'المرجع'}</span>
+                    <span className="muted">{method?.reference_label_ar ?? t('المرجع', 'Reference')}</span>
                     <span className="eng">{payment.reference ?? '—'}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="muted">أُرسل في</span>
+                    <span className="muted">{t('أُرسل في', 'Sent on')}</span>
                     <span className="eng">
                       {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG') : '—'}
                     </span>
                   </div>
                   <div className="summary-row">
-                    <span className="muted">حالة الحجز</span>
+                    <span className="muted">{t('حالة الحجز', 'Booking status')}</span>
                     <span className={`status-pill ${BOOKING_STATUS[booking?.status ?? 'payment_submitted'].className}`}>
-                      {BOOKING_STATUS[booking?.status ?? 'payment_submitted'].text}
+                      {t(BOOKING_STATUS[booking?.status ?? 'payment_submitted'].text)}
                     </span>
                   </div>
                 </div>
@@ -120,13 +123,13 @@ export default async function AdminPaymentsPage() {
                   <form action={reviewPayment}>
                     <input type="hidden" name="payment_id" value={payment.id} />
                     <input type="hidden" name="decision" value="verify" />
-                    <button className="btn btn-primary btn-sm">تحقّق واعتمد</button>
+                    <button className="btn btn-primary btn-sm">{t('تحقّق واعتمد', 'Verify and approve')}</button>
                   </form>
                   <form action={reviewPayment} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
                     <input type="hidden" name="payment_id" value={payment.id} />
                     <input type="hidden" name="decision" value="reject" />
-                    <input name="reason" required placeholder="سبب الرفض — يظهر للطالب" style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-ghost btn-sm">رفض</button>
+                    <input name="reason" required placeholder={t('سبب الرفض — يظهر للطالب', 'Why — the student will see this')} style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
                   </form>
                 </div>
               </article>
@@ -137,10 +140,10 @@ export default async function AdminPaymentsPage() {
 
       {settled.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>سجلّ المدفوعات</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('سجلّ المدفوعات', 'Payment history')}</h3>
           <table className="data">
             <thead>
-              <tr><th>الحجز</th><th>الطالب</th><th>الطريقة</th><th>المبلغ</th><th>الحالة</th><th>تاريخ المراجعة</th></tr>
+              <tr><th>{t('الحجز', 'Booking')}</th><th>{t('الطالب', 'Student')}</th><th>{t('الطريقة', 'Method')}</th><th>{t('المبلغ', 'Amount')}</th><th>{t('الحالة', 'Status')}</th><th>{t('تاريخ المراجعة', 'Reviewed')}</th></tr>
             </thead>
             <tbody>
               {settled.map((payment) => {
@@ -153,7 +156,7 @@ export default async function AdminPaymentsPage() {
                     <td className="eng">{money(payment.amount_usd)}</td>
                     <td>
                       <span className={`status-pill ${PAYMENT_STATUS[payment.status].className}`}>
-                        {PAYMENT_STATUS[payment.status].text}
+                        {t(PAYMENT_STATUS[payment.status].text)}
                       </span>
                     </td>
                     <td className="eng">

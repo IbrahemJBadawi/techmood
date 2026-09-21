@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { Stars } from '@/components/Stars';
+import { useT } from '@/lib/i18n.client';
+import type { T, Text } from '@/lib/i18n';
 
 export type BoardRow = {
   rank: number;
@@ -17,18 +19,20 @@ export type BoardRow = {
 
 export type Boards = Record<'students' | 'mentors' | 'teams' | 'companies', BoardRow[]>;
 
-const TABS: { key: keyof Boards; label: string; extraLabel: string; showStars: boolean; showPoints: boolean }[] = [
-  { key: 'students', label: 'الطلاب', extraLabel: 'إنجازات', showStars: true, showPoints: true },
-  { key: 'mentors', label: 'المنتورز', extraLabel: 'جلسات', showStars: true, showPoints: true },
-  { key: 'teams', label: 'الفرق', extraLabel: 'مشاريع', showStars: true, showPoints: true },
-  { key: 'companies', label: 'المؤسسات', extraLabel: 'تعيينات', showStars: false, showPoints: false },
+const TABS: {
+  key: keyof Boards; label: Text; extraLabel: Text; showStars: boolean; showPoints: boolean;
+}[] = [
+  { key: 'students',  label: { ar: 'الطلاب',   en: 'Students' },      extraLabel: { ar: 'إنجازات', en: 'Achievements' }, showStars: true,  showPoints: true },
+  { key: 'mentors',   label: { ar: 'المنتورز', en: 'Mentors' },       extraLabel: { ar: 'جلسات',   en: 'Sessions' },     showStars: true,  showPoints: true },
+  { key: 'teams',     label: { ar: 'الفرق',    en: 'Teams' },         extraLabel: { ar: 'مشاريع',  en: 'Projects' },     showStars: true,  showPoints: true },
+  { key: 'companies', label: { ar: 'المؤسسات', en: 'Organisations' }, extraLabel: { ar: 'تعيينات',en: 'Hires' },        showStars: false, showPoints: false },
 ];
 
-const WINDOWS = [
-  { key: 'month', label: 'هذا الشهر' },
-  { key: 'year', label: 'هذه السنة' },
-  { key: 'all', label: 'كل الوقت' },
-] as const;
+const WINDOWS: { key: 'month' | 'year' | 'all'; label: Text }[] = [
+  { key: 'month', label: { ar: 'هذا الشهر', en: 'This month' } },
+  { key: 'year',  label: { ar: 'هذه السنة', en: 'This year' } },
+  { key: 'all',   label: { ar: 'كل الوقت',  en: 'All time' } },
+];
 
 export type WindowKey = (typeof WINDOWS)[number]['key'];
 
@@ -45,6 +49,7 @@ export function Leaderboard({
   myRank: number | null;
   windowKey: WindowKey;
 }) {
+  const t: T = useT();
   const [tab, setTab] = useState<keyof Boards>('students');
   const active = TABS.find((entry) => entry.key === tab)!;
   const rows = boards[tab];
@@ -52,7 +57,7 @@ export function Leaderboard({
   return (
     <section className="section-block" id="leaderboard">
       <div className="row-between" style={{ marginBottom: 10 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>جدول الترتيب</h2>
+        <h2 style={{ fontSize: '1.05rem' }}>{t('جدول الترتيب', 'Leaderboard')}</h2>
         <div className="tags-row">
           {WINDOWS.map((entry) => (
             <Link
@@ -61,7 +66,7 @@ export function Leaderboard({
               href={`/home?lb=${entry.key}#leaderboard`}
               scroll={false}
             >
-              {entry.label}
+              {t(entry.label)}
             </Link>
           ))}
         </div>
@@ -78,22 +83,22 @@ export function Leaderboard({
               className={`tab${tab === entry.key ? ' is-on' : ''}`}
               onClick={() => setTab(entry.key)}
             >
-              {entry.label}
+              {t(entry.label)}
             </button>
           ))}
         </div>
 
         {rows.length === 0 ? (
-          <p className="muted" style={{ padding: '14px 2px' }}>لا بيانات في هذه النافذة بعد.</p>
+          <p className="muted" style={{ padding: '14px 2px' }}>{t('لا بيانات في هذه النافذة بعد.', 'No data in this window yet.')}</p>
         ) : (
           <table className="data">
             <thead>
               <tr>
                 <th style={{ width: 52 }}>#</th>
-                <th>الاسم</th>
-                {active.showStars && <th>التقييم</th>}
-                {active.showPoints && <th>النقاط</th>}
-                <th>{active.extraLabel}</th>
+                <th>{t('الاسم', 'Name')}</th>
+                {active.showStars && <th>{t('التقييم', 'Rating')}</th>}
+                {active.showPoints && <th>{t('النقاط', 'Points')}</th>}
+                <th>{t(active.extraLabel)}</th>
               </tr>
             </thead>
             <tbody>
@@ -118,14 +123,15 @@ export function Leaderboard({
 
         {tab === 'companies' && (
           <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-            المؤسسات تُرتَّب بما سجّلته المنصة فعلاً: الفرص المنشورة ومن جرى
-            تعيينهم. لا يوجد تقييم للمؤسسات بعد، لأن لا شيء في TechMood يقيّم
-            جهة عمل حتى الآن.
+            {t('المؤسسات تُرتَّب بما سجّلته المنصة فعلاً: الفرص المنشورة ومن جرى تعيينهم. لا يوجد تقييم للمؤسسات بعد، لأن لا شيء في TechMood يقيّم جهة عمل حتى الآن.',
+               'Organisations are ranked on what the platform actually recorded: the openings they published and the people they took on. There is no rating for an organisation yet, because nothing on TechMood rates an employer so far.')}
           </p>
         )}
 
         {tab === 'students' && myRank !== null && (
-          <p className="my-rank">ترتيبك: <strong className="eng">#{myRank}</strong></p>
+          <p className="my-rank">
+            {t('ترتيبك: ', 'Your rank: ')}<strong className="eng">#{myRank}</strong>
+          </p>
         )}
       </div>
     </section>

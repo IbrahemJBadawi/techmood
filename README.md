@@ -18,6 +18,7 @@ model, the authorization and the business rules are new and live in the database
 | Data | Supabase — PostgreSQL 17, Auth, Storage |
 | Authorization | Row Level Security + `SECURITY DEFINER` functions |
 | Styling | Plain CSS with design tokens, RTL-native, light/dark |
+| Languages | Arabic and English, chosen per account |
 
 No component framework and no CSS framework: the prototype's visual identity is
 expressed directly as tokens in `src/app/globals.css`.
@@ -52,6 +53,18 @@ configured outside this repository:
 Until that is done the button reports that the provider is not enabled rather
 than failing silently. Email and password keep working either way — which is
 also how the first admin below signs in.
+
+### Languages
+
+The interface is Arabic and English. The choice is stored on the account and
+mirrored to a cookie, which is what each render reads and what a signed-out
+visitor gets; `<html lang>` and `dir` follow it on the server, so the first
+frame is already laid out correctly.
+
+Content is not translated — a course description, a mentor bio, a message
+someone wrote. Where a row carries its own English (`courses.title_en`,
+`fields.name_en`) it is used; otherwise the Arabic is shown as written. See
+`docs/architecture.md` for why.
 
 ### Making yourself an admin
 

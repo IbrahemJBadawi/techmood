@@ -2,6 +2,8 @@
 
 import { useActionState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+
 import { issueCertificate, type ActionState } from '../academy/actions';
 
 export function IssueCertificateButton({
@@ -11,6 +13,7 @@ export function IssueCertificateButton({
   kind: 'course' | 'path';
   targetId: string;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(issueCertificate, undefined as ActionState);
 
   return (
@@ -20,7 +23,7 @@ export function IssueCertificateButton({
       <input type="hidden" name="revalidate" value="/certificates" />
       {state?.error && <span className="muted" style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>{state.error}</span>}
       <button className="btn btn-sky btn-sm" disabled={pending}>
-        {pending ? 'جارٍ الإصدار…' : 'إصدار الشهادة'}
+        {pending ? t('جارٍ الإصدار…', 'Issuing…') : t('إصدار الشهادة', 'Issue certificate')}
       </button>
     </form>
   );

@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
-export const metadata = { title: 'بحث — TechMood' };
+export const metadata = { title: 'Search — TechMood' };
 
 /**
  * One search across the platform.
@@ -17,6 +18,7 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -25,8 +27,8 @@ export default async function SearchPage({
   if (term.length < 2) {
     return (
       <section className="panel section-block">
-        <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>بحث</h1>
-        <p className="muted">اكتب حرفين على الأقل.</p>
+        <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{t('بحث', 'Search')}</h1>
+        <p className="muted">{t('اكتب حرفين على الأقل.', 'Type at least two characters.')}</p>
       </section>
     );
   }
@@ -57,41 +59,41 @@ export default async function SearchPage({
 
   const groups = [
     {
-      title: 'المسارات',
+      title: t('المسارات', 'Paths'),
       rows: (paths.data ?? []).map((row) => ({
         key: row.id, href: `/academy/${row.slug}`, title: row.title_ar, detail: row.description_ar,
       })),
     },
     {
-      title: 'الدورات',
+      title: t('الدورات', 'Courses'),
       rows: (courses.data ?? []).map((row) => ({
         key: row.id, href: '/academy', title: row.title_ar, detail: row.description_ar,
       })),
     },
     {
-      title: 'المنتورز',
+      title: t('المنتورز', 'Mentors'),
       rows: (mentors.data ?? []).map((row) => ({
         key: row.profile_id,
         href: `/mentors/${row.profile_id}`,
-        title: mentorName.get(row.profile_id) ?? 'منتور',
+        title: mentorName.get(row.profile_id) ?? t('منتور', 'Mentor'),
         detail: row.headline_ar,
       })),
     },
     {
-      title: 'الفرق',
+      title: t('الفرق', 'Teams'),
       rows: (teams.data ?? []).map((row) => ({
         key: row.id, href: `/teams/${row.id}`, title: row.title_ar,
         detail: row.focus_ar ?? row.public_summary_ar,
       })),
     },
     {
-      title: 'الفرص',
+      title: t('الفرص', 'Openings'),
       rows: (opportunities.data ?? []).map((row) => ({
         key: row.id, href: `/marketplace/${row.id}`, title: row.title_ar, detail: row.organization_ar,
       })),
     },
     {
-      title: 'أشخاص',
+      title: t('أشخاص', 'People'),
       rows: (people.data ?? []).map((row) => ({
         key: row.id, href: '/passport', title: row.display_name ?? row.full_name,
         detail: row.headline ?? row.techmood_id,
@@ -105,10 +107,10 @@ export default async function SearchPage({
     <>
       <section className="section-block">
         <h1 style={{ fontSize: '1.15rem', marginBottom: 4 }}>
-          نتائج البحث عن «{term}»
+          {t('نتائج البحث عن «', 'Results for “')}{term}{t('»', '”')}
         </h1>
         <p className="muted" style={{ fontSize: '0.86rem' }}>
-          {total === 0 ? 'لا نتيجة.' : `${total} نتيجة`}
+          {total === 0 ? t('لا نتيجة.', 'No results.') : t(`${total} نتيجة`, `${total} results`)}
         </p>
       </section>
 
@@ -128,13 +130,14 @@ export default async function SearchPage({
 
       {total === 0 && (
         <p className="panel muted">
-          لم نجد شيئاً. جرّب كلمة أقصر، أو تصفّح <Link href="/academy">الأكاديمية</Link>.
+          {t('لم نجد شيئاً. جرّب كلمة أقصر، أو تصفّح ', 'Nothing found. Try a shorter word, or browse ')}
+          <Link href="/academy">{t('الأكاديمية', 'the academy')}</Link>.
         </p>
       )}
 
       <p className="muted" style={{ fontSize: '0.78rem' }}>
-        البحث يعرض ما يحق لك رؤيته فقط: الفرق المغلقة والملفات غير العامة لا تظهر
-        هنا مهما كانت الكلمة.
+        {t('البحث يعرض ما يحق لك رؤيته فقط: الفرق المغلقة والملفات غير العامة لا تظهر هنا مهما كانت الكلمة.',
+           'Search shows only what you are allowed to see: closed teams and private profiles never appear here, whatever you type.')}
       </p>
     </>
   );

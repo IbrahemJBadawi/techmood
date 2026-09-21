@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { ACTIVITY_VERBS, SPRINT_STATUS, TEAM_KIND, TEAM_STATUS, isOverdue } from '@/lib/teams';
 
 import { TeamNav } from './TeamNav';
@@ -13,6 +15,7 @@ export default async function TeamOverviewPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -57,13 +60,13 @@ export default async function TeamOverviewPage({
             <h2 style={{ fontSize: '1.25rem' }}>{team.title_ar}</h2>
             <div className="tags-row" style={{ marginTop: 8 }}>
               <span className="id-chip">{team.team_code}</span>
-              <span className="tag">{TEAM_KIND[team.kind]}</span>
+              <span className="tag">{t(TEAM_KIND[team.kind])}</span>
               <span className={`status-pill ${TEAM_STATUS[team.status].className}`}>
-                {TEAM_STATUS[team.status].text}
+                {t(TEAM_STATUS[team.status].text)}
               </span>
             </div>
           </div>
-          <Link className="btn btn-ghost btn-sm" href="/messages">محادثة الفريق</Link>
+          <Link className="btn btn-ghost btn-sm" href="/messages">{t('محادثة الفريق', 'Team conversation')}</Link>
         </div>
 
         {team.description_ar && (
@@ -71,7 +74,7 @@ export default async function TeamOverviewPage({
         )}
 
         <div className="row-between" style={{ marginTop: 18 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>تقدّم المهام</span>
+          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('تقدّم المهام', 'Task progress')}</span>
           <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>{progress}%</span>
         </div>
         <div className="progress-track" style={{ marginTop: 6 }}>
@@ -85,19 +88,19 @@ export default async function TeamOverviewPage({
         <div className="stat-tiles">
           <div className="stat-tile">
             <div className="val eng">{done.length}/{all.length}</div>
-            <div className="lbl">مهام مكتملة</div>
+            <div className="lbl">{t('مهام مكتملة', 'Tasks done')}</div>
           </div>
           <div className="stat-tile">
             <div className="val eng">{members?.length ?? 0}</div>
-            <div className="lbl">أعضاء</div>
+            <div className="lbl">{t('أعضاء', 'Members')}</div>
           </div>
           <div className="stat-tile">
             <div className="val eng">{xp?.total_xp ?? 0}</div>
-            <div className="lbl">نقاط الفريق</div>
+            <div className="lbl">{t('نقاط الفريق', 'Team points')}</div>
           </div>
           <div className="stat-tile">
             <div className="val"><Stars value={stars?.stars_avg ?? 0} /></div>
-            <div className="lbl">{stars?.reviews_count ?? 0} تقييم منتور</div>
+            <div className="lbl">{t(`${stars?.reviews_count ?? 0} تقييم منتور`, `${stars?.reviews_count ?? 0} mentor ${(stars?.reviews_count ?? 0) === 1 ? 'review' : 'reviews'}`)}</div>
           </div>
         </div>
       </section>
@@ -105,15 +108,15 @@ export default async function TeamOverviewPage({
       {/* A leader needs to see where to step in, not a wall of numbers. */}
       {isLeader && (overdue.length > 0 || blocked.length > 0 || review.length > 0) && (
         <section className="panel section-block">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>يحتاج انتباهك</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('يحتاج انتباهك', 'Needs your attention')}</h3>
           <div className="tags-row">
-            {overdue.length > 0 && <span className="status-pill status-danger">🔴 {overdue.length} مهمة متأخرة</span>}
-            {blocked.length > 0 && <span className="status-pill status-pending">🟠 {blocked.length} مهمة متوقفة</span>}
-            {review.length > 0 && <span className="status-pill status-muted">🔵 {review.length} بانتظار المراجعة</span>}
+            {overdue.length > 0 && <span className="status-pill status-danger">🔴 {t(`${overdue.length} مهمة متأخرة`, `${overdue.length} overdue`)}</span>}
+            {blocked.length > 0 && <span className="status-pill status-pending">🟠 {t(`${blocked.length} مهمة متوقفة`, `${blocked.length} blocked`)}</span>}
+            {review.length > 0 && <span className="status-pill status-muted">🔵 {t(`${review.length} بانتظار المراجعة`, `${review.length} in review`)}</span>}
           </div>
 
           <table className="data" style={{ marginTop: 14 }}>
-            <thead><tr><th>العضو</th><th>قيد التنفيذ</th><th>متوقفة</th><th>متأخرة</th></tr></thead>
+            <thead><tr><th>{t('العضو', 'Member')}</th><th>{t('قيد التنفيذ', 'In progress')}</th><th>{t('متوقفة', 'Blocked')}</th><th>{t('متأخرة', 'Overdue')}</th></tr></thead>
             <tbody>
               {(members ?? []).map((member) => {
                 const mine = all.filter((task) => task.assignee_id === member.profile_id);
@@ -135,11 +138,11 @@ export default async function TeamOverviewPage({
         <section className="panel">
           <div className="row-between" style={{ marginBottom: 12 }}>
             <h3 style={{ fontSize: '0.98rem' }}>
-              {sprint ? `السبرنت ${sprint.number}` : 'العمل الحالي'}
+              {sprint ? t(`السبرنت ${sprint.number}`, `Sprint ${sprint.number}`) : t('العمل الحالي', 'Current work')}
             </h3>
             {sprint && (
               <span className={`status-pill ${SPRINT_STATUS[sprint.status].className}`}>
-                {SPRINT_STATUS[sprint.status].text}
+                {t(SPRINT_STATUS[sprint.status].text)}
               </span>
             )}
           </div>
@@ -149,10 +152,10 @@ export default async function TeamOverviewPage({
           )}
 
           {sprintTasks.length === 0 ? (
-            <p className="muted" style={{ fontSize: '0.86rem' }}>لا مهام مفتوحة حالياً.</p>
+            <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا مهام مفتوحة حالياً.', 'No open tasks right now.')}</p>
           ) : (
             <table className="data">
-              <thead><tr><th>المهمة</th><th>المسؤول</th><th>الحالة</th><th>الموعد</th></tr></thead>
+              <thead><tr><th>{t('المهمة', 'Task')}</th><th>{t('المسؤول', 'Owner')}</th><th>{t('الحالة', 'Status')}</th><th>{t('الموعد', 'Due')}</th></tr></thead>
               <tbody>
                 {sprintTasks.slice(0, 8).map((task) => (
                   <tr key={task.id}>
@@ -161,14 +164,14 @@ export default async function TeamOverviewPage({
                         {task.title_ar}
                       </Link>
                     </td>
-                    <td>{task.assignee_id ? nameById.get(task.assignee_id) ?? '—' : <span className="muted">بلا مسؤول</span>}</td>
+                    <td>{task.assignee_id ? nameById.get(task.assignee_id) ?? '—' : <span className="muted">{t('بلا مسؤول', 'Unassigned')}</span>}</td>
                     <td>
                       {task.column_key === 'blocked' ? (
-                        <span className="status-pill status-danger">متوقفة</span>
+                        <span className="status-pill status-danger">{t('متوقفة', 'Blocked')}</span>
                       ) : task.column_key === 'review' ? (
-                        <span className="status-pill status-pending">مراجعة</span>
+                        <span className="status-pill status-pending">{t('مراجعة', 'In review')}</span>
                       ) : (
-                        <span className="status-pill status-muted">قيد التنفيذ</span>
+                        <span className="status-pill status-muted">{t('قيد التنفيذ', 'In progress')}</span>
                       )}
                     </td>
                     <td className="eng">
@@ -185,22 +188,22 @@ export default async function TeamOverviewPage({
           )}
 
           <Link className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} href={`/teams/${teamId}/tasks`}>
-            كل المهام
+            {t('كل المهام', 'All tasks')}
           </Link>
         </section>
 
         <aside className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>النشاط</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('النشاط', 'Activity')}</h3>
           {(activity?.length ?? 0) === 0 ? (
-            <p className="muted" style={{ fontSize: '0.86rem' }}>لا نشاط بعد.</p>
+            <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا نشاط بعد.', 'No activity yet.')}</p>
           ) : (
             <ul className="timeline">
               {activity!.map((entry) => (
                 <li key={entry.id} className="done">
                   <span className="tl-dot" />
                   <span className="tl-label">
-                    {nameById.get(entry.actor_id ?? '') ?? 'عضو'}{' '}
-                    {ACTIVITY_VERBS[entry.verb] ?? entry.verb}
+                    {nameById.get(entry.actor_id ?? '') ?? t('عضو', 'A member')}{' '}
+                    {ACTIVITY_VERBS[entry.verb] ? t(ACTIVITY_VERBS[entry.verb]) : entry.verb}
                     {entry.subject_ar && <span className="muted"> «{entry.subject_ar}»</span>}
                     <br />
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>

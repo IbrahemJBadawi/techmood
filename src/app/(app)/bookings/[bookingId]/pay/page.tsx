@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { contentText } from '@/lib/i18n';
 import { formatSlot, money } from '@/lib/booking';
 import type { PaymentMethod } from '@/lib/database.types';
 
@@ -13,6 +15,7 @@ export default async function PayBookingPage({
   params: Promise<{ bookingId: string }>;
 }) {
   const { bookingId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -41,7 +44,7 @@ export default async function PayBookingPage({
       .maybeSingle(),
     supabase.from('profiles').select('full_name').eq('id', booking.mentor_id).single(),
     booking.session_type_id
-      ? supabase.from('session_types').select('name_ar, duration_minutes').eq('id', booking.session_type_id).maybeSingle()
+      ? supabase.from('session_types').select('name_ar, name_en, duration_minutes').eq('id', booking.session_type_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -58,36 +61,36 @@ export default async function PayBookingPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/bookings">→ حجوزاتي</Link>
+      <Link className="btn btn-ghost btn-sm" href="/bookings">{t('→ حجوزاتي', '← My bookings')}</Link>
 
       <section className="section-block" style={{ marginTop: 16 }}>
-        <h2 style={{ fontSize: '1.2rem' }}>إتمام الدفع</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('إتمام الدفع', 'Complete your payment')}</h2>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          طلب رقم <span className="id-chip">{booking.booking_code}</span>
+          {t('طلب رقم ', 'Request ')}<span className="id-chip">{booking.booking_code}</span>
         </p>
       </section>
 
       {expired ? (
         <p className="notice notice-danger">
-          انتهت مهلة حجز هذا الموعد. اختر موعداً جديداً من صفحة المنتور.
+          {t('انتهت مهلة حجز هذا الموعد. اختر موعداً جديداً من صفحة المنتور.', 'The hold on this slot has expired. Pick a new time from the mentor’s page.')}
         </p>
       ) : (
         booking.reserved_until && (
           <p className="notice section-block">
-            الموعد محجوز لك حتى{' '}
+            {t('الموعد محجوز لك حتى ', 'The slot is held for you until ')}
             <span className="eng">
               {new Date(booking.reserved_until).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
             </span>
-            . أكمل الدفع قبل ذلك حتى لا يعود الموعد متاحاً لغيرك.
+            {t('. أكمل الدفع قبل ذلك حتى لا يعود الموعد متاحاً لغيرك.', '. Pay before then, or the slot goes back to everyone else.')}
           </p>
         )
       )}
 
       {payment.status === 'rejected' && payment.rejection_reason && (
         <p className="notice notice-danger section-block">
-          <strong>لم يُقبل إثبات الدفع السابق:</strong> {payment.rejection_reason}
+          <strong>{t('لم يُقبل إثبات الدفع السابق:', 'The previous proof of payment was not accepted:')}</strong> {payment.rejection_reason}
           <br />
-          ارفع إيصالاً جديداً أو اختر طريقة دفع أخرى.
+          {t('ارفع إيصالاً جديداً أو اختر طريقة دفع أخرى.', 'Upload a new receipt, or choose a different method.')}
         </p>
       )}
 
@@ -104,14 +107,14 @@ export default async function PayBookingPage({
         </section>
 
         <aside className="panel" style={{ alignSelf: 'start' }}>
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>ملخص الحجز</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('ملخص الحجز', 'Booking summary')}</h3>
           <div className="summary-rows">
-            <div className="summary-row"><span className="muted">المنتور</span><span>{mentorProfile?.full_name}</span></div>
-            <div className="summary-row"><span className="muted">الجلسة</span><span>{sessionType?.name_ar ?? '—'}</span></div>
-            <div className="summary-row"><span className="muted">التاريخ</span><span>{when.date}</span></div>
-            <div className="summary-row"><span className="muted">الوقت</span><span className="eng">{when.time}</span></div>
-            <div className="summary-row"><span className="muted">المدة</span><span className="eng">{sessionType?.duration_minutes ?? 60} min</span></div>
-            <div className="summary-row total"><span>الإجمالي</span><span className="eng">{money(booking.price_usd)}</span></div>
+            <div className="summary-row"><span className="muted">{t('المنتور', 'Mentor')}</span><span>{mentorProfile?.full_name}</span></div>
+            <div className="summary-row"><span className="muted">{t('الجلسة', 'Session')}</span><span>{contentText(t.locale, sessionType?.name_ar ?? null, sessionType?.name_en) || '—'}</span></div>
+            <div className="summary-row"><span className="muted">{t('التاريخ', 'Date')}</span><span>{when.date}</span></div>
+            <div className="summary-row"><span className="muted">{t('الوقت', 'Time')}</span><span className="eng">{when.time}</span></div>
+            <div className="summary-row"><span className="muted">{t('المدة', 'Duration')}</span><span className="eng">{sessionType?.duration_minutes ?? 60} min</span></div>
+            <div className="summary-row total"><span>{t('الإجمالي', 'Total')}</span><span className="eng">{money(booking.price_usd)}</span></div>
           </div>
         </aside>
       </div>

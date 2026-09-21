@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { TaskColumn, TeamKind } from '@/lib/database.types';
 
 export type TeamState = { error?: string; ok?: string } | undefined;
@@ -18,12 +19,13 @@ function slugify(value: string) {
 }
 
 export async function createTeam(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const title = String(formData.get('title') ?? '').trim();
-  if (title.length < 3) return { error: 'اكتب اسماً واضحاً للفريق.' };
+  if (title.length < 3) return { error: t('اكتب اسماً واضحاً للفريق.', 'Give the team a clear name.') };
 
   const slug = `${slugify(title)}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -42,7 +44,7 @@ export async function createTeam(_prev: TeamState, formData: FormData): Promise<
     .select('id')
     .single();
 
-  if (error || !data) return { error: 'تعذّر إنشاء الفريق — ربما الاسم مستخدم.' };
+  if (error || !data) return { error: t('تعذّر إنشاء الفريق — ربما الاسم مستخدم.', 'The team could not be created — the name may be taken.') };
 
   // The creator is the leader, and the leader is a member.
   await supabase.from('team_members').insert({
@@ -56,13 +58,14 @@ export async function createTeam(_prev: TeamState, formData: FormData): Promise<
 }
 
 export async function createTask(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const teamId = String(formData.get('team_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
-  if (title.length < 3) return { error: 'اكتب عنواناً واضحاً للمهمة.' };
+  if (title.length < 3) return { error: t('اكتب عنواناً واضحاً للمهمة.', 'Give the task a clear title.') };
 
   const { error } = await supabase.from('team_tasks').insert({
     team_id: teamId,
@@ -75,15 +78,16 @@ export async function createTask(_prev: TeamState, formData: FormData): Promise<
     created_by: user.id,
   });
 
-  if (error) return { error: 'تعذّر إضافة المهمة — تأكد من صلاحياتك في الفريق.' };
+  if (error) return { error: t('تعذّر إضافة المهمة — تأكد من صلاحياتك في الفريق.', 'The task could not be added — check your permissions in this team.') };
 
   revalidatePath(`/teams/${teamId}/tasks`);
   revalidatePath(`/teams/${teamId}`);
-  return { ok: 'تمت إضافة المهمة.' };
+  return { ok: t('تمت إضافة المهمة.', 'Task added.') };
 }
 
 /** Moving a card. A move into `blocked` must carry a reason, enforced in the database. */
 export async function moveTask(formData: FormData) {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -97,7 +101,7 @@ export async function moveTask(formData: FormData) {
     .from('team_tasks')
     .update({
       column_key: column,
-      blocked_reason_ar: column === 'blocked' ? reason || 'بلا سبب محدد' : null,
+      blocked_reason_ar: column === 'blocked' ? reason || t('بلا سبب محدد', 'no reason given') : null,
     })
     .eq('id', taskId);
 
@@ -144,6 +148,7 @@ export async function addTaskComment(formData: FormData) {
 }
 
 export async function createSprint(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const t = await getT();
   const supabase = await createClient();
   const teamId = String(formData.get('team_id') ?? '');
 
@@ -164,13 +169,14 @@ export async function createSprint(_prev: TeamState, formData: FormData): Promis
     status: 'active',
   });
 
-  if (error) return { error: 'تعذّر إنشاء السبرنت — قائد الفريق فقط يستطيع ذلك.' };
+  if (error) return { error: t('تعذّر إنشاء السبرنت — قائد الفريق فقط يستطيع ذلك.', 'The sprint could not be created — only the team lead can do that.') };
 
   revalidatePath(`/teams/${teamId}/sprints`);
-  return { ok: 'تم بدء السبرنت.' };
+  return { ok: t('تم بدء السبرنت.', 'Sprint started.') };
 }
 
 export async function inviteMember(_prev: TeamState, formData: FormData): Promise<TeamState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -184,7 +190,7 @@ export async function inviteMember(_prev: TeamState, formData: FormData): Promis
     .eq('techmood_id', techmoodId)
     .maybeSingle();
 
-  if (!invitee) return { error: 'لا يوجد حساب بهذا الـ TechMood ID.' };
+  if (!invitee) return { error: t('لا يوجد حساب بهذا الـ TechMood ID.', 'No account with that TechMood ID.') };
 
   const { error } = await supabase.from('team_invites').insert({
     team_id: teamId,
@@ -193,8 +199,8 @@ export async function inviteMember(_prev: TeamState, formData: FormData): Promis
     invited_by: user.id,
   });
 
-  if (error) return { error: 'تعذّر إرسال الدعوة — ربما توجد دعوة مفتوحة بالفعل.' };
+  if (error) return { error: t('تعذّر إرسال الدعوة — ربما توجد دعوة مفتوحة بالفعل.', 'The invitation could not be sent — there may already be one open.') };
 
   revalidatePath(`/teams/${teamId}/members`);
-  return { ok: 'أُرسلت الدعوة.' };
+  return { ok: t('أُرسلت الدعوة.', 'Invitation sent.') };
 }

@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { money } from '@/lib/booking';
 import type { PaymentMethod } from '@/lib/database.types';
 
+import { useT } from '@/lib/i18n.client';
+
 import { submitPaymentProof, type PaymentState } from '../../actions';
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -22,6 +24,7 @@ export function PaymentForm({
   amount: number;
   userId: string;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(submitPaymentProof, undefined as PaymentState);
 
   const [proofPath, setProofPath] = useState('');
@@ -32,15 +35,15 @@ export function PaymentForm({
   const [copied, setCopied] = useState('');
 
   const details: { label: string; value: string | null }[] = [
-    { label: 'اسم المستفيد', value: method.recipient_name },
-    { label: 'رقم الحساب', value: method.account_number },
-    { label: 'رقم المحفظة', value: method.wallet_number },
+    { label: t('اسم المستفيد', 'Recipient name'), value: method.recipient_name },
+    { label: t('رقم الحساب', 'Account number'), value: method.account_number },
+    { label: t('رقم المحفظة', 'Wallet number'), value: method.wallet_number },
     { label: 'IBAN', value: method.iban },
     { label: 'SWIFT / BIC', value: method.swift },
-    { label: 'البنك', value: method.bank_name },
-    { label: 'عنوان البنك', value: method.bank_address },
-    { label: 'المدينة', value: method.city },
-    { label: 'الدولة', value: method.country },
+    { label: t('البنك', 'Bank'), value: method.bank_name },
+    { label: t('عنوان البنك', 'Bank address'), value: method.bank_address },
+    { label: t('المدينة', 'City'), value: method.city },
+    { label: t('الدولة', 'Country'), value: method.country },
   ].filter((row) => Boolean(row.value));
 
   async function copy(value: string, label: string) {
@@ -58,11 +61,11 @@ export function PaymentForm({
 
     // Checked here for a fast answer; the bucket and the database check again.
     if (!ALLOWED.includes(file.type)) {
-      setUploadError('الصيغ المقبولة: PNG أو JPG فقط.');
+      setUploadError(t('الصيغ المقبولة: PNG أو JPG فقط.', 'Accepted formats: PNG or JPG only.'));
       return;
     }
     if (file.size > MAX_BYTES) {
-      setUploadError('أقصى حجم للإيصال 5 ميغابايت.');
+      setUploadError(t('أقصى حجم للإيصال 5 ميغابايت.', 'A receipt may be at most 5 MB.'));
       return;
     }
 
@@ -79,7 +82,7 @@ export function PaymentForm({
     setUploading(false);
 
     if (error) {
-      setUploadError('تعذّر رفع الإيصال — حاول مرة أخرى.');
+      setUploadError(t('تعذّر رفع الإيصال — حاول مرة أخرى.', 'The receipt could not be uploaded — try again.'));
       return;
     }
 
@@ -106,11 +109,11 @@ export function PaymentForm({
 
         <div className="copy-row">
           <div>
-            <span className="cl">المبلغ المطلوب</span>
+            <span className="cl">{t('المبلغ المطلوب', 'Amount due')}</span>
             <div className="cv" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>{money(amount)}</div>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(String(amount), 'المبلغ')}>
-            {copied === 'المبلغ' ? 'تم النسخ ✓' : 'نسخ'}
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(String(amount), 'amount')}>
+            {copied === 'amount' ? t('تم النسخ ✓', 'Copied ✓') : t('نسخ', 'Copy')}
           </button>
         </div>
 
@@ -121,14 +124,14 @@ export function PaymentForm({
               <div className="cv">{row.value}</div>
             </div>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(row.value!, row.label)}>
-              {copied === row.label ? 'تم النسخ ✓' : 'نسخ'}
+              {copied === row.label ? t('تم النسخ ✓', 'Copied ✓') : t('نسخ', 'Copy')}
             </button>
           </div>
         ))}
 
         {details.length === 0 && (
           <p className="notice">
-            لم يضبط المشرف بيانات هذه الطريقة بعد. تواصل مع فريق TechMood قبل التحويل.
+            {t('لم يضبط المشرف بيانات هذه الطريقة بعد. تواصل مع فريق TechMood قبل التحويل.', 'An admin has not filled in this method’s details yet. Talk to TechMood before transferring anything.')}
           </p>
         )}
       </div>
@@ -137,12 +140,12 @@ export function PaymentForm({
         <input type="hidden" name="booking_id" value={bookingId} />
         <input type="hidden" name="proof_path" value={proofPath} />
 
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>إثبات الدفع</h3>
+        <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('إثبات الدفع', 'Proof of payment')}</h3>
 
         {method.requires_reference && (
           <div className="field">
             <label htmlFor="reference">
-              {method.reference_label_ar ?? 'الرقم المرجعي'} — إلزامي
+              {method.reference_label_ar ?? t('الرقم المرجعي', 'Reference number')}{t(' — إلزامي', ' — required')}
             </label>
             <input id="reference" name="reference" dir="ltr" required />
           </div>
@@ -150,14 +153,14 @@ export function PaymentForm({
 
         {!method.requires_reference && (
           <div className="field">
-            <label htmlFor="reference">رقم العملية (اختياري)</label>
+            <label htmlFor="reference">{t('رقم العملية (اختياري)', 'Transaction number (optional)')}</label>
             <input id="reference" name="reference" dir="ltr" />
           </div>
         )}
 
         {method.requires_receipt && (
           <div className="field">
-            <label htmlFor="receipt">صورة الإيصال — PNG أو JPG، بحد أقصى 5 ميغابايت</label>
+            <label htmlFor="receipt">{t('صورة الإيصال — PNG أو JPG، بحد أقصى 5 ميغابايت', 'Receipt image — PNG or JPG, 5 MB max')}</label>
             <input
               id="receipt"
               type="file"
@@ -168,20 +171,20 @@ export function PaymentForm({
                 if (file) void upload(file);
               }}
             />
-            {uploading && <p className="muted" style={{ fontSize: '0.82rem' }}>جارٍ الرفع…</p>}
+            {uploading && <p className="muted" style={{ fontSize: '0.82rem' }}>{t('جارٍ الرفع…', 'Uploading…')}</p>}
             {uploadError && <p className="notice notice-danger">{uploadError}</p>}
 
             {proofPath && (
               <div className="card" style={{ marginTop: 10 }}>
                 {preview && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt="معاينة الإيصال" style={{ maxHeight: 200, objectFit: 'contain', borderRadius: 8 }} />
+                  <img src={preview} alt={t('معاينة الإيصال', 'Receipt preview')} style={{ maxHeight: 200, objectFit: 'contain', borderRadius: 8 }} />
                 )}
                 <div className="row-between">
                   <span style={{ fontSize: '0.84rem' }}>
-                    {fileName} <span style={{ color: 'var(--ok)' }}>✓ جاهز</span>
+                    {fileName} <span style={{ color: 'var(--ok)' }}>{t('✓ جاهز', '✓ ready')}</span>
                   </span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={removeFile}>إزالة</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={removeFile}>{t('إزالة', 'Remove')}</button>
                 </div>
               </div>
             )}
@@ -195,11 +198,11 @@ export function PaymentForm({
           style={{ width: '100%' }}
           disabled={pending || uploading || (method.requires_receipt && !proofPath)}
         >
-          {pending ? 'جارٍ الإرسال…' : 'إرسال طلب الحجز'}
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
         </button>
 
         <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-          سيراجع فريق TechMood عملية الدفع، ثم يُرسل الطلب إلى المنتور للموافقة.
+          {t('سيراجع فريق TechMood عملية الدفع، ثم يُرسل الطلب إلى المنتور للموافقة.', 'TechMood will check the payment, then send the request on to the mentor to accept.')}
         </p>
       </form>
     </>

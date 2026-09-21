@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { dbError } from '@/lib/db-errors';
 import { SELECTABLE_ROLES } from '@/lib/roles';
 import type { TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
 
@@ -30,20 +32,24 @@ async function me() {
  * themselves here.
  */
 export async function saveBasics(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
   const { supabase, user } = await me();
 
   const fullName = String(formData.get('full_name') ?? '').trim();
   const displayName = String(formData.get('display_name') ?? '').trim();
   const username = String(formData.get('username') ?? '').trim().toLowerCase();
 
-  if (fullName.length < 2) return { error: 'الاسم الكامل مطلوب.' };
-  if (displayName.length < 2) return { error: 'الاسم الظاهر مطلوب.' };
+  if (fullName.length < 2) return { error: t('الاسم الكامل مطلوب.', 'Your full name is required.') };
+  if (displayName.length < 2) return { error: t('الاسم الظاهر مطلوب.', 'A display name is required.') };
   if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-    return { error: 'اسم المستخدم: حروف إنجليزية صغيرة وأرقام و_ فقط، من 3 إلى 30 خانة.' };
+    return {
+      error: t('اسم المستخدم: حروف إنجليزية صغيرة وأرقام و_ فقط، من 3 إلى 30 خانة.',
+               'Username: lowercase letters, digits and _ only, 3 to 30 characters.'),
+    };
   }
 
   const { data: available } = await supabase.rpc('is_username_available', { p_username: username });
-  if (!available) return { error: 'اسم المستخدم هذا محجوز — اختر غيره.' };
+  if (!available) return { error: t('اسم المستخدم هذا محجوز — اختر غيره.', 'That username is taken — pick another.') };
 
   const { error } = await supabase
     .from('profiles')
@@ -60,7 +66,11 @@ export async function saveBasics(_prev: StepState, formData: FormData): Promise<
     .eq('id', user.id);
 
   if (error) {
-    return { error: error.message.includes('username') ? 'اسم المستخدم غير صالح أو محجوز.' : 'تعذّر الحفظ.' };
+    return {
+      error: error.message.includes('username')
+        ? t('اسم المستخدم غير صالح أو محجوز.', 'That username is invalid or taken.')
+        : t('تعذّر الحفظ.', 'Could not save.'),
+    };
   }
 
   revalidatePath('/onboarding');
@@ -74,6 +84,7 @@ export async function saveBasics(_prev: StepState, formData: FormData): Promise<
  * that a human reads: apply_for_role() files it as pending and opens the trail.
  */
 export async function requestRoles(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
   const { supabase } = await me();
 
   const wanted = formData
@@ -92,7 +103,7 @@ export async function requestRoles(_prev: StepState, formData: FormData): Promis
     // "already held" and "already pending" are both fine to walk past: the
     // person is re-submitting a step, not doing anything wrong.
     if (error && !/بالفعل/.test(error.message)) {
-      return { error: error.message };
+      return { error: dbError(t, error.message) };
     }
   }
 
@@ -108,14 +119,15 @@ export async function requestRoles(_prev: StepState, formData: FormData): Promis
  * mentor matching, team matching and search each read a different one.
  */
 export async function saveTerms(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
   const { supabase, user } = await me();
 
   const kind = String(formData.get('kind') ?? '') as TaxonomyKind;
-  if (!(kind in TABLE)) return { error: 'نوع غير معروف.' };
+  if (!(kind in TABLE)) return { error: t('نوع غير معروف.', 'Unknown kind.') };
 
   const ids = formData.getAll('term').map(String).filter(Boolean);
   if (kind === 'field' && ids.length > 3) {
-    return { error: 'المجالات: ثلاثة كحد أقصى.' };
+    return { error: t('المجالات: ثلاثة كحد أقصى.', 'Fields: three at most.') };
   }
 
   // Replace, not merge: the step shows the whole selection, so the whole
@@ -136,7 +148,7 @@ export async function saveTerms(_prev: StepState, formData: FormData): Promise<S
           ? await supabase.from('profile_interests').insert(rows as { profile_id: string; interest_id: string }[])
           : await supabase.from('profile_skills').insert(rows as { profile_id: string; skill_id: string }[]);
 
-    if (error) return { error: error.message };
+    if (error) return { error: dbError(t, error.message) };
   }
 
   revalidatePath('/onboarding');
@@ -145,6 +157,7 @@ export async function saveTerms(_prev: StepState, formData: FormData): Promise<S
 
 /** Suggesting a term files it for review. It does not appear in the list yet. */
 export async function suggestTerm(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
   const { supabase } = await me();
 
   const { error } = await supabase.rpc('suggest_taxonomy_term', {
@@ -153,14 +166,18 @@ export async function suggestTerm(_prev: StepState, formData: FormData): Promise
     p_name_en: String(formData.get('name_en') ?? ''),
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath('/onboarding');
-  return { ok: 'اقتراحك وصل — سيظهر في القائمة بعد مراجعته.' };
+  return {
+    ok: t('اقتراحك وصل — سيظهر في القائمة بعد مراجعته.',
+          'Your suggestion is in — it will appear in the list once it has been reviewed.'),
+  };
 }
 
 /** Step 6 — the account is ready. */
 export async function finishOnboarding(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
   const { supabase, user } = await me();
 
   const primary = String(formData.get('primary_role') ?? 'student') as UserRole;
@@ -170,7 +187,7 @@ export async function finishOnboarding(_prev: StepState, formData: FormData): Pr
     .update({ primary_role: primary, onboarding_completed_at: new Date().toISOString() })
     .eq('id', user.id);
 
-  if (error) return { error: 'تعذّر إنهاء الإعداد.' };
+  if (error) return { error: t('تعذّر إنهاء الإعداد.', 'Could not finish setting up.') };
 
   revalidatePath('/', 'layout');
   redirect('/home');

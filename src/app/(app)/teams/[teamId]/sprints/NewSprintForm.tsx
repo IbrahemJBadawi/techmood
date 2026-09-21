@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 
 import { createSprint, type TeamState } from '../../actions';
+import { useT } from '@/lib/i18n.client';
 
 export function NewSprintForm({
   teamId,
@@ -13,13 +14,14 @@ export function NewSprintForm({
   defaultStart: string;
   defaultEnd: string;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(createSprint, undefined as TeamState);
   const [open, setOpen] = useState(false);
 
   if (!open) {
     return (
       <button className="btn btn-primary btn-sm" style={{ marginBottom: 18 }} onClick={() => setOpen(true)}>
-        + ابدأ سبرنت
+        {t('+ ابدأ سبرنت', '+ Start a sprint')}
       </button>
     );
   }
@@ -29,17 +31,17 @@ export function NewSprintForm({
       <input type="hidden" name="team_id" value={teamId} />
 
       <div className="field">
-        <label htmlFor="goal">هدف السبرنت</label>
-        <input id="goal" name="goal" placeholder="مثال: إكمال نظام المصادقة" required />
+        <label htmlFor="goal">{t('هدف السبرنت', 'Sprint goal')}</label>
+        <input id="goal" name="goal" placeholder={t('مثال: إكمال نظام المصادقة', 'For example: finish the auth system')} required />
       </div>
 
       <div className="field-row">
         <div className="field">
-          <label htmlFor="starts_on">يبدأ</label>
+          <label htmlFor="starts_on">{t('يبدأ', 'Starts')}</label>
           <input id="starts_on" name="starts_on" type="date" defaultValue={defaultStart} required />
         </div>
         <div className="field">
-          <label htmlFor="ends_on">ينتهي</label>
+          <label htmlFor="ends_on">{t('ينتهي', 'Ends')}</label>
           <input id="ends_on" name="ends_on" type="date" defaultValue={defaultEnd} required />
         </div>
       </div>
@@ -49,9 +51,9 @@ export function NewSprintForm({
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? 'جارٍ البدء…' : 'ابدأ السبرنت'}
+          {pending ? t('جارٍ البدء…', 'Starting…') : t('ابدأ السبرنت', 'Start the sprint')}
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>إغلاق</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>
       </div>
     </form>
   );

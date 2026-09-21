@@ -4,16 +4,18 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { TeamJoinPolicy, TeamKind, TeamStatus, TeamVisibility } from '@/lib/database.types';
 
 export type SettingsState = { error?: string; ok?: string } | undefined;
 
 export async function saveTeamSettings(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  const t = await getT();
   const supabase = await createClient();
   const teamId = String(formData.get('team_id') ?? '');
 
   const title = String(formData.get('title') ?? '').trim();
-  if (title.length < 3) return { error: 'اسم الفريق قصير جداً.' };
+  if (title.length < 3) return { error: t('اسم الفريق قصير جداً.', 'That team name is too short.') };
 
   const { error } = await supabase
     .from('teams')
@@ -31,11 +33,11 @@ export async function saveTeamSettings(_prev: SettingsState, formData: FormData)
     })
     .eq('id', teamId);
 
-  if (error) return { error: 'تعذّر حفظ الإعدادات — قائد الفريق فقط يستطيع تعديلها.' };
+  if (error) return { error: t('تعذّر حفظ الإعدادات — قائد الفريق فقط يستطيع تعديلها.', 'Settings could not be saved — only the team lead can change them.') };
 
   revalidatePath(`/teams/${teamId}/settings`);
   revalidatePath(`/teams/${teamId}`);
-  return { ok: 'حُفظت الإعدادات.' };
+  return { ok: t('حُفظت الإعدادات.', 'Settings saved.') };
 }
 
 /** Permissions are per-team, so a leader delegates without inventing roles. */
@@ -89,6 +91,7 @@ export async function removeMember(formData: FormData) {
 
 /** One call, so a team is never left with two leaders or none. */
 export async function transferLeadership(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -97,19 +100,19 @@ export async function transferLeadership(_prev: SettingsState, formData: FormDat
   const to = String(formData.get('profile_id') ?? '');
 
   if (String(formData.get('confirm') ?? '') !== 'نعم') {
-    return { error: 'اكتب «نعم» للتأكيد — نقل القيادة لا يمكن التراجع عنه إلا من القائد الجديد.' };
+    return { error: t('اكتب «نعم» للتأكيد — نقل القيادة لا يمكن التراجع عنه إلا من القائد الجديد.', 'Type “yes” to confirm — only the new lead can hand leadership back.') };
   }
 
   const { error } = await supabase.rpc('transfer_team_leadership', { p_team: teamId, p_to: to });
 
   if (error) {
     const message = error.message ?? '';
-    if (message.includes('already be a member')) return { error: 'القائد الجديد يجب أن يكون عضواً في الفريق.' };
-    if (message.includes('current leader')) return { error: 'قائد الفريق الحالي فقط يستطيع نقل القيادة.' };
-    return { error: 'تعذّر نقل القيادة.' };
+    if (message.includes('already be a member')) return { error: t('القائد الجديد يجب أن يكون عضواً في الفريق.', 'The new lead must already be a member of the team.') };
+    if (message.includes('current leader')) return { error: t('قائد الفريق الحالي فقط يستطيع نقل القيادة.', 'Only the current lead can transfer leadership.') };
+    return { error: t('تعذّر نقل القيادة.', 'Leadership could not be transferred.') };
   }
 
   revalidatePath(`/teams/${teamId}/settings`);
   revalidatePath(`/teams/${teamId}`);
-  return { ok: 'نُقلت قيادة الفريق.' };
+  return { ok: t('نُقلت قيادة الفريق.', 'Leadership transferred.') };
 }

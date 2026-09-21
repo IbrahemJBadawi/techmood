@@ -1,25 +1,26 @@
+import type { Text } from '@/lib/i18n';
 import type { LedgerKind, LedgerStatus, PayoutStatus } from '@/lib/database.types';
 
-export const LEDGER_KIND: Record<LedgerKind, string> = {
-  earning: 'أرباح',
-  fee: 'رسوم',
-  commission: 'عمولة',
-  payout: 'سحب',
-  refund: 'استرداد',
+export const LEDGER_KIND: Record<LedgerKind, Text> = {
+  earning:    { ar: 'أرباح',   en: 'Earning' },
+  fee:        { ar: 'رسوم',    en: 'Fee' },
+  commission: { ar: 'عمولة',   en: 'Commission' },
+  payout:     { ar: 'سحب',     en: 'Payout' },
+  refund:     { ar: 'استرداد', en: 'Refund' },
 };
 
-export const LEDGER_STATUS: Record<LedgerStatus, { text: string; className: string }> = {
-  pending: { text: 'قيد الانتظار', className: 'status-pending' },
-  available: { text: 'متاح', className: 'status-ok' },
-  paid: { text: 'مدفوع', className: 'status-muted' },
-  cancelled: { text: 'ملغى', className: 'status-muted' },
+export const LEDGER_STATUS: Record<LedgerStatus, { text: Text; className: string }> = {
+  pending:   { text: { ar: 'قيد الانتظار', en: 'Pending' },   className: 'status-pending' },
+  available: { text: { ar: 'متاح',         en: 'Available' }, className: 'status-ok' },
+  paid:      { text: { ar: 'مدفوع',        en: 'Paid out' },  className: 'status-muted' },
+  cancelled: { text: { ar: 'ملغى',         en: 'Cancelled' }, className: 'status-muted' },
 };
 
-export const PAYOUT_STATUS: Record<PayoutStatus, { text: string; className: string }> = {
-  requested: { text: 'بانتظار المراجعة', className: 'status-pending' },
-  approved: { text: 'قيد التحويل', className: 'status-pending' },
-  paid: { text: 'تم التحويل', className: 'status-ok' },
-  rejected: { text: 'مرفوض', className: 'status-danger' },
+export const PAYOUT_STATUS: Record<PayoutStatus, { text: Text; className: string }> = {
+  requested: { text: { ar: 'بانتظار المراجعة', en: 'Awaiting review' }, className: 'status-pending' },
+  approved:  { text: { ar: 'قيد التحويل',      en: 'Transferring' },    className: 'status-pending' },
+  paid:      { text: { ar: 'تم التحويل',       en: 'Transferred' },     className: 'status-ok' },
+  rejected:  { text: { ar: 'مرفوض',            en: 'Rejected' },        className: 'status-danger' },
 };
 
 /** Signed money, so a debit reads as a debit rather than a bare number. */

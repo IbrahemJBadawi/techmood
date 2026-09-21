@@ -3,7 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+
 export function HeaderSearch({ initial = '' }: { initial?: string }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState(initial);
 
@@ -26,8 +29,9 @@ export function HeaderSearch({ initial = '' }: { initial?: string }) {
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="ابحث في المسارات، المنتورز، الفرق، الفرص…"
-        aria-label="بحث"
+        placeholder={t('ابحث في المسارات، المنتورز، الفرق، الفرص…',
+                       'Search paths, mentors, teams, openings…')}
+        aria-label={t('بحث', 'Search')}
       />
     </form>
   );

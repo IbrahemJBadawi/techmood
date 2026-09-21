@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 import { PrimaryFieldPicker } from './PrimaryFieldPicker';
 
-export const metadata = { title: 'مجالاتي — TechMood' };
+export const metadata = { title: 'My fields — TechMood' };
 
 export default async function FieldsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -26,32 +28,37 @@ export default async function FieldsPage() {
   return (
     <>
       <section className="section-block">
-        <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>مجالاتي واهتماماتي ومهاراتي</h1>
+        <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>{t('مجالاتي واهتماماتي ومهاراتي', 'Fields, interests and skills')}</h1>
         <p className="muted" style={{ fontSize: '0.9rem', maxWidth: 660 }}>
-          ثلاثة محاور منفصلة عن قصد: <strong>المجال</strong> أين تعمل وتقرؤه
-          المطابقة، <strong>الاهتمام</strong> ما يهمّك وتقرؤه التوصيات،
-          و<strong>المهارة</strong> ما تستطيع فعله ويمكن لعمل معتمد أن يوثّقها.
+          {t('ثلاثة محاور منفصلة عن قصد: ', 'Three separate axes, on purpose: a ')}
+          <strong>{t('المجال', 'field')}</strong>
+          {t(' أين تعمل وتقرؤه المطابقة، ', ' is where you work and drives matching, an ')}
+          <strong>{t('الاهتمام', 'interest')}</strong>
+          {t(' ما يهمّك وتقرؤه التوصيات، و', ' is what you care about and drives recommendations, and a ')}
+          <strong>{t('المهارة', 'skill')}</strong>
+          {t(' ما تستطيع فعله ويمكن لعمل معتمد أن يوثّقها.',
+             ' is what you can do — and approved work can verify it.')}
         </p>
       </section>
 
       <section className="section-block">
-        <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>المجالات</h2>
+        <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{t('المجالات', 'Fields')}</h2>
         <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
-          ثلاثة كحد أقصى، وواحد منها هو مجالك الرئيسي.
+          {t('ثلاثة كحد أقصى، وواحد منها هو مجالك الرئيسي.', 'Three at most, and one of them is your primary field.')}
         </p>
 
         {fields.length === 0 ? (
-          <p className="panel muted">لم تختر مجالاً بعد.</p>
+          <p className="panel muted">{t('لم تختر مجالاً بعد.', 'You have not chosen a field yet.')}</p>
         ) : (
           <PrimaryFieldPicker fields={fields} />
         )}
       </section>
 
       <section className="section-block">
-        <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>الاهتمامات</h2>
+        <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>{t('الاهتمامات', 'Interests')}</h2>
         <div className="panel tags-row">
           {(interests ?? []).length === 0
-            ? <span className="muted">لا اهتمامات محفوظة.</span>
+            ? <span className="muted">{t('لا اهتمامات محفوظة.', 'No interests saved.')}</span>
             : (interests ?? []).map((row) => {
                 const interest = row.interests as unknown as { name_ar: string } | null;
                 return <span className="tag" key={row.interest_id}>{interest?.name_ar}</span>;
@@ -60,10 +67,10 @@ export default async function FieldsPage() {
       </section>
 
       <section className="section-block">
-        <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>المهارات</h2>
+        <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>{t('المهارات', 'Skills')}</h2>
         <div className="panel tags-row">
           {(skills ?? []).length === 0
-            ? <span className="muted">لا مهارات محفوظة.</span>
+            ? <span className="muted">{t('لا مهارات محفوظة.', 'No skills saved.')}</span>
             : (skills ?? []).map((row) => {
                 const skill = row.skills as unknown as { name_ar: string } | null;
                 return (
@@ -74,12 +81,13 @@ export default async function FieldsPage() {
               })}
         </div>
         <p className="muted" style={{ fontSize: '0.78rem', marginTop: 8 }}>
-          المهارة المعلّمة بـ ✓ وثّقها عمل اعتمده منتور — لا يمكنك تعليمها بنفسك.
+          {t('المهارة المعلّمة بـ ✓ وثّقها عمل اعتمده منتور — لا يمكنك تعليمها بنفسك.', 'A skill marked ✓ was verified by work a mentor approved — you cannot tick it yourself.')}
         </p>
       </section>
 
       <p className="muted" style={{ fontSize: '0.84rem' }}>
-        لتغيير الاختيارات نفسها، ابدأ من <Link href="/passport">جوازك المهني</Link>.
+        {t('لتغيير الاختيارات نفسها، ابدأ من ', 'To change the selections themselves, start from ')}
+        <Link href="/passport">{t('جوازك المهني', 'your passport')}</Link>.
       </p>
     </>
   );

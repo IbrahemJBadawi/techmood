@@ -2,9 +2,11 @@ import Link from 'next/link';
 import QRCode from 'qrcode';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { formatDate } from '@/lib/i18n';
 import type { VerifiedCertificate } from '@/lib/database.types';
 
-export const metadata = { title: 'التحقق من شهادة — TechMood' };
+export const metadata = { title: 'Verify a certificate — TechMood' };
 
 /**
  * Public certificate verification — the QR target printed on every certificate.
@@ -16,6 +18,7 @@ export default async function VerifyCertificatePage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  const t = await getT();
   const { code } = await params;
   const supabase = await createClient();
 
@@ -35,15 +38,21 @@ export default async function VerifyCertificatePage({
           <span className="logo-mark" />
           TechMood
         </Link>
-        <Link className="btn btn-ghost btn-sm" href="/verify">تحقّق من شهادة أخرى</Link>
+        <Link className="btn btn-ghost btn-sm" href="/verify">
+          {t('تحقّق من شهادة أخرى', 'Verify another certificate')}
+        </Link>
       </nav>
 
       {!certificate ? (
         <section className="panel" style={{ marginTop: 32 }}>
-          <h1 style={{ fontSize: '1.1rem' }}>لا توجد شهادة بهذا الرقم</h1>
+          <h1 style={{ fontSize: '1.1rem' }}>
+            {t('لا توجد شهادة بهذا الرقم', 'No certificate with that number')}
+          </h1>
           <p className="muted" style={{ fontSize: '0.9rem', marginTop: 8 }}>
-            الرقم <span className="id-chip">{decodeURIComponent(code)}</span> غير مسجّل في TechMood.
-            تأكد من كتابته كما هو على الشهادة.
+            {t('الرقم ', 'The number ')}
+            <span className="id-chip">{decodeURIComponent(code)}</span>
+            {t(' غير مسجّل في TechMood. تأكد من كتابته كما هو على الشهادة.',
+               ' is not registered with TechMood. Check that it matches the certificate exactly.')}
           </p>
         </section>
       ) : (
@@ -53,8 +62,10 @@ export default async function VerifyCertificatePage({
             style={{ marginTop: 32 }}
           >
             {certificate.status === 'active'
-              ? '✓ شهادة صحيحة وسارية، صادرة عن TechMood Technology.'
-              : `⚠ هذه الشهادة ملغاة.${certificate.revoked_reason ? ` السبب: ${certificate.revoked_reason}` : ''}`}
+              ? t('✓ شهادة صحيحة وسارية، صادرة عن TechMood Technology.',
+                  '✓ Valid and in force, issued by TechMood Technology.')
+              : t(`⚠ هذه الشهادة ملغاة.${certificate.revoked_reason ? ` السبب: ${certificate.revoked_reason}` : ''}`,
+                  `⚠ This certificate has been revoked.${certificate.revoked_reason ? ` Reason: ${certificate.revoked_reason}` : ''}`)}
           </p>
 
           <section className="cert" style={{ marginTop: 20 }}>
@@ -64,7 +75,9 @@ export default async function VerifyCertificatePage({
             </div>
 
             <p className="cert-kicker" style={{ marginTop: 20 }}>
-              {certificate.kind === 'path' ? 'شهادة إتمام مسار كامل' : 'شهادة إتمام دورة'}
+              {certificate.kind === 'path'
+                ? t('شهادة إتمام مسار كامل', 'Certificate of completion — full path')
+                : t('شهادة إتمام دورة', 'Certificate of completion — course')}
             </p>
 
             <p className="cert-name">{certificate.holder_name}</p>
@@ -73,22 +86,24 @@ export default async function VerifyCertificatePage({
             <div className="tags-row" style={{ justifyContent: 'center', marginTop: 18 }}>
               <span className="id-chip">{certificate.techmood_id}</span>
               <span className="id-chip">{certificate.certificate_code}</span>
-              <span className="id-chip">
-                {new Date(certificate.issued_at).toLocaleDateString('ar-EG')}
-              </span>
+              <span className="id-chip">{formatDate(t.locale, certificate.issued_at)}</span>
             </div>
 
             {qrDataUrl && (
               <div className="cert-qr">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={qrDataUrl} alt={`رمز التحقق من الشهادة ${certificate.certificate_code}`} />
+                <img src={qrDataUrl}
+                     alt={t(`رمز التحقق من الشهادة ${certificate.certificate_code}`,
+                            `Verification code for certificate ${certificate.certificate_code}`)} />
                 <span className="muted eng" style={{ fontSize: '0.72rem' }}>{verifyUrl}</span>
               </div>
             )}
           </section>
 
           <div className="cta-row no-print">
-            <Link className="btn btn-ghost btn-sm" href="/verify">تحقّق من شهادة أخرى</Link>
+            <Link className="btn btn-ghost btn-sm" href="/verify">
+              {t('تحقّق من شهادة أخرى', 'Verify another certificate')}
+            </Link>
           </div>
         </>
       )}

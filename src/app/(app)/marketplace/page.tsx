@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { OPPORTUNITY_KIND, compensationLabel } from '@/lib/marketplace';
-import type { Opportunity, OpportunityKind } from '@/lib/database.types';
+import { Opportunity, OpportunityKind } from '@/lib/database.types';
 
 export default async function MarketplacePage({
   searchParams,
@@ -11,6 +13,7 @@ export default async function MarketplacePage({
   searchParams: Promise<{ kind?: string }>;
 }) {
   const { kind } = await searchParams;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -45,14 +48,14 @@ export default async function MarketplacePage({
       <section className="section-block">
         <div className="row-between">
           <div>
-            <h2 style={{ fontSize: '1.2rem' }}>سوق العمل</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>{t('سوق العمل', 'Work')}</h2>
             <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-              فرص تصل لمن يملك سجلاً مهنياً موثّقاً. عندما تتقدّم، يرى الناشر نقاطك ونجومك
-              وشهاداتك وأعمالك المنشورة — لا خطاب تعريف فقط.
+              {t('فرص تصل لمن يملك سجلاً مهنياً موثّقاً. عندما تتقدّم، يرى الناشر نقاطك ونجومك وشهاداتك وأعمالك المنشورة — لا خطاب تعريف فقط.',
+                 'Openings that reach people with a verifiable record. When you apply, the poster sees your points, your stars, your certificates and your published work — not just a cover letter.')}
             </p>
           </div>
           {canPost === true && (
-            <Link className="btn btn-primary btn-sm" href="/marketplace/new">+ انشر فرصة</Link>
+            <Link className="btn btn-primary btn-sm" href="/marketplace/new">{t('+ انشر فرصة', '+ Post an opening')}</Link>
           )}
         </div>
       </section>
@@ -63,7 +66,7 @@ export default async function MarketplacePage({
           className={`date-tab${!kind ? ' selected' : ''}`}
           style={{ textDecoration: 'none', minWidth: 0, padding: '8px 16px' }}
         >
-          الكل
+          {t('الكل', 'All')}
         </Link>
         {Object.entries(OPPORTUNITY_KIND).map(([key, info]) => (
           <Link
@@ -72,21 +75,21 @@ export default async function MarketplacePage({
             className={`date-tab${kind === key ? ' selected' : ''}`}
             style={{ textDecoration: 'none', minWidth: 0, padding: '8px 16px' }}
           >
-            {info.label}
+            {t(info.label)}
           </Link>
         ))}
       </div>
 
       {(opportunities?.length ?? 0) === 0 ? (
-        <p className="notice">لا فرص مطابقة حالياً.</p>
+        <p className="notice">{t('لا فرص مطابقة حالياً.', 'Nothing matching right now.')}</p>
       ) : (
         (opportunities as Opportunity[]).map((opportunity) => (
           <article className="opp-row panel section-block" key={opportunity.id}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="tags-row">
-                <span className="tag">{OPPORTUNITY_KIND[opportunity.kind].label}</span>
-                {opportunity.is_remote && <span className="badge-pill">عن بُعد</span>}
-                {applied.has(opportunity.id) && <span className="badge-pill">قدّمت</span>}
+                <span className="tag">{t(OPPORTUNITY_KIND[opportunity.kind].label)}</span>
+                {opportunity.is_remote && <span className="badge-pill">{t('عن بُعد', 'Remote')}</span>}
+                {applied.has(opportunity.id) && <span className="badge-pill">{t('قدّمت', 'Applied')}</span>}
               </div>
 
               <h3 style={{ fontSize: '1rem', marginTop: 8 }}>{opportunity.title_ar}</h3>
@@ -107,15 +110,15 @@ export default async function MarketplacePage({
 
             <div style={{ textAlign: 'start' }}>
               <div className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', marginBottom: 8 }}>
-                {compensationLabel(opportunity)}
+                {compensationLabel(t.locale, opportunity)}
               </div>
               {opportunity.seats > 1 && (
                 <p className="muted eng" style={{ fontSize: '0.76rem', marginBottom: 8 }}>
-                  {opportunity.filled_count}/{opportunity.seats} مقاعد
+                  {opportunity.filled_count}/{opportunity.seats} {t('مقاعد', 'seats')}
                 </p>
               )}
               <Link className="btn btn-primary btn-sm" href={`/marketplace/${opportunity.id}`}>
-                التفاصيل
+                {t('التفاصيل', 'Details')}
               </Link>
             </div>
           </article>

@@ -2,17 +2,19 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import type { Assignment, Evaluation, Submission } from '@/lib/database.types';
+import { getT } from '@/lib/i18n.server';
+import { type Text } from '@/lib/i18n';
+import { Assignment, Evaluation, Submission } from '@/lib/database.types';
 
 import { toggleLesson } from '../../actions';
 import { SubmissionPanel } from '../../SubmissionPanel';
 
-const LESSON_KIND_LABELS: Record<string, string> = {
-  video: 'فيديو',
-  article: 'مقال',
-  reading: 'قراءة',
-  exercise: 'تمرين',
-  live: 'جلسة مباشرة',
+const LESSON_KIND_LABELS: Record<string, Text> = {
+  video:    { ar: 'فيديو',        en: 'Video' },
+  article:  { ar: 'مقال',         en: 'Article' },
+  reading:  { ar: 'قراءة',        en: 'Reading' },
+  exercise: { ar: 'تمرين',        en: 'Exercise' },
+  live:     { ar: 'جلسة مباشرة',  en: 'Live session' },
 };
 
 export default async function CoursePage({
@@ -21,6 +23,7 @@ export default async function CoursePage({
   params: Promise<{ pathSlug: string; courseSlug: string }>;
 }) {
   const { pathSlug, courseSlug } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -106,25 +109,27 @@ export default async function CoursePage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href={`/academy/${pathSlug}`}>→ رجوع للمسار</Link>
+      <Link className="btn btn-ghost btn-sm" href={`/academy/${pathSlug}`}>{t('→ رجوع للمسار', '← Back to the path')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between">
           <h2 style={{ fontSize: '1.2rem' }}>{course.title_ar}</h2>
           <span className={`status-pill ${isComplete ? 'status-ok' : 'status-muted'}`}>
-            {isComplete ? 'مكتملة' : 'قيد التقدّم'}
+            {isComplete ? t('مكتملة', 'Completed') : t('قيد التقدّم', 'In progress')}
           </span>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{course.description_ar}</p>
         <p className="muted" style={{ fontSize: '0.8rem', marginTop: 10 }}>
-          الشهادة تتطلب إكمال كل الدروس <strong>واعتماد</strong> كل الأعمال المطلوبة أدناه.
+          {t('الشهادة تتطلب إكمال كل الدروس ', 'The certificate needs every lesson finished ')}
+          <strong>{t('واعتماد', 'and')}</strong>
+          {t(' كل الأعمال المطلوبة أدناه.', ' every required piece of work below approved.')}
         </p>
       </section>
 
       <div className="detail-grid">
         <section>
           <div className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>دروس الدورة</h3>
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('دروس الدورة', 'Course lessons')}</h3>
             {lessons.map((lesson) => {
               const done = completedLessons.has(lesson.id);
               return (
@@ -136,7 +141,9 @@ export default async function CoursePage({
                     <button
                       className={`lstat${done ? ' completed' : ''}`}
                       type="submit"
-                      aria-label={done ? `إلغاء إكمال ${lesson.title_ar}` : `إكمال ${lesson.title_ar}`}
+                      aria-label={done
+                        ? t(`إلغاء إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as not done`)
+                        : t(`إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as done`)}
                     >
                       ✓
                     </button>
@@ -147,7 +154,7 @@ export default async function CoursePage({
                       <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>{lesson.summary_ar}</p>
                     )}
                     <div className="lesson-meta">
-                      <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ?? lesson.kind}</span>
+                      <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
                       {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
                       {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}
                     </div>

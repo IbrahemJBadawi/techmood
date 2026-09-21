@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { contentText } from '@/lib/i18n';
 import { BOOKING_STATUS, formatSlot, money } from '@/lib/booking';
 import type { BookingStatus } from '@/lib/database.types';
 
@@ -10,6 +12,7 @@ const OPEN_STATES: BookingStatus[] = [
 ];
 
 export default async function BookingsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -26,7 +29,7 @@ export default async function BookingsPage() {
 
   const [{ data: mentors }, { data: types }] = await Promise.all([
     supabase.from('profiles').select('id, full_name').in('id', mentorIds.length ? mentorIds : placeholder),
-    supabase.from('session_types').select('id, name_ar').in('id', typeIds.length ? typeIds : placeholder),
+    supabase.from('session_types').select('id, name_ar, name_en').in('id', typeIds.length ? typeIds : placeholder),
   ]);
 
   const mentorById = new Map((mentors ?? []).map((row) => [row.id, row]));
@@ -43,18 +46,19 @@ export default async function BookingsPage() {
       <article className="card" key={row.id}>
         <div className="row-between">
           <span className="id-chip">{row.booking_code}</span>
-          <span className={`status-pill ${status.className}`}>{status.text}</span>
+          <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
         </div>
-        <h3>{typeById.get(row.session_type_id ?? '')?.name_ar ?? 'جلسة إرشاد'}</h3>
-        <p>مع {mentorById.get(row.mentor_id)?.full_name ?? '—'}</p>
+        <h3>{contentText(t.locale, typeById.get(row.session_type_id ?? '')?.name_ar ?? null,
+                      typeById.get(row.session_type_id ?? '')?.name_en) || t('جلسة إرشاد', 'Mentoring session')}</h3>
+        <p>{t('مع ', 'with ')}{mentorById.get(row.mentor_id)?.full_name ?? '—'}</p>
         <div className="row-between" style={{ fontSize: '0.82rem', color: 'var(--ink-soft)' }}>
           <span>{when.date} · <span className="eng">{when.time}</span></span>
           <span className="eng">{money(row.price_usd)}</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>التفاصيل</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>{t('التفاصيل', 'Details')}</Link>
           {row.status === 'payment_pending' && (
-            <Link className="btn btn-primary btn-sm" href={`/bookings/${row.id}/pay`}>أكمل الدفع</Link>
+            <Link className="btn btn-primary btn-sm" href={`/bookings/${row.id}/pay`}>{t('أكمل الدفع', 'Complete payment')}</Link>
           )}
         </div>
       </article>
@@ -65,15 +69,15 @@ export default async function BookingsPage() {
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>حجوزاتي</h2>
-          <Link className="btn btn-primary btn-sm" href="/mentors">حجز جديد</Link>
+          <h2 style={{ fontSize: '1.2rem' }}>{t('حجوزاتي', 'My bookings')}</h2>
+          <Link className="btn btn-primary btn-sm" href="/mentors">{t('حجز جديد', 'New booking')}</Link>
         </div>
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>جلسات جارية</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('جلسات جارية', 'Active sessions')}</h3>
         {open.length === 0 ? (
-          <p className="notice">لا جلسات جارية. تصفّح المنتورز لحجز جلستك الأولى.</p>
+          <p className="notice">{t('لا جلسات جارية. تصفّح المنتورز لحجز جلستك الأولى.', 'Nothing active. Browse the mentors to book your first session.')}</p>
         ) : (
           <div className="card-grid">{open.map(card)}</div>
         )}
@@ -81,7 +85,7 @@ export default async function BookingsPage() {
 
       {past.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>سجلّ سابق</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('سجلّ سابق', 'Past sessions')}</h3>
           <div className="card-grid">{past.map(card)}</div>
         </section>
       )}

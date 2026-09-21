@@ -2,9 +2,11 @@ import Link from 'next/link';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 
 export default async function MentorsPage() {
+  const t = await getT();
   const supabase = await createClient();
 
   const [{ data: mentors }, { data: levels }] = await Promise.all([
@@ -28,15 +30,15 @@ export default async function MentorsPage() {
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>المنتورز</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('المنتورز', 'Mentors')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          إرشاد بشري بجلسات محجوزة. سعر الجلسة يحدده مستوى المنتور، والحجز يحتاج 72 ساعة مسبقاً
-          لإتاحة وقت لمراجعة الدفع.
+          {t('إرشاد بشري بجلسات محجوزة. سعر الجلسة يحدده مستوى المنتور، والحجز يحتاج 72 ساعة مسبقاً لإتاحة وقت لمراجعة الدفع.',
+             'Human mentoring in booked sessions. The price comes from the mentor\u2019s level, and a booking needs 72 hours\u2019 notice so there is time to check the payment.')}
         </p>
       </section>
 
       {(mentors?.length ?? 0) === 0 ? (
-        <p className="notice">لا يوجد منتورز معتمدون بعد.</p>
+        <p className="notice">{t('لا يوجد منتورز معتمدون بعد.', 'No approved mentors yet.')}</p>
       ) : (
         <div className="card-grid">
           {mentors!.map((mentor) => {
@@ -60,17 +62,18 @@ export default async function MentorsPage() {
 
                 <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)' }}>
                   <span>
-                    <Stars value={mentor.rating_avg ?? 0} /> · {mentor.sessions_count} جلسة
+                    <Stars value={mentor.rating_avg ?? 0} /> ·{' '}
+                    {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}
                   </span>
-                  {price !== undefined && <span className="eng">{money(price)} / جلسة</span>}
+                  {price !== undefined && <span className="eng">{money(price)}{t(' / جلسة', ' / session')}</span>}
                 </div>
 
                 {mentor.is_accepting ? (
                   <Link className="btn btn-primary btn-sm" href={`/mentors/${mentor.profile_id}`}>
-                    عرض الملف والحجز
+                    {t('عرض الملف والحجز', 'View profile and book')}
                   </Link>
                 ) : (
-                  <span className="status-pill status-muted">لا يستقبل حجوزات حالياً</span>
+                  <span className="status-pill status-muted">{t('لا يستقبل حجوزات حالياً', 'Not taking bookings right now')}</span>
                 )}
               </article>
             );

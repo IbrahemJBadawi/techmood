@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { TEAM_KIND } from '@/lib/teams';
 
 import { AcceptInvite } from './AcceptInvite';
@@ -12,6 +13,7 @@ export default async function JoinTeamPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -26,8 +28,8 @@ export default async function JoinTeamPage({
   if (!invite || invite.status !== 'pending' || new Date(invite.expires_at) < new Date()) {
     return (
       <>
-        <p className="notice notice-danger">هذه الدعوة لم تعد صالحة.</p>
-        <Link className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} href="/teams">الفرق</Link>
+        <p className="notice notice-danger">{t('هذه الدعوة لم تعد صالحة.', 'This invitation is no longer valid.')}</p>
+        <Link className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} href="/teams">{t('الفرق', 'Teams')}</Link>
       </>
     );
   }
@@ -40,15 +42,15 @@ export default async function JoinTeamPage({
 
   return (
     <section className="panel" style={{ maxWidth: 520 }}>
-      <h2 style={{ fontSize: '1.15rem' }}>دعوة للانضمام</h2>
+      <h2 style={{ fontSize: '1.15rem' }}>{t('دعوة للانضمام', 'An invitation to join')}</h2>
       <p className="muted" style={{ fontSize: '0.9rem', marginTop: 8 }}>
-        دُعيت للانضمام إلى <strong>{team?.title_ar}</strong>
-        {invite.responsibility_ar && <> بمسؤولية <strong>{invite.responsibility_ar}</strong></>}.
+        {t('دُعيت للانضمام إلى ', 'You have been invited to join ')}<strong>{team?.title_ar}</strong>
+        {invite.responsibility_ar && <>{t(' بمسؤولية ', ' as ')}<strong>{invite.responsibility_ar}</strong></>}.
       </p>
 
       <div className="tags-row" style={{ marginTop: 12 }}>
         <span className="id-chip">{team?.team_code}</span>
-        {team?.kind && <span className="tag">{TEAM_KIND[team.kind]}</span>}
+        {team?.kind && <span className="tag">{t(TEAM_KIND[team.kind])}</span>}
       </div>
 
       {team?.description_ar && (
@@ -56,7 +58,7 @@ export default async function JoinTeamPage({
       )}
 
       <p className="muted" style={{ fontSize: '0.78rem', marginTop: 14 }}>
-        ستنضم بحسابك الحالي وهويتك في TechMood — لا حساب جديد ولا هوية ثانية.
+        {t('ستنضم بحسابك الحالي وهويتك في TechMood — لا حساب جديد ولا هوية ثانية.', 'You join with the account and TechMood identity you already have — no new account, no second identity.')}
       </p>
 
       <AcceptInvite token={token} />

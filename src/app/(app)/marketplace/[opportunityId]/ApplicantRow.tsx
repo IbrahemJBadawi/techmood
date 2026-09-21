@@ -7,6 +7,7 @@ import { APPLICATION_STAGE } from '@/lib/marketplace';
 import type { ApplicationStage } from '@/lib/database.types';
 
 import { decideApplication } from '../actions';
+import { useT } from '@/lib/i18n.client';
 
 type Evidence = {
   full_name: string;
@@ -39,6 +40,7 @@ export function ApplicantRow({
   coverNote: string | null;
   isTeamSeat: boolean;
 }) {
+  const t = useT();
   const [evidence, setEvidence] = useState<Evidence | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -62,15 +64,15 @@ export function ApplicantRow({
   return (
     <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--line)' }}>
       <div className="row-between">
-        <strong style={{ fontSize: '0.9rem' }}>{evidence?.full_name ?? 'متقدّم'}</strong>
-        <span className={`status-pill ${info.className}`}>{info.text}</span>
+        <strong style={{ fontSize: '0.9rem' }}>{evidence?.full_name ?? t('متقدّم', 'Applicant')}</strong>
+        <span className={`status-pill ${info.className}`}>{t(info.text)}</span>
       </div>
 
       {coverNote && <p style={{ fontSize: '0.86rem', marginTop: 8 }}>{coverNote}</p>}
 
       {!evidence ? (
         <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={loadEvidence} disabled={loading}>
-          {loading ? 'جارٍ التحميل…' : 'اعرض سجله المهني'}
+          {loading ? t('جارٍ التحميل…', 'Loading…') : t('اعرض سجله المهني', 'Show their record')}
         </button>
       ) : (
         <>
@@ -78,9 +80,9 @@ export function ApplicantRow({
             <span className="id-chip">{evidence.techmood_id}</span>
             <span className="xp-badge eng">{evidence.total_xp} XP</span>
             <span className="badge-pill eng">⭐ {evidence.stars_avg}</span>
-            <span className="badge-pill eng">{evidence.certificates} شهادة</span>
-            <span className="badge-pill eng">{evidence.published_work} عمل منشور</span>
-            <span className="badge-pill eng">{evidence.approved_submissions} تسليم معتمد</span>
+            <span className="badge-pill eng">{t(`${evidence.certificates} شهادة`, `${evidence.certificates} certificates`)}</span>
+            <span className="badge-pill eng">{t(`${evidence.published_work} عمل منشور`, `${evidence.published_work} published`)}</span>
+            <span className="badge-pill eng">{t(`${evidence.approved_submissions} تسليم معتمد`, `${evidence.approved_submissions} approved`)}</span>
           </div>
 
           {evidence.headline && (
@@ -104,7 +106,7 @@ export function ApplicantRow({
         </>
       )}
 
-      {failed && <p className="notice notice-danger" style={{ marginTop: 8 }}>تعذّر عرض السجل.</p>}
+      {failed && <p className="notice notice-danger" style={{ marginTop: 8 }}>{t('تعذّر عرض السجل.', 'The record could not be shown.')}</p>}
 
       {!decided && !isTeamSeat && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
@@ -116,7 +118,7 @@ export function ApplicantRow({
                 <input type="hidden" name="opportunity_id" value={opportunityId} />
                 <input type="hidden" name="stage" value={value} />
                 <button className="btn btn-primary btn-sm" style={{ padding: '5px 12px', fontSize: '0.76rem' }}>
-                  {APPLICATION_STAGE[value].text}
+                  {t(APPLICATION_STAGE[value].text)}
                 </button>
               </form>
             ))}
@@ -125,8 +127,8 @@ export function ApplicantRow({
             <input type="hidden" name="application_id" value={applicationId} />
             <input type="hidden" name="opportunity_id" value={opportunityId} />
             <input type="hidden" name="stage" value="declined" />
-            <input name="note" placeholder="سبب الاعتذار (اختياري)" style={{ flex: 1, minWidth: 0, fontSize: '0.78rem' }} />
-            <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.76rem' }}>اعتذار</button>
+            <input name="note" placeholder={t('سبب الاعتذار (اختياري)', 'Why (optional)')} style={{ flex: 1, minWidth: 0, fontSize: '0.78rem' }} />
+            <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.76rem' }}>{t('اعتذار', 'Decline')}</button>
           </form>
         </div>
       )}

@@ -1,24 +1,45 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import type { Text } from '@/lib/i18n';
 import type { TaxonomyKind } from '@/lib/database.types';
 
 import { reviewTerm } from './actions';
 
-export const metadata = { title: 'المصطلحات المقترحة — TechMood' };
+export const metadata = { title: 'Suggested terms — TechMood' };
 
-const SECTIONS: { kind: TaxonomyKind; table: 'fields' | 'interests' | 'skills'; title: string; note: string }[] = [
+const SECTIONS: {
+  kind: TaxonomyKind; table: 'fields' | 'interests' | 'skills'; title: Text; note: Text;
+}[] = [
   {
     kind: 'field',
     table: 'fields',
-    title: 'المجالات',
-    note: 'المجال يقود المطابقة، والشخص يختار ثلاثة فقط — فقائمة مضخّمة تُضعف المطابقة لا تقوّيها.',
+    title: { ar: 'المجالات', en: 'Fields' },
+    note: {
+      ar: 'المجال يقود المطابقة، والشخص يختار ثلاثة فقط — فقائمة مضخّمة تُضعف المطابقة لا تقوّيها.',
+      en: 'Fields drive matching and each person picks only three — a bloated list weakens matching rather than improving it.',
+    },
   },
-  { kind: 'interest', table: 'interests', title: 'الاهتمامات', note: 'الاهتمامات تقود التوصيات.' },
-  { kind: 'skill', table: 'skills', title: 'المهارات', note: 'المهارة قابلة للتوثيق بأعمال معتمدة، فاحرص على أن تكون محدّدة.' },
+  {
+    kind: 'interest',
+    table: 'interests',
+    title: { ar: 'الاهتمامات', en: 'Interests' },
+    note: { ar: 'الاهتمامات تقود التوصيات.', en: 'Interests drive recommendations.' },
+  },
+  {
+    kind: 'skill',
+    table: 'skills',
+    title: { ar: 'المهارات', en: 'Skills' },
+    note: {
+      ar: 'المهارة قابلة للتوثيق بأعمال معتمدة، فاحرص على أن تكون محدّدة.',
+      en: 'A skill can be verified by approved work, so keep it specific.',
+    },
+  },
 ];
 
 export default async function TaxonomyReviewPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -50,14 +71,14 @@ export default async function TaxonomyReviewPage() {
   return (
     <>
       <section className="section-block">
-        <h1 style={{ fontSize: '1.2rem', marginBottom: 4 }}>المصطلحات المقترحة</h1>
+        <h1 style={{ fontSize: '1.2rem', marginBottom: 4 }}>{t('المصطلحات المقترحة', 'Suggested terms')}</h1>
         <p className="muted" style={{ fontSize: '0.88rem', maxWidth: 660 }}>
-          كل مصطلح هنا اقترحه شخص أثناء إعداد حسابه. حتى تعتمده لا يراه غيره ولا
-          يستطيع أحد اختياره.
+          {t('كل مصطلح هنا اقترحه شخص أثناء إعداد حسابه. حتى تعتمده لا يراه غيره ولا يستطيع أحد اختياره.',
+             'Every term here was suggested by somebody while setting up their account. Until you approve it, nobody else sees it and nobody can pick it.')}
         </p>
       </section>
 
-      {total === 0 && <p className="panel muted">لا مصطلحات تنتظر المراجعة.</p>}
+      {total === 0 && <p className="panel muted">{t('لا مصطلحات تنتظر المراجعة.', 'No terms waiting for review.')}</p>}
 
       {SECTIONS.map((section, index) => {
         const rows = results[index].data ?? [];
@@ -65,8 +86,8 @@ export default async function TaxonomyReviewPage() {
 
         return (
           <section className="section-block" key={section.kind}>
-            <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{section.title}</h2>
-            <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 10 }}>{section.note}</p>
+            <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{t(section.title)}</h2>
+            <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 10 }}>{t(section.note)}</p>
 
             <div className="stack">
               {rows.map((row) => {
@@ -78,7 +99,8 @@ export default async function TaxonomyReviewPage() {
                       <span className="muted" dir="ltr" style={{ marginInlineStart: 8 }}>{row.name_en}</span>
                       <p className="muted" style={{ fontSize: '0.8rem' }}>
                         <code dir="ltr">{row.slug}</code>
-                        {suggester && ` — اقترحه ${suggester.display_name ?? suggester.full_name}`}
+                        {suggester && t(` — اقترحه ${suggester.display_name ?? suggester.full_name}`,
+                                        ` — suggested by ${suggester.display_name ?? suggester.full_name}`)}
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -86,13 +108,13 @@ export default async function TaxonomyReviewPage() {
                         <input type="hidden" name="kind" value={section.kind} />
                         <input type="hidden" name="term_id" value={row.id} />
                         <input type="hidden" name="approve" value="yes" />
-                        <button className="btn btn-primary btn-sm">اعتماد</button>
+                        <button className="btn btn-primary btn-sm">{t('اعتماد', 'Approve')}</button>
                       </form>
                       <form action={reviewTerm}>
                         <input type="hidden" name="kind" value={section.kind} />
                         <input type="hidden" name="term_id" value={row.id} />
                         <input type="hidden" name="approve" value="no" />
-                        <button className="btn btn-ghost btn-sm">رفض</button>
+                        <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
                       </form>
                     </div>
                   </article>

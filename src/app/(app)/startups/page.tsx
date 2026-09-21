@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { STARTUP_STAGES } from '@/lib/incubator';
 
 export default async function StartupsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -34,18 +36,18 @@ export default async function StartupsPage() {
       <section className="section-block">
         <div className="row-between">
           <div>
-            <h2 style={{ fontSize: '1.2rem' }}>مشاريعي الناشئة</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>{t('مشاريعي الناشئة', 'My startups')}</h2>
             <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-              نموذج العمل وخطة العمل والاستراتيجية — مساحة عملك الخاصة حتى تقرّر أنت غير ذلك.
+              {t('نموذج العمل وخطة العمل والاستراتيجية — مساحة عملك الخاصة حتى تقرّر أنت غير ذلك.', 'The business model, the plan and the strategy — your own private workspace until you decide otherwise.')}
             </p>
           </div>
-          <Link className="btn btn-primary btn-sm" href="/startups/new">+ مشروع جديد</Link>
+          <Link className="btn btn-primary btn-sm" href="/startups/new">{t('+ مشروع جديد', '+ New startup')}</Link>
         </div>
       </section>
 
       {(startups?.length ?? 0) === 0 ? (
         <p className="notice">
-          لا مشاريع بعد. ابدأ بفكرة، واملأ نموذج العمل، ثم قدّم للحاضنة حين تكون جاهزاً.
+          {t('لا مشاريع بعد. ابدأ بفكرة، واملأ نموذج العمل، ثم قدّم للحاضنة حين تكون جاهزاً.', 'Nothing yet. Start with an idea, fill in the business model, then apply to the incubator when you are ready.')}
         </p>
       ) : (
         <div className="card-grid">
@@ -56,8 +58,8 @@ export default async function StartupsPage() {
             return (
               <article className="card" key={startup.id}>
                 <div className="row-between">
-                  <span className="tag">{STARTUP_STAGES[stageIndex]?.label ?? startup.stage}</span>
-                  {startup.is_in_incubator && <span className="badge-pill">في الحاضنة</span>}
+                  <span className="tag">{STARTUP_STAGES[stageIndex] ? t(STARTUP_STAGES[stageIndex].label) : startup.stage}</span>
+                  {startup.is_in_incubator && <span className="badge-pill">{t('في الحاضنة', 'In the incubator')}</span>}
                 </div>
 
                 <h3>{startup.name_ar}</h3>
@@ -66,11 +68,11 @@ export default async function StartupsPage() {
                 <div className="progress-track"><div className="progress-fill" style={{ width: `${stagePercent}%` }} /></div>
 
                 <div className="row-between" style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>
-                  <span className="eng">نموذج العمل: {cardsById.get(startup.id) ?? 0} بطاقة</span>
-                  <span className="eng">خطة العمل: {percentById.get(startup.id) ?? 0}%</span>
+                  <span className="eng">{t(`نموذج العمل: ${cardsById.get(startup.id) ?? 0} بطاقة`, `Model: ${cardsById.get(startup.id) ?? 0} cards`)}</span>
+                  <span className="eng">{t(`خطة العمل: ${percentById.get(startup.id) ?? 0}%`, `Plan: ${percentById.get(startup.id) ?? 0}%`)}</span>
                 </div>
 
-                <Link className="btn btn-ghost btn-sm" href={`/startups/${startup.id}`}>افتح المشروع</Link>
+                <Link className="btn btn-ghost btn-sm" href={`/startups/${startup.id}`}>{t('افتح المشروع', 'Open')}</Link>
               </article>
             );
           })}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 import { TeamNav } from '../TeamNav';
 import { ProjectCard } from './ProjectCard';
@@ -13,6 +14,7 @@ export default async function TeamProjectsPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -40,11 +42,11 @@ export default async function TeamProjectsPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — المشاريع</h2>
-          <Link className="btn btn-ghost btn-sm" href="/exhibition">المعرض</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — المشاريع', ' — projects')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'Exhibition')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          عندما يكتمل مشروع، قدّمه للمعرض — عندها يصبح دليلاً مهنياً في ملف كل من عمل عليه.
+          {t('عندما يكتمل مشروع، قدّمه للمعرض — عندها يصبح دليلاً مهنياً في ملف كل من عمل عليه.', 'When a project is finished, submit it to the exhibition — it then becomes professional evidence on the profile of everyone who worked on it.')}
         </p>
       </section>
 
@@ -53,7 +55,7 @@ export default async function TeamProjectsPage({
       {canManage && <NewProjectForm teamId={teamId} />}
 
       {(projects?.length ?? 0) === 0 ? (
-        <p className="notice">لا مشاريع في هذا الفريق بعد.</p>
+        <p className="notice">{t('لا مشاريع في هذا الفريق بعد.', 'No projects in this team yet.')}</p>
       ) : (
         projects!.map((project) => (
           <ProjectCard

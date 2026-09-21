@@ -1,13 +1,12 @@
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { ACTIVE_ROLE_COOKIE, defaultRole, navFor, ROLE_BY_VALUE } from '@/lib/roles';
 import type { UiLanguage, UserRole } from '@/lib/database.types';
-
-import Link from 'next/link';
-
-import { Icon } from '@/components/Icon';
 
 import { NavLink } from './NavLink';
 import { RoleSwitcher } from './RoleSwitcher';
@@ -17,6 +16,7 @@ import { ProfileMenu } from './shell/ProfileMenu';
 import { ThemeToggle } from './shell/ThemeToggle';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -58,26 +58,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app">
-      <aside className="sidebar" aria-label="التنقّل">
+      <aside className="sidebar" aria-label={t('التنقّل', 'Navigation')}>
         <div className="sidebar-logo">
           <span className="logo-mark" />
           <span className="sidebar-wordmark">TechMood</span>
         </div>
 
         {groups.map((group) => (
-          <div className="nav-group" key={group.label}>
-            <div className="nav-group-label">{group.label}</div>
+          <div className="nav-group" key={group.label.en}>
+            <div className="nav-group-label">{t(group.label)}</div>
             {group.items.map((item) => (
               <NavLink href={item.href} icon={item.icon} key={item.href}>
-                {item.label}
+                {t(item.label)}
               </NavLink>
             ))}
           </div>
         ))}
 
         <div className="nav-group">
-          <div className="nav-group-label">الحساب</div>
-          <NavLink href="/settings/roles" icon="settings">أدواري</NavLink>
+          <div className="nav-group-label">{t('الحساب', 'Account')}</div>
+          <NavLink href="/settings/roles" icon="settings">{t('أدواري', 'My roles')}</NavLink>
         </div>
       </aside>
 
@@ -88,7 +88,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
             <div className="topbar-actions">
               <RoleSwitcher roles={held} active={active} />
-              <Link className="icon-button" href="/messages" title="الرسائل" aria-label="الرسائل">
+              <Link className="icon-button" href="/messages"
+                    title={t('الرسائل', 'Messages')} aria-label={t('الرسائل', 'Messages')}>
                 <Icon name="message" />
               </Link>
               <Notifications items={inbox} unread={unread} />

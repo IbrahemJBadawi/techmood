@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
 import { ROLE_BY_VALUE, roleLabel } from '@/lib/roles';
+import { getT } from '@/lib/i18n.server';
 import type { Database, UserRole } from '@/lib/database.types';
 
 type Tile = { value: number | string; label: string; href: string };
@@ -12,6 +13,7 @@ type Tile = { value: number | string; label: string; href: string };
  * to do about it, rather than a decorative figure.
  */
 export async function RoleDashboard({ role, userId }: { role: UserRole; userId: string }) {
+  const t = await getT();
   const supabase = await createClient();
 
   // head: true asks PostgREST for the count and no rows. RLS still applies, so
@@ -31,14 +33,14 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('certificates').eq('profile_id', userId).eq('status', 'active')),
       n(from('bookings').eq('student_id', userId).eq('status', 'confirmed')),
     ]);
-    lede = 'تتعلّم، تسلّم، ويُراجع عملك إنسان.';
+    lede = t('تتعلّم، تسلّم، ويُراجع عملك إنسان.', 'You learn, you hand work in, and a human reviews it.');
     tiles = [
-      { value: inReview, label: 'أعمال قيد المراجعة', href: '/academy' },
-      { value: changes, label: 'أعمال تنتظر تعديلك', href: '/academy' },
-      { value: certificates, label: 'شهادات موثّقة', href: '/certificates' },
-      { value: sessions, label: 'جلسات إرشاد مؤكدة', href: '/bookings' },
+      { value: inReview, label: t('أعمال قيد المراجعة', 'Work under review'), href: '/academy' },
+      { value: changes, label: t('أعمال تنتظر تعديلك', 'Work waiting on your edits'), href: '/academy' },
+      { value: certificates, label: t('شهادات موثّقة', 'Verified certificates'), href: '/certificates' },
+      { value: sessions, label: t('جلسات إرشاد مؤكدة', 'Confirmed mentoring sessions'), href: '/bookings' },
     ];
-    cta = { href: '/academy', label: 'تابع مسارك' };
+    cta = { href: '/academy', label: t('تابع مسارك', 'Continue your path') };
   }
 
   if (role === 'freelancer') {
@@ -48,14 +50,14 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('opportunity_applications').eq('profile_id', userId).eq('stage', 'shortlisted')),
       n(from('wallet_entries').eq('profile_id', userId).eq('status', 'available')),
     ]);
-    lede = 'تتقدّم على الفرص، وتنفّذ أعمالاً مدفوعة بسجلّ يثبت جودتها.';
+    lede = t('تتقدّم على الفرص، وتنفّذ أعمالاً مدفوعة بسجلّ يثبت جودتها.', 'You apply for openings and do paid work, with a record that proves its quality.');
     tiles = [
-      { value: open, label: 'فرص مفتوحة', href: '/marketplace' },
-      { value: mine, label: 'طلبات تقدّمت بها', href: '/applications' },
-      { value: shortlisted, label: 'في القائمة القصيرة', href: '/applications' },
-      { value: available, label: 'حركات محفظة متاحة', href: '/wallet' },
+      { value: open, label: t('فرص مفتوحة', 'Open postings'), href: '/marketplace' },
+      { value: mine, label: t('طلبات تقدّمت بها', 'Applications you sent'), href: '/applications' },
+      { value: shortlisted, label: t('في القائمة القصيرة', 'Shortlisted'), href: '/applications' },
+      { value: available, label: t('حركات محفظة متاحة', 'Available wallet entries'), href: '/wallet' },
     ];
-    cta = { href: '/marketplace', label: 'تصفّح الفرص' };
+    cta = { href: '/marketplace', label: t('تصفّح الفرص', 'Browse openings') };
   }
 
   if (role === 'mentor') {
@@ -65,14 +67,14 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('bookings').eq('mentor_id', userId).eq('status', 'confirmed')),
       n(from('wallet_entries').eq('profile_id', userId).eq('kind', 'earning')),
     ]);
-    lede = 'مراجعتك هي ما يجعل الشهادة في TechMood تعني شيئاً.';
+    lede = t('مراجعتك هي ما يجعل الشهادة في TechMood تعني شيئاً.', 'Your review is what makes a TechMood certificate mean something.');
     tiles = [
-      { value: requests, label: 'طلبات جلسات تنتظرك', href: '/mentor-requests' },
-      { value: toReview, label: 'أعمال بانتظار المراجعة', href: '/review' },
-      { value: upcoming, label: 'جلسات مؤكدة', href: '/mentor-requests' },
-      { value: earnings, label: 'أرباح مسجّلة', href: '/wallet' },
+      { value: requests, label: t('طلبات جلسات تنتظرك', 'Session requests waiting on you'), href: '/mentor-requests' },
+      { value: toReview, label: t('أعمال بانتظار المراجعة', 'Work waiting for review'), href: '/review' },
+      { value: upcoming, label: t('جلسات مؤكدة', 'Confirmed sessions'), href: '/mentor-requests' },
+      { value: earnings, label: t('أرباح مسجّلة', 'Recorded earnings'), href: '/wallet' },
     ];
-    cta = { href: '/review', label: 'ابدأ المراجعة' };
+    cta = { href: '/review', label: t('ابدأ المراجعة', 'Start reviewing') };
   }
 
   if (role === 'team_leader') {
@@ -81,13 +83,13 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('team_tasks').eq('created_by', userId).neq('column_key', 'done')),
       n(from('opportunity_applications').eq('profile_id', userId)),
     ]);
-    lede = 'الفريق مساحة عمل مغلقة: مهام وسبرنتات وتسليمات، لا صفحة أخبار.';
+    lede = t('الفريق مساحة عمل مغلقة: مهام وسبرنتات وتسليمات، لا صفحة أخبار.', 'A team is a closed workspace: tasks, sprints and deliverables — not a news feed.');
     tiles = [
-      { value: teams, label: 'فرق أقودها', href: '/teams' },
-      { value: tasks, label: 'مهام مفتوحة أنشأتها', href: '/teams' },
-      { value: applications, label: 'طلبات فريقي', href: '/applications' },
+      { value: teams, label: t('فرق أقودها', 'Teams you lead'), href: '/teams' },
+      { value: tasks, label: t('مهام مفتوحة أنشأتها', 'Open tasks you created'), href: '/teams' },
+      { value: applications, label: t('طلبات فريقي', 'My team applications'), href: '/applications' },
     ];
-    cta = { href: '/teams', label: 'افتح مساحة الفريق' };
+    cta = { href: '/teams', label: t('افتح مساحة الفريق', 'Open the team workspace') };
   }
 
   if (role === 'founder') {
@@ -95,12 +97,12 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('startups').eq('founder_id', userId)),
       n(from('startups').eq('founder_id', userId).eq('is_in_incubator', true)),
     ]);
-    lede = 'من الفكرة إلى نموذج عمل مكتوب — بمراحل واضحة ومراجعة حقيقية.';
+    lede = t('من الفكرة إلى نموذج عمل مكتوب — بمراحل واضحة ومراجعة حقيقية.', 'From an idea to a written business model — in clear stages, with real review.');
     tiles = [
-      { value: startups, label: 'مشاريع ناشئة', href: '/startups' },
-      { value: incubated, label: 'داخل الحاضنة', href: '/incubator' },
+      { value: startups, label: t('مشاريع ناشئة', 'Startups'), href: '/startups' },
+      { value: incubated, label: t('داخل الحاضنة', 'In the incubator'), href: '/incubator' },
     ];
-    cta = { href: '/startups', label: 'افتح مشروعك' };
+    cta = { href: '/startups', label: t('افتح مشروعك', 'Open your startup') };
   }
 
   if (role === 'company') {
@@ -109,13 +111,13 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('opportunities').eq('posted_by', userId).eq('status', 'published')),
       n(from('opportunity_applications').eq('stage', 'submitted')),
     ]);
-    lede = 'تنشر فرصاً وتصل إلى من يملك سجلاً مهنياً يمكن التحقق منه.';
+    lede = t('تنشر فرصاً وتصل إلى من يملك سجلاً مهنياً يمكن التحقق منه.', 'You publish openings and reach people whose record can be verified.');
     tiles = [
-      { value: posted, label: 'فرص نشرتها', href: '/marketplace' },
-      { value: open, label: 'ما زالت منشورة', href: '/marketplace' },
-      { value: applicants, label: 'طلبات جديدة', href: '/applications' },
+      { value: posted, label: t('فرص نشرتها', 'Postings you published'), href: '/marketplace' },
+      { value: open, label: t('ما زالت منشورة', 'Still published'), href: '/marketplace' },
+      { value: applicants, label: t('طلبات جديدة', 'New applications'), href: '/applications' },
     ];
-    cta = { href: '/marketplace/new', label: 'انشر فرصة' };
+    cta = { href: '/marketplace/new', label: t('انشر فرصة', 'Publish an opening') };
   }
 
   if (role === 'admin') {
@@ -125,24 +127,26 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
       n(from('payments').eq('status', 'under_review')),
       n(from('payout_requests').eq('status', 'requested')),
     ]);
-    lede = 'كل قرار هنا يخصّ شخصاً ينتظر ردّاً.';
+    lede = t('كل قرار هنا يخصّ شخصاً ينتظر ردّاً.', 'Every decision here belongs to somebody waiting on an answer.');
     tiles = [
-      { value: roleRequests, label: 'طلبات أدوار', href: '/admin/role-requests' },
-      { value: terms, label: 'مجالات مقترحة', href: '/admin/taxonomy' },
-      { value: payments, label: 'مدفوعات للتحقق', href: '/admin/payments' },
-      { value: payouts, label: 'طلبات سحب', href: '/admin/payouts' },
+      { value: roleRequests, label: t('طلبات أدوار', 'Role requests'), href: '/admin/role-requests' },
+      { value: terms, label: t('مجالات مقترحة', 'Suggested fields'), href: '/admin/taxonomy' },
+      { value: payments, label: t('مدفوعات للتحقق', 'Payments to verify'), href: '/admin/payments' },
+      { value: payouts, label: t('طلبات سحب', 'Payout requests'), href: '/admin/payouts' },
     ];
-    cta = { href: '/admin/role-requests', label: 'ابدأ بالطلبات' };
+    cta = { href: '/admin/role-requests', label: t('ابدأ بالطلبات', 'Start with the requests') };
   }
 
   return (
     <section className="section-block">
       <div className="row-between" style={{ marginBottom: 6 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>لوحة {roleLabel(role)}</h2>
+        <h2 style={{ fontSize: '1.05rem' }}>
+          {t(`لوحة ${t(roleLabel(role))}`, `${t(roleLabel(role))} dashboard`)}
+        </h2>
         {cta && <Link className="btn btn-ghost btn-sm" href={cta.href}>{cta.label}</Link>}
       </div>
       <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 14 }}>
-        {lede} {ROLE_BY_VALUE[role].blurb}
+        {lede} {t(ROLE_BY_VALUE[role].blurb)}
       </p>
 
       <div className="stat-tiles">

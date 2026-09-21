@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { formatDate } from '@/lib/i18n';
 
 import { TeamNav } from '../TeamNav';
 import { InviteForm } from './InviteForm';
@@ -13,6 +15,7 @@ export default async function TeamMembersPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,8 +52,8 @@ export default async function TeamMembersPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — الأعضاء</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — الأعضاء', ' — members')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
       </section>
 
@@ -68,7 +71,7 @@ export default async function TeamMembersPage({
             <article className="card" key={member.profile_id}>
               <div className="row-between">
                 <h3>{profile?.full_name ?? '—'}</h3>
-                {member.role === 'leader' && <span className="badge-pill">قائد الفريق</span>}
+                {member.role === 'leader' && <span className="badge-pill">{t('قائد الفريق', 'Team lead')}</span>}
               </div>
 
               <span className="id-chip">{profile?.techmood_id}</span>
@@ -76,7 +79,7 @@ export default async function TeamMembersPage({
               {profile?.headline && <p>{profile.headline}</p>}
 
               <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)' }}>
-                <span className="eng">{done}/{mine.length} مهمة</span>
+                <span className="eng">{done}/{mine.length} {t('مهمة', 'tasks')}</span>
                 <span>
                   <Stars value={starsById.get(member.profile_id) ?? 0} />{' '}
                   <span className="xp-badge eng">{xpById.get(member.profile_id) ?? 0} XP</span>
@@ -84,7 +87,7 @@ export default async function TeamMembersPage({
               </div>
 
               <p className="muted eng" style={{ fontSize: '0.74rem' }}>
-                انضم {new Date(member.joined_at).toLocaleDateString('ar-EG')}
+                {t('انضم ', 'Joined ')}{formatDate(t.locale, member.joined_at)}
               </p>
             </article>
           );
@@ -93,14 +96,14 @@ export default async function TeamMembersPage({
 
       {(invites?.length ?? 0) > 0 && (
         <section className="section-block" style={{ marginTop: 24 }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>دعوات معلّقة</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('دعوات معلّقة', 'Pending invitations')}</h3>
           <table className="data">
-            <thead><tr><th>المدعو</th><th>المسؤولية</th><th>تنتهي</th></tr></thead>
+            <thead><tr><th>{t('المدعو', 'Invitee')}</th><th>{t('المسؤولية', 'Responsibility')}</th><th>{t('تنتهي', 'Expires')}</th></tr></thead>
             <tbody>
               {invites!.map((invite) => (
                 <tr key={invite.id}>
                   <td>
-                    {profileById.get(invite.invitee_id ?? '')?.full_name ?? 'رابط دعوة'}
+                    {profileById.get(invite.invitee_id ?? '')?.full_name ?? t('رابط دعوة', 'Invite link')}
                     <br />
                     <span className="id-chip">{profileById.get(invite.invitee_id ?? '')?.techmood_id}</span>
                   </td>

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { TASK_COLUMNS, TASK_PRIORITY, isOverdue } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
@@ -14,6 +16,7 @@ export default async function TeamTasksPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -45,11 +48,11 @@ export default async function TeamTasksPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — المهام</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — المهام', ' — tasks')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          كل مهمة لها مسؤول وحالة وموعد. المحادثة ليست مكان تتبّع العمل.
+          {t('كل مهمة لها مسؤول وحالة وموعد. المحادثة ليست مكان تتبّع العمل.', 'Every task has an owner, a state and a date. The conversation is not where work is tracked.')}
         </p>
       </section>
 
@@ -62,7 +65,7 @@ export default async function TeamTasksPage({
             id: row.profile_id,
             name: nameById.get(row.profile_id) ?? '—',
           }))}
-          sprints={(sprints ?? []).map((row) => ({ id: row.id, label: `سبرنت ${row.number}` }))}
+          sprints={(sprints ?? []).map((row) => ({ id: row.id, label: t(`سبرنت ${row.number}`, `Sprint ${row.number}`) }))}
         />
       )}
 
@@ -73,12 +76,12 @@ export default async function TeamTasksPage({
           return (
             <section className="kanban-col" key={column.key}>
               <div className="row-between" style={{ marginBottom: 10 }}>
-                <h3 style={{ fontSize: '0.88rem' }}>{column.label}</h3>
+                <h3 style={{ fontSize: '0.88rem' }}>{t(column.label)}</h3>
                 <span className="badge-pill eng">{columnTasks.length}</span>
               </div>
 
               {columnTasks.length === 0 && (
-                <p className="muted" style={{ fontSize: '0.8rem' }}>لا مهام</p>
+                <p className="muted" style={{ fontSize: '0.8rem' }}>{t('لا مهام', 'No tasks')}</p>
               )}
 
               {columnTasks.map((task) => {
@@ -92,13 +95,13 @@ export default async function TeamTasksPage({
                     <div className="tags-row" style={{ marginTop: 8 }}>
                       {task.priority !== 'normal' && (
                         <span className={`status-pill ${TASK_PRIORITY[task.priority].className}`}>
-                          {TASK_PRIORITY[task.priority].text}
+                          {t(TASK_PRIORITY[task.priority].text)}
                         </span>
                       )}
                       {task.assignee_id ? (
                         <span className="badge-pill">{nameById.get(task.assignee_id) ?? '—'}</span>
                       ) : (
-                        <span className="badge-pill" style={{ opacity: 0.6 }}>بلا مسؤول</span>
+                        <span className="badge-pill" style={{ opacity: 0.6 }}>{t('بلا مسؤول', 'Unassigned')}</span>
                       )}
                       {task.due_on && (
                         <span className="badge-pill eng" style={late ? { color: 'var(--danger)' } : undefined}>

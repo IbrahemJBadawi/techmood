@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { ACTIVE_ROLE_COOKIE, defaultRole } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
@@ -10,13 +11,14 @@ import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
 import type { WindowKey } from './student/Leaderboard';
 
-export const metadata = { title: 'الرئيسية — TechMood' };
+export const metadata = { title: 'Home — TechMood' };
 
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<{ lb?: string }>;
 }) {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -50,8 +52,10 @@ export default async function HomePage({
     <>
       {pendingRoles.length > 0 && (
         <p className="notice section-block">
-          لديك {pendingRoles.length} طلب دور قيد المراجعة — تتابع حالته من{' '}
-          <Link href="/settings/roles">أدواري</Link>. بقية أدوارك تعمل كالمعتاد.
+          {t(`لديك ${pendingRoles.length} طلب دور قيد المراجعة — تتابع حالته من `,
+             `You have ${pendingRoles.length} role ${pendingRoles.length === 1 ? 'request' : 'requests'} under review — follow it in `)}
+          <Link href="/settings/roles">{t('أدواري', 'My roles')}</Link>
+          {t('. بقية أدوارك تعمل كالمعتاد.', '. Your other roles carry on as normal.')}
         </p>
       )}
 

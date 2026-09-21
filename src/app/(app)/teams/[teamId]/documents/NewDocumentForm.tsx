@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { DOCUMENT_KINDS } from '@/lib/teams';
 
 import { saveDocument, type DocumentState } from './actions';
+import { useT } from '@/lib/i18n.client';
 
 export function NewDocumentForm({
   teamId,
@@ -13,13 +14,14 @@ export function NewDocumentForm({
   teamId: string;
   projects: { id: string; title_ar: string }[];
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(saveDocument, undefined as DocumentState);
   const [open, setOpen] = useState(false);
 
   if (!open) {
     return (
       <button className="btn btn-primary btn-sm" style={{ marginBottom: 18 }} onClick={() => setOpen(true)}>
-        + مستند جديد
+        {t('+ مستند جديد', '+ New document')}
       </button>
     );
   }
@@ -30,17 +32,17 @@ export function NewDocumentForm({
 
       <div className="field-row">
         <div className="field">
-          <label htmlFor="kind">النوع</label>
+          <label htmlFor="kind">{t('النوع', 'Kind')}</label>
           <select id="kind" name="kind" defaultValue="meeting_notes">
             {DOCUMENT_KINDS.map((kind) => (
-              <option key={kind.key} value={kind.key}>{kind.label}</option>
+              <option key={kind.key} value={kind.key}>{t(kind.label)}</option>
             ))}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="project_id">المشروع (اختياري)</label>
+          <label htmlFor="project_id">{t('المشروع (اختياري)', 'Project (optional)')}</label>
           <select id="project_id" name="project_id" defaultValue="">
-            <option value="">بلا ربط</option>
+            <option value="">{t('بلا ربط', 'Not linked')}</option>
             {projects.map((project) => (
               <option key={project.id} value={project.id}>{project.title_ar}</option>
             ))}
@@ -49,17 +51,17 @@ export function NewDocumentForm({
       </div>
 
       <div className="field">
-        <label htmlFor="title">العنوان</label>
+        <label htmlFor="title">{t('العنوان', 'Title')}</label>
         <input id="title" name="title" required minLength={3} />
       </div>
 
       <div className="field">
-        <label htmlFor="body">المحتوى</label>
+        <label htmlFor="body">{t('المحتوى', 'Content')}</label>
         <textarea id="body" name="body" rows={5} />
       </div>
 
       <div className="field">
-        <label htmlFor="url">أو رابط خارجي</label>
+        <label htmlFor="url">{t('أو رابط خارجي', 'Or an external link')}</label>
         <input id="url" name="url" type="url" dir="ltr" placeholder="https://" />
       </div>
 
@@ -68,9 +70,9 @@ export function NewDocumentForm({
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? 'جارٍ الحفظ…' : 'احفظ'}
+          {pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ', 'Save')}
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>إغلاق</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>
       </div>
     </form>
   );

@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { getT } from '@/lib/i18n.server';
+import { formatDate } from '@/lib/i18n';
+
 export type Resume = {
   path_slug: string;
   path_title: string;
@@ -11,22 +14,24 @@ export type Resume = {
   last_activity: string;
 } | null;
 
-export function ContinueLearning({ resume }: { resume: Resume }) {
+export async function ContinueLearning({ resume }: { resume: Resume }) {
+  const t = await getT();
+
   if (!resume) {
     return (
       <article className="panel resume-card is-empty">
-        <h3>ابدأ أول مسار</h3>
+        <h3>{t('ابدأ أول مسار', 'Start your first path')}</h3>
         <p className="muted">
-          لم تبدأ التعلّم بعد. المسارات مفتوحة دائماً — لا دفعات ولا انتظار.
+          {t('لم تبدأ التعلّم بعد. المسارات مفتوحة دائماً — لا دفعات ولا انتظار.', 'You have not started yet. Paths are always open — no cohorts, nothing to wait for.')}
         </p>
-        <Link className="btn btn-primary btn-sm" href="/academy">تصفّح المسارات</Link>
+        <Link className="btn btn-primary btn-sm" href="/academy">{t('تصفّح المسارات', 'Browse paths')}</Link>
       </article>
     );
   }
 
   return (
     <article className="panel resume-card">
-      <p className="kicker">أكمل من حيث توقّفت</p>
+      <p className="kicker">{t('أكمل من حيث توقّفت', 'Pick up where you left off')}</p>
       <h3>{resume.path_title}</h3>
       <p className="resume-course">{resume.course_title}</p>
       <p className="resume-lesson">{resume.lesson_title}</p>
@@ -34,7 +39,7 @@ export function ContinueLearning({ resume }: { resume: Resume }) {
       <div className="resume-bars">
         <div>
           <div className="row-between">
-            <span className="muted">تقدّم الدورة</span>
+            <span className="muted">{t('تقدّم الدورة', 'Course progress')}</span>
             <span className="eng">{resume.course_percent}%</span>
           </div>
           <div className="progress-track">
@@ -43,7 +48,7 @@ export function ContinueLearning({ resume }: { resume: Resume }) {
         </div>
         <div>
           <div className="row-between">
-            <span className="muted">تقدّم المسار</span>
+            <span className="muted">{t('تقدّم المسار', 'Path progress')}</span>
             <span className="eng">{resume.path_percent}%</span>
           </div>
           <div className="progress-track">
@@ -53,11 +58,11 @@ export function ContinueLearning({ resume }: { resume: Resume }) {
       </div>
 
       <p className="muted" style={{ fontSize: '0.78rem' }}>
-        آخر نشاط: {new Date(resume.last_activity).toLocaleDateString('ar')}
+        {t('آخر نشاط: ', 'Last activity: ')}{formatDate(t.locale, resume.last_activity)}
       </p>
 
       <Link className="btn btn-primary" href={`/academy/${resume.path_slug}/${resume.course_slug}`}>
-        ▶ تابع التعلّم
+        {t('▶ تابع التعلّم', '▶ Continue learning')}
       </Link>
     </article>
   );

@@ -3,9 +3,19 @@ import { notFound } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { type Text } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 
-const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const DAY_NAMES: Text[] = [
+  { ar: 'الأحد',    en: 'Sunday' },
+  { ar: 'الاثنين',  en: 'Monday' },
+  { ar: 'الثلاثاء', en: 'Tuesday' },
+  { ar: 'الأربعاء', en: 'Wednesday' },
+  { ar: 'الخميس',   en: 'Thursday' },
+  { ar: 'الجمعة',   en: 'Friday' },
+  { ar: 'السبت',    en: 'Saturday' },
+];
 
 export default async function MentorProfilePage({
   params,
@@ -13,6 +23,7 @@ export default async function MentorProfilePage({
   params: Promise<{ mentorId: string }>;
 }) {
   const { mentorId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: mentor } = await supabase
@@ -40,7 +51,7 @@ export default async function MentorProfilePage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/mentors">→ رجوع للمنتورز</Link>
+      <Link className="btn btn-ghost btn-sm" href="/mentors">{t('→ رجوع للمنتورز', '← Back to mentors')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
@@ -56,7 +67,7 @@ export default async function MentorProfilePage({
         <div className="tags-row" style={{ marginTop: 12, alignItems: 'center' }}>
           <span className="id-chip">{profile?.techmood_id}</span>
           <Stars value={mentor.rating_avg ?? 0} />
-          <span className="muted" style={{ fontSize: '0.8rem' }}>{mentor.sessions_count} جلسة مكتملة</span>
+          <span className="muted" style={{ fontSize: '0.8rem' }}>{t(`${mentor.sessions_count} جلسة مكتملة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'} held`)}</span>
         </div>
 
         {mentor.bio_ar && <p style={{ fontSize: '0.9rem', marginTop: 14 }}>{mentor.bio_ar}</p>}
@@ -67,21 +78,21 @@ export default async function MentorProfilePage({
 
         <div className="row-between" style={{ marginTop: 18 }}>
           <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', fontSize: '1.1rem' }}>
-            {level ? money(level.session_price_usd) : '—'} / جلسة
+            {level ? money(level.session_price_usd) : '—'}{t(' / جلسة', ' / session')}
           </span>
           {mentor.is_accepting && sessionTypes.length > 0 ? (
-            <Link className="btn btn-primary" href={`/mentors/${mentorId}/book`}>احجز جلسة</Link>
+            <Link className="btn btn-primary" href={`/mentors/${mentorId}/book`}>{t('احجز جلسة', 'Book a session')}</Link>
           ) : (
-            <span className="status-pill status-muted">لا يستقبل حجوزات حالياً</span>
+            <span className="status-pill status-muted">{t('لا يستقبل حجوزات حالياً', 'Not taking bookings right now')}</span>
           )}
         </div>
       </section>
 
       <div className="detail-grid">
         <section className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>أنواع الجلسات</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('أنواع الجلسات', 'Session types')}</h3>
           {sessionTypes.length === 0 ? (
-            <p className="muted" style={{ fontSize: '0.86rem' }}>لم يحدد هذا المنتور أنواع جلساته بعد.</p>
+            <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لم يحدد هذا المنتور أنواع جلساته بعد.', 'This mentor has not set up session types yet.')}</p>
           ) : (
             sessionTypes.map((type) => (
               <div className="row-between" key={type.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
@@ -98,13 +109,13 @@ export default async function MentorProfilePage({
         </section>
 
         <aside className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>أوقات التوفر</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('أوقات التوفر', 'Availability')}</h3>
           {(availability?.length ?? 0) === 0 ? (
-            <p className="muted" style={{ fontSize: '0.86rem' }}>لم يُنشر جدول توفر بعد.</p>
+            <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لم يُنشر جدول توفر بعد.', 'No availability published yet.')}</p>
           ) : (
             availability!.map((slot, index) => (
               <div className="row-between" key={`${slot.day_of_week}-${index}`} style={{ marginBottom: 8 }}>
-                <span style={{ fontSize: '0.86rem' }}>{DAY_NAMES[slot.day_of_week]}</span>
+                <span style={{ fontSize: '0.86rem' }}>{t(DAY_NAMES[slot.day_of_week])}</span>
                 <span className="eng muted" style={{ fontSize: '0.82rem' }}>
                   {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
                 </span>
@@ -112,7 +123,7 @@ export default async function MentorProfilePage({
             ))
           )}
           <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-            بحد أقصى 5 ساعات يومياً، والحجز قبل 72 ساعة على الأقل.
+            {t('بحد أقصى 5 ساعات يومياً، والحجز قبل 72 ساعة على الأقل.', 'At most five hours a day, and bookings need 72 hours’ notice.')}
           </p>
         </aside>
       </div>

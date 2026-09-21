@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import type { Text } from '@/lib/i18n';
 import type { ConversationKind, MessageReaction } from '@/lib/database.types';
 
 import { Composer } from './Composer';
@@ -15,11 +17,11 @@ const KIND_ICON: Record<ConversationKind, string> = {
   learning_path: '📚',
 };
 
-const KIND_LABEL: Record<ConversationKind, string> = {
-  admin: 'إدارة TechMood',
-  team: 'فريق',
-  mentor_booking: 'منتور',
-  learning_path: 'مسار تعلّم',
+const KIND_LABEL: Record<ConversationKind, Text> = {
+  admin:          { ar: 'إدارة TechMood', en: 'TechMood team' },
+  team:           { ar: 'فريق',           en: 'Team' },
+  mentor_booking: { ar: 'منتور',          en: 'Mentor' },
+  learning_path:  { ar: 'مسار تعلّم',     en: 'Learning path' },
 };
 
 export default async function MessagesPage({
@@ -28,6 +30,7 @@ export default async function MessagesPage({
   searchParams: Promise<{ c?: string }>;
 }) {
   const { c } = await searchParams;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -124,16 +127,16 @@ export default async function MessagesPage({
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>الرسائل</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('الرسائل', 'Messages')}</h2>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          محادثات تنشأ من علاقاتك داخل TechMood: الإدارة، فرقك، منتور حجزت معه، ومسار التحقت به.
-          بلا روابط ولا ملفات ولا منشورات.
+          {t('محادثات تنشأ من علاقاتك داخل TechMood: الإدارة، فرقك، منتور حجزت معه، ومسار التحقت به. بلا روابط ولا ملفات ولا منشورات.',
+             'Conversations that come from your actual relationships on TechMood: the team, your teams, a mentor you booked, a path you joined. No links, no files, no posts.')}
         </p>
       </section>
 
       {ordered.length === 0 ? (
         <p className="notice">
-          لا محادثات بعد. تُفتح المحادثة تلقائياً عند انضمامك لفريق، أو تأكيد حجز مع منتور.
+          {t('لا محادثات بعد. تُفتح المحادثة تلقائياً عند انضمامك لفريق، أو تأكيد حجز مع منتور.', 'No conversations yet. One opens by itself when you join a team, or when a mentor booking is confirmed.')}
         </p>
       ) : (
         <div className="chat-shell">
@@ -150,13 +153,13 @@ export default async function MessagesPage({
                 >
                   <div className="ci-top">
                     <span className="ci-name">
-                      {KIND_ICON[conversation.kind]} {conversation.title_ar ?? KIND_LABEL[conversation.kind]}
+                      {KIND_ICON[conversation.kind]} {conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}
                     </span>
                     {count > 0 && conversation.id !== activeId && (
                       <span className="unread-dot eng">{count}</span>
                     )}
                   </div>
-                  <span className="ci-last">{last?.body_ar ?? 'لا رسائل بعد'}</span>
+                  <span className="ci-last">{last?.body_ar ?? t('لا رسائل بعد', 'No messages yet')}</span>
                 </Link>
               );
             })}
@@ -168,9 +171,9 @@ export default async function MessagesPage({
                 <header className="chat-head">
                   <div className="row-between">
                     <strong style={{ fontSize: '0.95rem' }}>
-                      {KIND_ICON[active.kind]} {active.title_ar ?? KIND_LABEL[active.kind]}
+                      {KIND_ICON[active.kind]} {active.title_ar ?? t(KIND_LABEL[active.kind])}
                     </strong>
-                    <span className="badge-pill">{KIND_LABEL[active.kind]}</span>
+                    <span className="badge-pill">{t(KIND_LABEL[active.kind])}</span>
                   </div>
                   {active.team_id && (
                     <Link
@@ -178,7 +181,7 @@ export default async function MessagesPage({
                       style={{ fontSize: '0.78rem' }}
                       href={`/teams/${active.team_id}`}
                     >
-                      افتح مساحة عمل الفريق ↗
+                      {t('افتح مساحة عمل الفريق ↗', 'Open the team workspace ↗')}
                     </Link>
                   )}
                   {active.booking_id && (
@@ -187,7 +190,7 @@ export default async function MessagesPage({
                       style={{ fontSize: '0.78rem' }}
                       href={`/bookings/${active.booking_id}`}
                     >
-                      تفاصيل الجلسة ↗
+                      {t('تفاصيل الجلسة ↗', 'Session details ↗')}
                     </Link>
                   )}
                 </header>
@@ -195,7 +198,7 @@ export default async function MessagesPage({
                 <div className="chat-thread">
                   {messages.length === 0 && (
                     <p className="muted" style={{ fontSize: '0.86rem', margin: 'auto' }}>
-                      لا رسائل بعد — ابدأ الحديث.
+                      {t('لا رسائل بعد — ابدأ الحديث.', 'No messages yet — start the conversation.')}
                     </p>
                   )}
 
@@ -225,7 +228,7 @@ export default async function MessagesPage({
                           )}
                           {!mine && (
                             <span className="b-meta" style={{ marginTop: 0, marginBottom: 4 }}>
-                              {nameById.get(message.sender_id ?? '') ?? 'عضو'}
+                              {nameById.get(message.sender_id ?? '') ?? t('عضو', 'A member')}
                             </span>
                           )}
                           {message.body_ar}

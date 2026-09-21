@@ -3,9 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { TEAM_KIND, TEAM_STATUS } from '@/lib/teams';
 
 export default async function TeamsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -50,26 +52,26 @@ export default async function TeamsPage() {
       <section className="section-block">
         <div className="row-between">
           <div>
-            <h2 style={{ fontSize: '1.2rem' }}>الفرق</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>{t('الفرق', 'Teams')}</h2>
             <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-              الفرق التي تتعلّم أو تنفّذ مشاريع من خلالها. مساحة عمل مغلقة — وليست مجتمعاً عاماً.
+              {t('الفرق التي تتعلّم أو تنفّذ مشاريع من خلالها. مساحة عمل مغلقة — وليست مجتمعاً عاماً.', 'The teams you learn or build through. A closed workspace — not a public community.')}
             </p>
           </div>
-          <Link className="btn btn-primary btn-sm" href="/teams/new">+ أنشئ فريقاً</Link>
+          <Link className="btn btn-primary btn-sm" href="/teams/new">{t('+ أنشئ فريقاً', '+ New team')}</Link>
         </div>
       </section>
 
       {(invites?.length ?? 0) > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>دعوات بانتظارك</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('دعوات بانتظارك', 'Invitations waiting for you')}</h3>
           {invites!.map((invite) => (
             <div className="panel row-between" key={invite.id} style={{ marginBottom: 10 }}>
               <span style={{ fontSize: '0.9rem' }}>
-                دعوة للانضمام إلى{' '}
+                {t('دعوة للانضمام إلى ', 'An invitation to join ')}
                 <strong>{(invite.teams as unknown as { title_ar: string } | null)?.title_ar}</strong>
                 {invite.responsibility_ar && <span className="muted"> — {invite.responsibility_ar}</span>}
               </span>
-              <Link className="btn btn-primary btn-sm" href={`/join/${invite.token}`}>عرض الدعوة</Link>
+              <Link className="btn btn-primary btn-sm" href={`/join/${invite.token}`}>{t('عرض الدعوة', 'View invitation')}</Link>
             </div>
           ))}
         </section>
@@ -77,7 +79,7 @@ export default async function TeamsPage() {
 
       {(teams?.length ?? 0) === 0 ? (
         <p className="notice">
-          لست عضواً في أي فريق بعد. أنشئ فريقك، أو انتظر دعوة من قائد فريق عبر TechMood ID.
+          {t('لست عضواً في أي فريق بعد. أنشئ فريقك، أو انتظر دعوة من قائد فريق عبر TechMood ID.', 'You are not in a team yet. Start one, or wait for a team lead to invite you by TechMood ID.')}
         </p>
       ) : (
         <div className="card-grid">
@@ -91,13 +93,13 @@ export default async function TeamsPage() {
               <article className="card" key={team.id}>
                 <div className="row-between">
                   <span className="id-chip">{team.team_code}</span>
-                  <span className={`status-pill ${status.className}`}>{status.text}</span>
+                  <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
                 </div>
 
                 <h3>{team.title_ar}</h3>
                 <div className="tags-row">
-                  <span className="tag">{TEAM_KIND[team.kind]}</span>
-                  {role?.role === 'leader' && <span className="badge-pill">قائد الفريق</span>}
+                  <span className="tag">{t(TEAM_KIND[team.kind])}</span>
+                  {role?.role === 'leader' && <span className="badge-pill">{t('قائد الفريق', 'Team lead')}</span>}
                   {role?.responsibility_ar && <span className="badge-pill">{role.responsibility_ar}</span>}
                 </div>
 
@@ -105,19 +107,19 @@ export default async function TeamsPage() {
 
                 <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
                 <div className="row-between" style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>
-                  <span className="eng">{count?.done ?? 0}/{count?.total ?? 0} مهمة</span>
+                  <span className="eng">{count?.done ?? 0}/{count?.total ?? 0} {t('مهمة', 'tasks')}</span>
                   <span className="eng">{progress}%</span>
                 </div>
 
                 <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)' }}>
-                  <span>👥 {count?.members ?? 0} أعضاء</span>
+                  <span>👥 {count?.members ?? 0} {t('أعضاء', 'members')}</span>
                   <span>
                     <Stars value={starsById.get(team.id) ?? 0} />{' '}
                     <span className="xp-badge eng">{xpById.get(team.id) ?? 0} XP</span>
                   </span>
                 </div>
 
-                <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>افتح مساحة العمل</Link>
+                <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>{t('افتح مساحة العمل', 'Open the workspace')}</Link>
               </article>
             );
           })}

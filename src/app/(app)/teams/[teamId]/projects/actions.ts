@@ -4,18 +4,20 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { ProjectStatus } from '@/lib/database.types';
 
 export type ProjectState = { error?: string; ok?: string } | undefined;
 
 export async function createProject(_prev: ProjectState, formData: FormData): Promise<ProjectState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const teamId = String(formData.get('team_id') ?? '');
   const title = String(formData.get('title') ?? '').trim();
-  if (title.length < 3) return { error: 'اكتب عنواناً واضحاً للمشروع.' };
+  if (title.length < 3) return { error: t('اكتب عنواناً واضحاً للمشروع.', 'Give the project a clear title.') };
 
   const { error } = await supabase.from('projects').insert({
     title_ar: title,
@@ -28,10 +30,10 @@ export async function createProject(_prev: ProjectState, formData: FormData): Pr
       .filter(Boolean),
   });
 
-  if (error) return { error: 'تعذّر إنشاء المشروع — تأكد من صلاحياتك في الفريق.' };
+  if (error) return { error: t('تعذّر إنشاء المشروع — تأكد من صلاحياتك في الفريق.', 'The project could not be created — check your permissions in this team.') };
 
   revalidatePath(`/teams/${teamId}/projects`);
-  return { ok: 'أُنشئ المشروع.' };
+  return { ok: t('أُنشئ المشروع.', 'Project created.') };
 }
 
 export async function setProjectStatus(formData: FormData) {
@@ -48,6 +50,7 @@ export async function setProjectStatus(formData: FormData) {
 
 /** Publishing the work is what turns it into evidence on every builder's passport. */
 export async function submitToExhibition(_prev: ProjectState, formData: FormData): Promise<ProjectState> {
+  const t = await getT();
   const supabase = await createClient();
   const teamId = String(formData.get('team_id') ?? '');
 
@@ -64,12 +67,12 @@ export async function submitToExhibition(_prev: ProjectState, formData: FormData
 
   if (error) {
     const message = error.message ?? '';
-    if (message.includes('completed project')) return { error: 'أكمل المشروع أولاً ثم قدّمه للمعرض.' };
-    if (message.includes('owner or the team leader')) return { error: 'صاحب المشروع أو قائد الفريق فقط يستطيع تقديمه.' };
-    if (message.includes('summary')) return { error: 'اكتب ملخصاً للعمل.' };
-    return { error: 'تعذّر التقديم للمعرض.' };
+    if (message.includes('completed project')) return { error: t('أكمل المشروع أولاً ثم قدّمه للمعرض.', 'Finish the project first, then submit it.') };
+    if (message.includes('owner or the team leader')) return { error: t('صاحب المشروع أو قائد الفريق فقط يستطيع تقديمه.', 'Only the project owner or the team lead can submit it.') };
+    if (message.includes('summary')) return { error: t('اكتب ملخصاً للعمل.', 'Write a summary of the work.') };
+    return { error: t('تعذّر التقديم للمعرض.', 'The submission could not be sent.') };
   }
 
   revalidatePath(`/teams/${teamId}/projects`);
-  return { ok: 'قُدّم المشروع للمعرض، وينتظر مراجعة TechMood.' };
+  return { ok: t('قُدّم المشروع للمعرض، وينتظر مراجعة TechMood.', 'Submitted to the exhibition; it is now waiting on a TechMood review.') };
 }

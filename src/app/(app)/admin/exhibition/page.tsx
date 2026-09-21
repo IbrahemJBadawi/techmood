@@ -2,17 +2,20 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { formatDate } from '@/lib/i18n';
 
 import { reviewEntry } from './actions';
 
 export default async function AdminExhibitionPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (isAdmin !== true) {
-    return <p className="notice notice-danger">هذه الصفحة للمشرفين فقط.</p>;
+    return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
   const { data: entries } = await supabase
@@ -51,20 +54,20 @@ export default async function AdminExhibitionPage() {
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>مراجعة المعرض</h2>
-          <Link className="btn btn-ghost btn-sm" href="/exhibition">المعرض العام</Link>
+          <h2 style={{ fontSize: '1.2rem' }}>{t('مراجعة المعرض', 'Review the exhibition')}</h2>
+          <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض العام', 'Public exhibition')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          الاعتماد ينشر المشروع ويثبّت نسخة منه: هذه النسخة هي ما يراه الجمهور، فلا تنكشف مساحة
-          عمل الفريق بعد النشر.
+          {t('الاعتماد ينشر المشروع ويثبّت نسخة منه: هذه النسخة هي ما يراه الجمهور، فلا تنكشف مساحة عمل الفريق بعد النشر.',
+             'Approving publishes the project and freezes a snapshot of it. That snapshot is what the public sees, so publishing never opens the team\u2019s workspace.')}
         </p>
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>بانتظار المراجعة ({waiting.length})</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('بانتظار المراجعة', 'Awaiting review')} ({waiting.length})</h3>
 
         {waiting.length === 0 ? (
-          <p className="notice">لا مشاريع بانتظار المراجعة 🎉</p>
+          <p className="notice">{t('لا مشاريع بانتظار المراجعة 🎉', 'No projects waiting 🎉')}</p>
         ) : (
           waiting.map((entry) => {
             const project = projectById.get(entry.project_id);
@@ -77,7 +80,7 @@ export default async function AdminExhibitionPage() {
                   <div>
                     <h3 style={{ fontSize: '1rem' }}>{project?.title_ar}</h3>
                     <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
-                      {team?.title_ar ?? 'مشروع فردي'}
+                      {team?.title_ar ?? t('مشروع فردي', 'Solo project')}
                     </p>
                   </div>
                   <span className="id-chip">{project?.code}</span>
@@ -89,28 +92,28 @@ export default async function AdminExhibitionPage() {
                   {(entry.technologies ?? []).map((tech) => <span className="tag eng" key={tech}>{tech}</span>)}
                   {project?.completed_at && (
                     <span className="badge-pill eng">
-                      اكتمل {new Date(project.completed_at).toLocaleDateString('ar-EG')}
+                      {t('اكتمل ', 'Finished ')}{formatDate(t.locale, project.completed_at)}
                     </span>
                   )}
                 </div>
 
                 {entry.demo_url && (
                   <a className="btn btn-ghost btn-sm" style={{ marginTop: 12 }} href={entry.demo_url} target="_blank" rel="noreferrer noopener">
-                    العرض التجريبي ↗
+                    {t('العرض التجريبي ↗', 'Live demo ↗')}
                   </a>
                 )}
 
                 <div style={{ marginTop: 16 }}>
                   <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 8 }}>
-                    المساهمات كما تظهر على لوحة الفريق
+                    {t('المساهمات كما تظهر على لوحة الفريق', 'Contributions as the team board records them')}
                   </p>
                   {rows.length === 0 ? (
                     <p className="notice notice-danger">
-                      لا مهام منجزة مرتبطة بهذا المشروع — لا يوجد ما يوثّق من بناه.
+                      {t('لا مهام منجزة مرتبطة بهذا المشروع — لا يوجد ما يوثّق من بناه.', 'No closed tasks are linked to this project — there is nothing to show who built it.')}
                     </p>
                   ) : (
                     <table className="data">
-                      <thead><tr><th>العضو</th><th>المسؤولية</th><th>مهام منجزة</th></tr></thead>
+                      <thead><tr><th>{t('العضو', 'Member')}</th><th>{t('المسؤولية', 'Responsibility')}</th><th>{t('مهام منجزة', 'Tasks closed')}</th></tr></thead>
                       <tbody>
                         {rows.map((row) => (
                           <tr key={row.profile_id}>
@@ -128,13 +131,13 @@ export default async function AdminExhibitionPage() {
                   <form action={reviewEntry}>
                     <input type="hidden" name="entry_id" value={entry.id} />
                     <input type="hidden" name="decision" value="approve" />
-                    <button className="btn btn-primary btn-sm">اعتمد وانشر</button>
+                    <button className="btn btn-primary btn-sm">{t('اعتمد وانشر', 'Approve and publish')}</button>
                   </form>
                   <form action={reviewEntry} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
                     <input type="hidden" name="entry_id" value={entry.id} />
                     <input type="hidden" name="decision" value="reject" />
-                    <input name="note" required placeholder="سبب الرفض — يظهر للفريق" style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-ghost btn-sm">رفض</button>
+                    <input name="note" required placeholder={t('سبب الرفض — يظهر للفريق', 'Why — the team will see this')} style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
                   </form>
                 </div>
               </article>
@@ -145,9 +148,9 @@ export default async function AdminExhibitionPage() {
 
       {settled.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>سجلّ المعرض</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('سجلّ المعرض', 'Exhibition history')}</h3>
           <table className="data">
-            <thead><tr><th>المشروع</th><th>الفريق</th><th>الحالة</th><th>نُشر</th></tr></thead>
+            <thead><tr><th>{t('المشروع', 'Project')}</th><th>{t('الفريق', 'Team')}</th><th>{t('الحالة', 'Status')}</th><th>{t('نُشر', 'Published')}</th></tr></thead>
             <tbody>
               {settled.map((entry) => (
                 <tr key={entry.id}>
@@ -159,7 +162,7 @@ export default async function AdminExhibitionPage() {
                   <td>{teamById.get(entry.team_id ?? '')?.title_ar ?? '—'}</td>
                   <td>
                     <span className={`status-pill ${entry.status === 'approved' ? 'status-ok' : 'status-danger'}`}>
-                      {entry.status === 'approved' ? 'منشور' : 'مرفوض'}
+                      {entry.status === 'approved' ? t('منشور', 'Published') : t('مرفوض', 'Rejected')}
                     </span>
                   </td>
                   <td className="eng">

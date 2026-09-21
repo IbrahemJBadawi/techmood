@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { SPRINT_STATUS } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
@@ -13,6 +15,7 @@ export default async function TeamSprintsPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,11 +42,11 @@ export default async function TeamSprintsPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — السبرنتات</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — السبرنتات', ' — sprints')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          دورة عمل قصيرة بهدف واضح. في نهايتها تُراجَع المهام المنجزة والمتوقفة وما تعلّمه الفريق.
+          {t('دورة عمل قصيرة بهدف واضح. في نهايتها تُراجَع المهام المنجزة والمتوقفة وما تعلّمه الفريق.', 'A short cycle with one clear goal. At the end the team reviews what was closed, what got stuck and what it learned.')}
         </p>
       </section>
 
@@ -54,7 +57,7 @@ export default async function TeamSprintsPage({
       )}
 
       {(sprints?.length ?? 0) === 0 ? (
-        <p className="notice">لم يبدأ الفريق أي سبرنت بعد.</p>
+        <p className="notice">{t('لم يبدأ الفريق أي سبرنت بعد.', 'This team has not run a sprint yet.')}</p>
       ) : (
         sprints!.map((sprint) => {
           const mine = (tasks ?? []).filter((task) => task.sprint_id === sprint.id);
@@ -65,9 +68,9 @@ export default async function TeamSprintsPage({
           return (
             <article className="panel section-block" key={sprint.id}>
               <div className="row-between">
-                <h3 style={{ fontSize: '1rem' }}>السبرنت {sprint.number}</h3>
+                <h3 style={{ fontSize: '1rem' }}>{t(`السبرنت ${sprint.number}`, `Sprint ${sprint.number}`)}</h3>
                 <span className={`status-pill ${SPRINT_STATUS[sprint.status].className}`}>
-                  {SPRINT_STATUS[sprint.status].text}
+                  {t(SPRINT_STATUS[sprint.status].text)}
                 </span>
               </div>
 
@@ -84,16 +87,16 @@ export default async function TeamSprintsPage({
               </div>
 
               <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)', marginTop: 6 }}>
-                <span className="eng">{done}/{mine.length} مهمة</span>
+                <span className="eng">{done}/{mine.length} {t('مهمة', 'tasks')}</span>
                 <span>
-                  {blocked > 0 && <span className="status-pill status-danger">{blocked} متوقفة</span>}{' '}
+                  {blocked > 0 && <span className="status-pill status-danger">{t(`${blocked} متوقفة`, `${blocked} blocked`)}</span>}{' '}
                   <span className="eng">{progress}%</span>
                 </span>
               </div>
 
               {sprint.review_ar && (
                 <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 12 }}>
-                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 4 }}>مراجعة السبرنت</p>
+                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 4 }}>{t('مراجعة السبرنت', 'Sprint review')}</p>
                   <p style={{ fontSize: '0.87rem' }}>{sprint.review_ar}</p>
                 </div>
               )}

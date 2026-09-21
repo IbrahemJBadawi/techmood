@@ -4,6 +4,8 @@ import { useActionState, useEffect, useMemo, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { SELECTABLE_ROLES, ROLE_STATUS_LABEL, roleLabel } from '@/lib/roles';
+import { useT } from '@/lib/i18n.client';
+import type { T } from '@/lib/i18n';
 import type { RoleStatus, TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
 
 import { finishOnboarding, requestRoles, saveBasics, saveTerms, suggestTerm } from './actions';
@@ -29,16 +31,17 @@ type Props = {
   selected: Record<TaxonomyKind, string[]>;
 };
 
-const STEPS = [
-  'المعلومات الأساسية',
-  'الأدوار',
-  'المجالات',
-  'الاهتمامات',
-  'المهارات',
-  'الملخّص',
+const steps = (t: T) => [
+  t('المعلومات الأساسية', 'Basics'),
+  t('الأدوار', 'Roles'),
+  t('المجالات', 'Fields'),
+  t('الاهتمامات', 'Interests'),
+  t('المهارات', 'Skills'),
+  t('الملخّص', 'Summary'),
 ];
 
 export function OnboardingWizard({ userId, profile, roles, catalogues, selected }: Props) {
+  const t = useT();
   const [step, setStep] = useState(0);
   const [picked, setPicked] = useState(selected);
   const [requested, setRequested] = useState<UserRole[]>(
@@ -57,14 +60,17 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
           </div>
           <span className="id-chip">{profile.techmood_id}</span>
         </div>
-        <h1>لنُعِدّ حسابك</h1>
+        <h1>{t('لنُعِدّ حسابك', 'Let\u2019s set up your account')}</h1>
         <p className="muted">
-          هذه المعلومات تبني هويتك المهنية الواحدة. رقمك <strong>{profile.techmood_id}</strong> صدر
-          بالفعل ولا يتغيّر مهما غيّرت اسمك أو أدوارك.
+          {t('هذه المعلومات تبني هويتك المهنية الواحدة. رقمك ',
+             'This is what your one professional identity is built from. Your ID ')}
+          <strong>{profile.techmood_id}</strong>
+          {t(' صدر بالفعل ولا يتغيّر مهما غيّرت اسمك أو أدوارك.',
+             ' has already been issued and never changes, whatever you call yourself or which roles you take on.')}
         </p>
 
         <ol className="stepper">
-          {STEPS.map((label, index) => (
+          {steps(t).map((label, index) => (
             <li
               key={label}
               className={index === step ? 'current' : index < step ? 'done' : ''}
@@ -94,8 +100,9 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
       {step === 2 && (
         <TermStep
           kind="field"
-          title="المجالات"
-          lede="أين تعمل؟ ثلاثة مجالات كحد أقصى — هذه هي التي تقود المطابقة مع المنتورز والفرق والفرص."
+          title={t('المجالات', 'Fields')}
+          lede={t('أين تعمل؟ ثلاثة مجالات كحد أقصى — هذه هي التي تقود المطابقة مع المنتورز والفرق والفرص.',
+                  'Where do you work? Three at most — these are what drive matching with mentors, teams and openings.')}
           max={3}
           terms={catalogues.field}
           value={picked.field}
@@ -108,8 +115,9 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
       {step === 3 && (
         <TermStep
           kind="interest"
-          title="الاهتمامات"
-          lede="ما الذي يهمّك؟ بلا حد أقصى — هذه تقود التوصيات وما يظهر لك في المنصة."
+          title={t('الاهتمامات', 'Interests')}
+          lede={t('ما الذي يهمّك؟ بلا حد أقصى — هذه تقود التوصيات وما يظهر لك في المنصة.',
+                  'What do you care about? No limit — these drive your recommendations and what surfaces for you.')}
           terms={catalogues.interest}
           value={picked.interest}
           onChange={(ids) => setPicked((prev) => ({ ...prev, interest: ids }))}
@@ -121,8 +129,9 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
       {step === 4 && (
         <TermStep
           kind="skill"
-          title="المهارات"
-          lede="ما الذي تستطيع فعله؟ بلا حد أقصى. المهارة تبقى منفصلة عن المجال والاهتمام، ويمكن لأعمالك المعتمدة أن توثّقها لاحقاً."
+          title={t('المهارات', 'Skills')}
+          lede={t('ما الذي تستطيع فعله؟ بلا حد أقصى. المهارة تبقى منفصلة عن المجال والاهتمام، ويمكن لأعمالك المعتمدة أن توثّقها لاحقاً.',
+                  'What can you do? No limit. A skill stays separate from a field and an interest, and approved work can verify it later.')}
           terms={catalogues.skill}
           value={picked.skill}
           onChange={(ids) => setPicked((prev) => ({ ...prev, skill: ids }))}
@@ -157,6 +166,7 @@ function BasicsStep({
   profile: Props['profile'];
   onDone: () => void;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(saveBasics, undefined);
   const [avatar, setAvatar] = useState(profile.avatar_url ?? '');
   const [uploading, setUploading] = useState(false);
@@ -173,7 +183,7 @@ function BasicsStep({
     const path = `${userId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`;
     const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
     if (error) {
-      setUploadError('تعذّر رفع الصورة.');
+      setUploadError(t('تعذّر رفع الصورة.', 'The image could not be uploaded.'));
     } else {
       const { data } = supabase.storage.from('avatars').getPublicUrl(path);
       setAvatar(data.publicUrl);
@@ -183,7 +193,7 @@ function BasicsStep({
 
   return (
     <form action={formAction} className="panel onboarding-card">
-      <h2>من أنت؟</h2>
+      <h2>{t('من أنت؟', 'Who are you?')}</h2>
 
       <div className="avatar-picker">
         <span className="avatar-preview" aria-hidden="true">
@@ -194,7 +204,7 @@ function BasicsStep({
         </span>
         <div>
           <label className="btn btn-ghost btn-sm" htmlFor="avatar">
-            {uploading ? 'جارٍ الرفع…' : 'اختر صورة'}
+            {uploading ? t('جارٍ الرفع…', 'Uploading…') : t('اختر صورة', 'Choose a photo')}
           </label>
           <input
             id="avatar"
@@ -207,7 +217,7 @@ function BasicsStep({
             }}
           />
           <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-            اختيارية. تظهر في ملفك العام وفي الفرق التي تنضم إليها.
+            {t('اختيارية. تظهر في ملفك العام وفي الفرق التي تنضم إليها.', 'Optional. It appears on your public profile and in the teams you join.')}
           </p>
           {uploadError && <p className="notice notice-danger">{uploadError}</p>}
         </div>
@@ -216,52 +226,54 @@ function BasicsStep({
 
       <div className="field-row">
         <div className="field">
-          <label htmlFor="full_name">الاسم الكامل بالإنجليزية</label>
+          <label htmlFor="full_name">{t('الاسم الكامل بالإنجليزية', 'Full name in English')}</label>
           <input id="full_name" name="full_name" defaultValue={profile.full_name} required
                  dir="ltr" placeholder="Ibrahem Jamal Badawi" />
-          <small className="muted">كما تريده أن يظهر على الشهادات.</small>
+          <small className="muted">{t('كما تريده أن يظهر على الشهادات.', 'As you want it printed on your certificates.')}</small>
         </div>
         <div className="field">
-          <label htmlFor="display_name">الاسم الظاهر</label>
+          <label htmlFor="display_name">{t('الاسم الظاهر', 'Display name')}</label>
           <input id="display_name" name="display_name"
                  defaultValue={profile.display_name ?? profile.full_name} required
-                 placeholder="إبراهيم" />
-          <small className="muted">ما يناديك به الناس داخل المنصة.</small>
+                 placeholder={t('إبراهيم', 'Ibrahem')} />
+          <small className="muted">{t('ما يناديك به الناس داخل المنصة.', 'What people call you on the platform.')}</small>
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="username">اسم المستخدم</label>
+        <label htmlFor="username">{t('اسم المستخدم', 'Username')}</label>
         <div className="username-field">
           <span className="username-prefix" dir="ltr">techmood.app/@</span>
           <input id="username" name="username" defaultValue={profile.username ?? ''} required
                  dir="ltr" pattern="[a-z0-9_]{3,30}" placeholder="ibrahem" />
         </div>
         <small className="muted">
-          حروف إنجليزية صغيرة وأرقام و_ فقط. هذا اسم مستعار للعرض؛ معرّفك الحقيقي
-          هو <strong>{profile.techmood_id}</strong> ولا يتغيّر.
+          {t('حروف إنجليزية صغيرة وأرقام و_ فقط. هذا اسم مستعار للعرض؛ معرّفك الحقيقي هو ',
+             'Lowercase letters, digits and _ only. This is a display handle; your real identifier is ')}
+          <strong>{profile.techmood_id}</strong>
+          {t(' ولا يتغيّر.', ', and it never changes.')}
         </small>
       </div>
 
       <div className="field">
-        <label htmlFor="headline">سطر تعريفي</label>
+        <label htmlFor="headline">{t('سطر تعريفي', 'Headline')}</label>
         <input id="headline" name="headline" defaultValue={profile.headline ?? ''}
-               placeholder="مطوّر واجهات أمامية — أتعلّم وأبني في غزة" maxLength={120} />
+               placeholder={t('مطوّر واجهات أمامية — أتعلّم وأبني في غزة', 'Frontend developer — learning and building in Gaza')} maxLength={120} />
       </div>
 
       <div className="field-row">
         <div className="field">
-          <label htmlFor="country">الدولة</label>
-          <input id="country" name="country" defaultValue={profile.country ?? ''} placeholder="فلسطين" />
+          <label htmlFor="country">{t('الدولة', 'Country')}</label>
+          <input id="country" name="country" defaultValue={profile.country ?? ''} placeholder={t('فلسطين', 'Palestine')} />
         </div>
         <div className="field">
-          <label htmlFor="city">المدينة</label>
-          <input id="city" name="city" defaultValue={profile.city ?? ''} placeholder="غزة" />
+          <label htmlFor="city">{t('المدينة', 'City')}</label>
+          <input id="city" name="city" defaultValue={profile.city ?? ''} placeholder={t('غزة', 'Gaza')} />
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="language">لغة الواجهة</label>
+        <label htmlFor="language">{t('لغة الواجهة', 'Interface language')}</label>
         <select id="language" name="language" defaultValue={profile.language}>
           <option value="ar">العربية</option>
           <option value="en">English</option>
@@ -272,7 +284,7 @@ function BasicsStep({
 
       <div className="onboarding-actions">
         <button className="btn btn-primary" disabled={pending || uploading}>
-          {pending ? 'جارٍ الحفظ…' : 'التالي'}
+          {pending ? t('جارٍ الحفظ…', 'Saving…') : t('التالي', 'Next')}
         </button>
       </div>
     </form>
@@ -294,6 +306,7 @@ function RolesStep({
   onBack: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(requestRoles, undefined);
   const byRole = new Map(roles.map((row) => [row.role, row]));
 
@@ -301,20 +314,20 @@ function RolesStep({
 
   return (
     <form action={formAction} className="panel onboarding-card">
-      <h2>ماذا تريد أن تفعل هنا؟</h2>
+      <h2>{t('ماذا تريد أن تفعل هنا؟', 'What do you want to do here?')}</h2>
       <p className="muted">
-        الأدوار ليست ترتيباً اجتماعياً — لا يوجد دور «أعلى» من آخر. كل دور يفتح
-        مساحة عمل مختلفة، ويمكنك حمل أكثر من دور في الوقت نفسه.
+        {t('الأدوار ليست ترتيباً اجتماعياً — لا يوجد دور «أعلى» من آخر. كل دور يفتح مساحة عمل مختلفة، ويمكنك حمل أكثر من دور في الوقت نفسه.',
+           'Roles are not a social ranking — none of them sits above another. Each opens a different workspace, and you can hold more than one at a time.')}
       </p>
 
       <div className="role-card is-active">
         <div className="row-between">
-          <strong>طالب</strong>
-          <span className="pill pill-ok">مفعّل</span>
+          <strong>{t('طالب', 'Student')}</strong>
+          <span className="pill pill-ok">{t('مفعّل', 'Active')}</span>
         </div>
-        <p className="muted">{SELECTABLE_ROLES[0].blurb}</p>
+        <p className="muted">{t(SELECTABLE_ROLES[0].blurb)}</p>
         <p className="muted" style={{ fontSize: '0.82rem' }}>
-          كل حساب في TechMood طالب — هذا الدور لا يحتاج طلباً ولا يمكن إزالته.
+          {t('كل حساب في TechMood طالب — هذا الدور لا يحتاج طلباً ولا يمكن إزالته.', 'Every TechMood account is a student — this role needs no application and cannot be removed.')}
         </p>
       </div>
 
@@ -339,19 +352,19 @@ function RolesStep({
                     )
                   }
                 />
-                <strong>{role.label}</strong>
+                <strong>{t(role.label)}</strong>
               </span>
               {existing
-                ? <span className="pill pill-wait">{ROLE_STATUS_LABEL[existing.status]}</span>
-                : <span className="pill">يحتاج مراجعة</span>}
+                ? <span className="pill pill-wait">{t(ROLE_STATUS_LABEL[existing.status])}</span>
+                : <span className="pill">{t('يحتاج مراجعة', 'Needs review')}</span>}
             </label>
-            <p className="muted">{role.blurb}</p>
+            <p className="muted">{t(role.blurb)}</p>
 
             {checked && !existing && (
               <div className="field" style={{ marginTop: 10 }}>
-                <label htmlFor={`note_${role.value}`}>لماذا هذا الدور؟</label>
+                <label htmlFor={`note_${role.value}`}>{t('لماذا هذا الدور؟', 'Why this role?')}</label>
                 <textarea id={`note_${role.value}`} name={`note_${role.value}`} rows={2}
-                          placeholder="اكتب سطرين يساعدان من سيراجع طلبك." />
+                          placeholder={t('اكتب سطرين يساعدان من سيراجع طلبك.', 'A couple of lines to help whoever reviews this.')} />
               </div>
             )}
           </div>
@@ -359,16 +372,18 @@ function RolesStep({
       })}
 
       <p className="notice">
-        الأدوار التي تطلبها تبدأ بحالة <strong>قيد المراجعة</strong>. تراها في
-        حسابك، لكنك لا تدخل مساحتها قبل الاعتماد.
+        {t('الأدوار التي تطلبها تبدأ بحالة ', 'A role you ask for starts as ')}
+        <strong>{t('قيد المراجعة', 'pending review')}</strong>
+        {t('. تراها في حسابك، لكنك لا تدخل مساحتها قبل الاعتماد.',
+           '. You can see it on your account, but you do not enter its workspace until it is approved.')}
       </p>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
 
       <div className="onboarding-actions">
-        <button className="btn btn-ghost" type="button" onClick={onBack}>رجوع</button>
+        <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
         <button className="btn btn-primary" disabled={pending}>
-          {pending ? 'جارٍ الإرسال…' : 'التالي'}
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('التالي', 'Next')}
         </button>
       </div>
     </form>
@@ -390,6 +405,7 @@ function TermStep({
   onBack: () => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(saveTerms, undefined);
   const [query, setQuery] = useState('');
   const [suggesting, setSuggesting] = useState(false);
@@ -426,20 +442,20 @@ function TermStep({
       <p className="muted">{lede}</p>
 
       <div className="field">
-        <label htmlFor={`search_${kind}`}>ابحث</label>
+        <label htmlFor={`search_${kind}`}>{t('ابحث', 'Search')}</label>
         <input
           id={`search_${kind}`}
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="اكتب بالعربية أو بالإنجليزية…"
+          placeholder={t('اكتب بالعربية أو بالإنجليزية…', 'Type in Arabic or English…')}
         />
       </div>
 
       <p className="muted" style={{ fontSize: '0.84rem' }}>
         {max !== undefined
-          ? `اخترت ${value.length} من ${max}`
-          : `اخترت ${value.length}`}
+          ? t(`اخترت ${value.length} من ${max}`, `${value.length} of ${max} chosen`)
+          : t(`اخترت ${value.length}`, `${value.length} chosen`)}
       </p>
 
       <div className="tags-row term-list">
@@ -454,19 +470,22 @@ function TermStep({
               disabled={!on && atLimit}
               onClick={() => toggle(term.id)}
             >
-              {term.name_ar}
-              <span className="term-en" dir="ltr">{term.name_en}</span>
+              {t.locale === 'ar' ? term.name_ar : term.name_en}
+              <span className="term-en" dir={t.locale === 'ar' ? 'ltr' : 'rtl'}>
+                {t.locale === 'ar' ? term.name_en : term.name_ar}
+              </span>
             </button>
           );
         })}
         {matches.length === 0 && (
-          <p className="muted">لا نتيجة مطابقة — يمكنك اقتراح المصطلح أدناه.</p>
+          <p className="muted">{t('لا نتيجة مطابقة — يمكنك اقتراح المصطلح أدناه.', 'Nothing matches — you can suggest the term below.')}</p>
         )}
       </div>
 
       {pendingTerms.length > 0 && (
         <p className="notice">
-          قيد المراجعة من اقتراحاتك: {pendingTerms.map((term) => term.name_ar).join('، ')}
+          {t('قيد المراجعة من اقتراحاتك: ', 'Your suggestions under review: ')}
+          {pendingTerms.map((term) => (t.locale === 'ar' ? term.name_ar : term.name_en)).join(t('، ', ', '))}
         </p>
       )}
 
@@ -474,16 +493,16 @@ function TermStep({
         ? <SuggestForm kind={kind} onClose={() => setSuggesting(false)} />
         : (
           <button className="btn btn-ghost btn-sm" type="button" onClick={() => setSuggesting(true)}>
-            لم تجد ما تبحث عنه؟ اقترح مصطلحاً
+            {t('لم تجد ما تبحث عنه؟ اقترح مصطلحاً', 'Not finding it? Suggest a term')}
           </button>
         )}
 
       <form action={formAction} className="onboarding-actions">
         <input type="hidden" name="kind" value={kind} />
         {value.map((id) => <input key={id} type="hidden" name="term" value={id} />)}
-        <button className="btn btn-ghost" type="button" onClick={onBack}>رجوع</button>
+        <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
         <button className="btn btn-primary" disabled={pending}>
-          {pending ? 'جارٍ الحفظ…' : 'التالي'}
+          {pending ? t('جارٍ الحفظ…', 'Saving…') : t('التالي', 'Next')}
         </button>
       </form>
 
@@ -493,6 +512,7 @@ function TermStep({
 }
 
 function SuggestForm({ kind, onClose }: { kind: TaxonomyKind; onClose: () => void }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(suggestTerm, undefined);
 
   return (
@@ -500,24 +520,24 @@ function SuggestForm({ kind, onClose }: { kind: TaxonomyKind; onClose: () => voi
       <input type="hidden" name="kind" value={kind} />
       <div className="field-row">
         <div className="field">
-          <label htmlFor={`sug_ar_${kind}`}>الاسم بالعربية</label>
+          <label htmlFor={`sug_ar_${kind}`}>{t('الاسم بالعربية', 'Name in Arabic')}</label>
           <input id={`sug_ar_${kind}`} name="name_ar" required minLength={2} />
         </div>
         <div className="field">
-          <label htmlFor={`sug_en_${kind}`}>الاسم بالإنجليزية</label>
+          <label htmlFor={`sug_en_${kind}`}>{t('الاسم بالإنجليزية', 'Name in English')}</label>
           <input id={`sug_en_${kind}`} name="name_en" required minLength={2} dir="ltr" />
         </div>
       </div>
       <p className="muted" style={{ fontSize: '0.82rem' }}>
-        الاقتراح يذهب إلى المراجعة ولا يُنشر مباشرة.
+        {t('الاقتراح يذهب إلى المراجعة ولا يُنشر مباشرة.', 'A suggestion goes to review; it is not published straight away.')}
       </p>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? 'جارٍ الإرسال…' : 'أرسل الاقتراح'}
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الاقتراح', 'Send suggestion')}
         </button>
-        <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>إغلاق</button>
+        <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>{t('إغلاق', 'Close')}</button>
       </div>
     </form>
   );
@@ -536,10 +556,13 @@ function SummaryStep({
   catalogues: Record<TaxonomyKind, Term[]>;
   onBack: () => void;
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(finishOnboarding, undefined);
 
   function names(kind: TaxonomyKind) {
-    const lookup = new Map(catalogues[kind].map((term) => [term.id, term.name_ar]));
+    const lookup = new Map(
+      catalogues[kind].map((term) => [term.id, t.locale === 'ar' ? term.name_ar : term.name_en]),
+    );
     return picked[kind].map((id) => lookup.get(id)).filter(Boolean) as string[];
   }
 
@@ -547,76 +570,76 @@ function SummaryStep({
 
   return (
     <form action={formAction} className="panel onboarding-card">
-      <h2>حسابك جاهز</h2>
+      <h2>{t('حسابك جاهز', 'Your account is ready')}</h2>
 
       <dl className="summary-list">
         <div>
-          <dt>معرّف TechMood</dt>
+          <dt>{t('معرّف TechMood', 'TechMood ID')}</dt>
           <dd><span className="id-chip">{profile.techmood_id}</span></dd>
         </div>
         <div>
-          <dt>الاسم</dt>
+          <dt>{t('الاسم', 'Name')}</dt>
           <dd>{profile.display_name ?? profile.full_name}</dd>
         </div>
         <div>
-          <dt>المجالات</dt>
-          <dd>{names('field').join('، ') || '—'}</dd>
+          <dt>{t('المجالات', 'Fields')}</dt>
+          <dd>{names('field').join(t('، ', ', ')) || '—'}</dd>
         </div>
         <div>
-          <dt>الاهتمامات</dt>
-          <dd>{names('interest').join('، ') || '—'}</dd>
+          <dt>{t('الاهتمامات', 'Interests')}</dt>
+          <dd>{names('interest').join(t('، ', ', ')) || '—'}</dd>
         </div>
         <div>
-          <dt>المهارات</dt>
-          <dd>{names('skill').join('، ') || '—'}</dd>
+          <dt>{t('المهارات', 'Skills')}</dt>
+          <dd>{names('skill').join(t('، ', ', ')) || '—'}</dd>
         </div>
       </dl>
 
-      <h3 style={{ fontSize: '0.95rem', marginTop: 18 }}>أدوارك</h3>
+      <h3 style={{ fontSize: '0.95rem', marginTop: 18 }}>{t('أدوارك', 'Your roles')}</h3>
       <ul className="summary-roles">
         <li>
-          <span>{roleLabel('student')}</span>
-          <span className="pill pill-ok">مفعّل</span>
+          <span>{t(roleLabel('student'))}</span>
+          <span className="pill pill-ok">{t('مفعّل', 'Active')}</span>
         </li>
         {roles.filter((row) => row.role !== 'student').map((row) => (
           <li key={row.id}>
-            <span>{roleLabel(row.role)}</span>
+            <span>{t(roleLabel(row.role))}</span>
             <span className={`pill pill-${row.status === 'approved' ? 'ok' : 'wait'}`}>
-              {ROLE_STATUS_LABEL[row.status]}
+              {t(ROLE_STATUS_LABEL[row.status])}
             </span>
           </li>
         ))}
         {requested.length === 0 && roles.length <= 1 && (
-          <li className="muted">لم تطلب أدواراً إضافية — يمكنك طلبها لاحقاً من «أدواري».</li>
+          <li className="muted">{t('لم تطلب أدواراً إضافية — يمكنك طلبها لاحقاً من «أدواري».', 'You have not asked for any extra roles — you can do that later from My roles.')}</li>
         )}
       </ul>
 
       {pending_roles.length > 0 && (
         <p className="notice">
-          الأدوار قيد المراجعة تظهر في حسابك من الآن، لكن مساحة العمل الخاصة بها
-          تبقى مغلقة حتى الاعتماد.
+          {t('الأدوار قيد المراجعة تظهر في حسابك من الآن، لكن مساحة العمل الخاصة بها تبقى مغلقة حتى الاعتماد.',
+             'Roles under review show up on your account right away, but their workspace stays shut until they are approved.')}
         </p>
       )}
 
       <div className="field" style={{ marginTop: 16 }}>
-        <label htmlFor="primary_role">الدور الأساسي</label>
+        <label htmlFor="primary_role">{t('الدور الأساسي', 'Primary role')}</label>
         <select id="primary_role" name="primary_role" defaultValue="student">
           {approved.map((role) => (
-            <option key={role} value={role}>{roleLabel(role)}</option>
+            <option key={role} value={role}>{t(roleLabel(role))}</option>
           ))}
         </select>
         <small className="muted">
-          هو ما تفتح عليه المنصة عند الدخول، ويمكنك تغييره متى شئت. لا يعني أنه
-          أهم من بقية أدوارك.
+          {t('هو ما تفتح عليه المنصة عند الدخول، ويمكنك تغييره متى شئت. لا يعني أنه أهم من بقية أدوارك.',
+             'This is what the platform opens on when you sign in, and you can change it whenever you like. It does not make that role more important than the rest.')}
         </small>
       </div>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
 
       <div className="onboarding-actions">
-        <button className="btn btn-ghost" type="button" onClick={onBack}>رجوع</button>
+        <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
         <button className="btn btn-primary" disabled={pending}>
-          {pending ? 'جارٍ الإنهاء…' : 'ابدأ رحلتك'}
+          {pending ? t('جارٍ الإنهاء…', 'Finishing…') : t('ابدأ رحلتك', 'Start your journey')}
         </button>
       </div>
     </form>

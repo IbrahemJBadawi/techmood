@@ -2,14 +2,16 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { ROLE_STATUS_LABEL } from '@/lib/roles';
 import type { RoleStatus } from '@/lib/database.types';
 
 import { MentorApplicationForm } from './MentorApplicationForm';
 
-export const metadata = { title: 'التقدّم كمنتور — TechMood' };
+export const metadata = { title: 'Apply as a mentor — TechMood' };
 
 export default async function MentorApplicationPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -34,9 +36,10 @@ export default async function MentorApplicationPage() {
   if (status === 'approved') {
     return (
       <section className="panel section-block">
-        <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>أنت منتور معتمد</h1>
+        <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{t('أنت منتور معتمد', 'You are an approved mentor')}</h1>
         <p className="muted">
-          يمكنك تعديل صفحتك وأوقاتك من <Link href="/mentors">صفحة المنتورز</Link>.
+          {t('يمكنك تعديل صفحتك وأوقاتك من ', 'You can edit your page and your hours from ')}
+          <Link href="/mentors">{t('صفحة المنتورز', 'the mentors page')}</Link>.
         </p>
       </section>
     );
@@ -45,24 +48,24 @@ export default async function MentorApplicationPage() {
   return (
     <>
       <section className="section-block">
-        <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>التقدّم كمنتور</h1>
+        <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>{t('التقدّم كمنتور', 'Apply as a mentor')}</h1>
         <p className="muted" style={{ fontSize: '0.9rem', maxWidth: 680 }}>
-          المنتور في TechMood يراجع أعمال الناس ويقرّر ما إذا كانت تستحق شهادة.
-          لهذا الطلب نموذج كامل وليس زرّاً: من سيقرأه يحتاج أن يعرف خبرتك ودافعك
-          قبل أن يفتح لك هذه المسؤولية.
+          {t('المنتور في TechMood يراجع أعمال الناس ويقرّر ما إذا كانت تستحق شهادة. لهذا الطلب نموذج كامل وليس زرّاً: من سيقرأه يحتاج أن يعرف خبرتك ودافعك قبل أن يفتح لك هذه المسؤولية.',
+             'A mentor on TechMood reviews other people\u2019s work and decides whether it earns a certificate. That is why this is a full form and not a button: whoever reads it needs to know your experience and your reasons before handing you that responsibility.')}
         </p>
       </section>
 
       {status && status !== 'rejected' && (
         <p className="notice">
-          حالة طلبك الحالية: <strong>{ROLE_STATUS_LABEL[status]}</strong>
+          {t('حالة طلبك الحالية: ', 'Your request currently reads: ')}
+          <strong>{t(ROLE_STATUS_LABEL[status])}</strong>
           {request?.review_note ? ` — ${request.review_note}` : ''}
         </p>
       )}
 
       {status === 'rejected' && request?.review_note && (
         <p className="notice notice-danger">
-          <strong>لم يُقبل الطلب السابق:</strong> {request.review_note}
+          <strong>{t('لم يُقبل الطلب السابق:', 'The previous request was not accepted:')}</strong> {request.review_note}
         </p>
       )}
 

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { TASK_COLUMNS, TASK_PRIORITY, isOverdue } from '@/lib/teams';
 
 import { addChecklistItem, addTaskComment, toggleChecklistItem } from '../../../actions';
@@ -13,6 +15,7 @@ export default async function TaskDetailPage({
   params: Promise<{ teamId: string; taskId: string }>;
 }) {
   const { teamId, taskId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -42,11 +45,12 @@ export default async function TaskDetailPage({
   const nameById = new Map((profiles ?? []).map((row) => [row.id, row.full_name]));
   const revalidate = `/teams/${teamId}/tasks/${taskId}`;
   const doneCount = (checklist ?? []).filter((item) => item.is_done).length;
-  const columnLabel = TASK_COLUMNS.find((column) => column.key === task.column_key)?.label ?? task.column_key;
+  const column = TASK_COLUMNS.find((entry) => entry.key === task.column_key);
+  const columnLabel = column ? t(column.label) : task.column_key;
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}/tasks`}>→ رجوع للمهام</Link>
+      <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}/tasks`}>{t('→ رجوع للمهام', '← Back to tasks')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
@@ -58,10 +62,10 @@ export default async function TaskDetailPage({
 
         <div className="tags-row" style={{ marginTop: 12 }}>
           <span className={`status-pill ${TASK_PRIORITY[task.priority].className}`}>
-            {TASK_PRIORITY[task.priority].text}
+            {t(TASK_PRIORITY[task.priority].text)}
           </span>
           <span className="badge-pill">
-            {task.assignee_id ? nameById.get(task.assignee_id) ?? '—' : 'بلا مسؤول'}
+            {task.assignee_id ? nameById.get(task.assignee_id) ?? '—' : t('بلا مسؤول', 'Unassigned')}
           </span>
           {task.due_on && (
             <span className="badge-pill eng" style={isOverdue(task.due_on, task.column_key) ? { color: 'var(--danger)' } : undefined}>
@@ -86,7 +90,7 @@ export default async function TaskDetailPage({
         <section>
           <div className="panel section-block">
             <div className="row-between" style={{ marginBottom: 12 }}>
-              <h3 style={{ fontSize: '0.98rem' }}>قائمة التحقق</h3>
+              <h3 style={{ fontSize: '0.98rem' }}>{t('قائمة التحقق', 'Checklist')}</h3>
               <span className="badge-pill eng">{doneCount}/{checklist?.length ?? 0}</span>
             </div>
 
@@ -105,16 +109,16 @@ export default async function TaskDetailPage({
             <form action={addChecklistItem} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <input type="hidden" name="task_id" value={taskId} />
               <input type="hidden" name="revalidate" value={revalidate} />
-              <input name="label" placeholder="أضف بنداً…" style={{ flex: 1, minWidth: 0 }} />
-              <button className="btn btn-ghost btn-sm">إضافة</button>
+              <input name="label" placeholder={t('أضف بنداً…', 'Add an item…')} style={{ flex: 1, minWidth: 0 }} />
+              <button className="btn btn-ghost btn-sm">{t('إضافة', 'Add')}</button>
             </form>
           </div>
 
           <div className="panel">
-            <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>النقاش</h3>
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('النقاش', 'Discussion')}</h3>
 
             {(comments?.length ?? 0) === 0 ? (
-              <p className="muted" style={{ fontSize: '0.86rem' }}>لا تعليقات بعد.</p>
+              <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا تعليقات بعد.', 'No comments yet.')}</p>
             ) : (
               comments!.map((comment) => (
                 <div key={comment.id} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid var(--line)' }}>
@@ -132,20 +136,20 @@ export default async function TaskDetailPage({
             <form action={addTaskComment} style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <input type="hidden" name="task_id" value={taskId} />
               <input type="hidden" name="revalidate" value={revalidate} />
-              <input name="body" placeholder="اكتب تعليقاً…" style={{ flex: 1, minWidth: 0 }} />
-              <button className="btn btn-primary btn-sm">إرسال</button>
+              <input name="body" placeholder={t('اكتب تعليقاً…', 'Write a comment…')} style={{ flex: 1, minWidth: 0 }} />
+              <button className="btn btn-primary btn-sm">{t('إرسال', 'Send')}</button>
             </form>
           </div>
         </section>
 
         <aside className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>التسليم</h3>
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('التسليم', 'Handing it in')}</h3>
           <p className="muted" style={{ fontSize: '0.84rem' }}>
-            يُرفق التسليم بالمهمة نفسها — مستودع أو عرض أو ملاحظات — لا في المحادثة، حتى يبقى
-            العمل قابلاً للتتبع ضمن سجلك المهني.
+            {t('يُرفق التسليم بالمهمة نفسها — مستودع أو عرض أو ملاحظات — لا في المحادثة، حتى يبقى العمل قابلاً للتتبع ضمن سجلك المهني.',
+               'A deliverable is attached to the task itself — a repository, a demo, notes — not to the conversation, so the work stays traceable in your professional record.')}
           </p>
           <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-            انقل المهمة إلى «قيد المراجعة» عندما تنتهي منها.
+            {t('انقل المهمة إلى «قيد المراجعة» عندما تنتهي منها.', 'Move the task to “In review” when you are done with it.')}
           </p>
         </aside>
       </div>

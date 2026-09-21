@@ -1,12 +1,14 @@
+import type { Text } from '@/lib/i18n';
+
 /** Level ladder mirroring public.xp_levels, for rendering without a round-trip. */
-export const XP_LEVELS = [
-  { minXp: 0, title: 'مبتدئ' },
-  { minXp: 150, title: 'متعلّم نشِط' },
-  { minXp: 400, title: 'ممارس' },
-  { minXp: 900, title: 'محترف' },
-  { minXp: 1800, title: 'خبير TechMood' },
-  { minXp: 3000, title: 'أسطورة TechMood' },
-] as const;
+export const XP_LEVELS: { minXp: number; title: Text }[] = [
+  { minXp: 0,    title: { ar: 'مبتدئ',            en: 'Beginner' } },
+  { minXp: 150,  title: { ar: 'متعلّم نشِط',       en: 'Active learner' } },
+  { minXp: 400,  title: { ar: 'ممارس',            en: 'Practitioner' } },
+  { minXp: 900,  title: { ar: 'محترف',            en: 'Professional' } },
+  { minXp: 1800, title: { ar: 'خبير TechMood',    en: 'TechMood expert' } },
+  { minXp: 3000, title: { ar: 'أسطورة TechMood',  en: 'TechMood legend' } },
+];
 
 type Level = (typeof XP_LEVELS)[number];
 

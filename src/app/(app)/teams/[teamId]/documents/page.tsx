@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { DOCUMENT_KINDS } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
@@ -14,6 +15,7 @@ export default async function TeamDocumentsPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,17 +38,19 @@ export default async function TeamDocumentsPage({
 
   const authorById = new Map((authors ?? []).map((row) => [row.id, row.full_name]));
   const projectById = new Map((projects ?? []).map((row) => [row.id, row.title_ar]));
-  const groups = [...new Set(DOCUMENT_KINDS.map((kind) => kind.group))];
+  // Groups are Text pairs, so dedupe on the English key rather than on object identity.
+  const groups = DOCUMENT_KINDS.map((kind) => kind.group)
+    .filter((group, index, all) => all.findIndex((other) => other.en === group.en) === index);
 
   return (
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — المستندات</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — المستندات', ' — documents')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          مستندات مصنّفة بدل ملفات ضائعة في المحادثة. كل مستند له نوع، ويمكن ربطه بمشروع.
+          {t('مستندات مصنّفة بدل ملفات ضائعة في المحادثة. كل مستند له نوع، ويمكن ربطه بمشروع.', 'Filed documents instead of files lost in a chat. Each one has a kind, and can be tied to a project.')}
         </p>
       </section>
 
@@ -57,16 +61,16 @@ export default async function TeamDocumentsPage({
       )}
 
       {(documents?.length ?? 0) === 0 ? (
-        <p className="notice">لا مستندات بعد.</p>
+        <p className="notice">{t('لا مستندات بعد.', 'No documents yet.')}</p>
       ) : (
         groups.map((group) => {
-          const kindsInGroup = DOCUMENT_KINDS.filter((kind) => kind.group === group).map((kind) => kind.key);
+          const kindsInGroup = DOCUMENT_KINDS.filter((kind) => kind.group.en === group.en).map((kind) => kind.key);
           const groupDocuments = (documents ?? []).filter((row) => kindsInGroup.includes(row.kind));
           if (groupDocuments.length === 0) return null;
 
           return (
-            <section className="section-block" key={group}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{group}</h3>
+            <section className="section-block" key={group.en}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t(group)}</h3>
 
               {groupDocuments.map((document) => (
                 <article className="panel" key={document.id} style={{ marginBottom: 12 }}>
@@ -75,7 +79,10 @@ export default async function TeamDocumentsPage({
                       <h4 style={{ fontSize: '0.95rem' }}>{document.title_ar}</h4>
                       <div className="tags-row" style={{ marginTop: 6 }}>
                         <span className="tag">
-                          {DOCUMENT_KINDS.find((kind) => kind.key === document.kind)?.label ?? document.kind}
+                          {(() => {
+                            const kind = DOCUMENT_KINDS.find((entry) => entry.key === document.kind);
+                            return kind ? t(kind.label) : document.kind;
+                          })()}
                         </span>
                         {document.project_id && (
                           <span className="badge-pill">{projectById.get(document.project_id)}</span>
@@ -87,7 +94,7 @@ export default async function TeamDocumentsPage({
                         <input type="hidden" name="document_id" value={document.id} />
                         <input type="hidden" name="team_id" value={teamId} />
                         <button className="btn btn-ghost btn-sm" style={{ padding: '3px 9px', fontSize: '0.72rem' }}>
-                          حذف
+                          {t('حذف', 'Delete')}
                         </button>
                       </form>
                     )}
@@ -105,7 +112,7 @@ export default async function TeamDocumentsPage({
                       target="_blank"
                       rel="noreferrer noopener"
                     >
-                      ↗ فتح الرابط
+                      {t('↗ فتح الرابط', '↗ Open link')}
                     </a>
                   )}
 

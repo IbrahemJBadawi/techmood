@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 import { TeamNav } from '../TeamNav';
 import { SettingsForm } from './SettingsForm';
@@ -15,6 +16,7 @@ export default async function TeamSettingsPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -28,9 +30,9 @@ export default async function TeamSettingsPage({
     if (isAdmin !== true) {
       return (
         <>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>→ رجوع</Link>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('→ رجوع', '← Back')}</Link>
           <p className="notice notice-danger" style={{ marginTop: 16 }}>
-            إعدادات الفريق لقائد الفريق فقط.
+            {t('إعدادات الفريق لقائد الفريق فقط.', 'Team settings are for the team lead only.')}
           </p>
         </>
       );
@@ -54,8 +56,8 @@ export default async function TeamSettingsPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — الإعدادات</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — الإعدادات', ' — settings')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
       </section>
 

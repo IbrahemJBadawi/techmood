@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { MessageReaction } from '@/lib/database.types';
 
 export type MessageState = { error?: string } | undefined;
@@ -14,6 +15,7 @@ export type MessageState = { error?: string } | undefined;
  * scattered across chat threads.
  */
 export async function sendMessage(_prev: MessageState, formData: FormData): Promise<MessageState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -31,12 +33,12 @@ export async function sendMessage(_prev: MessageState, formData: FormData): Prom
   if (error) {
     const message = error.message ?? '';
     if (message.includes('links and images')) {
-      return { error: 'لا يمكن إرسال روابط أو صور داخل محادثات TechMood. شارك عملك كتسليم بدلاً من ذلك.' };
+      return { error: t('لا يمكن إرسال روابط أو صور داخل محادثات TechMood. شارك عملك كتسليم بدلاً من ذلك.', 'Links and images cannot be sent in TechMood conversations. Share your work as a submission instead.') };
     }
     if (message.includes('read-only')) {
-      return { error: 'هذه المحادثة للقراءة فقط.' };
+      return { error: t('هذه المحادثة للقراءة فقط.', 'This conversation is read-only.') };
     }
-    return { error: 'تعذّر إرسال الرسالة.' };
+    return { error: t('تعذّر إرسال الرسالة.', 'The message could not be sent.') };
   }
 
   await markRead(conversationId);

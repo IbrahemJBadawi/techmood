@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import { GOAL_STATUS, SWOT_QUADRANTS } from '@/lib/incubator';
 import type { SmartGoal } from '@/lib/database.types';
 
@@ -15,6 +16,7 @@ export default async function StrategyPage({
   params: Promise<{ startupId: string }>;
 }) {
   const { startupId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,11 +41,11 @@ export default async function StrategyPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar} — الاستراتيجية</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar}{t(' — الاستراتيجية', ' — strategy')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          إلى أين تتجه، وكيف يعرف أي أحد أنك وصلت. الأهداف هنا تُقاس بأرقام وتواريخ، لا بالنوايا.
+          {t('إلى أين تتجه، وكيف يعرف أي أحد أنك وصلت. الأهداف هنا تُقاس بأرقام وتواريخ، لا بالنوايا.', 'Where you are heading, and how anyone would know you got there. Goals here are measured in numbers and dates, not intentions.')}
         </p>
       </section>
 
@@ -51,33 +53,33 @@ export default async function StrategyPage({
 
       <form action={saveStrategy} className="panel section-block">
         <input type="hidden" name="startup_id" value={startupId} />
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>الرؤية والرسالة والقيم</h3>
+        <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('الرؤية والرسالة والقيم', 'Vision, mission and values')}</h3>
 
         <div className="field">
-          <label htmlFor="vision">الرؤية — أين تريد أن تكون؟</label>
+          <label htmlFor="vision">{t('الرؤية — أين تريد أن تكون؟', 'Vision — where do you want to be?')}</label>
           <textarea id="vision" name="vision" rows={2} defaultValue={strategy?.vision_ar ?? ''} disabled={!editable} />
         </div>
 
         <div className="field">
-          <label htmlFor="mission">الرسالة — ما الذي تفعله كل يوم للوصول؟</label>
+          <label htmlFor="mission">{t('الرسالة — ما الذي تفعله كل يوم للوصول؟', 'Mission — what do you do each day to get there?')}</label>
           <textarea id="mission" name="mission" rows={2} defaultValue={strategy?.mission_ar ?? ''} disabled={!editable} />
         </div>
 
         <div className="field">
-          <label htmlFor="values">القيم (مفصولة بفاصلة)</label>
-          <input id="values" name="values" defaultValue={(strategy?.values_ar ?? []).join('، ')} disabled={!editable} />
+          <label htmlFor="values">{t('القيم (مفصولة بفاصلة)', 'Values (comma separated)')}</label>
+          <input id="values" name="values" defaultValue={(strategy?.values_ar ?? []).join(t('، ', ', '))} disabled={!editable} />
         </div>
 
-        {editable && <button className="btn btn-primary btn-sm">احفظ</button>}
+        {editable && <button className="btn btn-primary btn-sm">{t('احفظ', 'Save')}</button>}
       </form>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>تحليل SWOT</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('تحليل SWOT', 'SWOT analysis')}</h3>
         <div className="swot-grid">
           {SWOT_QUADRANTS.map((quadrant) => (
             <div className={`swot-quad ${quadrant.className}`} key={quadrant.key}>
-              <h3>{quadrant.label}</h3>
-              <p className="muted" style={{ fontSize: '0.76rem', marginBottom: 10 }}>{quadrant.hint}</p>
+              <h3>{t(quadrant.label)}</h3>
+              <p className="muted" style={{ fontSize: '0.76rem', marginBottom: 10 }}>{t(quadrant.hint)}</p>
 
               {(swot ?? [])
                 .filter((item) => item.quadrant === quadrant.key)
@@ -100,7 +102,7 @@ export default async function StrategyPage({
                 <form action={addSwotItem} style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                   <input type="hidden" name="startup_id" value={startupId} />
                   <input type="hidden" name="quadrant" value={quadrant.key} />
-                  <input name="body" placeholder="أضف بنداً…" style={{ flex: 1, minWidth: 0, fontSize: '0.8rem' }} />
+                  <input name="body" placeholder={t('أضف بنداً…', 'Add an item…')} style={{ flex: 1, minWidth: 0, fontSize: '0.8rem' }} />
                   <button className="btn btn-ghost btn-sm">+</button>
                 </form>
               )}
@@ -110,16 +112,16 @@ export default async function StrategyPage({
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 6 }}>أهداف SMART</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 6 }}>{t('أهداف SMART', 'SMART goals')}</h3>
         <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 14 }}>
-          محدد · قابل للقياس · قابل للتحقيق · ذو صلة · محدد بزمن. التقدّم يُحسب من الأرقام،
-          ويُقارن بالوقت المنقضي حتى يظهر التأخر مبكراً.
+          {t('محدد · قابل للقياس · قابل للتحقيق · ذو صلة · محدد بزمن. التقدّم يُحسب من الأرقام، ويُقارن بالوقت المنقضي حتى يظهر التأخر مبكراً.',
+             'Specific · Measurable · Achievable · Relevant · Time-bound. Progress is computed from the numbers and compared against elapsed time, so slipping shows up early.')}
         </p>
 
         {editable && <NewGoalForm startupId={startupId} />}
 
         {(goals?.length ?? 0) === 0 ? (
-          <p className="notice">لا أهداف بعد.</p>
+          <p className="notice">{t('لا أهداف بعد.', 'No goals yet.')}</p>
         ) : (
           (goals as SmartGoal[]).map((goal) => {
             const progress = progressById.get(goal.id);
@@ -132,7 +134,7 @@ export default async function StrategyPage({
                 <div className="row-between" style={{ alignItems: 'flex-start' }}>
                   <h4 style={{ fontSize: '0.95rem' }}>{goal.title_ar}</h4>
                   <span className={`status-pill ${GOAL_STATUS[goal.status].className}`}>
-                    {GOAL_STATUS[goal.status].text}
+                    {t(GOAL_STATUS[goal.status].text)}
                   </span>
                 </div>
 
@@ -140,12 +142,12 @@ export default async function StrategyPage({
 
                 <div className="goal-bars">
                   <div className="goal-bar-row">
-                    <span className="lbl">الإنجاز</span>
+                    <span className="lbl">{t('الإنجاز', 'Progress')}</span>
                     <div className="progress-track"><div className="progress-fill" style={{ width: `${percent}%` }} /></div>
                     <span className="eng">{percent}%</span>
                   </div>
                   <div className="goal-bar-row">
-                    <span className="lbl">الوقت</span>
+                    <span className="lbl">{t('الوقت', 'Time')}</span>
                     <div className="progress-track"><div className="progress-fill time" style={{ width: `${elapsed}%` }} /></div>
                     <span className="eng">{elapsed}%</span>
                   </div>
@@ -153,7 +155,7 @@ export default async function StrategyPage({
 
                 {behind && (
                   <p className="notice notice-danger" style={{ marginTop: 10, fontSize: '0.82rem' }}>
-                    الوقت يمضي أسرع من الإنجاز — راجع الهدف أو الخطة.
+                    {t('الوقت يمضي أسرع من الإنجاز — راجع الهدف أو الخطة.', 'Time is moving faster than progress — revisit the goal or the plan.')}
                   </p>
                 )}
 
@@ -166,12 +168,12 @@ export default async function StrategyPage({
 
                 {goal.relevant_ar && (
                   <p className="muted" style={{ fontSize: '0.82rem', marginTop: 10 }}>
-                    <strong>لماذا يهم:</strong> {goal.relevant_ar}
+                    <strong>{t('لماذا يهم:', 'Why it matters:')}</strong> {goal.relevant_ar}
                   </p>
                 )}
                 {goal.achievable_ar && (
                   <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>
-                    <strong>لماذا ممكن:</strong> {goal.achievable_ar}
+                    <strong>{t('لماذا ممكن:', 'Why it is achievable:')}</strong> {goal.achievable_ar}
                   </p>
                 )}
 
@@ -186,14 +188,14 @@ export default async function StrategyPage({
                       defaultValue={goal.current_value}
                       dir="ltr"
                       style={{ width: 120 }}
-                      aria-label="القيمة الحالية"
+                      aria-label={t('القيمة الحالية', 'Current value')}
                     />
                     <select name="status" defaultValue={goal.status}>
                       {Object.entries(GOAL_STATUS).map(([key, info]) => (
-                        <option key={key} value={key}>{info.text}</option>
+                        <option key={key} value={key}>{t(info.text)}</option>
                       ))}
                     </select>
-                    <button className="btn btn-ghost btn-sm">حدّث</button>
+                    <button className="btn btn-ghost btn-sm">{t('حدّث', 'Update')}</button>
                   </form>
                 )}
               </article>

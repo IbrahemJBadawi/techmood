@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 
 import { removeMember, transferLeadership, updateMember, type SettingsState } from './actions';
+import { useT } from '@/lib/i18n.client';
 
 type Member = {
   profileId: string;
@@ -21,6 +22,7 @@ export function MembersAdmin({
   leaderId: string;
   members: Member[];
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(transferLeadership, undefined as SettingsState);
   const [transferTo, setTransferTo] = useState<string | null>(null);
 
@@ -28,18 +30,18 @@ export function MembersAdmin({
 
   return (
     <section className="panel section-block">
-      <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>الأعضاء</h3>
+      <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('الأعضاء', 'Members')}</h3>
 
       <table className="data">
         <thead>
-          <tr><th>العضو</th><th>المسؤولية</th><th></th></tr>
+          <tr><th>{t('العضو', 'Member')}</th><th>{t('المسؤولية', 'Responsibility')}</th><th></th></tr>
         </thead>
         <tbody>
           {members.map((member) => (
             <tr key={member.profileId}>
               <td>
                 {member.name}
-                {member.profileId === leaderId && <span className="badge-pill" style={{ marginInlineStart: 8 }}>قائد</span>}
+                {member.profileId === leaderId && <span className="badge-pill" style={{ marginInlineStart: 8 }}>{t('قائد', 'Lead')}</span>}
                 <br />
                 <span className="id-chip">{member.techmoodId}</span>
               </td>
@@ -53,7 +55,7 @@ export function MembersAdmin({
                     placeholder="Frontend, QA…"
                     style={{ flex: 1, minWidth: 0, fontSize: '0.8rem' }}
                   />
-                  <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.74rem' }}>حفظ</button>
+                  <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.74rem' }}>{t('حفظ', 'Save')}</button>
                 </form>
               </td>
               <td>
@@ -65,13 +67,13 @@ export function MembersAdmin({
                       style={{ fontSize: '0.74rem' }}
                       onClick={() => setTransferTo(member.profileId)}
                     >
-                      اجعله قائداً
+                      {t('اجعله قائداً', 'Make them the lead')}
                     </button>
                     <form action={removeMember}>
                       <input type="hidden" name="team_id" value={teamId} />
                       <input type="hidden" name="profile_id" value={member.profileId} />
                       <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.74rem', color: 'var(--danger)' }}>
-                        إزالة
+                        {t('إزالة', 'Remove')}
                       </button>
                     </form>
                   </div>
@@ -84,7 +86,7 @@ export function MembersAdmin({
 
       {others.length === 0 && (
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 12 }}>
-          لا يمكن نقل القيادة حتى ينضم عضو آخر للفريق.
+          {t('لا يمكن نقل القيادة حتى ينضم عضو آخر للفريق.', 'Leadership cannot be handed over until somebody else joins the team.')}
         </p>
       )}
 
@@ -94,13 +96,14 @@ export function MembersAdmin({
           <input type="hidden" name="profile_id" value={transferTo} />
 
           <p style={{ fontSize: '0.88rem', marginBottom: 12 }}>
-            ستنقل قيادة الفريق إلى{' '}
-            <strong>{members.find((member) => member.profileId === transferTo)?.name}</strong>، وتصبح أنت
-            عضواً عادياً. لا يمكنك التراجع إلا إذا أعادها لك القائد الجديد.
+            {t('ستنقل قيادة الفريق إلى ', 'Leadership will pass to ')}
+            <strong>{members.find((member) => member.profileId === transferTo)?.name}</strong>
+            {t('، وتصبح أنت عضواً عادياً. لا يمكنك التراجع إلا إذا أعادها لك القائد الجديد.',
+               ', and you become an ordinary member. You cannot undo this unless the new lead hands it back.')}
           </p>
 
           <div className="field">
-            <label htmlFor="confirm">اكتب «نعم» للتأكيد</label>
+            <label htmlFor="confirm">{t('اكتب «نعم» للتأكيد', 'Type “yes” to confirm')}</label>
             <input id="confirm" name="confirm" required />
           </div>
 
@@ -109,9 +112,9 @@ export function MembersAdmin({
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn btn-primary btn-sm" disabled={pending}>
-              {pending ? 'جارٍ النقل…' : 'انقل القيادة'}
+              {pending ? t('جارٍ النقل…', 'Transferring…') : t('انقل القيادة', 'Transfer leadership')}
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTransferTo(null)}>إلغاء</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTransferTo(null)}>{t('إلغاء', 'Cancel')}</button>
           </div>
         </form>
       )}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { PaymentMethod, SessionType, SlotState } from '@/lib/database.types';
 
 import { BookingWizard } from './BookingWizard';
@@ -14,6 +15,7 @@ export default async function BookSessionPage({
 }: {
   params: Promise<{ mentorId: string }>;
 }) {
+  const t = await getT();
   const { mentorId } = await params;
   const supabase = await createClient();
 
@@ -64,9 +66,9 @@ export default async function BookSessionPage({
   if (sessionTypes.length === 0) {
     return (
       <>
-        <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>→ رجوع</Link>
+        <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>{t('→ رجوع', '← Back')}</Link>
         <p className="notice" style={{ marginTop: 16 }}>
-          لم يحدد هذا المنتور أنواع جلساته بعد، فلا يمكن الحجز حالياً.
+          {t('لم يحدد هذا المنتور أنواع جلساته بعد، فلا يمكن الحجز حالياً.', 'This mentor has not set up session types yet, so booking is not possible right now.')}
         </p>
       </>
     );
@@ -95,23 +97,25 @@ export default async function BookSessionPage({
     ...(enrolments ?? []).map((row) => ({
       kind: 'learning_path',
       id: row.path_id,
-      label: (row.learning_paths as unknown as { title_ar: string } | null)?.title_ar ?? 'مسار',
+      label: (row.learning_paths as unknown as { title_ar: string } | null)?.title_ar ?? t('مسار', 'Path'),
     })),
     ...(approved ?? []).map((row) => ({
       kind: 'submission',
       id: row.id,
-      label: (row.assignments as unknown as { title_ar: string } | null)?.title_ar ?? 'تسليم',
+      label: (row.assignments as unknown as { title_ar: string } | null)?.title_ar ?? t('تسليم', 'Submission'),
     })),
   ].filter((item) => Boolean(item.label));
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>→ رجوع لملف المنتور</Link>
+      <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>{t('→ رجوع لملف المنتور', '← Back to the mentor')}</Link>
 
       <section className="section-block" style={{ marginTop: 16 }}>
-        <h2 style={{ fontSize: '1.2rem' }}>حجز جلسة مع {mentorProfile?.full_name}</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>
+          {t('حجز جلسة مع ', 'Book a session with ')}{mentorProfile?.full_name}
+        </h2>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          اختر نوع الجلسة والموعد، واكتب ما تحتاجه منها. سنحجز لك الموعد مؤقتاً ريثما تكمل الدفع.
+          {t('اختر نوع الجلسة والموعد، واكتب ما تحتاجه منها. سنحجز لك الموعد مؤقتاً ريثما تكمل الدفع.', 'Pick a session type and a time, and say what you need from it. We will hold the slot for you while you pay.')}
         </p>
       </section>
 

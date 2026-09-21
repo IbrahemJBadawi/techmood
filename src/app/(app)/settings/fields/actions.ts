@@ -4,11 +4,13 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 
 export type FieldState = { error?: string; ok?: string } | undefined;
 
 /** The one field you lead with. The database allows only one, by unique index. */
 export async function setPrimaryField(_prev: FieldState, formData: FormData): Promise<FieldState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -23,9 +25,9 @@ export async function setPrimaryField(_prev: FieldState, formData: FormData): Pr
   const { error } = await supabase.from('profile_fields').update({ is_primary: true })
     .eq('profile_id', user.id).eq('field_id', fieldId);
 
-  if (error) return { error: 'تعذّر الحفظ.' };
+  if (error) return { error: t('تعذّر الحفظ.', 'Could not save.') };
 
   revalidatePath('/home');
   revalidatePath('/settings/fields');
-  return { ok: 'تم.' };
+  return { ok: t('تم.', 'Done.') };
 }

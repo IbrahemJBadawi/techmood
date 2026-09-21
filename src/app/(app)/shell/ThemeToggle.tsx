@@ -2,13 +2,17 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+import type { Text } from '@/lib/i18n';
+
 type Theme = 'light' | 'dark' | 'system';
 
 const NEXT: Record<Theme, Theme> = { system: 'light', light: 'dark', dark: 'system' };
-const LABEL: Record<Theme, string> = {
-  system: 'حسب النظام',
-  light: 'الوضع الفاتح',
-  dark: 'الوضع الليلي',
+
+const LABEL: Record<Theme, Text> = {
+  system: { ar: 'حسب النظام', en: 'Follow the system' },
+  light:  { ar: 'الوضع الفاتح', en: 'Light' },
+  dark:   { ar: 'الوضع الليلي', en: 'Dark' },
 };
 
 /**
@@ -52,14 +56,16 @@ function apply(next: Theme) {
 }
 
 export function ThemeToggle() {
+  const t = useT();
   const theme = useSyncExternalStore(subscribe, readTheme, serverTheme);
 
   return (
     <button
       type="button"
       className="icon-button"
-      title={LABEL[theme]}
-      aria-label={`المظهر: ${LABEL[theme]} — اضغط للتبديل`}
+      title={t(LABEL[theme])}
+      aria-label={t(`المظهر: ${t(LABEL[theme])} — اضغط للتبديل`,
+                    `Theme: ${t(LABEL[theme])} — press to change`)}
       onClick={() => apply(NEXT[theme])}
     >
       {theme === 'dark' ? <Moon /> : theme === 'light' ? <Sun /> : <Auto />}

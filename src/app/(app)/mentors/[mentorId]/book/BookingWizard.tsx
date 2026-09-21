@@ -5,6 +5,8 @@ import { useActionState, useMemo, useState } from 'react';
 import { formatSlot, money, SLOT_STATE } from '@/lib/booking';
 import type { PaymentMethod, SessionType, SlotState } from '@/lib/database.types';
 
+import { useT } from '@/lib/i18n.client';
+
 import { createBooking, type BookingState } from '../../actions';
 
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
@@ -31,6 +33,7 @@ export function BookingWizard({
   student: { full_name: string; techmood_id: string; email: string; phone: string | null };
   reviewCandidates: ReviewCandidate[];
 }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(createBooking, undefined as BookingState);
 
   const [sessionTypeId, setSessionTypeId] = useState(sessionTypes[0]?.id ?? '');
@@ -62,8 +65,8 @@ export function BookingWizard({
   if (byDay.length === 0) {
     return (
       <p className="notice">
-        لا توجد مواعيد متاحة لدى هذا المنتور خلال الفترة القادمة. تذكّر أن الحجز يحتاج 72 ساعة
-        مسبقاً على الأقل.
+        {t('لا توجد مواعيد متاحة لدى هذا المنتور خلال الفترة القادمة. تذكّر أن الحجز يحتاج 72 ساعة مسبقاً على الأقل.',
+           'This mentor has no free slots in the coming weeks. Remember a booking needs at least 72 hours\u2019 notice.')}
       </p>
     );
   }
@@ -81,7 +84,7 @@ export function BookingWizard({
           <section className="step">
             <div className="step-head">
               <span className="step-num">1</span>
-              <h3>نوع الجلسة</h3>
+              <h3>{t('نوع الجلسة', 'Session type')}</h3>
             </div>
             <div className="choice-grid">
               {sessionTypes.map((type) => (
@@ -98,7 +101,7 @@ export function BookingWizard({
                   />
                   <span className="choice-title">{type.name_ar}</span>
                   <span className="choice-sub">
-                    {type.description_ar} · {type.duration_minutes} دقيقة
+                    {type.description_ar} · {t(`${type.duration_minutes} دقيقة`, `${type.duration_minutes} min`)}
                   </span>
                 </label>
               ))}
@@ -109,7 +112,7 @@ export function BookingWizard({
           <section className="step">
             <div className="step-head">
               <span className="step-num">2</span>
-              <h3>الموعد</h3>
+              <h3>{t('الموعد', 'Time')}</h3>
             </div>
 
             <div className="date-tabs">
@@ -128,7 +131,7 @@ export function BookingWizard({
                     onClick={() => setActiveDay(day)}
                   >
                     <span className="dt-day">{label}</span>
-                    <span className="dt-count">{free} متاح</span>
+                    <span className="dt-count">{t(`${free} متاح`, `${free} free`)}</span>
                   </button>
                 );
               })}
@@ -143,7 +146,7 @@ export function BookingWizard({
                     key={slot.slot_start}
                     className={`slot${slot.slot_start === slotStart ? ' selected' : ''}`}
                     disabled={!info.selectable}
-                    title={info.label}
+                    title={t(info.label)}
                     onClick={() => setSlotStart(slot.slot_start)}
                   >
                     {formatSlot(slot.slot_start).time}
@@ -153,7 +156,7 @@ export function BookingWizard({
             </div>
 
             <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-              المواعيد المشطوبة محجوزة أو خارج مهلة الـ72 ساعة.
+              {t('المواعيد المشطوبة محجوزة أو خارج مهلة الـ72 ساعة.', 'Struck-through slots are taken, or inside the 72-hour window.')}
             </p>
           </section>
 
@@ -161,23 +164,23 @@ export function BookingWizard({
           <section className="step">
             <div className="step-head">
               <span className="step-num">3</span>
-              <h3>هدف الجلسة</h3>
+              <h3>{t('هدف الجلسة', 'Session goal')}</h3>
             </div>
             <div className="field">
-              <label htmlFor="goal">ما الذي تحتاج المساعدة فيه؟</label>
+              <label htmlFor="goal">{t('ما الذي تحتاج المساعدة فيه؟', 'What do you need help with?')}</label>
               <textarea
                 id="goal"
                 name="goal"
                 rows={4}
                 required
-                placeholder="مثال: أريد مراجعة مشروعي وتحديد الخطوات التالية لبناء الـBackend."
+                placeholder={t('مثال: أريد مراجعة مشروعي وتحديد الخطوات التالية لبناء الـBackend.', 'For example: I want my project reviewed and the next steps for building the backend.')}
               />
             </div>
 
             {reviewCandidates.length > 0 && (
               <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
                 <legend className="muted" style={{ fontSize: '0.84rem', marginBottom: 8 }}>
-                  ما الذي تريد من المنتور مراجعته؟ (من أعمالك على المنصة)
+                  {t('ما الذي تريد من المنتور مراجعته؟ (من أعمالك على المنصة)', 'What would you like the mentor to review? (from your work on the platform)')}
                 </legend>
                 <div className="tags-row">
                   {reviewCandidates.map((item) => (
@@ -199,12 +202,12 @@ export function BookingWizard({
           <section className="step">
             <div className="step-head">
               <span className="step-num">4</span>
-              <h3>طريقة الدفع</h3>
+              <h3>{t('طريقة الدفع', 'Payment method')}</h3>
             </div>
 
             {[
-              { title: 'محلي', methods: local },
-              { title: 'دولي', methods: international },
+              { title: t('محلي', 'Local'), methods: local },
+              { title: t('دولي', 'International'), methods: international },
             ].map((group) =>
               group.methods.length === 0 ? null : (
                 <div key={group.title} style={{ marginBottom: 14 }}>
@@ -224,7 +227,9 @@ export function BookingWizard({
                         />
                         <span className="choice-title">{method.icon} {method.name_ar}</span>
                         <span className="choice-sub">
-                          {method.supports_automatic_payment ? 'دفع مباشر' : 'تحويل يدوي مع إثبات'}
+                          {method.supports_automatic_payment
+                            ? t('دفع مباشر', 'Direct payment')
+                            : t('تحويل يدوي مع إثبات', 'Manual transfer with proof')}
                         </span>
                       </label>
                     ))}
@@ -234,8 +239,8 @@ export function BookingWizard({
             )}
 
             <p className="muted" style={{ fontSize: '0.78rem' }}>
-              تُنشئ هذه الخطوة طلب الحجز وتحجز لك الموعد مؤقتاً. تعليمات الدفع ورفع الإيصال
-              تأتي في الخطوة التالية.
+              {t('تُنشئ هذه الخطوة طلب الحجز وتحجز لك الموعد مؤقتاً. تعليمات الدفع ورفع الإيصال تأتي في الخطوة التالية.',
+                 'This step creates the request and holds the slot for you. Payment instructions and the receipt upload come next.')}
             </p>
           </section>
         </div>
@@ -243,44 +248,44 @@ export function BookingWizard({
         {/* summary */}
         <aside>
           <div className="panel" style={{ position: 'sticky', top: 90 }}>
-            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>ملخص الحجز</h3>
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('ملخص الحجز', 'Booking summary')}</h3>
 
             <div className="summary-rows">
-              <div className="summary-row"><span className="muted">المنتور</span><span>{mentorName}</span></div>
-              <div className="summary-row"><span className="muted">المستوى</span><span className="eng">{mentorLevel}</span></div>
+              <div className="summary-row"><span className="muted">{t('المنتور', 'Mentor')}</span><span>{mentorName}</span></div>
+              <div className="summary-row"><span className="muted">{t('المستوى', 'Level')}</span><span className="eng">{mentorLevel}</span></div>
               <div className="summary-row">
-                <span className="muted">الجلسة</span>
+                <span className="muted">{t('الجلسة', 'Session')}</span>
                 <span>{selectedType?.name_ar ?? '—'}</span>
               </div>
               <div className="summary-row">
-                <span className="muted">المدة</span>
+                <span className="muted">{t('المدة', 'Duration')}</span>
                 <span className="eng">{selectedType ? `${selectedType.duration_minutes} min` : '—'}</span>
               </div>
               <div className="summary-row">
-                <span className="muted">التاريخ</span>
+                <span className="muted">{t('التاريخ', 'Date')}</span>
                 <span>{selected?.date ?? '—'}</span>
               </div>
               <div className="summary-row">
-                <span className="muted">الوقت</span>
+                <span className="muted">{t('الوقت', 'Time')}</span>
                 <span className="eng">{selected?.time ?? '—'}</span>
               </div>
               <div className="summary-row">
-                <span className="muted">طريقة الدفع</span>
+                <span className="muted">{t('طريقة الدفع', 'Payment method')}</span>
                 <span>{selectedMethod?.name_ar ?? '—'}</span>
               </div>
-              <div className="summary-row"><span className="muted">سعر الجلسة</span><span className="eng">{money(price)}</span></div>
-              <div className="summary-row"><span className="muted">الخصم</span><span className="eng">{money(0)}</span></div>
-              <div className="summary-row total"><span>الإجمالي</span><span className="eng">{money(price)}</span></div>
+              <div className="summary-row"><span className="muted">{t('سعر الجلسة', 'Session price')}</span><span className="eng">{money(price)}</span></div>
+              <div className="summary-row"><span className="muted">{t('الخصم', 'Discount')}</span><span className="eng">{money(0)}</span></div>
+              <div className="summary-row total"><span>{t('الإجمالي', 'Total')}</span><span className="eng">{money(price)}</span></div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 14 }}>
-              <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 8 }}>بياناتك</p>
+              <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 8 }}>{t('بياناتك', 'Your details')}</p>
               <div className="summary-rows">
-                <div className="summary-row"><span className="muted">الاسم</span><span>{student.full_name}</span></div>
+                <div className="summary-row"><span className="muted">{t('الاسم', 'Name')}</span><span>{student.full_name}</span></div>
                 <div className="summary-row"><span className="muted">TechMood ID</span><span className="eng">{student.techmood_id}</span></div>
-                <div className="summary-row"><span className="muted">البريد</span><span className="eng">{student.email}</span></div>
+                <div className="summary-row"><span className="muted">{t('البريد', 'Email')}</span><span className="eng">{student.email}</span></div>
                 <div className="summary-row">
-                  <span className="muted">الهاتف</span>
+                  <span className="muted">{t('الهاتف', 'Phone')}</span>
                   <span className="eng">{student.phone ?? '—'}</span>
                 </div>
               </div>
@@ -293,11 +298,11 @@ export function BookingWizard({
               style={{ width: '100%', marginTop: 16 }}
               disabled={pending || !slotStart || !methodKey || !sessionTypeId}
             >
-              {pending ? 'جارٍ الإرسال…' : 'إرسال طلب الحجز'}
+              {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
             </button>
 
             <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
-              لا يصبح الحجز مؤكداً إلا بعد التحقق من الدفع وموافقة المنتور.
+              {t('لا يصبح الحجز مؤكداً إلا بعد التحقق من الدفع وموافقة المنتور.', 'A booking is only confirmed once the payment is verified and the mentor has accepted.')}
             </p>
           </div>
         </aside>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { MessageReaction } from '@/lib/database.types';
 
 import { toggleReaction } from './actions';
+import { useT } from '@/lib/i18n.client';
 
 const EMOJI: Record<MessageReaction, string> = {
   like: '👍',
@@ -24,6 +25,7 @@ export function Reactions({
   counts: Partial<Record<MessageReaction, number>>;
   mine: MessageReaction | null;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const entries = Object.entries(counts) as [MessageReaction, number][];
 
@@ -50,7 +52,7 @@ export function Reactions({
           </form>
         ))
       ) : (
-        <button type="button" className="reaction-chip" onClick={() => setOpen(true)} aria-label="أضف تفاعلاً">
+        <button type="button" className="reaction-chip" onClick={() => setOpen(true)} aria-label={t('أضف تفاعلاً', 'Add a reaction')}>
           ＋
         </button>
       )}

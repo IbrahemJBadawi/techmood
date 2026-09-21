@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
 
+import { LocaleProvider } from '@/lib/i18n.client';
+import { dirFor } from '@/lib/i18n';
+import { getLocale, getT } from '@/lib/i18n.server';
+
 import './globals.css';
 
 const sans = IBM_Plex_Sans_Arabic({
@@ -17,11 +21,20 @@ const mono = JetBrains_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'TechMood Technology',
-  description:
-    'منصة واحدة تربط التعلّم، الإرشاد، الفرق، العمل، وريادة الأعمال — حساب واحد وهوية مهنية واحدة.',
-};
+/**
+ * Metadata is generated per request so the description follows the reader's
+ * language; the product name does not translate.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: 'TechMood Technology',
+    description: t(
+      'منصة واحدة تربط التعلّم، الإرشاد، الفرق، العمل، وريادة الأعمال — حساب واحد وهوية مهنية واحدة.',
+      'One platform connecting learning, mentoring, teams, work and entrepreneurship — one account, one professional identity.',
+    ),
+  };
+}
 
 /**
  * Applied before the first paint so a person who chose the dark theme never
@@ -31,13 +44,20 @@ export const metadata: Metadata = {
  */
 const THEME_BOOTSTRAP = `try{var t=localStorage.getItem('tm-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The direction is decided on the server, so the first frame is already laid
+  // out the right way round. Every rule in the stylesheet is written with
+  // logical properties, so nothing below needs a second, mirrored copy.
+  const locale = await getLocale();
+
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={locale} dir={dirFor(locale)} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
-      <body className={`${sans.variable} ${mono.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${mono.variable}`}>
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

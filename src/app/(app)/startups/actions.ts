@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { GoalStatus, PlanSection, StartupStage, SwotQuadrant } from '@/lib/database.types';
 
 export type StartupState = { error?: string; ok?: string } | undefined;
@@ -13,12 +14,13 @@ function slugify(value: string) {
 }
 
 export async function createStartup(_prev: StartupState, formData: FormData): Promise<StartupState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const name = String(formData.get('name') ?? '').trim();
-  if (name.length < 2) return { error: 'اكتب اسم المشروع.' };
+  if (name.length < 2) return { error: t('اكتب اسم المشروع.', 'Give the startup a name.') };
 
   const { data, error } = await supabase
     .from('startups')
@@ -35,7 +37,7 @@ export async function createStartup(_prev: StartupState, formData: FormData): Pr
     .select('id')
     .single();
 
-  if (error || !data) return { error: 'تعذّر إنشاء المشروع.' };
+  if (error || !data) return { error: t('تعذّر إنشاء المشروع.', 'The startup could not be created.') };
 
   revalidatePath('/startups');
   redirect(`/startups/${data.id}/canvas`);
@@ -121,6 +123,7 @@ export async function removeSwotItem(formData: FormData) {
 
 /** SMART, held to its letters: a metric with numbers and a date, or no goal. */
 export async function saveSmartGoal(_prev: StartupState, formData: FormData): Promise<StartupState> {
+  const t = await getT();
   const supabase = await createClient();
   const startupId = String(formData.get('startup_id') ?? '');
 
@@ -128,16 +131,16 @@ export async function saveSmartGoal(_prev: StartupState, formData: FormData): Pr
   const target = Number(String(formData.get('target_value') ?? '0'));
 
   if (!Number.isFinite(baseline) || !Number.isFinite(target)) {
-    return { error: 'القيم الرقمية غير صحيحة.' };
+    return { error: t('القيم الرقمية غير صحيحة.', 'Those numbers are not valid.') };
   }
   if (baseline === target) {
-    return { error: 'الهدف يجب أن يتحرك عن نقطة البداية، وإلا فهو غير قابل للقياس.' };
+    return { error: t('الهدف يجب أن يتحرك عن نقطة البداية، وإلا فهو غير قابل للقياس.', 'A goal has to move away from its baseline, otherwise there is nothing to measure.') };
   }
 
   const startsOn = String(formData.get('starts_on') ?? '');
   const dueOn = String(formData.get('due_on') ?? '');
   if (!startsOn || !dueOn || dueOn < startsOn) {
-    return { error: 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية.' };
+    return { error: t('تاريخ الانتهاء يجب أن يكون بعد تاريخ البداية.', 'The end date has to come after the start date.') };
   }
 
   const { error } = await supabase.from('smart_goals').insert({
@@ -154,10 +157,10 @@ export async function saveSmartGoal(_prev: StartupState, formData: FormData): Pr
     due_on: dueOn,
   });
 
-  if (error) return { error: 'تعذّر حفظ الهدف.' };
+  if (error) return { error: t('تعذّر حفظ الهدف.', 'The goal could not be saved.') };
 
   revalidatePath(`/startups/${startupId}/strategy`);
-  return { ok: 'أُضيف الهدف.' };
+  return { ok: t('أُضيف الهدف.', 'Goal added.') };
 }
 
 export async function updateGoalProgress(formData: FormData) {
@@ -176,6 +179,7 @@ export async function updateGoalProgress(formData: FormData) {
 }
 
 export async function applyToIncubator(_prev: StartupState, formData: FormData): Promise<StartupState> {
+  const t = await getT();
   const supabase = await createClient();
   const startupId = String(formData.get('startup_id') ?? '');
 
@@ -187,14 +191,14 @@ export async function applyToIncubator(_prev: StartupState, formData: FormData):
   if (error) {
     const message = error.message ?? '';
     if (message.includes('business model canvas')) {
-      return { error: 'أكمل نموذج العمل أولاً — 6 بطاقات على الأقل قبل التقديم.' };
+      return { error: t('أكمل نموذج العمل أولاً — 6 بطاقات على الأقل قبل التقديم.', 'Fill in the business model first — at least six cards before applying.') };
     }
-    if (message.includes('already under review')) return { error: 'لديك طلب قيد المراجعة بالفعل.' };
-    if (message.includes('only the founder')) return { error: 'المؤسس فقط يستطيع التقديم.' };
-    if (message.includes('pitch')) return { error: 'اكتب نبذة عن سبب تقديمك.' };
-    return { error: 'تعذّر إرسال الطلب.' };
+    if (message.includes('already under review')) return { error: t('لديك طلب قيد المراجعة بالفعل.', 'You already have an application under review.') };
+    if (message.includes('only the founder')) return { error: t('المؤسس فقط يستطيع التقديم.', 'Only the founder can apply.') };
+    if (message.includes('pitch')) return { error: t('اكتب نبذة عن سبب تقديمك.', 'Write a short note on why you are applying.') };
+    return { error: t('تعذّر إرسال الطلب.', 'The application could not be sent.') };
   }
 
   revalidatePath(`/startups/${startupId}`);
-  return { ok: 'أُرسل طلبك للحاضنة.' };
+  return { ok: t('أُرسل طلبك للحاضنة.', 'Your application is with the incubator.') };
 }

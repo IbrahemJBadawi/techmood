@@ -1,3 +1,4 @@
+import { intlTag, type Locale, type Text } from '@/lib/i18n';
 import type { BookingStatus, PaymentStatus, SlotState } from '@/lib/database.types';
 
 /**
@@ -5,51 +6,52 @@ import type { BookingStatus, PaymentStatus, SlotState } from '@/lib/database.typ
  * the UI labels them separately too. "Paid but not yet accepted" has to be
  * sayable — that is the whole point of not collapsing them.
  */
-export const BOOKING_STATUS: Record<BookingStatus, { text: string; className: string }> = {
-  draft:             { text: 'مسودّة',                 className: 'status-muted' },
-  payment_pending:   { text: 'بانتظار الدفع',           className: 'status-pending' },
-  payment_submitted: { text: 'التحقق من الدفع',         className: 'status-pending' },
-  payment_verified:  { text: 'تم التحقق من الدفع',      className: 'status-ok' },
-  mentor_pending:    { text: 'بانتظار موافقة المنتور',  className: 'status-pending' },
-  confirmed:         { text: 'مؤكَّد',                   className: 'status-ok' },
-  completed:         { text: 'مكتملة',                  className: 'status-ok' },
-  cancelled:         { text: 'ملغى',                    className: 'status-muted' },
-  rejected:          { text: 'رفضه المنتور',            className: 'status-danger' },
-  refunded:          { text: 'مسترد',                   className: 'status-muted' },
-  expired:           { text: 'انتهت صلاحية الطلب',      className: 'status-muted' },
+export const BOOKING_STATUS: Record<BookingStatus, { text: Text; className: string }> = {
+  draft:             { text: { ar: 'مسودّة',                  en: 'Draft' },                  className: 'status-muted' },
+  payment_pending:   { text: { ar: 'بانتظار الدفع',            en: 'Awaiting payment' },       className: 'status-pending' },
+  payment_submitted: { text: { ar: 'التحقق من الدفع',          en: 'Verifying payment' },      className: 'status-pending' },
+  payment_verified:  { text: { ar: 'تم التحقق من الدفع',       en: 'Payment verified' },       className: 'status-ok' },
+  mentor_pending:    { text: { ar: 'بانتظار موافقة المنتور',   en: 'Awaiting mentor' },        className: 'status-pending' },
+  confirmed:         { text: { ar: 'مؤكَّد',                    en: 'Confirmed' },              className: 'status-ok' },
+  completed:         { text: { ar: 'مكتملة',                   en: 'Completed' },              className: 'status-ok' },
+  cancelled:         { text: { ar: 'ملغى',                     en: 'Cancelled' },              className: 'status-muted' },
+  rejected:          { text: { ar: 'رفضه المنتور',             en: 'Declined by mentor' },     className: 'status-danger' },
+  refunded:          { text: { ar: 'مسترد',                    en: 'Refunded' },               className: 'status-muted' },
+  expired:           { text: { ar: 'انتهت صلاحية الطلب',       en: 'Reservation expired' },    className: 'status-muted' },
 };
 
-export const PAYMENT_STATUS: Record<PaymentStatus, { text: string; className: string }> = {
-  pending:      { text: 'لم يُرسل بعد',        className: 'status-muted' },
-  under_review: { text: 'قيد المراجعة',        className: 'status-pending' },
-  verified:     { text: 'تم التحقق',           className: 'status-ok' },
-  rejected:     { text: 'مرفوض',               className: 'status-danger' },
-  failed:       { text: 'فشل',                 className: 'status-danger' },
-  refunded:     { text: 'مسترد',               className: 'status-muted' },
+export const PAYMENT_STATUS: Record<PaymentStatus, { text: Text; className: string }> = {
+  pending:      { text: { ar: 'لم يُرسل بعد',   en: 'Not sent yet' },  className: 'status-muted' },
+  under_review: { text: { ar: 'قيد المراجعة',   en: 'Under review' },  className: 'status-pending' },
+  verified:     { text: { ar: 'تم التحقق',      en: 'Verified' },      className: 'status-ok' },
+  rejected:     { text: { ar: 'مرفوض',          en: 'Rejected' },      className: 'status-danger' },
+  failed:       { text: { ar: 'فشل',            en: 'Failed' },        className: 'status-danger' },
+  refunded:     { text: { ar: 'مسترد',          en: 'Refunded' },      className: 'status-muted' },
 };
 
-export const SLOT_STATE: Record<SlotState, { label: string; selectable: boolean }> = {
-  available:   { label: 'متاح',        selectable: true },
-  pending:     { label: 'محجوز مؤقتاً', selectable: false },
-  booked:      { label: 'محجوز',       selectable: false },
-  unavailable: { label: 'غير متاح',    selectable: false },
+export const SLOT_STATE: Record<SlotState, { label: Text; selectable: boolean }> = {
+  available:   { label: { ar: 'متاح',         en: 'Available' },       selectable: true },
+  pending:     { label: { ar: 'محجوز مؤقتاً',  en: 'Held' },            selectable: false },
+  booked:      { label: { ar: 'محجوز',        en: 'Booked' },          selectable: false },
+  unavailable: { label: { ar: 'غير متاح',     en: 'Unavailable' },     selectable: false },
 };
 
 /** The fixed journey shown on every booking, with the reached steps marked. */
-export const BOOKING_TIMELINE: { key: string; label: string; matches: BookingStatus[] }[] = [
-  { key: 'created',          label: 'إنشاء الطلب',          matches: ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
-  { key: 'payment_sent',     label: 'إرسال الدفع',          matches: ['payment_submitted', 'payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
-  { key: 'payment_verified', label: 'التحقق من الدفع',      matches: ['payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
-  { key: 'mentor_approval',  label: 'موافقة المنتور',       matches: ['confirmed', 'completed'] },
-  { key: 'confirmed',        label: 'تأكيد الحجز',          matches: ['confirmed', 'completed'] },
-  { key: 'completed',        label: 'انتهاء الجلسة',        matches: ['completed'] },
+export const BOOKING_TIMELINE: { key: string; label: Text; matches: BookingStatus[] }[] = [
+  { key: 'created',          label: { ar: 'إنشاء الطلب',      en: 'Request created' },   matches: ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
+  { key: 'payment_sent',     label: { ar: 'إرسال الدفع',      en: 'Payment sent' },      matches: ['payment_submitted', 'payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
+  { key: 'payment_verified', label: { ar: 'التحقق من الدفع',  en: 'Payment verified' },  matches: ['payment_verified', 'mentor_pending', 'confirmed', 'completed'] },
+  { key: 'mentor_approval',  label: { ar: 'موافقة المنتور',   en: 'Mentor accepted' },   matches: ['confirmed', 'completed'] },
+  { key: 'confirmed',        label: { ar: 'تأكيد الحجز',      en: 'Booking confirmed' }, matches: ['confirmed', 'completed'] },
+  { key: 'completed',        label: { ar: 'انتهاء الجلسة',    en: 'Session held' },      matches: ['completed'] },
 ];
 
-export function formatSlot(iso: string) {
+export function formatSlot(iso: string, locale: Locale = 'ar') {
   const date = new Date(iso);
+  const tag = locale === 'ar' ? 'ar-EG' : intlTag(locale);
   return {
-    date: date.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }),
-    time: date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+    date: date.toLocaleDateString(tag, { weekday: 'long', day: 'numeric', month: 'long' }),
+    time: date.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' }),
   };
 }
 

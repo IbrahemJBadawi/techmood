@@ -1,30 +1,38 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { LOCALE_COOKIE } from '@/lib/i18n';
 import type { UiLanguage } from '@/lib/database.types';
 
 /**
  * The interface language.
  *
- * Today this changes the document's `lang`, its number and date formatting, and
- * is remembered on the account so the choice follows the person between
- * devices. It does NOT yet translate the copy — there is no English string
- * table, and shipping a switch that silently leaves everything in Arabic would
- * be a worse lie than saying so. The preference is stored now so the
- * translation layer has somewhere to land.
+ * Written twice on purpose: to the cookie, which is what every render reads
+ * (and what a signed-out visitor has), and to the profile, which is the durable
+ * copy that follows the account onto a new device. Signing in copies the
+ * profile back onto the cookie.
  */
 export async function setLanguage(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
   const language = String(formData.get('language') ?? 'ar') as UiLanguage;
   if (language !== 'ar' && language !== 'en') return;
 
-  await supabase.from('profiles').update({ language }).eq('id', user.id);
+  const jar = await cookies();
+  jar.set(LOCALE_COOKIE, language, {
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.from('profiles').update({ language }).eq('id', user.id);
+  }
+
   revalidatePath('/', 'layout');
 }
 

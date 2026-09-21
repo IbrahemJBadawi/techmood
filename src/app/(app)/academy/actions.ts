@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { EvidenceKind } from '@/lib/database.types';
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -35,6 +36,7 @@ export async function toggleLesson(formData: FormData) {
  * inside submit_work(), so a crafted request cannot skip them.
  */
 export async function submitWork(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -50,11 +52,11 @@ export async function submitWork(_prev: ActionState, formData: FormData): Promis
 
   const missing = required.filter((kind) => !evidence.some((item) => item.kind === kind));
   if (missing.length > 0) {
-    return { error: 'الرجاء إدخال كل الروابط المطلوبة قبل التسليم.' };
+    return { error: t('الرجاء إدخال كل الروابط المطلوبة قبل التسليم.', 'Please fill in every required link before submitting.') };
   }
 
   if (evidence.some((item) => !/^https?:\/\//i.test(item.url))) {
-    return { error: 'الروابط يجب أن تبدأ بـ http أو https.' };
+    return { error: t('الروابط يجب أن تبدأ بـ http أو https.', 'Links must start with http or https.') };
   }
 
   const { error } = await supabase.rpc('submit_work', {
@@ -64,15 +66,16 @@ export async function submitWork(_prev: ActionState, formData: FormData): Promis
   });
 
   if (error) {
-    return { error: 'تعذّر إرسال التسليم — حاول مرة أخرى.' };
+    return { error: t('تعذّر إرسال التسليم — حاول مرة أخرى.', 'The submission could not be sent — try again.') };
   }
 
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
-  return { ok: 'تم التسليم، وهو الآن بانتظار مراجعة منتور.' };
+  return { ok: t('تم التسليم، وهو الآن بانتظار مراجعة منتور.', 'Submitted. It is now waiting for a mentor to review it.') };
 }
 
 /** Issues a course or path certificate. Eligibility is checked in the database. */
 export async function issueCertificate(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
   const supabase = await createClient();
 
   const { error } = await supabase.rpc('issue_certificate', {
@@ -81,12 +84,12 @@ export async function issueCertificate(_prev: ActionState, formData: FormData): 
   });
 
   if (error) {
-    return { error: 'لم تكتمل متطلبات الشهادة بعد — يجب اعتماد كل الأعمال المطلوبة أولاً.' };
+    return { error: t('لم تكتمل متطلبات الشهادة بعد — يجب اعتماد كل الأعمال المطلوبة أولاً.', 'The certificate requirements are not met yet — all required work has to be approved first.') };
   }
 
   revalidatePath('/certificates');
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
-  return { ok: 'تم إصدار الشهادة.' };
+  return { ok: t('تم إصدار الشهادة.', 'Certificate issued.') };
 }
 
 /**

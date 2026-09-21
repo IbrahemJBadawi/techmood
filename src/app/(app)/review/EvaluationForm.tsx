@@ -2,15 +2,33 @@
 
 import { useActionState, useState } from 'react';
 
+import { useT } from '@/lib/i18n.client';
+
 import { evaluateSubmission, type ReviewState } from './actions';
 
 const DECISIONS = [
-  { value: 'approved', label: 'اعتماد', hint: 'يمنح النقاط ويُحتسب ضمن متطلبات الشهادة.' },
-  { value: 'changes_requested', label: 'يحتاج تعديلاً', hint: 'يعود للطالب ليعدّل ويعيد التسليم.' },
-  { value: 'rejected', label: 'غير معتمد', hint: 'لا يُحتسب، ويحتاج عملاً جديداً.' },
+  {
+    value: 'approved',
+    label: { ar: 'اعتماد', en: 'Approve' },
+    hint: { ar: 'يمنح النقاط ويُحتسب ضمن متطلبات الشهادة.',
+            en: 'Awards the points and counts towards the certificate.' },
+  },
+  {
+    value: 'changes_requested',
+    label: { ar: 'يحتاج تعديلاً', en: 'Needs changes' },
+    hint: { ar: 'يعود للطالب ليعدّل ويعيد التسليم.',
+            en: 'Goes back to the student to fix and resubmit.' },
+  },
+  {
+    value: 'rejected',
+    label: { ar: 'غير معتمد', en: 'Not approved' },
+    hint: { ar: 'لا يُحتسب، ويحتاج عملاً جديداً.',
+            en: 'Does not count; it needs fresh work.' },
+  },
 ] as const;
 
 export function EvaluationForm({ submissionId }: { submissionId: string }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(evaluateSubmission, undefined as ReviewState);
   const [decision, setDecision] = useState<string>('approved');
   const [stars, setStars] = useState<number>(4);
@@ -19,12 +37,12 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
 
   return (
     <form action={formAction} className="panel">
-      <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>تقييمك</h3>
+      <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('تقييمك', 'Your evaluation')}</h3>
 
       <input type="hidden" name="submission_id" value={submissionId} />
 
       <fieldset style={{ border: 0, padding: 0, margin: '0 0 14px' }}>
-        <legend className="muted" style={{ fontSize: '0.84rem', marginBottom: 8 }}>القرار</legend>
+        <legend className="muted" style={{ fontSize: '0.84rem', marginBottom: 8 }}>{t('القرار', 'Decision')}</legend>
         <div className="tags-row">
           {DECISIONS.map((item) => (
             <label
@@ -44,19 +62,19 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
                 checked={decision === item.value}
                 onChange={(event) => setDecision(event.target.value)}
               />
-              {item.label}
+              {t(item.label)}
             </label>
           ))}
         </div>
-        {active && <p className="muted" style={{ fontSize: '0.78rem', marginTop: 8 }}>{active.hint}</p>}
+        {active && <p className="muted" style={{ fontSize: '0.78rem', marginTop: 8 }}>{t(active.hint)}</p>}
       </fieldset>
 
       {decision === 'approved' && (
         <div className="field">
           <label htmlFor="stars">
-            جودة العمل — {stars} من 5{' '}
+            {t(`جودة العمل — ${stars} من 5`, `Quality — ${stars} of 5`)}{' '}
             <span className="muted" style={{ fontSize: '0.76rem' }}>
-              (النجوم جودة، والنقاط تُحسب منها تلقائياً)
+              {t('(النجوم جودة، والنقاط تُحسب منها تلقائياً)', '(stars are quality; the points are computed from them)')}
             </span>
           </label>
           <input
@@ -75,13 +93,14 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
 
       <div className="field">
         <label htmlFor="feedback">
-          ملاحظاتك للطالب{decision === 'approved' ? ' (اختياري)' : ''}
+          {t('ملاحظاتك للطالب', 'Your notes for the student')}
+          {decision === 'approved' ? t(' (اختياري)', ' (optional)') : ''}
         </label>
         <textarea
           id="feedback"
           name="feedback"
           rows={5}
-          placeholder="ما الذي نجح، وما الذي يحتاج تحسيناً، وكيف؟"
+          placeholder={t('ما الذي نجح، وما الذي يحتاج تحسيناً، وكيف؟', 'What worked, what needs improving, and how?')}
           required={decision !== 'approved'}
         />
       </div>
@@ -90,11 +109,11 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
       <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
-        {pending ? 'جارٍ الحفظ…' : 'حفظ التقييم'}
+        {pending ? t('جارٍ الحفظ…', 'Saving…') : t('حفظ التقييم', 'Save evaluation')}
       </button>
 
       <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-        التقييم يُضاف إلى السجل ولا يستبدل ما سبقه — الطالب يرى كل المراجعات.
+        {t('التقييم يُضاف إلى السجل ولا يستبدل ما سبقه — الطالب يرى كل المراجعات.', 'An evaluation is appended to the record and replaces nothing — the student sees every review.')}
       </p>
     </form>
   );

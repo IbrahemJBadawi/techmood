@@ -1,3 +1,4 @@
+import type { Text } from '@/lib/i18n';
 import type { RoleStatus, UserRole } from '@/lib/database.types';
 
 /**
@@ -20,9 +21,9 @@ export const ACTIVE_ROLE_COOKIE = 'tm_active_role';
 
 export type RoleDefinition = {
   value: UserRole;
-  label: string;
+  label: Text;
   /** One line, in the second person, describing what the role opens. */
-  blurb: string;
+  blurb: Text;
   /** Student is the one role every account starts with, already approved. */
   needsReview: boolean;
   /** Where the shell lands when this is the role being browsed. */
@@ -38,56 +39,56 @@ export type IconName =
 export const ROLES: RoleDefinition[] = [
   {
     value: 'student',
-    label: 'طالب',
-    blurb: 'تتعلّم، تسلّم أعمالاً حقيقية، وتبني جوازك المهني.',
+    label: { ar: 'طالب', en: 'Student' },
+    blurb: { ar: 'تتعلّم، تسلّم أعمالاً حقيقية، وتبني جوازك المهني.', en: 'You learn, submit real work, and build your professional passport.' },
     needsReview: false,
     home: '/home',
     icon: 'academy',
   },
   {
     value: 'freelancer',
-    label: 'فريلانسر',
-    blurb: 'تتقدّم على الفرص، تنفّذ أعمالاً مدفوعة، وتسحب أرباحك.',
+    label: { ar: 'فريلانسر', en: 'Freelancer' },
+    blurb: { ar: 'تتقدّم على الفرص، تنفّذ أعمالاً مدفوعة، وتسحب أرباحك.', en: 'You apply for openings, do paid work, and withdraw what you earn.' },
     needsReview: true,
     home: '/marketplace',
     icon: 'work',
   },
   {
     value: 'mentor',
-    label: 'منتور',
-    blurb: 'تراجع أعمال المتعلّمين وتقدّم جلسات إرشاد محجوزة.',
+    label: { ar: 'منتور', en: 'Mentor' },
+    blurb: { ar: 'تراجع أعمال المتعلّمين وتقدّم جلسات إرشاد محجوزة.', en: 'You review learners\u2019 work and hold booked mentoring sessions.' },
     needsReview: true,
     home: '/mentor-requests',
     icon: 'mentor',
   },
   {
     value: 'team_leader',
-    label: 'قائد فريق',
-    blurb: 'تؤسّس فرقاً، توزّع المهام، وتقود مشاريع جماعية.',
+    label: { ar: 'قائد فريق', en: 'Team lead' },
+    blurb: { ar: 'تؤسّس فرقاً، توزّع المهام، وتقود مشاريع جماعية.', en: 'You start teams, assign the work, and lead group projects.' },
     needsReview: true,
     home: '/teams',
     icon: 'team',
   },
   {
     value: 'founder',
-    label: 'مؤسس',
-    blurb: 'تبني شركة ناشئة داخل الحاضنة من الفكرة إلى نموذج العمل.',
+    label: { ar: 'مؤسس', en: 'Founder' },
+    blurb: { ar: 'تبني شركة ناشئة داخل الحاضنة من الفكرة إلى نموذج العمل.', en: 'You build a startup inside the incubator, from idea to business model.' },
     needsReview: true,
     home: '/startups',
     icon: 'startup',
   },
   {
     value: 'company',
-    label: 'مؤسسة',
-    blurb: 'تنشر فرص عمل وتستقطب فرقاً وكفاءات موثّقة.',
+    label: { ar: 'مؤسسة', en: 'Organisation' },
+    blurb: { ar: 'تنشر فرص عمل وتستقطب فرقاً وكفاءات موثّقة.', en: 'You post openings and reach teams and people with a verified record.' },
     needsReview: true,
     home: '/marketplace',
     icon: 'company',
   },
   {
     value: 'admin',
-    label: 'إدارة',
-    blurb: 'تراجع الطلبات والمدفوعات والمحتوى.',
+    label: { ar: 'إدارة', en: 'Admin' },
+    blurb: { ar: 'تراجع الطلبات والمدفوعات والمحتوى.', en: 'You review requests, payments and content.' },
     needsReview: true,
     home: '/admin',
     icon: 'shield',
@@ -101,20 +102,20 @@ export const ROLE_BY_VALUE: Record<UserRole, RoleDefinition> = Object.fromEntrie
   ROLES.map((role) => [role.value, role]),
 ) as Record<UserRole, RoleDefinition>;
 
-export function roleLabel(role: UserRole): string {
-  return ROLE_BY_VALUE[role]?.label ?? role;
+export function roleLabel(role: UserRole): Text {
+  return ROLE_BY_VALUE[role]?.label ?? { ar: role, en: role };
 }
 
 /**
  * The words the product uses. The database says `approved` / `pending_review`;
  * the person reads "مفعّل" / "قيد المراجعة". Same state, different audience.
  */
-export const ROLE_STATUS_LABEL: Record<RoleStatus, string> = {
-  approved: 'مفعّل',
-  pending_review: 'قيد المراجعة',
-  needs_more_info: 'بانتظار معلومات منك',
-  rejected: 'غير مقبول',
-  suspended: 'موقوف',
+export const ROLE_STATUS_LABEL: Record<RoleStatus, Text> = {
+  approved:        { ar: 'مفعّل',                  en: 'Active' },
+  pending_review:  { ar: 'قيد المراجعة',           en: 'Pending review' },
+  needs_more_info: { ar: 'بانتظار معلومات منك',    en: 'More information needed' },
+  rejected:        { ar: 'غير مقبول',              en: 'Not accepted' },
+  suspended:       { ar: 'موقوف',                  en: 'Suspended' },
 };
 
 export const ROLE_STATUS_TONE: Record<RoleStatus, 'ok' | 'wait' | 'ask' | 'no'> = {
@@ -125,16 +126,16 @@ export const ROLE_STATUS_TONE: Record<RoleStatus, 'ok' | 'wait' | 'ask' | 'no'> 
   suspended: 'no',
 };
 
-export type NavItem = { href: string; label: string; icon: IconName };
-export type NavGroup = { label: string; items: NavItem[] };
+export type NavItem = { href: string; label: Text; icon: IconName };
+export type NavGroup = { label: Text; items: NavItem[] };
 
 /** Shown to everyone, whichever role they are browsing as. */
 const COMMON: NavGroup = {
-  label: 'حسابي',
+  label: { ar: 'حسابي', en: 'My account' },
   items: [
-    { href: '/home', label: 'الرئيسية', icon: 'home' },
-    { href: '/passport', label: 'الجواز المهني', icon: 'passport' },
-    { href: '/messages', label: 'الرسائل', icon: 'message' },
+    { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+    { href: '/passport', label: { ar: 'الجواز المهني', en: 'Passport' }, icon: 'passport' },
+    { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
   ],
 };
 
@@ -145,121 +146,121 @@ const COMMON: NavGroup = {
 const ROLE_NAV: Record<UserRole, NavGroup[]> = {
   student: [
     {
-      label: 'التعلّم',
+      label: { ar: 'التعلّم', en: 'Learning' },
       items: [
-        { href: '/academy', label: 'الأكاديمية', icon: 'academy' },
-        { href: '/certificates', label: 'الشهادات', icon: 'certificate' },
-        { href: '/exhibition', label: 'المعرض', icon: 'gallery' },
+        { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
+        { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
+        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
       ],
     },
     {
-      label: 'الإرشاد والفرق',
+      label: { ar: 'الإرشاد والفرق', en: 'Mentoring & teams' },
       items: [
-        { href: '/mentors', label: 'المنتورز', icon: 'mentor' },
-        { href: '/bookings', label: 'حجوزاتي', icon: 'calendar' },
-        { href: '/teams', label: 'الفرق', icon: 'team' },
+        { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
+        { href: '/bookings', label: { ar: 'حجوزاتي', en: 'My bookings' }, icon: 'calendar' },
+        { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
       ],
     },
   ],
   freelancer: [
     {
-      label: 'العمل',
+      label: { ar: 'العمل', en: 'Work' },
       items: [
-        { href: '/marketplace', label: 'سوق العمل', icon: 'work' },
-        { href: '/applications', label: 'طلباتي', icon: 'application' },
-        { href: '/wallet', label: 'المحفظة', icon: 'wallet' },
+        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
+        { href: '/applications', label: { ar: 'طلباتي', en: 'My applications' }, icon: 'application' },
+        { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
       ],
     },
     {
-      label: 'سجلّي',
+      label: { ar: 'سجلّي', en: 'My record' },
       items: [
-        { href: '/exhibition', label: 'المعرض', icon: 'gallery' },
-        { href: '/certificates', label: 'الشهادات', icon: 'certificate' },
+        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
+        { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
       ],
     },
   ],
   mentor: [
     {
-      label: 'الإرشاد',
+      label: { ar: 'الإرشاد', en: 'Mentoring' },
       items: [
-        { href: '/mentor-requests', label: 'طلبات الجلسات', icon: 'calendar' },
-        { href: '/review', label: 'مراجعة الأعمال', icon: 'review' },
-        { href: '/wallet', label: 'المحفظة', icon: 'wallet' },
+        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
+        { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
+        { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
       ],
     },
     {
-      label: 'المنصة',
+      label: { ar: 'المنصة', en: 'Platform' },
       items: [
-        { href: '/mentors', label: 'صفحتي كمنتور', icon: 'mentor' },
-        { href: '/academy', label: 'الأكاديمية', icon: 'academy' },
+        { href: '/mentors', label: { ar: 'صفحتي كمنتور', en: 'My mentor page' }, icon: 'mentor' },
+        { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
       ],
     },
   ],
   team_leader: [
     {
-      label: 'الفرق',
+      label: { ar: 'الفرق', en: 'Teams' },
       items: [
-        { href: '/teams', label: 'فرقي', icon: 'team' },
-        { href: '/exhibition', label: 'المعرض', icon: 'gallery' },
+        { href: '/teams', label: { ar: 'فرقي', en: 'My teams' }, icon: 'team' },
+        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
       ],
     },
     {
-      label: 'العمل',
+      label: { ar: 'العمل', en: 'Work' },
       items: [
-        { href: '/marketplace', label: 'سوق العمل', icon: 'work' },
-        { href: '/applications', label: 'طلبات فريقي', icon: 'application' },
+        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
+        { href: '/applications', label: { ar: 'طلبات فريقي', en: 'Team applications' }, icon: 'application' },
       ],
     },
   ],
   founder: [
     {
-      label: 'ريادة الأعمال',
+      label: { ar: 'ريادة الأعمال', en: 'Entrepreneurship' },
       items: [
-        { href: '/startups', label: 'مشاريعي الناشئة', icon: 'startup' },
-        { href: '/incubator', label: 'الحاضنة', icon: 'incubator' },
+        { href: '/startups', label: { ar: 'مشاريعي الناشئة', en: 'My startups' }, icon: 'startup' },
+        { href: '/incubator', label: { ar: 'الحاضنة', en: 'Incubator' }, icon: 'incubator' },
       ],
     },
     {
-      label: 'الفريق والفرص',
+      label: { ar: 'الفريق والفرص', en: 'Team & openings' },
       items: [
-        { href: '/teams', label: 'الفرق', icon: 'team' },
-        { href: '/marketplace', label: 'سوق العمل', icon: 'work' },
+        { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
+        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
       ],
     },
   ],
   company: [
     {
-      label: 'التوظيف',
+      label: { ar: 'التوظيف', en: 'Hiring' },
       items: [
-        { href: '/marketplace', label: 'فرصي المنشورة', icon: 'work' },
-        { href: '/applications', label: 'المتقدّمون', icon: 'application' },
+        { href: '/marketplace', label: { ar: 'فرصي المنشورة', en: 'My postings' }, icon: 'work' },
+        { href: '/applications', label: { ar: 'المتقدّمون', en: 'Applicants' }, icon: 'application' },
       ],
     },
     {
-      label: 'الاستكشاف',
+      label: { ar: 'الاستكشاف', en: 'Discover' },
       items: [
-        { href: '/teams', label: 'الفرق', icon: 'team' },
-        { href: '/exhibition', label: 'المعرض', icon: 'gallery' },
+        { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
+        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
       ],
     },
   ],
   admin: [
     {
-      label: 'المراجعة',
+      label: { ar: 'المراجعة', en: 'Review' },
       items: [
-        { href: '/admin', label: 'لوحة الإدارة', icon: 'shield' },
-        { href: '/admin/role-requests', label: 'طلبات الأدوار', icon: 'application' },
-        { href: '/admin/taxonomy', label: 'المصطلحات المقترحة', icon: 'settings' },
-        { href: '/review', label: 'مراجعة الأعمال', icon: 'review' },
+        { href: '/admin', label: { ar: 'لوحة الإدارة', en: 'Admin panel' }, icon: 'shield' },
+        { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
+        { href: '/admin/taxonomy', label: { ar: 'المصطلحات المقترحة', en: 'Suggested terms' }, icon: 'settings' },
+        { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
       ],
     },
     {
-      label: 'المال والمحتوى',
+      label: { ar: 'المال والمحتوى', en: 'Money & content' },
       items: [
-        { href: '/admin/payments', label: 'مراجعة المدفوعات', icon: 'wallet' },
-        { href: '/admin/payouts', label: 'طلبات السحب', icon: 'wallet' },
-        { href: '/admin/exhibition', label: 'مراجعة المعرض', icon: 'gallery' },
-        { href: '/admin/incubator', label: 'طلبات الحاضنة', icon: 'incubator' },
+        { href: '/admin/payments', label: { ar: 'مراجعة المدفوعات', en: 'Review payments' }, icon: 'wallet' },
+        { href: '/admin/payouts', label: { ar: 'طلبات السحب', en: 'Payout requests' }, icon: 'wallet' },
+        { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
+        { href: '/admin/incubator', label: { ar: 'طلبات الحاضنة', en: 'Incubator applications' }, icon: 'incubator' },
       ],
     },
   ],

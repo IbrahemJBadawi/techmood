@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef } from 'react';
 
 import { sendMessage, type MessageState } from './actions';
+import { useT } from '@/lib/i18n.client';
 
 export function Composer({ conversationId, readOnly }: { conversationId: string; readOnly: boolean }) {
+  const t = useT();
   const [state, formAction, pending] = useActionState(sendMessage, undefined as MessageState);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -17,7 +19,7 @@ export function Composer({ conversationId, readOnly }: { conversationId: string;
     return (
       <div className="chat-composer">
         <p className="muted" style={{ fontSize: '0.84rem', margin: 'auto' }}>
-          هذه المحادثة للقراءة فقط — انتهت العلاقة التي أنشأتها.
+          {t('هذه المحادثة للقراءة فقط — انتهت العلاقة التي أنشأتها.', 'This conversation is read-only — the relationship that created it has ended.')}
         </p>
       </div>
     );
@@ -32,9 +34,9 @@ export function Composer({ conversationId, readOnly }: { conversationId: string;
       )}
       <form action={formAction} className="chat-composer">
         <input type="hidden" name="conversation_id" value={conversationId} />
-        <input ref={inputRef} name="body" placeholder="اكتب رسالة…" autoComplete="off" required />
+        <input ref={inputRef} name="body" placeholder={t('اكتب رسالة…', 'Write a message…')} autoComplete="off" required />
         <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? '…' : 'إرسال'}
+          {pending ? '…' : t('إرسال', 'Send')}
         </button>
       </form>
     </>

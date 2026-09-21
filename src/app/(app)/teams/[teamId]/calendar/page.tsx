@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+
 import { CALENDAR_ENTRY } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
@@ -15,6 +17,7 @@ export default async function TeamCalendarPage({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -60,7 +63,7 @@ export default async function TeamCalendarPage({
               month: 'long',
             })}
           </strong>
-          {isToday && <span className="status-pill status-ok">اليوم</span>}
+          {isToday && <span className="status-pill status-ok">{t('اليوم', 'Today')}</span>}
         </div>
 
         {dayEntries.map((entry) => {
@@ -80,7 +83,7 @@ export default async function TeamCalendarPage({
                 )}
               </div>
               <span className={`status-pill ${isLate && entry.entry_kind === 'task' ? 'status-danger' : 'status-muted'}`}>
-                {info.label}
+                {t(info.label)}
               </span>
             </div>
           );
@@ -93,21 +96,21 @@ export default async function TeamCalendarPage({
     <>
       <section className="section-block">
         <div className="row-between">
-          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar} — التقويم</h2>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>نظرة عامة</Link>
+          <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — التقويم', ' — calendar')}</h2>
+          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          مواعيد المهام والسبرنتات ومعالم المشاريع وجلسات المنتور — مجموعة من حيث هي مسجّلة
-          أصلاً، لا مُدخلة مرة ثانية.
+          {t('مواعيد المهام والسبرنتات ومعالم المشاريع وجلسات المنتور — مجموعة من حيث هي مسجّلة أصلاً، لا مُدخلة مرة ثانية.',
+             'Task dates, sprints, project milestones and mentor sessions — gathered from where they are already recorded, not typed in a second time.')}
         </p>
       </section>
 
       <TeamNav teamId={teamId} />
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>القادم ({upcoming.length} يوم)</h3>
+        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('القادم', 'Coming up')} ({t(`${upcoming.length} يوم`, `${upcoming.length} days`)})</h3>
         {upcoming.length === 0 ? (
-          <p className="notice">لا مواعيد قادمة خلال الشهرين القادمين.</p>
+          <p className="notice">{t('لا مواعيد قادمة خلال الشهرين القادمين.', 'Nothing due in the next two months.')}</p>
         ) : (
           upcoming.map(dayBlock)
         )}
@@ -115,7 +118,7 @@ export default async function TeamCalendarPage({
 
       {past.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>مضى</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('مضى', 'Past')}</h3>
           {past.map(dayBlock)}
         </section>
       )}

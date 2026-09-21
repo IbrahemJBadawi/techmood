@@ -4,17 +4,20 @@ import { redirect } from 'next/navigation';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
+import { getT } from '@/lib/i18n.server';
+import { contentText } from '@/lib/i18n';
 
 import { decideBooking, setMeetingUrl } from './actions';
 
 export default async function MentorRequestsPage() {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: isMentor } = await supabase.rpc('is_mentor');
   if (isMentor !== true) {
-    return <p className="notice notice-danger">هذه الصفحة للمنتورز المعتمدين.</p>;
+    return <p className="notice notice-danger">{t('هذه الصفحة للمنتورز المعتمدين.', 'This page is for approved mentors.')}</p>;
   }
 
   // Only bookings whose payment TechMood already verified reach a mentor.
@@ -32,7 +35,7 @@ export default async function MentorRequestsPage() {
 
   const [{ data: students }, { data: types }, { data: items }, { data: xp }, { data: stars }] = await Promise.all([
     supabase.from('profiles').select('id, full_name, techmood_id, headline, github_url, linkedin_url').in('id', studentIds.length ? studentIds : placeholder),
-    supabase.from('session_types').select('id, name_ar, duration_minutes').in('id', typeIds.length ? typeIds : placeholder),
+    supabase.from('session_types').select('id, name_ar, name_en, duration_minutes').in('id', typeIds.length ? typeIds : placeholder),
     supabase.from('booking_review_items').select('booking_id, label_ar').in('booking_id', bookingIds.length ? bookingIds : placeholder),
     supabase.from('profile_xp').select('profile_id, total_xp').in('profile_id', studentIds.length ? studentIds : placeholder),
     supabase.from('profile_stars').select('profile_id, stars_avg').in('profile_id', studentIds.length ? studentIds : placeholder),
@@ -49,9 +52,9 @@ export default async function MentorRequestsPage() {
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>طلبات الجلسات</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('طلبات الجلسات', 'Session requests')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          كل طلب هنا تم التحقق من دفعه بالفعل. موافقتك هي الشرط الثاني والأخير لتأكيد الجلسة.
+          {t('كل طلب هنا تم التحقق من دفعه بالفعل. موافقتك هي الشرط الثاني والأخير لتأكيد الجلسة.', 'Every request here has already had its payment verified. Your acceptance is the second and final condition.')}
         </p>
       </section>
 
@@ -59,23 +62,23 @@ export default async function MentorRequestsPage() {
         <div className="stat-tiles">
           <div className="stat-tile">
             <div className="val eng">{pending.length}</div>
-            <div className="lbl">بانتظار قرارك</div>
+            <div className="lbl">{t('بانتظار قرارك', 'Awaiting your decision')}</div>
           </div>
           <div className="stat-tile">
             <div className="val eng">{confirmed.length}</div>
-            <div className="lbl">جلسات مؤكدة</div>
+            <div className="lbl">{t('جلسات مؤكدة', 'Confirmed sessions')}</div>
           </div>
           <div className="stat-tile">
             <div className="val eng">
               {money(pending.reduce((sum, row) => sum + Number(row.mentor_share_usd), 0))}
             </div>
-            <div className="lbl">حصتك من الطلبات المعلّقة</div>
+            <div className="lbl">{t('حصتك من الطلبات المعلّقة', 'Your share of the pending requests')}</div>
           </div>
         </div>
       </section>
 
       {pending.length === 0 ? (
-        <p className="notice">لا طلبات بانتظار قرارك.</p>
+        <p className="notice">{t('لا طلبات بانتظار قرارك.', 'Nothing waiting on you.')}</p>
       ) : (
         pending.map((request) => {
           const student = studentById.get(request.student_id ?? '');
@@ -87,13 +90,13 @@ export default async function MentorRequestsPage() {
             <article className="panel section-block" key={request.id}>
               <div className="row-between" style={{ alignItems: 'flex-start' }}>
                 <div>
-                  <h3 style={{ fontSize: '1rem' }}>{type?.name_ar ?? 'جلسة إرشاد'}</h3>
+                  <h3 style={{ fontSize: '1rem' }}>{contentText(t.locale, type?.name_ar ?? null, type?.name_en) || t('جلسة إرشاد', 'Mentoring session')}</h3>
                   <p className="muted" style={{ fontSize: '0.86rem', marginTop: 4 }}>
                     {when.date} · <span className="eng">{when.time}</span> ·{' '}
                     <span className="eng">{type?.duration_minutes ?? 60} min</span>
                   </p>
                 </div>
-                <span className="badge-pill eng">حصتك {money(request.mentor_share_usd)}</span>
+                <span className="badge-pill eng">{t('حصتك ', 'Your share ')}{money(request.mentor_share_usd)}</span>
               </div>
 
               <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 14 }}>
@@ -112,14 +115,14 @@ export default async function MentorRequestsPage() {
 
               {request.session_goal_ar && (
                 <div style={{ marginTop: 14 }}>
-                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 6 }}>ما يحتاجه الطالب</p>
+                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 6 }}>{t('ما يحتاجه الطالب', 'What the student needs')}</p>
                   <p style={{ fontSize: '0.88rem' }}>{request.session_goal_ar}</p>
                 </div>
               )}
 
               {reviewItems.length > 0 && (
                 <div style={{ marginTop: 12 }}>
-                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 6 }}>طلب مراجعة</p>
+                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 6 }}>{t('طلب مراجعة', 'Review requested')}</p>
                   <div className="tags-row">
                     {reviewItems.map((item, index) => (
                       <span className="badge-pill" key={`${item.booking_id}-${index}`}>{item.label_ar}</span>
@@ -132,13 +135,13 @@ export default async function MentorRequestsPage() {
                 <form action={decideBooking}>
                   <input type="hidden" name="booking_id" value={request.id} />
                   <input type="hidden" name="decision" value="accept" />
-                  <button className="btn btn-primary btn-sm">قبول الجلسة</button>
+                  <button className="btn btn-primary btn-sm">{t('قبول الجلسة', 'Accept the session')}</button>
                 </form>
                 <form action={decideBooking} style={{ display: 'flex', gap: 8, flex: 1 }}>
                   <input type="hidden" name="booking_id" value={request.id} />
                   <input type="hidden" name="decision" value="decline" />
-                  <input name="reason" placeholder="سبب الاعتذار (اختياري)" style={{ flex: 1, minWidth: 0 }} />
-                  <button className="btn btn-ghost btn-sm">اعتذار</button>
+                  <input name="reason" placeholder={t('سبب الاعتذار (اختياري)', 'Why you are declining (optional)')} style={{ flex: 1, minWidth: 0 }} />
+                  <button className="btn btn-ghost btn-sm">{t('اعتذار', 'Decline')}</button>
                 </form>
               </div>
             </article>
@@ -148,9 +151,9 @@ export default async function MentorRequestsPage() {
 
       {confirmed.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>جلساتك المؤكدة</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('جلساتك المؤكدة', 'Your confirmed sessions')}</h3>
           <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
-            ضع رابط اللقاء لكل جلسة — يراه الطالب في صفحته الرئيسية وتصله رسالة به.
+            {t('ضع رابط اللقاء لكل جلسة — يراه الطالب في صفحته الرئيسية وتصله رسالة به.', 'Add the meeting link for each session — the student sees it on their home page and gets a notification.')}
           </p>
           <div className="stack">
             {confirmed.map((row) => {
@@ -174,14 +177,14 @@ export default async function MentorRequestsPage() {
                       dir="ltr"
                       defaultValue={row.meeting_url ?? ''}
                       placeholder="https://meet.example.com/…"
-                      aria-label="رابط اللقاء"
+                      aria-label={t('رابط اللقاء', 'Meeting link')}
                     />
                     <button className="btn btn-ghost btn-sm" type="submit">
-                      {row.meeting_url ? 'تحديث' : 'حفظ'}
+                      {row.meeting_url ? t('تحديث', 'Update') : t('حفظ', 'Save')}
                     </button>
                   </form>
 
-                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>التفاصيل</Link>
+                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${row.id}`}>{t('التفاصيل', 'Details')}</Link>
                 </article>
               );
             })}

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { OnboardingWizard } from './OnboardingWizard';
 
-export const metadata = { title: 'إعداد حسابك — TechMood' };
+export const metadata = { title: 'Set up your account — TechMood' };
 
 export default async function OnboardingPage() {
   const supabase = await createClient();

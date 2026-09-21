@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { contentText, formatDate } from '@/lib/i18n';
 import { BOOKING_STATUS, BOOKING_TIMELINE, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
 
 import { cancelBooking } from '../actions';
@@ -12,6 +14,7 @@ export default async function BookingDetailPage({
   params: Promise<{ bookingId: string }>;
 }) {
   const { bookingId } = await params;
+  const t = await getT();
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -29,7 +32,7 @@ export default async function BookingDetailPage({
     await Promise.all([
       supabase.from('profiles').select('full_name, techmood_id').eq('id', booking.mentor_id).single(),
       booking.session_type_id
-        ? supabase.from('session_types').select('name_ar, duration_minutes').eq('id', booking.session_type_id).maybeSingle()
+        ? supabase.from('session_types').select('name_ar, name_en, duration_minutes').eq('id', booking.session_type_id).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase
         .from('payments')
@@ -43,7 +46,7 @@ export default async function BookingDetailPage({
     ]);
 
   const { data: method } = payment
-    ? await supabase.from('payment_methods').select('name_ar, icon').eq('key', payment.method_key).maybeSingle()
+    ? await supabase.from('payment_methods').select('name_ar, name_en, icon').eq('key', payment.method_key).maybeSingle()
     : { data: null };
 
   const status = BOOKING_STATUS[booking.status];
@@ -58,17 +61,17 @@ export default async function BookingDetailPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/bookings">→ حجوزاتي</Link>
+      <Link className="btn btn-ghost btn-sm" href="/bookings">{t('→ حجوزاتي', '← My bookings')}</Link>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
           <div>
-            <h2 style={{ fontSize: '1.2rem' }}>{sessionType?.name_ar ?? 'جلسة إرشاد'}</h2>
+            <h2 style={{ fontSize: '1.2rem' }}>{contentText(t.locale, sessionType?.name_ar ?? null, sessionType?.name_en) || t('جلسة إرشاد', 'Mentoring session')}</h2>
             <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-              مع {mentorProfile?.full_name}
+              {t('مع ', 'with ')}{mentorProfile?.full_name}
             </p>
           </div>
-          <span className={`status-pill ${status.className}`}>{status.text}</span>
+          <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
         </div>
 
         <div className="tags-row" style={{ marginTop: 14 }}>
@@ -80,20 +83,21 @@ export default async function BookingDetailPage({
 
         {booking.status === 'payment_pending' && isStudent && (
           <Link className="btn btn-primary btn-sm" style={{ marginTop: 16 }} href={`/bookings/${bookingId}/pay`}>
-            أكمل الدفع
+            {t('أكمل الدفع', 'Complete payment')}
           </Link>
         )}
 
         {booking.status === 'rejected' && (
           <p className="notice notice-danger" style={{ marginTop: 16 }}>
-            اعتذر المنتور عن هذه الجلسة.{booking.cancelled_reason ? ` السبب: ${booking.cancelled_reason}` : ''}
-            {' '}سيراجع فريق TechMood حالة الاسترداد وفق سياسة المنصة.
+            {t('اعتذر المنتور عن هذه الجلسة.', 'The mentor declined this session.')}
+            {booking.cancelled_reason ? t(` السبب: ${booking.cancelled_reason}`, ` Reason: ${booking.cancelled_reason}`) : ''}
+            {' '}{t('سيراجع فريق TechMood حالة الاسترداد وفق سياسة المنصة.', 'TechMood will review the refund under the platform policy.')}
           </p>
         )}
 
         {booking.status === 'expired' && (
           <p className="notice" style={{ marginTop: 16 }}>
-            انتهت مهلة إكمال الدفع، وعاد الموعد متاحاً. يمكنك إنشاء طلب جديد في أي وقت.
+            {t('انتهت مهلة إكمال الدفع، وعاد الموعد متاحاً. يمكنك إنشاء طلب جديد في أي وقت.', 'The payment window closed and the slot is free again. You can start a new request whenever you like.')}
           </p>
         )}
       </section>
@@ -101,7 +105,7 @@ export default async function BookingDetailPage({
       <div className="detail-grid">
         <section>
           <div className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>مسار الطلب</h3>
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('مسار الطلب', 'Request journey')}</h3>
             <ul className="timeline">
               {BOOKING_TIMELINE.map((step, index) => (
                 <li
@@ -109,7 +113,7 @@ export default async function BookingDetailPage({
                   className={index < reachedIndex ? 'done' : index === reachedIndex ? 'current' : ''}
                 >
                   <span className="tl-dot" />
-                  <span className="tl-label">{step.label}</span>
+                  <span className="tl-label">{t(step.label)}</span>
                 </li>
               ))}
             </ul>
@@ -117,13 +121,13 @@ export default async function BookingDetailPage({
 
           {booking.session_goal_ar && (
             <div className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>هدف الجلسة</h3>
+              <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('هدف الجلسة', 'Session goal')}</h3>
               <p style={{ fontSize: '0.88rem' }}>{booking.session_goal_ar}</p>
 
               {(items?.length ?? 0) > 0 && (
                 <>
                   <p className="muted" style={{ fontSize: '0.8rem', margin: '14px 0 8px' }}>
-                    عناصر طلب الطالب مراجعتها
+                    {t('عناصر طلب الطالب مراجعتها', 'What the student asked to have reviewed')}
                   </p>
                   <div className="tags-row">
                     {items!.map((item) => (
@@ -137,18 +141,24 @@ export default async function BookingDetailPage({
 
           {(events?.length ?? 0) > 0 && (
             <div className="panel">
-              <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>السجل</h3>
+              <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('السجل', 'History')}</h3>
               <table className="data">
                 <tbody>
                   {events!.map((event) => (
                     <tr key={event.id}>
                       <td className="eng" style={{ width: 110 }}>
-                        {new Date(event.created_at).toLocaleDateString('ar-EG')}
+                        {formatDate(t.locale, event.created_at)}
                       </td>
                       <td>
                         {event.event_key.startsWith('payment_')
-                          ? `الدفع: ${PAYMENT_STATUS[event.event_key.replace('payment_', '') as keyof typeof PAYMENT_STATUS]?.text ?? event.event_key}`
-                          : BOOKING_STATUS[event.event_key as keyof typeof BOOKING_STATUS]?.text ?? event.event_key}
+                          ? t('الدفع: ', 'Payment: ') + (() => {
+                              const key = event.event_key.replace('payment_', '') as keyof typeof PAYMENT_STATUS;
+                              return PAYMENT_STATUS[key] ? t(PAYMENT_STATUS[key].text) : event.event_key;
+                            })()
+                          : (() => {
+                              const key = event.event_key as keyof typeof BOOKING_STATUS;
+                              return BOOKING_STATUS[key] ? t(BOOKING_STATUS[key].text) : event.event_key;
+                            })()}
                         {event.note_ar && <span className="muted"> — {event.note_ar}</span>}
                       </td>
                     </tr>
@@ -161,23 +171,23 @@ export default async function BookingDetailPage({
 
         <aside>
           <div className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>الدفع</h3>
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('الدفع', 'Payment')}</h3>
             {payment ? (
               <div className="summary-rows">
                 <div className="summary-row">
-                  <span className="muted">الحالة</span>
+                  <span className="muted">{t('الحالة', 'Status')}</span>
                   <span className={`status-pill ${PAYMENT_STATUS[payment.status].className}`}>
-                    {PAYMENT_STATUS[payment.status].text}
+                    {t(PAYMENT_STATUS[payment.status].text)}
                   </span>
                 </div>
-                <div className="summary-row"><span className="muted">الطريقة</span><span>{method?.icon} {method?.name_ar}</span></div>
+                <div className="summary-row"><span className="muted">{t('الطريقة', 'Method')}</span><span>{method?.icon} {contentText(t.locale, method?.name_ar ?? null, method?.name_en)}</span></div>
                 {payment.reference && (
-                  <div className="summary-row"><span className="muted">المرجع</span><span className="eng">{payment.reference}</span></div>
+                  <div className="summary-row"><span className="muted">{t('المرجع', 'Reference')}</span><span className="eng">{payment.reference}</span></div>
                 )}
-                <div className="summary-row total"><span>المبلغ</span><span className="eng">{money(payment.amount_usd)}</span></div>
+                <div className="summary-row total"><span>{t('المبلغ', 'Amount')}</span><span className="eng">{money(payment.amount_usd)}</span></div>
               </div>
             ) : (
-              <p className="muted" style={{ fontSize: '0.86rem' }}>لا يوجد سجل دفع.</p>
+              <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا يوجد سجل دفع.', 'No payment record.')}</p>
             )}
 
             {payment?.rejection_reason && (
@@ -185,21 +195,21 @@ export default async function BookingDetailPage({
             )}
 
             <p className="muted" style={{ fontSize: '0.76rem', marginTop: 12 }}>
-              التحقق من الدفع لا يؤكد الجلسة وحده — موافقة المنتور شرط ثانٍ مستقل.
+              {t('التحقق من الدفع لا يؤكد الجلسة وحده — موافقة المنتور شرط ثانٍ مستقل.', 'Verifying the payment does not confirm the session on its own — the mentor’s acceptance is a separate, second condition.')}
             </p>
           </div>
 
           {booking.status === 'confirmed' && (
             <div className="panel section-block">
-              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>رابط اللقاء</h3>
+              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>{t('رابط اللقاء', 'Meeting link')}</h3>
               {booking.meeting_url ? (
                 <a className="btn btn-primary btn-sm" href={booking.meeting_url}
                    target="_blank" rel="noreferrer noopener" style={{ width: '100%' }}>
-                  ادخل الجلسة
+                  {t('ادخل الجلسة', 'Join the session')}
                 </a>
               ) : (
                 <p className="muted" style={{ fontSize: '0.84rem' }}>
-                  لم يضع المنتور الرابط بعد. سيصلك إشعار فور إضافته.
+                  {t('لم يضع المنتور الرابط بعد. سيصلك إشعار فور إضافته.', 'The mentor has not added the link yet. You will be notified the moment they do.')}
                 </p>
               )}
             </div>
@@ -208,7 +218,7 @@ export default async function BookingDetailPage({
           {isStudent && ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending'].includes(booking.status) && (
             <form action={cancelBooking} className="panel">
               <input type="hidden" name="booking_id" value={bookingId} />
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%' }}>إلغاء الطلب</button>
+              <button className="btn btn-ghost btn-sm" style={{ width: '100%' }}>{t('إلغاء الطلب', 'Cancel the request')}</button>
             </form>
           )}
         </aside>

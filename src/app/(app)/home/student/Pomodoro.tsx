@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n.client';
 
 type Phase = 'idle' | 'running' | 'paused' | 'done';
 
@@ -18,6 +19,7 @@ const MINUTES = [15, 25, 45];
  * of where the hours went.
  */
 export function Pomodoro({ suggestion }: { suggestion: string | null }) {
+  const t = useT();
   const [planned, setPlanned] = useState(25);
   const [remaining, setRemaining] = useState(25 * 60);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -86,7 +88,7 @@ export function Pomodoro({ suggestion }: { suggestion: string | null }) {
 
   return (
     <article className="panel pomodoro">
-      <p className="kicker">جلسة تركيز</p>
+      <p className="kicker">{t('جلسة تركيز', 'Focus session')}</p>
 
       <div className="pomodoro-clock eng" role="timer" aria-live="off">
         {minutes}:{seconds}
@@ -101,39 +103,39 @@ export function Pomodoro({ suggestion }: { suggestion: string | null }) {
             onClick={() => choose(value)}
             disabled={phase === 'running'}
           >
-            {value} دقيقة
+            {t(`${value} دقيقة`, `${value} min`)}
           </button>
         ))}
       </div>
 
       <div className="field" style={{ marginTop: 12 }}>
-        <label htmlFor="focus-subject">على ماذا تعمل؟</label>
+        <label htmlFor="focus-subject">{t('على ماذا تعمل؟', 'What are you working on?')}</label>
         <input
           id="focus-subject"
           value={subject}
           onChange={(event) => setSubject(event.target.value)}
-          placeholder="اسم الدرس أو المهمة"
+          placeholder={t('اسم الدرس أو المهمة', 'The lesson or task')}
         />
       </div>
 
       <div className="pomodoro-controls">
         {phase !== 'running' ? (
           <button className="btn btn-primary btn-sm" type="button" onClick={start}>
-            {phase === 'paused' ? 'متابعة' : 'ابدأ'}
+            {phase === 'paused' ? t('متابعة', 'Resume') : t('ابدأ', 'Start')}
           </button>
         ) : (
           <button className="btn btn-ghost btn-sm" type="button" onClick={() => setPhase('paused')}>
-            إيقاف مؤقت
+            {t('إيقاف مؤقت', 'Pause')}
           </button>
         )}
-        <button className="btn btn-ghost btn-sm" type="button" onClick={reset}>إعادة</button>
+        <button className="btn btn-ghost btn-sm" type="button" onClick={reset}>{t('إعادة', 'Reset')}</button>
       </div>
 
-      {phase === 'done' && <p className="notice notice-ok">انتهت الجلسة — خذ استراحة.</p>}
+      {phase === 'done' && <p className="notice notice-ok">{t('انتهت الجلسة — خذ استراحة.', 'Session over — take a break.')}</p>}
       {saved > 0 && (
         <p className="muted" style={{ fontSize: '0.76rem' }}>
-          سُجِّلت {saved} {saved === 1 ? 'جلسة' : 'جلسات'} في سجلّك. جلسات التركيز
-          لا تمنح XP — النقاط للعمل الذي يُراجَع.
+          {t(`سُجِّلت ${saved} ${saved === 1 ? 'جلسة' : 'جلسات'} في سجلّك. جلسات التركيز لا تمنح XP — النقاط للعمل الذي يُراجَع.`,
+             `${saved} ${saved === 1 ? 'session' : 'sessions'} recorded. Focus sessions earn no XP — points are for work that gets reviewed.`)}
         </p>
       )}
     </article>

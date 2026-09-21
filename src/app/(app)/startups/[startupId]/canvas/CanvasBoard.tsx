@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CANVAS_BLOCKS, CARD_COLOURS } from '@/lib/incubator';
 import type { CanvasBlock, CanvasCard, CardColour } from '@/lib/database.types';
+import { useT } from '@/lib/i18n.client';
 
 /**
  * The canvas is a live editing surface, so it talks to Supabase from the browser
@@ -21,6 +22,7 @@ export function CanvasBoard({
   initialCards: CanvasCard[];
   canEdit: boolean;
 }) {
+  const t = useT();
   const [cards, setCards] = useState(initialCards);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -51,7 +53,7 @@ export function CanvasBoard({
       .single();
 
     if (insertError || !data) {
-      setError('تعذّر إضافة البطاقة.');
+      setError(t('تعذّر إضافة البطاقة.', 'The card could not be added.'));
       return;
     }
 
@@ -72,20 +74,20 @@ export function CanvasBoard({
       .update({ body_ar: text })
       .eq('id', id);
 
-    if (updateError) setError('تعذّر حفظ التعديل.');
+    if (updateError) setError(t('تعذّر حفظ التعديل.', 'The change could not be saved.'));
   }
 
   async function recolour(id: string, colour: CardColour) {
     setCards((current) => current.map((card) => (card.id === id ? { ...card, colour } : card)));
     const { error: updateError } = await supabase.from('canvas_cards').update({ colour }).eq('id', id);
-    if (updateError) setError('تعذّر تغيير اللون.');
+    if (updateError) setError(t('تعذّر تغيير اللون.', 'The colour could not be changed.'));
   }
 
   async function removeCard(id: string) {
     setCards((current) => current.filter((card) => card.id !== id));
     setEditingId(null);
     const { error: deleteError } = await supabase.from('canvas_cards').delete().eq('id', id);
-    if (deleteError) setError('تعذّر حذف البطاقة.');
+    if (deleteError) setError(t('تعذّر حذف البطاقة.', 'The card could not be deleted.'));
   }
 
   async function moveCard(id: string, block: CanvasBlock) {
@@ -105,7 +107,7 @@ export function CanvasBoard({
       p_index: null,
     });
 
-    if (moveError) setError('تعذّر نقل البطاقة.');
+    if (moveError) setError(t('تعذّر نقل البطاقة.', 'The card could not be moved.'));
   }
 
   return (
@@ -132,10 +134,10 @@ export function CanvasBoard({
             }}
           >
             <header>
-              <h3>{block.label}</h3>
+              <h3>{t(block.label)}</h3>
               <span className="badge-pill eng">{cardsIn(block.key).length}</span>
             </header>
-            <p className="bmc-hint">{block.hint}</p>
+            <p className="bmc-hint">{t(block.hint)}</p>
 
             {cardsIn(block.key).map((card) =>
               editingId === card.id ? (
@@ -153,7 +155,7 @@ export function CanvasBoard({
                       <button
                         key={colour}
                         type="button"
-                        aria-label={`لون ${colour}`}
+                        aria-label={t(`لون ${colour}`, `Colour ${colour}`)}
                         className={`swatch card-${colour}${card.colour === colour ? ' selected' : ''}`}
                         onClick={() => void recolour(card.id, colour)}
                       />
@@ -168,21 +170,21 @@ export function CanvasBoard({
                     style={{ width: '100%', fontSize: '0.76rem', marginBottom: 8 }}
                   >
                     {CANVAS_BLOCKS.map((option) => (
-                      <option key={option.key} value={option.key}>انقل إلى: {option.label}</option>
+                      <option key={option.key} value={option.key}>{t('انقل إلى: ', 'Move to: ')}{t(option.label)}</option>
                     ))}
                   </select>
 
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button className="btn btn-primary btn-sm" onClick={() => void saveCard(card.id, draft)}>
-                      حفظ
+                      {t('حفظ', 'Save')}
                     </button>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>إلغاء</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>{t('إلغاء', 'Cancel')}</button>
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ color: 'var(--danger)', marginInlineStart: 'auto' }}
                       onClick={() => void removeCard(card.id)}
                     >
-                      حذف
+                      {t('حذف', 'Delete')}
                     </button>
                   </div>
                 </div>
@@ -210,16 +212,16 @@ export function CanvasBoard({
                   autoFocus
                   rows={2}
                   value={draft}
-                  placeholder="اكتب البطاقة…"
+                  placeholder={t('اكتب البطاقة…', 'Write the card…')}
                   onChange={(event) => setDraft(event.target.value)}
                   style={{ width: '100%', fontSize: '0.8rem' }}
                 />
                 <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                   <button className="btn btn-primary btn-sm" onClick={() => void addCard(block.key, draft)}>
-                    أضف
+                    {t('أضف', 'Add')}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => { setAddingTo(null); setDraft(''); }}>
-                    إلغاء
+                    {t('إلغاء', 'Cancel')}
                   </button>
                 </div>
               </div>
@@ -229,7 +231,7 @@ export function CanvasBoard({
                   className="add-card-btn"
                   onClick={() => { setAddingTo(block.key); setDraft(''); }}
                 >
-                  + بطاقة
+                  {t('+ بطاقة', '+ Card')}
                 </button>
               )
             )}

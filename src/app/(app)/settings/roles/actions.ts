@@ -4,17 +4,20 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
+import { dbError } from '@/lib/db-errors';
 import { SELECTABLE_ROLES } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
 export type RoleState = { error?: string; ok?: string } | undefined;
 
 export async function applyForRole(_prev: RoleState, formData: FormData): Promise<RoleState> {
+  const t = await getT();
   const supabase = await createClient();
   const role = String(formData.get('role') ?? '') as UserRole;
 
   if (!SELECTABLE_ROLES.some((r) => r.value === role && r.needsReview)) {
-    return { error: 'هذا الدور لا يُطلب من هنا.' };
+    return { error: t('هذا الدور لا يُطلب من هنا.', 'That role is not requested from here.') };
   }
   // The mentor role has a form of its own; a one-line note is not enough to
   // decide on someone who will be reviewing other people's work.
@@ -26,13 +29,17 @@ export async function applyForRole(_prev: RoleState, formData: FormData): Promis
     p_evidence_url: String(formData.get('evidence_url') ?? '').trim() || null,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath('/settings/roles');
-  return { ok: 'أُرسل طلبك — ستصلك النتيجة في الإشعارات.' };
+  return {
+    ok: t('أُرسل طلبك — ستصلك النتيجة في الإشعارات.',
+          'Your request is in — the decision will reach you in your notifications.'),
+  };
 }
 
 export async function answerRequest(_prev: RoleState, formData: FormData): Promise<RoleState> {
+  const t = await getT();
   const supabase = await createClient();
 
   const { error } = await supabase.rpc('answer_role_request', {
@@ -40,10 +47,10 @@ export async function answerRequest(_prev: RoleState, formData: FormData): Promi
     p_note: String(formData.get('note') ?? '').trim(),
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath('/settings/roles');
-  return { ok: 'وصل ردّك — الطلب عاد إلى قائمة المراجعة.' };
+  return { ok: t('وصل ردّك — الطلب عاد إلى قائمة المراجعة.', 'Your answer is in — the request is back in the queue.') };
 }
 
 export async function withdrawRequest(formData: FormData) {
@@ -72,6 +79,7 @@ export async function submitMentorApplication(
   _prev: RoleState,
   formData: FormData,
 ): Promise<RoleState> {
+  const t = await getT();
   const supabase = await createClient();
 
   const domains = formData.getAll('domains').map(String).filter(Boolean);
@@ -90,7 +98,7 @@ export async function submitMentorApplication(
     p_languages: languages,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath('/settings/roles');
   redirect('/settings/roles');

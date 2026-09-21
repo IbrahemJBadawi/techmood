@@ -4,17 +4,19 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { getT } from '@/lib/i18n.server';
 import type { ApplicationStage, CompensationKind, OpportunityKind } from '@/lib/database.types';
 
 export type MarketState = { error?: string; ok?: string } | undefined;
 
 export async function postOpportunity(_prev: MarketState, formData: FormData): Promise<MarketState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const title = String(formData.get('title') ?? '').trim();
-  if (title.length < 4) return { error: 'اكتب عنواناً واضحاً للفرصة.' };
+  if (title.length < 4) return { error: t('اكتب عنواناً واضحاً للفرصة.', 'Give the opening a clear title.') };
 
   const toNumber = (field: string) => {
     const raw = String(formData.get(field) ?? '').trim();
@@ -26,7 +28,7 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
   const min = toNumber('amount_min');
   const max = toNumber('amount_max');
   if (min !== null && max !== null && max < min) {
-    return { error: 'الحد الأعلى للأجر يجب ألا يقل عن الحد الأدنى.' };
+    return { error: t('الحد الأعلى للأجر يجب ألا يقل عن الحد الأدنى.', 'The upper pay figure cannot be below the lower one.') };
   }
 
   const { data, error } = await supabase
@@ -57,7 +59,7 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
     .single();
 
   if (error || !data) {
-    return { error: 'تعذّر نشر الفرصة — نشر الفرص يتطلب دوراً معتمداً (شركة، مؤسس، قائد فريق، أو فريلانسر).' };
+    return { error: t('تعذّر نشر الفرصة — نشر الفرص يتطلب دوراً معتمداً (شركة، مؤسس، قائد فريق، أو فريلانسر).', 'The opening could not be published — posting needs an approved role (organisation, founder, team lead or freelancer).') };
   }
 
   revalidatePath('/marketplace');
@@ -65,6 +67,7 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
 }
 
 export async function applyToOpportunity(_prev: MarketState, formData: FormData): Promise<MarketState> {
+  const t = await getT();
   const supabase = await createClient();
   const opportunityId = String(formData.get('opportunity_id') ?? '');
 
@@ -75,18 +78,18 @@ export async function applyToOpportunity(_prev: MarketState, formData: FormData)
 
   if (error) {
     const message = error.message ?? '';
-    if (message.includes('your own posting')) return { error: 'لا يمكنك التقدّم على فرصة نشرتها بنفسك.' };
-    if (message.includes('not open')) return { error: 'هذه الفرصة لم تعد مفتوحة.' };
-    if (message.includes('have closed')) return { error: 'انتهى موعد التقديم على هذه الفرصة.' };
-    if (message.includes('been filled')) return { error: 'اكتمل عدد المقاعد على هذه الفرصة.' };
-    if (message.includes('already a member')) return { error: 'أنت عضو في هذا الفريق بالفعل.' };
-    if (message.includes('duplicate')) return { error: 'قدّمت على هذه الفرصة من قبل.' };
-    return { error: 'تعذّر إرسال الطلب.' };
+    if (message.includes('your own posting')) return { error: t('لا يمكنك التقدّم على فرصة نشرتها بنفسك.', 'You cannot apply to an opening you posted yourself.') };
+    if (message.includes('not open')) return { error: t('هذه الفرصة لم تعد مفتوحة.', 'This opening is no longer open.') };
+    if (message.includes('have closed')) return { error: t('انتهى موعد التقديم على هذه الفرصة.', 'The deadline for this opening has passed.') };
+    if (message.includes('been filled')) return { error: t('اكتمل عدد المقاعد على هذه الفرصة.', 'Every seat on this opening is filled.') };
+    if (message.includes('already a member')) return { error: t('أنت عضو في هذا الفريق بالفعل.', 'You are already a member of that team.') };
+    if (message.includes('duplicate')) return { error: t('قدّمت على هذه الفرصة من قبل.', 'You have already applied to this opening.') };
+    return { error: t('تعذّر إرسال الطلب.', 'The application could not be sent.') };
   }
 
   revalidatePath(`/marketplace/${opportunityId}`);
   revalidatePath('/applications');
-  return { ok: 'أُرسل طلبك.' };
+  return { ok: t('أُرسل طلبك.', 'Your application is in.') };
 }
 
 export async function decideApplication(formData: FormData) {
