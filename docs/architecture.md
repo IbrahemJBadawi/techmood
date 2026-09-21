@@ -498,6 +498,44 @@ sections — my paths, continue learning, the suggestions — step aside, so the
 same card is never on screen twice. Continue learning is not rebuilt here; it is
 the component the home page already uses, reading the same `continue_learning()`.
 
+## Eight schools, fifty paths, and the difference between announced and written
+
+The academy document names eight schools and fifty paths. The catalogue the
+code carried was the prototype's six paths under schools named before that
+document existed. 0033 makes the map the document's own, without a second
+catalogue beside the first.
+
+The schools become the eight by **renaming the rows that survive**, so every
+path, conversation and certificate that points at a school keeps pointing at
+it. Two schools the document folds into others (project management, technical
+languages) are merged away after their paths are moved; two new ones are added.
+
+`content_status` gains **`planned`**. A path the academy has committed to but
+has not written is not a draft — a draft is private, unfinished work — and it
+is certainly not published. It is announced, and saying so in the status is
+what lets the academy show its whole map without inventing a single lesson:
+
+* a planned path has no lessons, so it cannot be started;
+* `academy_paths()` filters on `published`, so it never appears as a startable
+  card, and `academy_courses()` filters on published courses, so an outline
+  course is never offered either;
+* `academy_roadmap()` returns the announced paths with their outline, and the
+  page renders them with no button, because there is nothing behind them yet.
+
+**Depth and Breadth needed no column.** The document's deep courses are the
+ones a path requires; its exposure courses are the ones it carries without
+gating completion. That is what `path_courses.is_required` has always meant, so
+the philosophy is stored rather than restated — `academy_roadmap()` simply
+reads the required rows as the depth list and the rest as the breadth list.
+
+One consequence had to be closed. A course can sit in several paths, and 0032
+read its level from its earliest position in any of them. Once a planned
+outline can carry a published course — `modern-js` is the second course of the
+web path and the first of JavaScript & TypeScript — an outline nobody is
+studying could demote a course somebody is. A level describes where a course
+sits in what is actually being taught, so `backfill_course_levels()` now counts
+positions in published paths only.
+
 ## Bookings are written by functions, not by their parties
 
 0011 gave the student and the mentor a blanket update policy on `bookings`,

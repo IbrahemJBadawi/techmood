@@ -581,8 +581,8 @@ select public.assert(
   '10.1 all six prototype paths were carried over');
 
 select public.assert(
-  (select count(*) from public.courses) = 18,
-  '10.2 all eighteen courses were carried over');
+  (select count(*) from public.courses where status = 'published') = 18,
+  '10.2 all eighteen published courses were carried over');
 
 select public.assert(
   (select count(*) from public.lessons) = 36,
@@ -2863,6 +2863,97 @@ select public.assert(
   '23.18 another learner sees their own standing, not the first one''s');
 reset role;
 reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 24. The academy map: eight schools, fifty paths
+-- ===========================================================================
+select public.assert(
+  (select count(*) from public.schools) = 8,
+  '24.1 the academy has the document''s eight schools, no more');
+
+select public.assert(
+  (select count(*) from public.schools where slug in (
+     'software-engineering', 'ai-data', 'cyber-infrastructure', 'design-creative',
+     'business-management', 'career-human', 'digital-admin', 'foundations')) = 8,
+  '24.2 and they are those eight by name');
+
+select public.assert(
+  not exists (select 1 from public.schools where slug in ('project-mgmt', 'tech-languages')),
+  '24.3 the two schools the document folds into others are gone');
+
+select public.assert(
+  not exists (select 1 from public.learning_paths where school_id is null),
+  '24.4 no path was orphaned when the schools were merged');
+
+select public.assert(
+  (select count(*) from public.learning_paths) = 50,
+  '24.5 the map holds fifty paths');
+
+select public.assert(
+  (select count(*) from public.learning_paths where status = 'planned') = 44,
+  '24.6 forty-four of them are announced, not written');
+
+select public.assert(
+  (select count(distinct sort_order) from public.learning_paths) = 50
+  and (select min(sort_order) from public.learning_paths) = 1
+  and (select max(sort_order) from public.learning_paths) = 50,
+  '24.7 every path sits at its own number in the document''s order');
+
+-- A planned path is an outline. It must not look startable.
+select public.assert(
+  not exists (
+    select 1 from public.learning_paths p
+      join public.path_courses pc on pc.path_id = p.id
+      join public.modules m on m.course_id = pc.course_id
+      join public.lessons l on l.module_id = m.id
+     where p.status = 'planned' and (select status from public.courses where id = pc.course_id) = 'draft'
+  ),
+  '24.8 a planned path carries no lesson — nothing is invented to fill it');
+
+select public.assert(
+  (select count(*) from public.academy_paths() ) = 6,
+  '24.9 the discovery page still sees only what is published');
+
+select public.assert(
+  not exists (
+    select 1 from public.academy_courses() ac
+     where ac.id in (select id from public.courses where status = 'draft')
+  ),
+  '24.10 and an outline course is never offered as a card');
+
+-- Depth and Breadth live in is_required, not in a second column.
+select public.assert(
+  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'back-end') = 6
+  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'back-end') = 4,
+  '24.11 a path''s depth is what it requires, its breadth what it carries');
+
+select public.assert(
+  (select count(*) from public.academy_roadmap()) = 44,
+  '24.12 the roadmap returns every announced path');
+
+select public.assert(
+  (select school_slug from public.academy_roadmap() where slug = 'icdl') = 'digital-admin',
+  '24.13 a path belongs to the school the document put it in');
+
+-- A course shared between a live path and a planned one keeps the level the
+-- live path gives it.
+select public.assert(
+  (select count(*) from public.path_courses pc
+     join public.learning_paths p on p.id = pc.path_id
+    where pc.course_id = (select id from public.courses where slug = 'modern-js')
+      and p.status = 'planned') > 0,
+  '24.14 a published course can appear in an outline as well');
+
+select public.assert(
+  (select level from public.courses where slug = 'modern-js') = 'intermediate'
+  and (select level from public.courses where slug = 'react') = 'advanced',
+  '24.15 and an outline cannot change the level of a course being taught');
+
+select public.assert(
+  (select count(*) from public.conversations c
+     join public.learning_paths p on p.id = c.path_id
+    where p.status = 'planned') = 0,
+  '24.16 an announced path opens no conversation until it is published');
 
 \echo ''
 \echo '================================================'

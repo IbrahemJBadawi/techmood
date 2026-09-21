@@ -4,10 +4,14 @@ import { getLocale, getT } from '@/lib/i18n.server';
 import { ContinueLearning, type Resume } from '../home/student/ContinueLearning';
 import { AcademyExplorer } from './AcademyExplorer';
 import { AcademyHero } from './AcademyHero';
+import { AcademyMap } from './AcademyMap';
 import { CourseCard } from './CourseCard';
 import { EmptyState } from './EmptyState';
 import { PathCard } from './PathCard';
-import { LEVEL_ORDER, pathTitle, type AcademyCourse, type AcademyPath } from './types';
+import {
+  LEVEL_ORDER, pathTitle,
+  type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
+} from './types';
 
 const SUGGESTION_LIMIT = 3;
 const MY_COURSES_LIMIT = 6;
@@ -31,14 +35,24 @@ export default async function AcademyPage() {
   const locale = await getLocale();
   const supabase = await createClient();
 
-  const [{ data: pathRows }, { data: courseRows }, { data: resumeRows }] = await Promise.all([
+  const [
+    { data: pathRows },
+    { data: courseRows },
+    { data: resumeRows },
+    { data: roadmapRows },
+    { data: schoolRows },
+  ] = await Promise.all([
     supabase.rpc('academy_paths'),
     supabase.rpc('academy_courses'),
     supabase.rpc('continue_learning'),
+    supabase.rpc('academy_roadmap'),
+    supabase.from('schools').select('slug, name_ar, name_en').order('sort_order'),
   ]);
 
   const paths = (pathRows ?? []) as AcademyPath[];
   const courses = (courseRows ?? []) as AcademyCourse[];
+  const roadmap = (roadmapRows ?? []) as AcademyRoadmapPath[];
+  const schools = schoolRows ?? [];
   const resume = ((resumeRows as Resume[] | null) ?? [])[0] ?? null;
 
   const myPaths = paths
@@ -101,7 +115,7 @@ export default async function AcademyPage() {
         action={heroAction}
       />
 
-      <AcademyExplorer paths={paths} courses={courses}>
+      <AcademyExplorer paths={paths} courses={courses} roadmap={roadmap}>
         {/* ---- my paths ---- */}
         <section className="section-block" aria-labelledby="academy-my-paths">
           <h2 id="academy-my-paths" className="academy-heading">{t('مساراتي', 'My paths')}</h2>
@@ -163,6 +177,8 @@ export default async function AcademyPage() {
           </section>
         )}
       </AcademyExplorer>
+
+      <AcademyMap schools={schools} paths={paths} roadmap={roadmap} />
     </>
   );
 }

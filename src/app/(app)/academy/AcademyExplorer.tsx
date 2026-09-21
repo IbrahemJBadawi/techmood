@@ -7,9 +7,11 @@ import { useT } from '@/lib/i18n.client';
 
 import { CourseCard } from './CourseCard';
 import { PathCard } from './PathCard';
+import { RoadmapCard } from './RoadmapCard';
 import {
   courseCount, courseHaystack, LEVEL_LABEL, LEVEL_ORDER, pathCount, pathHaystack,
-  resultCount, STATUS_LABEL, type AcademyCourse, type AcademyPath,
+  resultCount, roadmapHaystack, STATUS_LABEL,
+  type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
 } from './types';
 
 type Tab = 'all' | 'paths' | 'courses';
@@ -29,10 +31,12 @@ const PAGE = 6;
 export function AcademyExplorer({
   paths,
   courses,
+  roadmap,
   children,
 }: {
   paths: AcademyPath[];
   courses: AcademyCourse[];
+  roadmap: AcademyRoadmapPath[];
   children: React.ReactNode;
 }) {
   const t = useT();
@@ -92,7 +96,8 @@ export function AcademyExplorer({
   const haystacks = useMemo(() => ({
     paths: new Map(paths.map((p) => [p.id, pathHaystack(p)])),
     courses: new Map(courses.map((c) => [c.id, courseHaystack(c)])),
-  }), [paths, courses]);
+    roadmap: new Map(roadmap.map((p) => [p.id, roadmapHaystack(p)])),
+  }), [paths, courses, roadmap]);
 
   const matchedPaths = useMemo(() => paths.filter((path) => {
     if (query && !(haystacks.paths.get(path.id) ?? '').includes(query)) return false;
@@ -113,9 +118,22 @@ export function AcademyExplorer({
     return true;
   }), [courses, haystacks, query, domain, status, level]);
 
+  // An announced path has no progress and no level of its own, so it answers
+  // a search and a category — the two questions it can honestly answer — and
+  // steps out of the way of a level or status filter.
+  const matchedRoadmap = useMemo(() => {
+    if (level !== '' || status !== '') return [];
+    return roadmap.filter((path) => {
+      if (query && !(haystacks.roadmap.get(path.id) ?? '').includes(query)) return false;
+      if (domain && path.school_slug !== domain) return false;
+      return true;
+    });
+  }, [roadmap, haystacks, query, domain, level, status]);
+
   const narrowed = query !== '' || domain !== null || level !== '' || status !== '';
   const showPaths = tab !== 'courses';
   const showCourses = tab !== 'paths';
+  const showRoadmap = tab !== 'courses' && narrowed && matchedRoadmap.length > 0;
   const total = (showPaths ? matchedPaths.length : 0) + (showCourses ? matchedCourses.length : 0);
 
   const clear = () => {
@@ -244,9 +262,12 @@ export function AcademyExplorer({
           {showPaths && showCourses && total > 0 && (
             <> — {pathCount(t.locale, matchedPaths.length)}، {courseCount(t.locale, matchedCourses.length)}</>
           )}
+          {showRoadmap && (
+            <> {t(`و${matchedRoadmap.length} مساراً قادماً`, `and ${matchedRoadmap.length} announced`)}</>
+          )}
         </p>
 
-        {total === 0 ? (
+        {total === 0 && !showRoadmap ? (
           <div className="panel empty-state">
             <h3 style={{ fontSize: '0.98rem' }}>{t('لا نتائج', 'Nothing matched')}</h3>
             <p className="muted" style={{ fontSize: '0.88rem' }}>
@@ -279,6 +300,18 @@ export function AcademyExplorer({
               </button>
             )}
           </>
+        )}
+        {showRoadmap && (
+          <div className="academy-planned-block">
+            <h3 className="academy-heading">{t('مسارات قادمة تطابق بحثك', 'Announced paths that match')}</h3>
+            <p className="muted academy-why">
+              {t('هذه المسارات معلنة ولم تُكتب بعد — لا يمكن بدؤها الآن.',
+                 'These paths are announced and not written yet — they cannot be started today.')}
+            </p>
+            <div className="card-grid">
+              {matchedRoadmap.slice(0, shown).map((path) => <RoadmapCard path={path} key={path.id} />)}
+            </div>
+          </div>
         )}
       </section>
     </>

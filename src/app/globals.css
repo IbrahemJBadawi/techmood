@@ -1813,3 +1813,41 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   .academy-hero-action .btn { width: 100%; justify-content: center; }
   .academy-filter-row .field { min-width: 0; flex-basis: 100%; }
 }
+
+/* ---------- academy map ---------- */
+.academy-why { font-size: 0.82rem; margin-bottom: 12px; }
+
+.academy-planned { border-style: dashed; }
+.academy-planned-block { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.academy-outline { font-size: 0.78rem; display: grid; gap: 2px; }
+.academy-outline-label {
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.academy-outline p:last-child { font-size: 0.8rem; color: var(--ink); }
+
+.academy-school > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+.academy-school > summary:focus-visible { outline: 2px solid var(--royal); outline-offset: 3px; }
+.academy-school-name { font-weight: 600; font-size: 0.94rem; }
+.academy-school-count { font-size: 0.78rem; }
+.academy-school-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+.academy-school-list li { display: flex; align-items: center; gap: 8px; }
+.academy-school-list a { color: var(--royal-dark); text-decoration: none; }
+.academy-school-list a:hover { text-decoration: underline; }
+.academy-soon { font-size: 0.64rem; }

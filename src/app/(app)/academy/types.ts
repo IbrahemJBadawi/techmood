@@ -11,6 +11,7 @@ import { contentText, plural } from '@/lib/i18n';
  */
 export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number];
 export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number];
+export type AcademyRoadmapPath = Database['public']['Functions']['academy_roadmap']['Returns'][number];
 
 export const STATUS_LABEL: Record<LearningStatus, Text> = {
   not_started: { ar: 'لم يبدأ', en: 'Not started' },
@@ -59,6 +60,14 @@ export function courseDomains(locale: Locale, course: AcademyCourse): string[] {
 export function pathHaystack(path: AcademyPath) {
   return [path.title_ar, path.title_en, path.description_ar, path.tagline_ar,
     path.school_name_ar, path.school_name_en, ...(path.tags ?? [])]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+
+export function roadmapHaystack(path: AcademyRoadmapPath) {
+  return [path.title_ar, path.title_en, path.description_ar, path.school_name_ar,
+    path.school_name_en, ...(path.tags ?? []),
+    ...path.deep_titles_ar, ...path.deep_titles_en,
+    ...path.exposure_titles_ar, ...path.exposure_titles_en]
     .filter(Boolean).join(' ').toLowerCase();
 }
 
