@@ -2082,7 +2082,7 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   direction: ltr;
 }
 
-.certificate-seal { width: 13cqw; height: auto; margin-bottom: 0.8cqw; }
+.certificate-seal { width: 17.5cqw; height: auto; margin-bottom: 0.6cqw; }
 
 .certificate-org {
   font-size: 1.55cqw;
@@ -2154,14 +2154,14 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 }
 
 .certificate-sign { position: relative; text-align: center; }
-.certificate-signature { width: 22cqw; height: auto; margin-bottom: -0.6cqw; }
+.certificate-signature { width: 15.5cqw; height: auto; margin-bottom: -0.3cqw; }
 .certificate-sign .certificate-value { margin-bottom: 0.2cqw; }
 .certificate-stamp {
   position: absolute;
-  width: 11cqw;
+  width: 9.5cqw;
   height: auto;
-  inset-inline-end: -5.6cqw;
-  bottom: 1.2cqw;
+  inset-inline-end: -1.4cqw;
+  bottom: 1.4cqw;
   opacity: 0.26;
   transform: rotate(-11deg);
   pointer-events: none;
