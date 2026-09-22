@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 563 business-rule assertions
+scripts/test.sh                   # 577 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0060, applied in order
+  migrations/        0001-0063, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
@@ -247,6 +247,11 @@ rather than set, roles that separate running from editing from reading, a canvas
 studio with versions and a door from any card to a goal or a project, the
 company's projects, hiring, team and documents, and a public showcase that can
 only repeat what the workspace proved.
+
+Also built: the company's roadmap by quarter, mentor access granted by name and
+expiring on its own date, company-owned mentor bookings priced per seat, and
+share links that open one thing to somebody with no account until the day they
+stop working — plus print styles that drop the shell across the platform.
 
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,

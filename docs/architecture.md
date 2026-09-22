@@ -1156,6 +1156,44 @@ always answer where it came from.
 climbed, the work it actually finished, and whichever canvases it chose to open.
 Nothing on that page is written for it.
 
+## The company's quarters, its mentors, and what it shows
+
+Four gaps closed in 0061–0063, each of which had been blocking the next.
+
+**A mentor could not be let in.** 0060 gave a canvas a `mentors` visibility and
+nothing honoured it — the read policy knew the workspace and the public and
+nobody between. `startup_mentor_access` is the missing middle: a named mentor,
+granted by whoever runs the company, with an optional `expires_on` that closes
+the door on its own day. `is_startup_mentor()` joins the canvas policy and
+`canvas_board()`, so "my mentors may see this" finally means something — and
+means only that: not the plan, not the money, not the rest of the room.
+
+**A company could not book.** A booking belonged to a student or a team, so a
+founder booking for their company paid personally and the session carried no
+trace of which company it was about. `bookings.startup_id` and
+`create_company_booking_request()` fix it: only whoever runs the company may
+call it, it is priced per attending seat like a team's, the seats are named in
+`booking_seats`, and booking a mentor re-opens their access — because a mentor
+cannot advise on what they cannot see. Granting is a decision, not a default
+buried in the flow: it can be refused at booking time and withdrawn afterwards.
+
+**The roadmap.** `roadmap_items` holds only the one thing nothing else could
+express — an intention nobody has started — and `roadmap()` gathers it with the
+goals (which already have due dates) and the projects (which already have a
+life) onto one timeline by quarter. `roadmap_item_to_project()` turns an
+intention into work, which is also what stops the roadmap drifting from reality:
+once something is started, it is a project everywhere.
+
+**Showing one thing to an outsider.** A screenshot loses what makes the thing
+worth showing; opening the workspace gives away everything. `startup_shares` is
+narrow by construction — one company, one scope, one token, one expiry — and
+`shared_view()` hands back exactly what the share names, nothing near it. An
+unissued or revoked token returns no rows at all, `record_share_view()` counts
+opens so a company knows whether the investor ever looked, and `revoke_share()`
+kills a link where it stands. Printing is the other half of the same need: the
+print stylesheet drops the sidebar, the tabs and every button, so what lands on
+the paper — or in a PDF from the print dialog — is the content.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a
