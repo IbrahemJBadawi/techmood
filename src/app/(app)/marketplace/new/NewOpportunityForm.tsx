@@ -11,10 +11,15 @@ import { useT } from '@/lib/i18n.client';
 export function NewOpportunityForm({
   canPostGeneral,
   teams,
+  companies,
+  defaultCompany,
   paths,
 }: {
   canPostGeneral: boolean;
   teams: { id: string; title_ar: string }[];
+  /** Companies this person runs. An opening they post belongs to the company. */
+  companies: { id: string; name_ar: string }[];
+  defaultCompany?: string;
   paths: { id: string; title_ar: string }[];
 }) {
   const t = useT();
@@ -45,6 +50,22 @@ export function NewOpportunityForm({
           </select>
           <span className="muted" style={{ fontSize: '0.78rem' }}>
             {t('طلبات هذا المقعد تصل إلى قائمة طلبات الفريق، وتُقرَّر هناك.', 'Applications for this seat land in the team’s list and are decided there.')}
+          </span>
+        </div>
+      )}
+
+      {companies.length > 0 && (
+        <div className="field">
+          <label htmlFor="startup_id">{t('باسم من؟', 'On whose behalf?')}</label>
+          <select id="startup_id" name="startup_id" defaultValue={defaultCompany ?? ''}>
+            <option value="">{t('باسمي', 'Myself')}</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>{company.name_ar}</option>
+            ))}
+          </select>
+          <span className="muted" style={{ fontSize: '0.78rem' }}>
+            {t('الفرصة باسم شركة تظهر في مساحة عملها، ويديرها من يدير الشركة — لا من نشرها وحده.',
+               'An opening posted for a company appears in its workspace and is run by whoever runs the company, not only by whoever wrote it.')}
           </span>
         </div>
       )}

@@ -1108,6 +1108,54 @@ for sale here. Work built for a client is not the builder's to resell at all,
 and only work that was judged and exhibited can be listed, so the shelf cannot
 fill with unfinished zip files.
 
+## A company workspace, not a company page
+
+0024 gave a startup thinking tools — a canvas, a plan, a strategy, a stage. What
+it never gave was the room a company runs from, and three things were missing
+from that room.
+
+**The ladder was a label.** `startups.stage` was a column anybody with edit
+access could set, and the UI had a "move here" button on every rung. 0058 and
+0059 make it a ladder: eight stages in `incubation_stages` (the order is a
+product decision, so it lives in a table rather than in an enum's definition
+order), `incubation_requirements` saying what each one asks for, and
+`stage_progress()` answering whether each requirement is met **by reading the
+work** — a finished plan section, cards on a canvas, a goal achieved, a mentor
+session held, a project completed. `advance_startup_stage()` refuses while a
+required item is unmet and names what is missing, and the free setter was
+deleted rather than left beside it: a stage nobody can fail to reach is a label
+again the moment there are two ways to reach it.
+
+**The room had four kinds of people.** Founder, co-founder, member and advisor
+could not describe a manager, an employee, a freelancer brought in for one
+project, or somebody who may only read. Running, editing and reading are three
+different questions and now have three functions — `can_manage_startup()`,
+`can_edit_startup()`, `can_view_startup_workspace()`. Projects and openings can
+belong to the company (`projects.startup_id`, `opportunities.startup_id`), so
+hiring is run by whoever runs the company rather than by whoever happened to
+post it.
+
+**And there was one canvas.** 0060 turns the wall into a studio: `canvases` with
+a kind, `canvas_blocks` filled from `canvas_templates`, and `canvas_cards`
+pointing at both. The nine-block Business Model picture keeps its layout; every
+other kind — lean, value proposition, market, competitors, persona, journey,
+financial, funding, MVP, validation, pitch, or blocks somebody names themselves
+— is the same editor. Cards that already existed were moved onto a real
+Business Model canvas, and a trigger keeps `block` and `block_key` in step so
+nothing that reads the old column broke.
+
+Two things matter more than the shape. `canvas_versions` freezes a wall with a
+note and `restore_canvas_version()` takes it back — and restoring snapshots
+first, so going back is itself undoable, because a strategy that needs courage
+to revisit does not get revisited. And a wall has a door out: `card_to_goal()`,
+`card_to_project()` and `swot_to_goal()` turn a thought into something with an
+owner and a date, keeping the link home in `canvas_card_links`, so the work can
+always answer where it came from.
+
+`/companies/[slug]` is the outside of the same room: the stage it actually
+climbed, the work it actually finished, and whichever canvases it chose to open.
+Nothing on that page is written for it.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

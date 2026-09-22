@@ -9,6 +9,7 @@ import type { SmartGoal } from '@/lib/database.types';
 import { StartupNav } from '../StartupNav';
 import { addSwotItem, removeSwotItem, saveStrategy, updateGoalProgress } from '../../actions';
 import { NewGoalForm } from './NewGoalForm';
+import { SwotDoor, type SwotOption } from './SwotDoor';
 
 export default async function StrategyPage({
   params,
@@ -110,6 +111,14 @@ export default async function StrategyPage({
           ))}
         </div>
       </section>
+
+      {editable && (
+        <SwotDoor
+          items={((swot ?? []) as SwotOption[]).filter((item) => item.quadrant === 'weakness' || item.quadrant === 'opportunity')}
+          revalidate={`/startups/${startupId}/strategy`}
+        />
+      )}
+
 
       <section className="section-block">
         <h3 style={{ fontSize: '1rem', marginBottom: 6 }}>{t('أهداف SMART', 'SMART goals')}</h3>

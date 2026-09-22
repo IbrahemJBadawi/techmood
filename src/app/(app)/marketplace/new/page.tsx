@@ -6,19 +6,33 @@ import { getT } from '@/lib/i18n.server';
 
 import { NewOpportunityForm } from './NewOpportunityForm';
 
-export default async function NewOpportunityPage() {
+export default async function NewOpportunityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ startup?: string }>;
+}) {
+  const { startup } = await searchParams;
   const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: canPost }, { data: teams }, { data: paths }] = await Promise.all([
+  const [{ data: canPost }, { data: teams }, { data: paths }, { data: memberships }] = await Promise.all([
     supabase.rpc('can_post_opportunity', { p_kind: 'freelance', p_team: null }),
     supabase.from('teams').select('id, title_ar').eq('leader_id', user.id),
     supabase.from('learning_paths').select('id, title_ar').eq('status', 'published').order('sort_order'),
+    // The companies this person actually runs — hiring belongs to them.
+    supabase.from('startup_members')
+      .select('startup_id, role, startups(id, name_ar)')
+      .eq('profile_id', user.id)
+      .in('role', ['founder', 'cofounder', 'manager']),
   ]);
 
-  if (canPost !== true && (teams?.length ?? 0) === 0) {
+  const companies = (memberships ?? [])
+    .map((row) => row.startups as unknown as { id: string; name_ar: string } | null)
+    .filter(Boolean) as { id: string; name_ar: string }[];
+
+  if (canPost !== true && (teams?.length ?? 0) === 0 && companies.length === 0) {
     return (
       <>
         <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
@@ -45,6 +59,8 @@ export default async function NewOpportunityPage() {
       <NewOpportunityForm
         canPostGeneral={canPost === true}
         teams={teams ?? []}
+        companies={companies}
+        defaultCompany={startup}
         paths={paths ?? []}
       />
     </>

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
-import type { GoalStatus, PlanSection, StartupStage, SwotQuadrant } from '@/lib/database.types';
+import type { GoalStatus, PlanSection,  SwotQuadrant } from '@/lib/database.types';
 
 export type StartupState = { error?: string; ok?: string } | undefined;
 
@@ -43,17 +43,15 @@ export async function createStartup(_prev: StartupState, formData: FormData): Pr
   redirect(`/startups/${data.id}/canvas`);
 }
 
-export async function setStartupStage(formData: FormData) {
-  const supabase = await createClient();
-  const startupId = String(formData.get('startup_id') ?? '');
-
-  await supabase
-    .from('startups')
-    .update({ stage: String(formData.get('stage') ?? 'idea') as StartupStage })
-    .eq('id', startupId);
-
-  revalidatePath(`/startups/${startupId}`);
-}
+/*
+ * setStartupStage is gone on purpose.
+ *
+ * 0059 made the stage a rung with requirements: advance_startup_stage() refuses
+ * while a required item is unmet, and names what is missing. A free setter
+ * beside it would make the ladder a label again, which is exactly what it was
+ * built to stop being. Raising a stage now happens in one place — the
+ * incubation page — and only when the work behind it exists.
+ */
 
 export async function savePlanSection(formData: FormData) {
   const supabase = await createClient();

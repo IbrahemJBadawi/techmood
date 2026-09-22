@@ -126,7 +126,26 @@ export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
 export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
 export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
 export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'sold' | 'archived';
-export type StartupStage = 'idea' | 'validation' | 'mvp' | 'users' | 'business_model' | 'startup';
+export type StartupStage =
+  | 'idea' | 'validation' | 'business_model' | 'mvp'
+  | 'market_test' | 'first_customers' | 'revenue' | 'growth';
+
+export type StartupMemberRole =
+  | 'founder' | 'cofounder' | 'manager' | 'member' | 'employee'
+  | 'freelancer' | 'advisor' | 'viewer';
+
+export type OrgKind = 'startup' | 'company';
+
+export type CanvasKind =
+  | 'business_model' | 'lean' | 'value_proposition' | 'market' | 'competitors'
+  | 'persona' | 'customer_journey' | 'financial' | 'funding' | 'mvp'
+  | 'validation' | 'pitch' | 'custom';
+
+export type CanvasVisibility = 'workspace' | 'mentors' | 'public';
+
+export type CompanyDocumentKind =
+  | 'business_plan' | 'feasibility' | 'pitch_deck' | 'financial' | 'strategy'
+  | 'market_research' | 'report' | 'legal' | 'certificate' | 'other';
 export type CanvasBlock =
   | 'key_partners' | 'key_activities' | 'key_resources' | 'value_propositions'
   | 'customer_relationships' | 'channels' | 'customer_segments'
@@ -180,6 +199,7 @@ export type Opportunity = {
   required_path_id: string | null;
   posted_by: string;
   team_id: string | null;
+  startup_id: string | null;
   status: 'draft' | 'published' | 'archived';
   created_at: string;
   updated_at: string;
@@ -219,6 +239,9 @@ export type Startup = {
   logo_url: string | null;
   founded_on: string | null;
   is_public: boolean;
+  kind: OrgKind;
+  industry_ar: string | null;
+  location_ar: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -226,9 +249,15 @@ export type Startup = {
 export type CanvasCard = {
   id: string;
   startup_id: string;
-  block: CanvasBlock;
+  /** The nine-block enum, kept in step for the Business Model canvas. */
+  block: CanvasBlock | null;
+  canvas_id: string | null;
+  block_key: string | null;
   body_ar: string;
   colour: CardColour;
+  note_ar: string | null;
+  owner_id: string | null;
+  tags: string[];
   sort_order: number;
   created_by: string | null;
   created_at: string;
@@ -981,6 +1010,7 @@ export type Database = {
         owner_id: string; team_id: string | null; path_id: string | null;
         status: ProjectStatus; kind: ProjectKind; tags: string[]; is_public: boolean;
         opportunity_id: string | null; client_id: string | null; agreed_amount_usd: number | null;
+        startup_id: string | null;
         completed_at: string | null; created_at: string; updated_at: string;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
@@ -988,9 +1018,44 @@ export type Database = {
       opportunity_applications: Table<OpportunityApplication>;
       startups: Table<Startup>;
       startup_members: Table<{
-        startup_id: string; profile_id: string;
-        role: 'founder' | 'cofounder' | 'member' | 'advisor';
+        startup_id: string; profile_id: string; role: StartupMemberRole;
         title_ar: string | null; joined_at: string;
+      }>;
+      canvases: Table<{
+        id: string; startup_id: string; kind: CanvasKind; title_ar: string;
+        summary_ar: string | null; visibility: CanvasVisibility;
+        created_by: string | null; created_at: string; updated_at: string;
+      }>;
+      canvas_blocks: Table<{
+        id: string; canvas_id: string; key: string; title_ar: string;
+        hint_ar: string | null; sort_order: number;
+      }>;
+      canvas_templates: Table<{
+        kind: CanvasKind; key: string; title_ar: string; hint_ar: string | null; sort_order: number;
+      }>;
+      canvas_versions: Table<{
+        id: string; canvas_id: string; version: number; snapshot: unknown;
+        note_ar: string | null; created_by: string | null; created_at: string;
+      }>;
+      canvas_card_links: Table<{
+        card_id: string; target_kind: 'goal' | 'project' | 'opportunity';
+        target_id: string; created_at: string;
+      }>;
+      incubation_stages: Table<{
+        stage: StartupStage; sort_order: number; title_ar: string; purpose_ar: string;
+      }>;
+      incubation_requirements: Table<{
+        key: string; stage: StartupStage; title_ar: string; detail_ar: string | null;
+        check_kind: string; check_arg: string | null; is_required: boolean; sort_order: number;
+      }>;
+      startup_requirement_ticks: Table<{
+        startup_id: string; requirement_key: string; note_ar: string | null;
+        ticked_by: string | null; ticked_at: string;
+      }>;
+      startup_documents: Table<{
+        id: string; startup_id: string; kind: CompanyDocumentKind; title_ar: string;
+        summary_ar: string | null; url: string | null; storage_path: string | null;
+        version: number; uploaded_by: string | null; created_at: string;
       }>;
       canvas_cards: Table<CanvasCard>;
       business_plan_sections: Table<BusinessPlanSection>;
@@ -1499,6 +1564,50 @@ export type Database = {
           status: ListingStatus; entry_code: string | null; technologies: string[];
         }[];
       };
+      can_manage_startup: { Args: { p_startup: string }; Returns: boolean };
+      stage_progress: {
+        Args: { p_startup: string; p_stage?: StartupStage | null };
+        Returns: {
+          requirement_key: string; stage: StartupStage; title_ar: string;
+          detail_ar: string | null; is_required: boolean; met: boolean;
+        }[];
+      };
+      advance_startup_stage: { Args: { p_startup: string; p_note?: string | null }; Returns: StartupStage };
+      startup_overview: {
+        Args: { p_startup: string };
+        Returns: {
+          members: number; projects: number; projects_done: number;
+          goals: number; goals_achieved: number; mentors: number;
+          open_positions: number; documents: number; plan_percent: number;
+          canvas_cards: number; stage: StartupStage; stage_order: number;
+          stage_total: number; stage_met: number; stage_required: number;
+        }[];
+      };
+      create_canvas: {
+        Args: { p_startup: string; p_kind: CanvasKind; p_title?: string | null; p_blocks?: string[] | null };
+        Returns: Database['public']['Tables']['canvases']['Row'];
+      };
+      move_canvas_card: { Args: { p_card: string; p_block: string; p_index?: number | null }; Returns: undefined };
+      snapshot_canvas: { Args: { p_canvas: string; p_note?: string | null }; Returns: number };
+      restore_canvas_version: { Args: { p_version: string }; Returns: undefined };
+      card_to_goal: {
+        Args: { p_card: string; p_metric: string; p_target: number; p_due: string; p_title?: string | null };
+        Returns: string;
+      };
+      card_to_project: { Args: { p_card: string; p_title?: string | null }; Returns: string };
+      swot_to_goal: {
+        Args: { p_item: string; p_metric: string; p_target: number; p_due: string; p_title?: string | null };
+        Returns: string;
+      };
+      canvas_board: {
+        Args: { p_canvas: string };
+        Returns: {
+          block_key: string; block_title: string; block_hint: string | null; block_sort: number;
+          card_id: string | null; body_ar: string | null; colour: CardColour | null;
+          note_ar: string | null; tags: string[] | null; sort_order: number | null;
+          linked: { kind: string; id: string }[];
+        }[];
+      };
       market_overview: {
         Args: Record<string, never>;
         Returns: { jobs: number; freelancers: number; teams: number; companies: number }[];
@@ -1599,7 +1708,6 @@ export type Database = {
           published_work: number; approved_submissions: number;
         }[];
       };
-      move_canvas_card: { Args: { p_card: string; p_block: CanvasBlock; p_index?: number | null }; Returns: undefined };
       apply_to_incubator: { Args: { p_startup: string; p_pitch: string }; Returns: unknown };
       review_incubator_application: {
         Args: { p_application: string; p_approve: boolean; p_note?: string | null };

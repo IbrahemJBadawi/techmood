@@ -3,9 +3,27 @@
 import { useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
-import { CANVAS_BLOCKS, CARD_COLOURS } from '@/lib/incubator';
-import type { CanvasBlock, CanvasCard, CardColour } from '@/lib/database.types';
+import { CARD_COLOURS } from '@/lib/incubator';
+import type { CanvasCard, CardColour } from '@/lib/database.types';
 import { useT } from '@/lib/i18n.client';
+
+export type Block = { key: string; title_ar: string; hint_ar: string | null; sort_order: number };
+
+/**
+ * The nine Business Model blocks have a picture people know, so that one canvas
+ * is drawn on its own grid. Every other kind is an honest row of columns.
+ */
+const BMC_AREA: Record<string, string> = {
+  key_partners: 'partners',
+  key_activities: 'activities',
+  key_resources: 'resources',
+  value_propositions: 'value',
+  customer_relationships: 'relationships',
+  channels: 'channels',
+  customer_segments: 'segments',
+  cost_structure: 'cost',
+  revenue_streams: 'revenue',
+};
 
 /**
  * The canvas is a live editing surface, so it talks to Supabase from the browser
@@ -15,29 +33,36 @@ import { useT } from '@/lib/i18n.client';
  */
 export function CanvasBoard({
   startupId,
+  canvasId,
+  blocks,
   initialCards,
   canEdit,
+  isBusinessModel,
 }: {
   startupId: string;
+  canvasId: string;
+  blocks: Block[];
   initialCards: CanvasCard[];
   canEdit: boolean;
+  /** Only the Business Model canvas is drawn as its famous picture. */
+  isBusinessModel: boolean;
 }) {
   const t = useT();
   const [cards, setCards] = useState(initialCards);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
-  const [addingTo, setAddingTo] = useState<CanvasBlock | null>(null);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [dropBlock, setDropBlock] = useState<CanvasBlock | null>(null);
+  const [dropBlock, setDropBlock] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const supabase = createClient();
 
-  function cardsIn(block: CanvasBlock) {
-    return cards.filter((card) => card.block === block).sort((a, b) => a.sort_order - b.sort_order);
+  function cardsIn(block: string) {
+    return cards.filter((card) => card.block_key === block).sort((a, b) => a.sort_order - b.sort_order);
   }
 
-  async function addCard(block: CanvasBlock, body: string) {
+  async function addCard(block: string, body: string) {
     const text = body.trim();
     if (!text) return;
 
@@ -45,7 +70,8 @@ export function CanvasBoard({
       .from('canvas_cards')
       .insert({
         startup_id: startupId,
-        block,
+        canvas_id: canvasId,
+        block_key: block,
         body_ar: text,
         sort_order: cardsIn(block).length,
       })
@@ -90,13 +116,13 @@ export function CanvasBoard({
     if (deleteError) setError(t('تعذّر حذف البطاقة.', 'The card could not be deleted.'));
   }
 
-  async function moveCard(id: string, block: CanvasBlock) {
+  async function moveCard(id: string, block: string) {
     const card = cards.find((item) => item.id === id);
-    if (!card || card.block === block) return;
+    if (!card || card.block_key === block) return;
 
     setCards((current) =>
       current.map((item) =>
-        item.id === id ? { ...item, block, sort_order: cardsIn(block).length } : item,
+        item.id === id ? { ...item, block_key: block, sort_order: cardsIn(block).length } : item,
       ),
     );
 
@@ -114,12 +140,12 @@ export function CanvasBoard({
     <>
       {error && <p className="notice notice-danger section-block">{error}</p>}
 
-      <div className="bmc">
-        {CANVAS_BLOCKS.map((block) => (
+      <div className={isBusinessModel ? 'bmc' : 'canvas-grid'}>
+        {blocks.map((block) => (
           <section
             key={block.key}
             className={`bmc-block${dropBlock === block.key ? ' drop-target' : ''}`}
-            style={{ gridArea: block.area }}
+            style={isBusinessModel ? { gridArea: BMC_AREA[block.key] } : undefined}
             onDragOver={(event) => {
               if (!canEdit || !dragId) return;
               event.preventDefault();
@@ -134,10 +160,10 @@ export function CanvasBoard({
             }}
           >
             <header>
-              <h3>{t(block.label)}</h3>
+              <h3>{block.title_ar}</h3>
               <span className="badge-pill eng">{cardsIn(block.key).length}</span>
             </header>
-            <p className="bmc-hint">{t(block.hint)}</p>
+            {block.hint_ar && <p className="bmc-hint">{block.hint_ar}</p>}
 
             {cardsIn(block.key).map((card) =>
               editingId === card.id ? (
@@ -165,12 +191,14 @@ export function CanvasBoard({
                   {/* A select, not only drag: this has to work on a phone and
                       with a keyboard. */}
                   <select
-                    value={card.block}
-                    onChange={(event) => void moveCard(card.id, event.target.value as CanvasBlock)}
+                    value={card.block_key ?? ''}
+                    onChange={(event) => void moveCard(card.id, event.target.value)}
                     style={{ width: '100%', fontSize: '0.76rem', marginBottom: 8 }}
                   >
-                    {CANVAS_BLOCKS.map((option) => (
-                      <option key={option.key} value={option.key}>{t('انقل إلى: ', 'Move to: ')}{t(option.label)}</option>
+                    {blocks.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {t('انقل إلى: ', 'Move to: ')}{option.title_ar}
+                      </option>
                     ))}
                   </select>
 

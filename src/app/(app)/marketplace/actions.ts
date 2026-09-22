@@ -40,6 +40,9 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
       description_ar: String(formData.get('description') ?? '').trim() || null,
       posted_by: user.id,
       team_id: String(formData.get('team_id') ?? '') || null,
+      // An opening a company posts belongs to the company, not to whoever
+      // happened to be logged in when it was written.
+      startup_id: String(formData.get('startup_id') ?? '') || null,
       compensation_kind: (String(formData.get('compensation_kind') ?? '') || null) as CompensationKind | null,
       amount_min: min,
       amount_max: max,
