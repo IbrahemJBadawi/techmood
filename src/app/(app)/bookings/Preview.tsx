@@ -42,7 +42,8 @@ export async function Preview({ entry }: { entry: Entry }) {
       : Promise.resolve({ data: null }),
     isBooking
       ? supabase.from('video_sessions').select('id').eq('booking_id', entry.entry_id).maybeSingle()
-      : Promise.resolve({ data: entry.entry_kind === 'team_meeting' ? { id: entry.entry_id } : null }),
+      : Promise.resolve({ data: entry.entry_kind === 'team_meeting' || entry.entry_kind === 'project_meeting'
+          ? { id: entry.entry_id } : null }),
   ]);
 
   const { data: phase } = room

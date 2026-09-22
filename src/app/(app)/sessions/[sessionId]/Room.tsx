@@ -22,6 +22,8 @@ const ROLE_LABEL: Record<SessionRole, Text> = {
   student: { ar: 'متعلّم',     en: 'Learner' },
   member:  { ar: 'عضو',        en: 'Member' },
   leader:  { ar: 'قائد الفريق', en: 'Team lead' },
+  client:  { ar: 'العميل',      en: 'Client' },
+  contractor: { ar: 'المنفّذ',  en: 'Contractor' },
 };
 
 function clock(ms: number) {

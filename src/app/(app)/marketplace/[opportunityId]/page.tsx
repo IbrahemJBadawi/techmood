@@ -12,7 +12,8 @@ import { InviteRow } from './InviteRow';
 import { Negotiation, type Round } from './Negotiation';
 import { SaveButton } from '../SaveButton';
 import { ApplicantRow } from './ApplicantRow';
-import { closeOpportunity } from '../actions';
+import { closeOpportunity, recordBriefFile } from '../actions';
+import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 
@@ -53,10 +54,18 @@ export default async function OpportunityPage({
       ? supabase.from('learning_paths').select('title_ar').eq('id', opportunity.required_path_id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from('opportunity_attachments')
-      .select('id, label, url, kind')
+      .select('id, label, url, kind, is_upload')
       .eq('opportunity_id', opportunityId)
       .order('created_at'),
   ]);
+
+  // Uploaded attachments are object paths; a signed url is minted per render.
+  // Storage will only mint one for a reader its policy would serve.
+  const uploaded = (attachments ?? []).filter((file) => file.is_upload);
+  const { data: signedFiles } = uploaded.length
+    ? await supabase.storage.from('brief-files').createSignedUrls(uploaded.map((file) => file.url), 300)
+    : { data: [] };
+  const fileUrl = new Map((signedFiles ?? []).map((row) => [row.path, row.signedUrl]));
 
   // Only the poster sees who applied.
   const { data: applications } = isPoster
@@ -174,16 +183,26 @@ export default async function OpportunityPage({
           </div>
         )}
 
-        {(attachments?.length ?? 0) > 0 && (
+        {((attachments?.length ?? 0) > 0 || isPoster) && (
           <div style={{ marginTop: 16 }}>
             <h3 style={{ fontSize: '0.9rem' }}>{t('مرفقات', 'Attachments')}</h3>
             <ul className="plain-list">
-              {(attachments ?? []).map((file) => (
+              {(attachments ?? [])
+                .filter((file) => !file.is_upload || fileUrl.get(file.url))
+                .map((file) => (
                 <li key={file.id}>
-                  <a href={file.url} target="_blank" rel="noreferrer noopener">{file.label}</a>
+                  <a href={file.is_upload ? fileUrl.get(file.url) ?? '#' : file.url}
+                     target="_blank" rel="noreferrer noopener">{file.label}</a>
                 </li>
               ))}
             </ul>
+            {isPoster && (
+              <WorkFileUpload
+                bucket="brief-files"
+                folder={opportunityId}
+                record={recordBriefFile.bind(null, opportunityId)}
+              />
+            )}
           </div>
         )}
       </section>

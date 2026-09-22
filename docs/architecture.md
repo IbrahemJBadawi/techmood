@@ -1295,6 +1295,40 @@ Worse: `opportunities_create` checked `(kind, team_id)` and never looked at
 a company they have no part in. The policy now asks the question the rest of
 the platform asks — may you manage that company?
 
+## A meeting that is not a booking, and files that are not links
+
+When the client journey landed I flagged two things as needing a decision:
+client↔freelancer meetings ("a new `booking_kind` and a pricing model") and
+real file uploads ("attachments are links, like `project_evidence`"). Both
+needed less invention than that flag implied.
+
+**The meeting.** A booking is somebody buying somebody else's time — that is
+why it carries a price, a mentor level, a payment and a reservation hold. Two
+parties to a contract that already exists are not buying anything from each
+other. `team_internal` sessions were already that shape (a room, a window, a
+participant list, no money), so a project meeting is a fourth *session type*,
+`project_meeting`, with `video_sessions.project_id`. `is_project_party()` —
+owner, client, or a member of the team doing the work — decides who books, who
+cancels and who is in the room; the room names them `client` and `contractor`.
+Five a week per project, for the same reason teams have a cap: a room costs the
+platform something. The meetings appear in `my_sessions()` and `my_calendar()`
+because the calendar gathers everything with a time on it.
+
+**The files.** The platform already uploaded — payment proofs and avatars have
+lived in Supabase Storage since 0012. Nobody had put a bucket behind work
+files. `brief-files` follows the brief's own visibility (`can_read_brief()`),
+so an invite-only brief's attachments are as private as the brief;
+`project-files` stays between the project's parties, because a public project
+page shows finished work, not the client's brief or the drafts in between. The
+existing rows (`opportunity_attachments`, `project_evidence`) carry `is_upload`,
+and a signed url is minted per render and never stored.
+
+The local shim now grants `storage.objects` to `anon` and `authenticated` the
+way a real Supabase project does. Without that grant a client hits "permission
+denied" before any storage policy is consulted — which made the policies
+untestable, and untested storage policies are how private files become public
+ones. Section 54 tests them.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every

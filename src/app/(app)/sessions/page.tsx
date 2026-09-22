@@ -13,6 +13,7 @@ const TYPE_LABEL: Record<VideoSessionType, Text> = {
   team_mentor:    { ar: 'جلسة فريق مع منتور', en: 'Team session with a mentor' },
   company_mentor: { ar: 'جلسة شركة مع منتور', en: 'Company session with a mentor' },
   team_internal:  { ar: 'اجتماع فريق داخلي',  en: 'Internal team meeting' },
+  project_meeting:{ ar: 'اجتماع مشروع',        en: 'Project meeting' },
 };
 
 const PHASE: Record<SessionPhase, { text: Text; className: string }> = {

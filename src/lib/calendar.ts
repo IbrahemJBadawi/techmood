@@ -92,6 +92,7 @@ export const ENTRY_LABEL: Record<CalendarEntryKind, Text> = {
   mentor_session: { ar: 'جلسة منتور',    en: 'Mentor session' },
   team_session:   { ar: 'جلسة فريق',     en: 'Team session' },
   team_meeting:   { ar: 'اجتماع فريق',   en: 'Team meeting' },
+  project_meeting:{ ar: 'اجتماع مشروع',  en: 'Project meeting' },
   task:           { ar: 'مهمة',          en: 'Task' },
   milestone:      { ar: 'معلم مشروع',    en: 'Milestone' },
   sprint:         { ar: 'سبرنت',         en: 'Sprint' },

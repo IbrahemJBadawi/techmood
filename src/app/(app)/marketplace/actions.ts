@@ -153,3 +153,32 @@ export async function closeOpportunity(formData: FormData) {
   revalidatePath(`/marketplace/${opportunityId}`);
   revalidatePath('/marketplace');
 }
+
+/**
+ * Recording a file uploaded behind a brief. The object is already in the
+ * `brief-files` bucket — the storage policy let it in only because this person
+ * wrote the brief — so the row just names it and marks it as an upload.
+ */
+export async function recordBriefFile(
+  opportunityId: string,
+  path: string,
+  name: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase.from('opportunity_attachments').insert({
+    opportunity_id: opportunityId,
+    label: name.slice(0, 120),
+    url: path,
+    kind: 'file',
+    is_upload: true,
+    added_by: user.id,
+  });
+
+  revalidatePath(`/marketplace/${opportunityId}`);
+  if (error) return { ok: false, error: t('تعذّر حفظ الملف.', 'The file could not be recorded.') };
+  return { ok: true };
+}

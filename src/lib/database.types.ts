@@ -690,14 +690,16 @@ export type LessonVideo = {
   sort_order: number;
 }
 
-export type VideoSessionType = 'student_mentor' | 'team_mentor' | 'company_mentor' | 'team_internal';
+export type VideoSessionType =
+  | 'student_mentor' | 'team_mentor' | 'company_mentor' | 'team_internal' | 'project_meeting';
 export type VideoSessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
-export type SessionRole = 'mentor' | 'student' | 'member' | 'leader';
+export type SessionRole = 'mentor' | 'student' | 'member' | 'leader' | 'client' | 'contractor';
 /** Which door is open, decided by the server's clock. */
 export type SessionPhase = 'waiting' | 'lobby' | 'live' | 'ended';
 
 export type CalendarEntryKind =
-  | 'mentor_session' | 'team_session' | 'team_meeting' | 'task' | 'milestone' | 'sprint';
+  | 'mentor_session' | 'team_session' | 'team_meeting' | 'project_meeting'
+  | 'task' | 'milestone' | 'sprint';
 
 export type CalendarTone =
   | 'mentor' | 'team' | 'internal' | 'pending' | 'done' | 'cancelled' | 'task' | 'late' | 'milestone' | 'sprint';
@@ -915,6 +917,8 @@ export type MentorshipGoalStatus = 'active' | 'achieved' | 'dropped';
 export type OpportunityAttachment = {
   id: string; opportunity_id: string; label: string; url: string;
   kind: EvidenceKind; added_by: string | null; created_at: string;
+  /** true when `url` is a path in the brief-files bucket, not somebody's link. */
+  is_upload: boolean;
 };
 
 export type WorkerReview = {
@@ -995,6 +999,7 @@ export type Database = {
       profile_career_goals: Table<{ profile_id: string; goal_id: string; chosen_at: string }>;
       video_sessions: Table<{
         id: string; session_code: string; booking_id: string | null; team_id: string | null;
+        project_id: string | null; topic_ar: string | null;
         session_type: VideoSessionType; start_at: string; end_at: string;
         status: VideoSessionStatus; ended_at: string | null; created_at: string;
       }>;
@@ -1233,7 +1238,7 @@ export type Database = {
       }>;
       project_evidence: Table<{
         id: string; project_id: string; kind: EvidenceKind; url: string;
-        label: string | null; created_at: string;
+        label: string | null; created_at: string; is_upload: boolean;
       }>;
       project_milestones: Table<{
         id: string; project_id: string; title_ar: string; description_ar: string | null;
@@ -2149,6 +2154,26 @@ export type Database = {
           status: MentorshipGoalStatus; target_on: string | null; outcome_ar: string | null;
           mentor_id: string | null; mentor_name: string | null;
           sessions: number; last_session: string | null;
+        }[];
+      };
+      is_project_party: { Args: { p_project: string }; Returns: boolean };
+      schedule_project_meeting: {
+        Args: { p_project: string; p_start: string; p_end: string; p_topic?: string | null };
+        Returns: {
+          id: string; session_code: string; project_id: string | null;
+          topic_ar: string | null; start_at: string; end_at: string;
+          status: VideoSessionStatus;
+        };
+      };
+      cancel_project_meeting: {
+        Args: { p_session: string; p_reason?: string | null };
+        Returns: undefined;
+      };
+      project_meetings: {
+        Args: { p_project: string };
+        Returns: {
+          id: string; session_code: string; topic_ar: string | null;
+          start_at: string; end_at: string; status: VideoSessionStatus; attended: number;
         }[];
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };

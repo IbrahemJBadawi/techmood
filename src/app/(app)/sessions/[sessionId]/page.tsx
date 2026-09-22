@@ -15,6 +15,7 @@ const TYPE_LABEL: Record<VideoSessionType, Text> = {
   team_mentor:    { ar: 'جلسة فريق مع منتور', en: 'Team session with a mentor' },
   company_mentor: { ar: 'جلسة شركة مع منتور', en: 'Company session with a mentor' },
   team_internal:  { ar: 'اجتماع فريق داخلي',  en: 'Internal team meeting' },
+  project_meeting:{ ar: 'اجتماع مشروع',        en: 'Project meeting' },
 };
 
 const ROLE_LABEL: Record<SessionRole, Text> = {
@@ -22,6 +23,8 @@ const ROLE_LABEL: Record<SessionRole, Text> = {
   student: { ar: 'متعلّم',      en: 'Learner' },
   member:  { ar: 'عضو',         en: 'Member' },
   leader:  { ar: 'قائد الفريق', en: 'Team lead' },
+  client:  { ar: 'العميل',      en: 'Client' },
+  contractor: { ar: 'المنفّذ',  en: 'Contractor' },
 };
 
 /** What a learner or a team judges a mentor on. */

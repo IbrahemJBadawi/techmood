@@ -5896,6 +5896,185 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+
+-- ===========================================================================
+-- 54. A meeting that is not a booking, and files that are not links
+-- ===========================================================================
+-- The two sides of :'work_project' are 22222222 (client) and 11111111 (owner).
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.schedule_project_meeting(%L, now() + interval '2 days',
+                                                  now() + interval '2 days 1 hour')$$, :'work_project'),
+  '54.1 a stranger to the contract does not book its meetings',
+  'طرفا المشروع فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.schedule_project_meeting(
+  :'work_project',
+  date_trunc('hour', now()) + interval '2 days',
+  date_trunc('hour', now()) + interval '2 days 1 hour',
+  'مراجعة التسليم الأول')).id as meet \gset
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select booking_id from public.video_sessions where id = :'meet') is null
+  and (select session_type from public.video_sessions where id = :'meet') = 'project_meeting'
+  and (select count(*) from public.bookings b
+        join public.video_sessions s on s.booking_id = b.id where s.id = :'meet') = 0,
+  '54.2 a meeting between two parties to a contract is a room, not a purchase');
+
+select public.assert(
+  (select role from public.video_session_participants
+    where session_id = :'meet' and profile_id = '22222222-2222-2222-2222-222222222222') = 'client'
+  and (select role from public.video_session_participants
+        where session_id = :'meet' and profile_id = '11111111-1111-1111-1111-111111111111') = 'contractor',
+  '54.3 and the room names the two sides for what they are');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.schedule_project_meeting(%L, now() - interval '2 hours', now() - interval '1 hour')$$,
+         :'work_project'),
+  '54.4 and it cannot be held yesterday',
+  'في الماضي');
+
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.schedule_project_meeting(%L, now() + interval '3 days',
+                                                  now() + interval '3 days 1 hour')$$, :'solo'),
+  '54.5 a project with no client has no second side to meet',
+  'بلا عميل');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.project_meetings(:'work_project')) = 1
+  and (select topic_ar from public.project_meetings(:'work_project')) = 'مراجعة التسليم الأول',
+  '54.6 both parties read the project''s meetings');
+
+select public.assert(
+  (select count(*) from public.my_calendar(
+     (date_trunc('hour', now()) + interval '2 days')::date,
+     (date_trunc('hour', now()) + interval '2 days')::date)
+    where entry_kind = 'project_meeting') = 1,
+  '54.7 and the calendar gathers it like everything else with a time on it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.project_meetings(:'work_project')) = 0,
+  '54.8 and nobody else reads them');
+
+select public.assert_rejects(
+  format($$select public.cancel_project_meeting(%L)$$, :'meet'),
+  '54.9 nor cancels them',
+  'طرفا المشروع فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.cancel_project_meeting(:'meet', 'سنكتفي برسالة');
+
+select public.assert(
+  (select status from public.video_sessions where id = :'meet') = 'cancelled',
+  '54.10 either side may call it off');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The weekly cap, seeded directly so the count is not at the mercy of which
+-- day of the week the suite happens to run on.
+insert into public.video_sessions (project_id, session_type, start_at, end_at)
+select :'work_project', 'project_meeting',
+       date_trunc('week', now()) + (n || ' hours')::interval,
+       date_trunc('week', now()) + ((n + 1) || ' hours')::interval
+  from generate_series(1, 5) n;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.schedule_project_meeting(%L, now() + interval '4 days',
+                                                  now() + interval '4 days 1 hour')$$, :'work_project'),
+  '54.11 a room costs something, so five a week is the ceiling',
+  'خمسة اجتماعات في الأسبوع');
+reset role;
+reset request.jwt.claim.sub;
+
+delete from public.video_sessions
+ where project_id = :'work_project' and start_at < date_trunc('week', now()) + interval '6 hours';
+
+-- Files. :'brief' is 77777777's invite-only brief; 55555555 was invited to it.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+insert into storage.objects (bucket_id, name, owner)
+values ('brief-files', :'brief' || '/spec.pdf', '77777777-7777-7777-7777-777777777777');
+
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'brief-files') = 1,
+  '54.12 whoever wrote the brief may put a file behind it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'brief-files') = 1,
+  '54.13 and whoever may read the brief may read the file');
+
+select public.assert_rejects(
+  format($$insert into storage.objects (bucket_id, name) values ('brief-files', %L)$$,
+         :'brief' || '/mine.pdf'),
+  '54.14 though reading it is not writing to it',
+  'row-level security');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'brief-files') = 0,
+  '54.15 a private brief''s files are as private as the brief');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into storage.objects (bucket_id, name, owner)
+values ('project-files', :'work_project' || '/brief-v2.pdf', '22222222-2222-2222-2222-222222222222');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'project-files') = 1,
+  '54.16 a project''s files pass between its two parties');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'project-files') = 0,
+  '54.17 and stop there — a public project page is finished work, not the drafts');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

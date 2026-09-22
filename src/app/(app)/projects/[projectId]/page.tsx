@@ -9,7 +9,9 @@ import type { ProjectStatus } from '@/lib/database.types';
 import { Stars } from '@/components/Stars';
 import { money } from '@/lib/booking';
 
-import { setProjectStatus } from './actions';
+import { recordProjectFile, setProjectStatus } from './actions';
+import { Meetings } from './Meetings';
+import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
 import {
   ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS,
@@ -61,7 +63,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       .in('id', [project.owner_id, project.client_id].filter(Boolean) as string[]),
     supabase.from('project_milestones').select('id, title_ar, due_on, is_done')
       .eq('project_id', projectId).order('due_on', { nullsFirst: false }),
-    supabase.from('project_evidence').select('id, kind, url, label').eq('project_id', projectId),
+    supabase.from('project_evidence').select('id, kind, url, label, is_upload').eq('project_id', projectId),
     supabase.from('exhibition_entries').select('id, status').eq('project_id', projectId).maybeSingle(),
   ]);
 
@@ -99,6 +101,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     && exhibited?.status === 'exhibited';
 
   const released = holds.some((row) => row.status === 'released');
+
+  // The room and the files are between the parties to the work. A public
+  // project page shows finished work; it does not open the drafts or the calls.
+  const { data: isParty } = await supabase.rpc('is_project_party', { p_project: projectId });
+
+  const { data: meetings } = isParty && project.client_id
+    ? await supabase.rpc('project_meetings', { p_project: projectId })
+    : { data: [] };
+
+  // An uploaded file is an object path, not a link: a short-lived signed url is
+  // minted for it here, per render, and never stored. Storage refuses to mint
+  // one for anybody its policy would refuse to serve.
+  const uploads = (evidence ?? []).filter((item) => item.is_upload);
+  const { data: signed } = isParty && uploads.length
+    ? await supabase.storage.from('project-files').createSignedUrls(uploads.map((item) => item.url), 300)
+    : { data: [] };
+  const signedFor = new Map((signed ?? []).map((row) => [row.path, row.signedUrl]));
+
 
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
   const status = STATUS[project.status];
@@ -190,18 +210,36 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               </p>
             ) : (
               <ul className="plain-list" style={{ marginTop: 12 }}>
-                {(evidence ?? []).map((item) => (
+                {(evidence ?? [])
+                  .filter((item) => !item.is_upload || signedFor.get(item.url))
+                  .map((item) => (
                   <li key={item.id} style={{ fontSize: '0.88rem' }}>
-                    <a href={item.url} target="_blank" rel="noreferrer noopener">
+                    <a href={item.is_upload ? signedFor.get(item.url) ?? '#' : item.url}
+                       target="_blank" rel="noreferrer noopener">
                       {item.label ?? item.url}
                     </a>
-                    <span className="muted eng"> · {item.kind}</span>
+                    <span className="muted eng">
+                      {' · '}{item.is_upload ? t('ملف مرفوع', 'uploaded file') : item.kind}
+                    </span>
                   </li>
                 ))}
               </ul>
             )}
             {isOwner && <div style={{ marginTop: 14 }}><DeliverableForm projectId={projectId} /></div>}
+            {isParty && (
+              <div style={{ marginTop: 10 }}>
+                <WorkFileUpload
+                  bucket="project-files"
+                  folder={projectId}
+                  record={recordProjectFile.bind(null, projectId)}
+                />
+              </div>
+            )}
           </div>
+
+          {isParty && project.client_id && (
+            <Meetings projectId={projectId} meetings={meetings ?? []} />
+          )}
 
           {holds.length > 0 && (
             <div className="panel section-block">
