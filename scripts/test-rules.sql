@@ -1572,7 +1572,8 @@ select public.move_canvas_card(:'card1', 'key_partners', 0);
 reset role;
 
 select public.assert(
-  (select block from public.canvas_cards where id = :'card1') = 'key_partners',
+  (select block_key from public.canvas_cards where id = :'card1') = 'key_partners'
+  and (select block from public.canvas_cards where id = :'card1') = 'key_partners',
   '17.6 a card can be moved to another block');
 
 set role authenticated;
@@ -1580,7 +1581,7 @@ set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.assert_rejects(
   format($$select public.move_canvas_card(%L, 'channels', 0)$$, :'card1'),
   '17.7 an outsider cannot move a card on someone canvas',
-  'edit access');
+  'صلاحية التعديل');
 reset role;
 
 -- ---------------------------------------------------------------------------
@@ -5026,6 +5027,165 @@ select public.assert(
   (select owner_id from public.projects where id = :'solo') = '77777777-7777-7777-7777-777777777777'
   and (select count(*) from public.profile_exhibition_entries('77777777-7777-7777-7777-777777777777')) >= 1,
   '46.7 and the maker keeps the authorship: a sale moves the work, never the record of who built it');
+
+-- ===========================================================================
+-- 47. A company workspace: a ladder with requirements, and roles with teeth
+-- ===========================================================================
+-- The startup of section 17 is at 'idea' with a canvas and a plan already
+-- written, which is exactly the state this ladder is meant to read.
+select public.assert(
+  (select count(*) from public.incubation_stages) = 8
+  and (select stage from public.incubation_stages where sort_order = 3) = 'business_model',
+  '47.1 the ladder is eight rungs in a table, in the order the product decided');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.stage_progress(:'startup')) = 3
+  and (select count(*) from public.stage_progress(:'startup') where met) >= 1,
+  '47.2 a rung''s requirements are answered by work that exists, not by a tick');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A member who is not running the company cannot move it up the ladder.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.advance_startup_stage(%L)$$, :'startup'),
+  '47.3 only whoever runs the company moves it to the next stage',
+  'إدارة المشروع فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- And the founder cannot either, while a required item is unmet.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.advance_startup_stage(%L)$$, :'startup'),
+  '47.4 a stage nobody can fail to reach is a label, not a stage',
+  'لم تكتمل متطلبات');
+
+-- Meet what is missing: three customer-segment cards and two value cards.
+insert into public.canvas_cards (startup_id, block, body_ar, created_by) values
+  (:'startup', 'customer_segments', 'عيادات أسنان', '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'customer_segments', 'مراكز فيزيوثيرابي', '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'customer_segments', 'عيادات نسائية', '11111111-1111-1111-1111-111111111111'),
+  (:'startup', 'value_propositions', 'تقارير جاهزة للتأمين', '11111111-1111-1111-1111-111111111111');
+
+select public.advance_startup_stage(:'startup', 'اكتملت متطلبات الفكرة') as moved \gset
+
+select public.assert(
+  :'moved' = 'validation'
+  and (select stage from public.startups where id = :'startup') = 'validation',
+  '47.5 meeting the requirements is what opens the next rung');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select count(*) from public.startup_stage_history
+    where startup_id = :'startup' and stage = 'validation') = 1,
+  '47.6 and the climb is recorded, so "we reached it in March" is not a memory');
+
+-- The numbers at the top of the workspace are counted, like everything else.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select members from public.startup_overview(:'startup')) >= 1
+  and (select plan_percent from public.startup_overview(:'startup')) > 0
+  and (select stage_total from public.startup_overview(:'startup')) = 8,
+  '47.7 the workspace''s numbers are read from the work, not stored beside it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.startup_overview(:'startup')) = 0,
+  '47.8 and somebody outside the room reads nothing at all');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 48. Canvas Studio: many walls, versions, and a door out of them
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.canvases where startup_id = :'startup' and kind = 'business_model') = 1
+  and (select count(*) from public.canvas_cards
+        where startup_id = :'startup' and canvas_id is null) = 0,
+  '48.1 the cards that already existed moved onto a real canvas, losing nothing');
+
+select (public.create_canvas(:'startup', 'lean')).id as lean \gset
+
+select public.assert(
+  (select count(*) from public.canvas_blocks where canvas_id = :'lean') = 9,
+  '48.2 a new canvas comes with the blocks its model is made of');
+
+insert into public.canvas_cards (startup_id, canvas_id, block_key, body_ar, created_by)
+values (:'startup', :'lean', 'problem', 'التوثيق الورقي يضيّع وقت الطبيب',
+        '11111111-1111-1111-1111-111111111111')
+returning id as lean_card \gset
+
+select public.snapshot_canvas(:'lean', 'قبل التعديل') as v1 \gset
+
+update public.canvas_cards set body_ar = 'نص مختلف تماماً' where id = :'lean_card';
+
+select public.restore_canvas_version(
+  (select id from public.canvas_versions where canvas_id = :'lean' and version = :'v1'::int));
+
+select public.assert(
+  (select body_ar from public.canvas_cards
+    where canvas_id = :'lean' and block_key = 'problem') = 'التوثيق الورقي يضيّع وقت الطبيب',
+  '48.3 a canvas can be taken back to what it said before');
+
+select public.assert(
+  (select count(*) from public.canvas_versions where canvas_id = :'lean') = 2,
+  '48.4 and going back is itself recorded, so nobody has to be brave to try');
+
+-- A thought becomes work.
+select public.card_to_goal(
+  (select id from public.canvas_cards where canvas_id = :'lean' and block_key = 'problem' limit 1),
+  'عيادة', 20, current_date + 60) as born_goal \gset
+
+select public.assert(
+  (select count(*) from public.smart_goals where id = :'born_goal') = 1
+  and (select count(*) from public.canvas_card_links where target_id = :'born_goal') = 1,
+  '48.5 a card becomes a goal with a number and a date, and the link home is kept');
+
+select public.card_to_project(
+  (select id from public.canvas_cards where canvas_id = :'lean' and block_key = 'problem' limit 1),
+  'بناء وحدة التوثيق') as born_project \gset
+
+select public.assert(
+  (select startup_id from public.projects where id = :'born_project') = :'startup'
+  and (select kind from public.projects where id = :'born_project') = 'startup',
+  '48.6 or a project the company actually runs');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A canvas is the company's until the company opens it.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.canvases where id = :'lean') = 0
+  and (select count(*) from public.canvas_board(:'lean')) = 0,
+  '48.7 an outsider sees neither the wall nor what is on it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+update public.canvases set visibility = 'public' where id = :'lean';
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.canvas_board(:'lean')) >= 1,
+  '48.8 and sees it the moment the company puts it on its public page');
+reset role;
 
 \echo ''
 \echo '================================================'
