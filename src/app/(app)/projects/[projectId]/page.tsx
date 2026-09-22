@@ -6,14 +6,23 @@ import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate, type Text } from '@/lib/i18n';
 import type { ProjectStatus } from '@/lib/database.types';
 
+import { Stars } from '@/components/Stars';
+import { money } from '@/lib/booking';
+
 import { setProjectStatus } from './actions';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
+import {
+  ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS,
+  OpenEscrowForm, SellForm, WithdrawListing,
+} from './Money';
+import type { PaymentMethod } from '@/lib/database.types';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
   in_progress: { text: { ar: 'جارٍ',    en: 'In progress' }, className: 'status-pending' },
   in_review:   { text: { ar: 'مراجعة', en: 'In review' },   className: 'status-pending' },
   completed:   { text: { ar: 'مكتمل',  en: 'Completed' },   className: 'status-ok' },
+  sold:        { text: { ar: 'مُباع',   en: 'Sold' },        className: 'status-ok' },
   archived:    { text: { ar: 'مؤرشف',  en: 'Archived' },    className: 'status-muted' },
 };
 
@@ -53,6 +62,38 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     supabase.from('project_evidence').select('id, kind, url, label').eq('project_id', projectId),
     supabase.from('exhibition_entries').select('id, status').eq('project_id', projectId).maybeSingle(),
   ]);
+
+  // The money, the judgement and the shelf — all of it for this one project.
+  const [{ data: escrows }, { data: methods }, { data: listing }, { data: review }] = await Promise.all([
+    supabase.from('escrows')
+      .select('id, escrow_code, amount_usd, commission_usd, net_usd, status, payer_id, payee_id, dispute_reason_ar')
+      .eq('project_id', projectId).order('created_at', { ascending: false }),
+    supabase.from('payment_methods').select('*').eq('is_enabled', true).order('sort_order'),
+    supabase.from('project_listings')
+      .select('id, price_usd, licence, summary_ar, includes, status')
+      .eq('project_id', projectId).maybeSingle(),
+    supabase.from('client_reviews')
+      .select('id, stars, comment_ar, client_id').eq('project_id', projectId).maybeSingle(),
+  ]);
+
+  const holds = escrows ?? [];
+  const openHold = holds.find((row) => row.status === 'awaiting_payment');
+  const suggested = project.agreed_amount_usd;
+
+  const { data: commission } = suggested
+    ? await supabase.rpc('compute_commission', { p_kind: 'market_work', p_amount: suggested })
+    : { data: null };
+
+  const { data: exhibited } = await supabase
+    .from('exhibition_entries')
+    .select('status').eq('project_id', projectId).maybeSingle();
+
+  const canSell = isOwner
+    && project.client_id === null
+    && (project.status === 'completed' || project.status === 'sold')
+    && exhibited?.status === 'exhibited';
+
+  const released = holds.some((row) => row.status === 'released');
 
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
   const status = STATUS[project.status];
@@ -153,6 +194,87 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
             )}
             {isOwner && <div style={{ marginTop: 14 }}><DeliverableForm projectId={projectId} /></div>}
           </div>
+
+          {holds.length > 0 && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('المال', 'The money')}</h3>
+              <div className="stack" style={{ marginTop: 12 }}>
+                {holds.map((hold) => (
+                  <article key={hold.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
+                    <div className="row-between">
+                      <span className="id-chip">{hold.escrow_code}</span>
+                      <span className={`status-pill ${ESCROW_STATUS[hold.status].className}`}>
+                        {t(ESCROW_STATUS[hold.status].text)}
+                      </span>
+                    </div>
+                    <p className="eng" style={{ fontWeight: 600, marginTop: 8 }}>
+                      {money(hold.amount_usd)}
+                      <span className="muted" style={{ fontWeight: 400, fontSize: '0.8rem' }}>
+                        {' '}({t('عمولة', 'commission')} {money(hold.commission_usd)} · {t('صافي', 'net')} {money(hold.net_usd)})
+                      </span>
+                    </p>
+                    {hold.dispute_reason_ar && (
+                      <p className="notice notice-danger" style={{ marginTop: 8 }}>{hold.dispute_reason_ar}</p>
+                    )}
+
+                    {hold.status === 'awaiting_payment' && hold.payer_id === user.id && (
+                      <div style={{ marginTop: 10 }}>
+                        <EscrowProofForm escrowId={hold.id} revalidate={`/projects/${projectId}`} />
+                      </div>
+                    )}
+
+                    <EscrowControls
+                      escrowId={hold.id}
+                      isPayer={hold.payer_id === user.id}
+                      status={hold.status}
+                      revalidate={`/projects/${projectId}`}
+                    />
+                  </article>
+                ))}
+              </div>
+
+              <p className="muted" style={{ fontSize: '0.76rem', marginTop: 12 }}>
+                {t('المبلغ المحتجز يظهر في محفظة المنفّذ ولا يُصرف إلا بعد إفراج العميل.',
+                   'Held money shows in the freelancer’s wallet and is not spendable until the client releases it.')}
+              </p>
+            </div>
+          )}
+
+          {isClient && !openHold && (
+            <OpenEscrowForm
+              projectId={projectId}
+              payeeId={project.owner_id}
+              payeeName={nameOf.get(project.owner_id) ?? ''}
+              methods={(methods ?? []) as PaymentMethod[]}
+              suggested={suggested}
+              commissionOf={commission ?? null}
+            />
+          )}
+
+          {isClient && released && !review && <ClientReviewForm projectId={projectId} />}
+
+          {review && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('تقييم العميل', 'The client’s review')}</h3>
+              <p style={{ marginTop: 8 }}><Stars value={review.stars} /></p>
+              {review.comment_ar && (
+                <p className="muted" style={{ fontSize: '0.86rem' }}>{review.comment_ar}</p>
+              )}
+            </div>
+          )}
+
+          {canSell && <SellForm projectId={projectId} listing={listing ?? null} />}
+
+          {isOwner && listing && listing.status === 'listed' && (
+            <div className="panel section-block">
+              <div className="row-between">
+                <span className="muted" style={{ fontSize: '0.86rem' }}>
+                  {t('معروض للبيع بـ ', 'On sale for ')}<span className="eng">{money(listing.price_usd)}</span>
+                </span>
+                <WithdrawListing listingId={listing.id} revalidate={`/projects/${projectId}`} />
+              </div>
+            </div>
+          )}
         </section>
 
         <aside className="panel">

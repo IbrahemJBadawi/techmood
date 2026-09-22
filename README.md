@@ -236,6 +236,12 @@ for hire, saved things, invitations, and "my work"; applying with a chosen part
 of your TechMood identity and a proposal rather than a CV; and the workspace an
 accepted application opens, which both sides can see.
 
+Also built: escrow with tiered commissions, a negotiation that keeps every
+round, market conversations inside the existing Messages, client reviews that
+follow released money, reputation meters computed from real records rather than
+typed in, and finished projects listed and sold — where a sale moves the work
+and never the authorship.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.

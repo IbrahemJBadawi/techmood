@@ -266,6 +266,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/admin/payments', label: { ar: 'مراجعة المدفوعات', en: 'Review payments' }, icon: 'wallet' },
         { href: '/admin/payouts', label: { ar: 'طلبات السحب', en: 'Payout requests' }, icon: 'wallet' },
+        { href: '/admin/escrows', label: { ar: 'الأموال المحتجزة', en: 'Escrow' }, icon: 'wallet' },
         { href: '/admin/academy', label: { ar: 'محتوى الأكاديمية', en: 'Academy content' }, icon: 'academy' },
         { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
         { href: '/admin/incubator', label: { ar: 'طلبات الحاضنة', en: 'Incubator applications' }, icon: 'incubator' },

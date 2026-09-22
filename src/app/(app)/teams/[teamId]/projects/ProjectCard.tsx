@@ -14,6 +14,7 @@ const PROJECT_STATUS: Record<ProjectStatus, { text: Text; className: string }> =
   in_progress: { text: { ar: 'قيد التنفيذ', en: 'In progress' }, className: 'status-pending' },
   in_review:   { text: { ar: 'قيد المراجعة',en: 'In review' },   className: 'status-pending' },
   completed:   { text: { ar: 'مكتمل',       en: 'Completed' },   className: 'status-ok' },
+  sold:        { text: { ar: 'مُباع', en: 'Sold' }, className: 'status-ok' },
   archived:    { text: { ar: 'مؤرشف',       en: 'Archived' },    className: 'status-muted' },
 };
 

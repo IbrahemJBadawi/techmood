@@ -1038,6 +1038,76 @@ The application ladder gained `under_review`, `interview` and `offer` (0049),
 because "submitted" was silently covering all three and an applicant could not
 tell being read from being ignored.
 
+## Money the two sides can check: escrow, commission, and an argument
+
+The market moved no money at all until 0054. Somebody was accepted and what
+happened next was between two people and a bank transfer the platform knew
+nothing about — which is the one part of a market that cannot be left to good
+faith, because the client fears paying for nothing and the freelancer fears
+working for nothing.
+
+An escrow is funded through `payments`: the same receipt, the same admin, the
+same queue as a booking, because a second payment system is a second place for
+money to go missing. `verify_payment()` learned to tell the two apart and does
+the right thing for each. Funding writes the earning into the freelancer's
+wallet as **pending** — visible, not spendable — and releasing flips that same
+row to `available` rather than inventing a new one. Only the payer releases;
+only an admin refunds, and only a hold somebody disputed. Either side can
+dispute, which freezes the money and hands the question to a human instead of
+deciding it.
+
+Commission is `commission_tiers` plus `compute_commission()`, which is the only
+thing that reads them. Rates fall as the amount rises, because the platform's
+cost per piece of work does not grow with its price, and pretending otherwise
+pushes the biggest work into a private message.
+
+### Bidding without the auction
+
+0055 makes a proposal a round rather than a single number: `proposal_terms` is
+append-only, one open offer per side, and only the *other* side can accept —
+which is the whole difference between an agreement and an announcement.
+Accepting freezes those terms onto the application and supersedes the rest;
+every round is kept, so the agreed price has a history.
+
+What deliberately does not exist: connects to spend, hundreds of unread bids, a
+race to the cheapest.
+
+The talking goes where talking already happens. `conversations` gained
+`application_id` and a `market` kind, and shortlisting somebody opens one with
+both sides in it — the same Messages surface, with its read state and replies,
+rather than a second inbox nobody checks.
+
+### The client's judgement, and meters that are finally computed
+
+`reputation_scores` had been a table since 0002 with an admin-only write policy
+and **no producer**: every passport meter was reading rows nobody ever wrote.
+0056 makes reputation derived-and-written: `recompute_reputation()` works out
+all eight dimensions from real records — mentors' evaluations, exhibition
+panels, session feedback, client reviews, team tasks, and whether held money was
+released or refunded — and triggers on each of those sources keep it current. A
+dimension with no evidence behind it is **deleted rather than shown as zero**,
+because "nothing yet" and "judged and found wanting" are different things.
+
+`client_reviews` is the new source, and it has one rule: it can only be written
+once the escrow was released. A review follows money that actually moved, which
+is also why `profile_stars` now averages a client's stars together with a
+mentor's — both are somebody with standing saying how good the work was.
+
+### Selling finished work, without selling the authorship
+
+0057 lets a completed, exhibited project be listed and bought through the same
+escrow. The decision that shapes it, stated once so it is never quietly undone:
+
+> **A sale transfers the work, never the authorship.**
+
+The buyer gets the deliverables, the licence and permanent read access, and the
+sale is recorded. The exhibition entry, the mentor's evaluation, the skills the
+work proved and the credit on the maker's passport all stay exactly where they
+were — because those are statements about a person, and a person's record is not
+for sale here. Work built for a client is not the builder's to resell at all,
+and only work that was judged and exhibited can be listed, so the shelf cannot
+fill with unfinished zip files.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

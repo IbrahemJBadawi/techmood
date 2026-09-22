@@ -22,10 +22,11 @@ export default async function AdminPaymentsPage() {
 
   const { data: payments } = await supabase
     .from('payments')
-    .select('id, booking_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason')
+    .select('id, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason')
     .order('submitted_at', { ascending: true, nullsFirst: false });
 
-  const bookingIds = [...new Set((payments ?? []).map((row) => row.booking_id))];
+  const bookingIds = [...new Set((payments ?? []).map((row) => row.booking_id).filter(Boolean))] as string[];
+  const escrowIds = [...new Set((payments ?? []).map((row) => row.escrow_id).filter(Boolean))] as string[];
   const placeholder = ['00000000-0000-0000-0000-000000000000'];
 
   const [{ data: bookings }, { data: methods }] = await Promise.all([
@@ -36,8 +37,19 @@ export default async function AdminPaymentsPage() {
     supabase.from('payment_methods').select('key, name_ar, icon, reference_label_ar'),
   ]);
 
+  // A payment now belongs to a booking or to a hold. The queue is the same one.
+  const { data: escrows } = await supabase
+    .from('escrows')
+    .select('id, escrow_code, kind, project_id, payer_id, payee_id, amount_usd, commission_usd, net_usd, status')
+    .in('id', escrowIds.length ? escrowIds : ['00000000-0000-0000-0000-000000000000']);
+
+  const escrowById = new Map((escrows ?? []).map((row) => [row.id, row]));
+
   const peopleIds = [
-    ...new Set((bookings ?? []).flatMap((row) => [row.student_id, row.mentor_id].filter(Boolean))),
+    ...new Set([
+      ...(bookings ?? []).flatMap((row) => [row.student_id, row.mentor_id]),
+      ...(escrows ?? []).flatMap((row) => [row.payer_id, row.payee_id]),
+    ].filter(Boolean)),
   ] as string[];
 
   const { data: people } = await supabase
@@ -74,9 +86,10 @@ export default async function AdminPaymentsPage() {
           <p className="notice">{t('لا مدفوعات بانتظار المراجعة 🎉', 'No payments waiting 🎉')}</p>
         ) : (
           waiting.map((payment) => {
-            const booking = bookingById.get(payment.booking_id);
-            const student = personById.get(booking?.student_id ?? '');
-            const mentor = personById.get(booking?.mentor_id ?? '');
+            const booking = payment.booking_id ? bookingById.get(payment.booking_id) : undefined;
+            const escrow = payment.escrow_id ? escrowById.get(payment.escrow_id) : undefined;
+            const student = personById.get(booking?.student_id ?? escrow?.payer_id ?? '');
+            const mentor = personById.get(booking?.mentor_id ?? escrow?.payee_id ?? '');
             const method = methodByKey.get(payment.method_key);
             const when = booking ? formatSlot(booking.scheduled_start) : null;
 
@@ -91,14 +104,28 @@ export default async function AdminPaymentsPage() {
                       {student?.full_name} → {mentor?.full_name}
                     </p>
                   </div>
-                  <span className="id-chip">{booking?.booking_code}</span>
+                  <span className="id-chip">{booking?.booking_code ?? escrow?.escrow_code}</span>
                 </div>
 
                 <div className="summary-rows" style={{ marginTop: 14 }}>
-                  <div className="summary-row">
-                    <span className="muted">{t('موعد الجلسة', 'Session time')}</span>
-                    <span>{when ? `${when.date} · ${when.time}` : '—'}</span>
-                  </div>
+                  {booking && (
+                    <div className="summary-row">
+                      <span className="muted">{t('موعد الجلسة', 'Session time')}</span>
+                      <span>{when ? `${when.date} · ${when.time}` : '—'}</span>
+                    </div>
+                  )}
+                  {escrow && (
+                    <div className="summary-row">
+                      <span className="muted">{t('نوع الدفع', 'What this is')}</span>
+                      <span>
+                        {escrow.kind === 'project_sale'
+                          ? t('شراء مشروع جاهز', 'Buying finished work')
+                          : t('حجز مالي لعمل عبر السوق', 'A hold for market work')}
+                        {' · '}
+                        <span className="eng">{money(escrow.commission_usd)} {t('عمولة', 'commission')}</span>
+                      </span>
+                    </div>
+                  )}
                   <div className="summary-row">
                     <span className="muted">{method?.reference_label_ar ?? t('المرجع', 'Reference')}</span>
                     <span className="eng">{payment.reference ?? '—'}</span>
@@ -109,12 +136,14 @@ export default async function AdminPaymentsPage() {
                       {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG') : '—'}
                     </span>
                   </div>
-                  <div className="summary-row">
-                    <span className="muted">{t('حالة الحجز', 'Booking status')}</span>
-                    <span className={`status-pill ${BOOKING_STATUS[booking?.status ?? 'payment_submitted'].className}`}>
-                      {t(BOOKING_STATUS[booking?.status ?? 'payment_submitted'].text)}
-                    </span>
-                  </div>
+                  {booking && (
+                    <div className="summary-row">
+                      <span className="muted">{t('حالة الحجز', 'Booking status')}</span>
+                      <span className={`status-pill ${BOOKING_STATUS[booking.status].className}`}>
+                        {t(BOOKING_STATUS[booking.status].text)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {payment.proof_path && <ReceiptLink proofPath={payment.proof_path} />}
@@ -147,11 +176,12 @@ export default async function AdminPaymentsPage() {
             </thead>
             <tbody>
               {settled.map((payment) => {
-                const booking = bookingById.get(payment.booking_id);
+                const booking = payment.booking_id ? bookingById.get(payment.booking_id) : undefined;
+                const escrow = payment.escrow_id ? escrowById.get(payment.escrow_id) : undefined;
                 return (
                   <tr key={payment.id}>
-                    <td className="eng">{booking?.booking_code}</td>
-                    <td>{personById.get(booking?.student_id ?? '')?.full_name ?? '—'}</td>
+                    <td className="eng">{booking?.booking_code ?? escrow?.escrow_code ?? '—'}</td>
+                    <td>{personById.get(booking?.student_id ?? escrow?.payer_id ?? '')?.full_name ?? '—'}</td>
                     <td>{methodByKey.get(payment.method_key)?.name_ar}</td>
                     <td className="eng">{money(payment.amount_usd)}</td>
                     <td>

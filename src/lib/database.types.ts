@@ -125,7 +125,7 @@ export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
 export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
 export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
-export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'archived';
+export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'sold' | 'archived';
 export type StartupStage = 'idea' | 'validation' | 'mvp' | 'users' | 'business_model' | 'startup';
 export type CanvasBlock =
   | 'key_partners' | 'key_activities' | 'key_resources' | 'value_propositions'
@@ -142,6 +142,16 @@ export type CompensationKind = 'fixed' | 'hourly' | 'monthly' | 'equity' | 'reve
 export type ApplicationStage =
   | 'submitted' | 'under_review' | 'shortlisted' | 'interview' | 'offer'
   | 'accepted' | 'declined' | 'withdrawn';
+
+export type EscrowStatus =
+  | 'awaiting_payment' | 'funded' | 'released' | 'refunded' | 'disputed' | 'cancelled';
+
+export type EscrowKind = 'market_work' | 'project_sale';
+export type TermsStatus = 'offered' | 'accepted' | 'superseded' | 'withdrawn';
+export type ListingStatus = 'listed' | 'reserved' | 'sold' | 'withdrawn';
+export type SaleLicence = 'usage_rights' | 'full_transfer';
+export type ClientCriterion =
+  | 'quality' | 'communication' | 'deadline' | 'professionalism' | 'scope';
 
 export type MarketSaveKind = 'opportunity' | 'talent' | 'team';
 export type InviteStatus = 'sent' | 'accepted' | 'declined';
@@ -414,6 +424,8 @@ export type Conversation = {
   team_id: string | null;
   booking_id: string | null;
   path_id: string | null;
+  application_id: string | null;
+  project_id: string | null;
   is_read_only: boolean;
   archived_at: string | null;
   created_at: string;
@@ -485,7 +497,9 @@ export type Booking = {
 
 export type Payment = {
   id: string;
-  booking_id: string;
+  /** A payment belongs to a booking or to an escrow — never to both. */
+  booking_id: string | null;
+  escrow_id: string | null;
   method_key: string;
   amount_usd: number;
   status: PaymentStatus;
@@ -838,6 +852,37 @@ export type Database = {
         status: VideoSessionStatus; ended_at: string | null; created_at: string;
       }>;
       booking_seats: Table<{ booking_id: string; profile_id: string }>;
+      commission_tiers: Table<{
+        kind: EscrowKind; min_amount_usd: number; rate_percent: number; note_ar: string | null;
+      }>;
+      escrows: Table<{
+        id: string; escrow_code: string; kind: EscrowKind; project_id: string | null;
+        payer_id: string; payee_id: string; amount_usd: number; commission_usd: number;
+        net_usd: number; status: EscrowStatus; dispute_reason_ar: string | null;
+        resolution_ar: string | null; created_at: string; funded_at: string | null;
+        released_at: string | null;
+      }>;
+      proposal_terms: Table<{
+        id: string; application_id: string; by_profile: string; amount_usd: number;
+        days: number | null; message_ar: string | null; status: TermsStatus;
+        created_at: string; answered_at: string | null;
+      }>;
+      client_reviews: Table<{
+        id: string; project_id: string; escrow_id: string | null; client_id: string;
+        worker_id: string; stars: number; comment_ar: string | null; created_at: string;
+      }>;
+      client_review_scores: Table<{ review_id: string; criterion: ClientCriterion; stars: number }>;
+      project_listings: Table<{
+        id: string; listing_code: string; project_id: string; seller_id: string;
+        team_id: string | null; price_usd: number; licence: SaleLicence;
+        summary_ar: string; includes: string[]; status: ListingStatus;
+        created_at: string; sold_at: string | null;
+      }>;
+      project_sales: Table<{
+        id: string; listing_id: string; project_id: string; buyer_id: string;
+        seller_id: string; escrow_id: string | null; amount_usd: number;
+        licence: SaleLicence; created_at: string; completed_at: string | null;
+      }>;
       freelancer_profiles: Table<{
         profile_id: string; is_available: boolean; headline_ar: string | null;
         summary_ar: string | null; rate_kind: 'hourly' | 'project';
@@ -1383,6 +1428,75 @@ export type Database = {
           upcoming: number; pending: number; completed: number; this_month: number; hours: number;
           today_as_mentor: number; mentor_upcoming: number; mentor_pending: number;
           mentor_done: number; mentor_earnings: number;
+        }[];
+      };
+      compute_commission: { Args: { p_kind: EscrowKind; p_amount: number }; Returns: number };
+      open_escrow: {
+        Args: {
+          p_kind: EscrowKind; p_project: string | null; p_payee: string;
+          p_amount: number; p_method_key: string;
+        };
+        Returns: Database['public']['Tables']['escrows']['Row'];
+      };
+      submit_escrow_proof: {
+        Args: { p_escrow: string; p_proof_path?: string | null; p_reference?: string | null };
+        Returns: undefined;
+      };
+      release_escrow: { Args: { p_escrow: string; p_note?: string | null }; Returns: undefined };
+      refund_escrow: { Args: { p_escrow: string; p_reason: string }; Returns: undefined };
+      dispute_escrow: { Args: { p_escrow: string; p_reason: string }; Returns: undefined };
+      my_escrows: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; escrow_code: string; kind: EscrowKind; project_id: string | null;
+          project_title: string | null; counterpart: string | null; side: 'paying' | 'earning';
+          amount_usd: number; commission_usd: number; net_usd: number;
+          status: EscrowStatus; created_at: string;
+        }[];
+      };
+      propose_terms: {
+        Args: { p_application: string; p_amount: number; p_days?: number | null; p_message?: string | null };
+        Returns: Database['public']['Tables']['proposal_terms']['Row'];
+      };
+      accept_terms: { Args: { p_terms: string }; Returns: undefined };
+      negotiation: {
+        Args: { p_application: string };
+        Returns: {
+          id: string; by_profile: string; by_name: string; amount_usd: number;
+          days: number | null; message_ar: string | null; status: TermsStatus; created_at: string;
+        }[];
+      };
+      review_client_work: {
+        Args: { p_project: string; p_scores: Partial<Record<ClientCriterion, number>>; p_comment?: string | null };
+        Returns: string;
+      };
+      client_reviews_for: {
+        Args: { p_profile: string };
+        Returns: {
+          id: string; project_title: string | null; client_name: string | null;
+          stars: number; comment_ar: string | null;
+          criteria: Partial<Record<ClientCriterion, number>>; created_at: string;
+        }[];
+      };
+      list_project_for_sale: {
+        Args: {
+          p_project: string; p_price: number; p_summary: string;
+          p_licence?: SaleLicence; p_includes?: string[];
+        };
+        Returns: Database['public']['Tables']['project_listings']['Row'];
+      };
+      withdraw_listing: { Args: { p_listing: string }; Returns: undefined };
+      buy_project: {
+        Args: { p_listing: string; p_method_key: string };
+        Returns: Database['public']['Tables']['project_sales']['Row'];
+      };
+      market_listings: {
+        Args: { p_search?: string | null; p_limit?: number };
+        Returns: {
+          id: string; listing_code: string; project_id: string; project_title: string | null;
+          seller_name: string | null; team_title: string | null; price_usd: number;
+          licence: SaleLicence; summary_ar: string; includes: string[];
+          status: ListingStatus; entry_code: string | null; technologies: string[];
         }[];
       };
       market_overview: {

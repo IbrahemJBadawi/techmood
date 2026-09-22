@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Stars } from '@/components/Stars';
 import QRCode from 'qrcode';
 
 import { LogoMark } from '@/components/Logo';
@@ -107,6 +108,7 @@ export default async function PublicProfilePage({
     { data: certificates },
     { data: projects },
     { data: reputation },
+    { data: clientReviews },
     { data: links },
     { data: education },
     { data: experience },
@@ -127,6 +129,7 @@ export default async function PublicProfilePage({
       : { data: [] },
     can('projects') ? supabase.rpc('profile_exhibition_entries', { p_profile: card.profile_id }) : { data: [] },
     can('evaluations') ? supabase.rpc('profile_reputation', { p_profile: card.profile_id }) : { data: [] },
+    can('evaluations') ? supabase.rpc('client_reviews_for', { p_profile: card.profile_id }) : { data: [] },
     can('links')
       ? supabase.from('profile_links').select('id, kind, label, url').eq('profile_id', card.profile_id).order('sort_order')
       : { data: [] },
@@ -360,7 +363,7 @@ export default async function PublicProfilePage({
 
       {can('evaluations') && (reputation ?? []).length > 0 && (
         <section className="panel section-block">
-          <h2 className="profile-heading">{t('تقييم المنتورين', 'How mentors rate this work')}</h2>
+          <h2 className="profile-heading">{t('السمعة المهنية', 'Professional standing')}</h2>
           <div className="reputation-bars">
             {(reputation ?? []).map((row) => (
               <div key={row.dimension}>
@@ -375,8 +378,30 @@ export default async function PublicProfilePage({
             ))}
           </div>
           <p className="muted" style={{ fontSize: '0.74rem', marginTop: 12 }}>
-            {t('الدرجات فقط. ما كتبه المنتور لصاحب العمل يبقى بينهما.',
-               'The scores only. What a mentor wrote to the person stays between them.')}
+            {t('كل مؤشر محسوب من سجلات حقيقية: تقييمات المنتورين، لجان المعرض، جلسات الإرشاد، وعملاء دفعوا فعلاً. ما كُتب لصاحب العمل شخصياً يبقى بينهما.',
+               'Every meter is worked out from real records: mentors’ evaluations, exhibition panels, mentoring sessions and clients who actually paid. What was written to the person privately stays between them.')}
+          </p>
+        </section>
+      )}
+
+      {can('evaluations') && (clientReviews ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">{t('ما قاله العملاء', 'What clients said')}</h2>
+          <ul className="profile-list">
+            {(clientReviews ?? []).map((review) => (
+              <li key={review.id}>
+                <span>
+                  <strong>{review.project_title ?? t('عمل', 'Work')}</strong>
+                  <span className="muted"> · {review.client_name ?? t('عميل', 'A client')}</span>
+                </span>
+                <span><Stars value={review.stars} /></span>
+                {review.comment_ar && <span className="muted">{review.comment_ar}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
+            {t('لا يُكتب تقييم عميل إلا بعد أن يتحرّك المال فعلاً عبر المنصة.',
+               'A client review can only be written once money has actually moved through the platform.')}
           </p>
         </section>
       )}

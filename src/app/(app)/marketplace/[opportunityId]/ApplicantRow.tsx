@@ -33,12 +33,18 @@ export function ApplicantRow({
   stage,
   coverNote,
   isTeamSeat,
+  proposal,
+  children,
 }: {
   applicationId: string;
   opportunityId: string;
   stage: ApplicationStage;
   coverNote: string | null;
   isTeamSeat: boolean;
+  /** What this applicant proposed, when the opening asks for a proposal. */
+  proposal?: { amount: number | null; days: number | null };
+  /** The negotiation with this one applicant, rendered by the page. */
+  children?: React.ReactNode;
 }) {
   const t = useT();
   const [evidence, setEvidence] = useState<Evidence | null>(null);
@@ -59,7 +65,7 @@ export function ApplicantRow({
   }
 
   const info = APPLICATION_STAGE[stage];
-  const decided = stage !== 'submitted' && stage !== 'shortlisted';
+  const decided = ['accepted', 'declined', 'withdrawn'].includes(stage);
 
   return (
     <div style={{ paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid var(--line)' }}>
@@ -69,6 +75,12 @@ export function ApplicantRow({
       </div>
 
       {coverNote && <p style={{ fontSize: '0.86rem', marginTop: 8 }}>{coverNote}</p>}
+
+      {proposal && proposal.amount !== null && (
+        <p className="muted eng" style={{ fontSize: '0.84rem', marginTop: 6 }}>
+          ${proposal.amount}{proposal.days ? ` · ${proposal.days}d` : ''}
+        </p>
+      )}
 
       {!evidence ? (
         <button className="btn btn-ghost btn-sm" style={{ marginTop: 10 }} onClick={loadEvidence} disabled={loading}>
@@ -110,7 +122,7 @@ export function ApplicantRow({
 
       {!decided && !isTeamSeat && (
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {(['shortlisted', 'accepted'] as ApplicationStage[])
+          {(['under_review', 'shortlisted', 'interview', 'offer', 'accepted'] as ApplicationStage[])
             .filter((value) => value !== stage)
             .map((value) => (
               <form action={decideApplication} key={value}>
@@ -132,6 +144,8 @@ export function ApplicantRow({
           </form>
         </div>
       )}
+
+      {children}
     </div>
   );
 }

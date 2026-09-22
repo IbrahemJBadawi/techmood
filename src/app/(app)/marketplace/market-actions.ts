@@ -63,3 +63,44 @@ export async function respondToInvite(formData: FormData) {
 
   revalidatePath('/marketplace');
 }
+
+/**
+ * A round in the negotiation. Either side may make one; only the other side
+ * may accept it — both checked in the database, not here.
+ */
+export async function proposeTerms(_prev: MarketState, formData: FormData): Promise<MarketState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const applicationId = String(formData.get('application_id') ?? '');
+  const amount = Number(formData.get('amount') ?? 0);
+  if (!(amount >= 0)) return { error: t('اكتب مبلغاً صحيحاً.', 'Enter a real amount.') };
+
+  const { error } = await supabase.rpc('propose_terms', {
+    p_application: applicationId,
+    p_amount: amount,
+    p_days: formData.get('days') ? Number(formData.get('days')) : null,
+    p_message: String(formData.get('message') ?? '').trim() || null,
+  });
+
+  revalidatePath('/marketplace', 'layout');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('وصل عرضك.', 'Your offer is on the table.') };
+}
+
+export async function acceptTerms(_prev: MarketState, formData: FormData): Promise<MarketState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase.rpc('accept_terms', {
+    p_terms: String(formData.get('terms_id') ?? ''),
+  });
+
+  revalidatePath('/marketplace', 'layout');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('اتفقتما.', 'You have a deal.') };
+}

@@ -9,6 +9,7 @@ import { Opportunity } from '@/lib/database.types';
 
 import { ApplyForm } from './ApplyForm';
 import { InviteRow } from './InviteRow';
+import { Negotiation, type Round } from './Negotiation';
 import { SaveButton } from '../SaveButton';
 import { ApplicantRow } from './ApplicantRow';
 import { closeOpportunity } from '../actions';
@@ -54,7 +55,7 @@ export default async function OpportunityPage({
   const { data: applications } = isPoster
     ? await supabase
         .from('opportunity_applications')
-        .select('id, profile_id, cover_note_ar, stage, decision_note_ar, created_at')
+        .select('id, profile_id, cover_note_ar, stage, decision_note_ar, created_at, proposed_amount_usd, proposed_days')
         .eq('opportunity_id', opportunityId)
         .order('created_at')
     : { data: null };
@@ -73,6 +74,11 @@ export default async function OpportunityPage({
   const { data: invited } = isPoster
     ? await supabase.from('opportunity_invites')
         .select('invited_profile, status').eq('opportunity_id', opportunityId)
+    : { data: null };
+
+  // The rounds two people have offered each other, for whichever side is here.
+  const { data: myRounds } = myApplication
+    ? await supabase.rpc('negotiation', { p_application: myApplication.id })
     : { data: null };
 
   const { data: saved } = await supabase
@@ -158,16 +164,32 @@ export default async function OpportunityPage({
               {(applications?.length ?? 0) === 0 ? (
                 <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا طلبات بعد.', 'No applications yet.')}</p>
               ) : (
-                applications!.map((application) => (
-                  <ApplicantRow
-                    key={application.id}
-                    applicationId={application.id}
-                    opportunityId={opportunityId}
-                    stage={application.stage}
-                    coverNote={application.cover_note_ar}
-                    isTeamSeat={opportunity.kind === 'team_seat'}
-                  />
-                ))
+                await Promise.all(applications!.map(async (application) => {
+                  const { data: rounds } = opportunity.kind === 'freelance'
+                    ? await supabase.rpc('negotiation', { p_application: application.id })
+                    : { data: null };
+
+                  return (
+                    <ApplicantRow
+                      key={application.id}
+                      applicationId={application.id}
+                      opportunityId={opportunityId}
+                      stage={application.stage}
+                      coverNote={application.cover_note_ar}
+                      isTeamSeat={opportunity.kind === 'team_seat'}
+                      proposal={{ amount: application.proposed_amount_usd, days: application.proposed_days }}
+                    >
+                      {opportunity.kind === 'freelance'
+                        && !['declined', 'withdrawn'].includes(application.stage) && (
+                        <Negotiation
+                          applicationId={application.id}
+                          rounds={(rounds ?? []) as Round[]}
+                          meId={user.id}
+                        />
+                      )}
+                    </ApplicantRow>
+                  );
+                }))
               )}
 
               {(talent ?? []).length > 0 && opportunity.kind !== 'team_seat' && (
@@ -206,6 +228,15 @@ export default async function OpportunityPage({
                 needsProposal={opportunity.kind === 'freelance'}
                 application={myApplication ?? null}
               />
+
+              {myApplication && opportunity.kind === 'freelance'
+                && !['declined', 'withdrawn'].includes(myApplication.stage) && (
+                <Negotiation
+                  applicationId={myApplication.id}
+                  rounds={(myRounds ?? []) as Round[]}
+                  meId={user.id}
+                />
+              )}
 
               {(learning ?? []).length > 0 && (
                 <div className="panel section-block" style={{ marginTop: 16 }}>

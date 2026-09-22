@@ -8,19 +8,23 @@ import type { OpportunityKind } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { JobList } from './JobList';
+import { ListingList } from './ListingList';
+import { MoneyTab } from './Money';
 import { MyWork } from './MyWork';
 import { TalentList } from './TalentList';
 import { TeamList } from './TeamList';
 
 export const metadata = { title: 'Market — TechMood' };
 
-type Tab = 'all' | 'jobs' | 'talent' | 'teams' | 'work' | 'saved';
+type Tab = 'all' | 'jobs' | 'talent' | 'teams' | 'listings' | 'work' | 'money' | 'saved';
 
 const TAB_LABEL: Record<Tab, Text> = {
   all:    { ar: 'السوق',          en: 'All market' },
   jobs:   { ar: 'الفرص',          en: 'Jobs' },
   talent: { ar: 'المستقلون',      en: 'Freelancers' },
   teams:  { ar: 'الفرق',          en: 'Teams' },
+  listings: { ar: 'مشاريع للبيع', en: 'For sale' },
+  money:  { ar: 'المال',          en: 'Money' },
   work:   { ar: 'عملي',           en: 'My work' },
   saved:  { ar: 'المحفوظات',      en: 'Saved' },
 };
@@ -45,7 +49,7 @@ export default async function MarketPage({
   if (!user) redirect('/login');
 
   const params = await searchParams;
-  const tab = (['all', 'jobs', 'talent', 'teams', 'work', 'saved'] as Tab[])
+  const tab = (['all', 'jobs', 'talent', 'teams', 'listings', 'work', 'money', 'saved'] as Tab[])
     .find((key) => key === params.tab) ?? 'all';
   const kind = Object.keys(OPPORTUNITY_KIND).includes(params.kind ?? '')
     ? (params.kind as OpportunityKind)
@@ -122,7 +126,7 @@ export default async function MarketPage({
       )}
 
       <nav className="tabs" aria-label={t('أقسام السوق', 'Market sections')}>
-        {(['all', 'jobs', 'talent', 'teams', 'work', 'saved'] as Tab[]).map((key) => (
+        {(['all', 'jobs', 'talent', 'teams', 'listings', 'work', 'money', 'saved'] as Tab[]).map((key) => (
           <Link className={`tab${key === tab ? ' is-active' : ''}`} href={href({ tab: key })} key={key}>
             {t(TAB_LABEL[key])}
           </Link>
@@ -153,6 +157,14 @@ export default async function MarketPage({
               <Link className="btn btn-ghost btn-sm" href={href({ tab: 'teams' })}>{t('الكل', 'See all')}</Link>
             </div>
             <TeamList saved={savedOf('team')} />
+          </section>
+
+          <section className="section-block">
+            <div className="row-between">
+              <h3 className="academy-heading">{t('مشاريع جاهزة للبيع', 'Finished work for sale')}</h3>
+              <Link className="btn btn-ghost btn-sm" href={href({ tab: 'listings' })}>{t('الكل', 'See all')}</Link>
+            </div>
+            <ListingList />
           </section>
         </>
       )}
@@ -195,6 +207,22 @@ export default async function MarketPage({
       {tab === 'teams' && (
         <section className="section-block">
           <TeamList search={search} saved={savedOf('team')} />
+        </section>
+      )}
+
+      {tab === 'listings' && (
+        <section className="section-block">
+          <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 14, maxWidth: '66ch' }}>
+            {t('عمل مكتمل، مرّ بتقييم منتور وظهر في المعرض، ثم عُرض للبيع. الشراء يفتح حجزاً مالياً — والبيع ينقل العمل لا نسبته: يبقى في سجلّ من بناه.',
+               'Finished work, judged by a mentor and shown in the exhibition, then put up for sale. Buying opens a hold — and a sale moves the work, never the authorship: it stays on the record of whoever built it.')}
+          </p>
+          <ListingList search={search} />
+        </section>
+      )}
+
+      {tab === 'money' && (
+        <section className="section-block">
+          <MoneyTab />
         </section>
       )}
 
