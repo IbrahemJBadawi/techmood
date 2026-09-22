@@ -8,6 +8,8 @@ import { APPLICATION_STAGE, OPPORTUNITY_KIND, compensationLabel } from '@/lib/ma
 import { Opportunity } from '@/lib/database.types';
 
 import { ApplyForm } from './ApplyForm';
+import { InviteRow } from './InviteRow';
+import { SaveButton } from '../SaveButton';
 import { ApplicantRow } from './ApplicantRow';
 import { closeOpportunity } from '../actions';
 
@@ -39,7 +41,7 @@ export default async function OpportunityPage({
     supabase.rpc('opportunity_match', { p_opportunity: opportunityId, p_profile: user.id }),
     supabase
       .from('opportunity_applications')
-      .select('id, stage, cover_note_ar, decision_note_ar')
+      .select('id, stage, cover_note_ar, decision_note_ar, proposed_amount_usd, proposed_days')
       .eq('opportunity_id', opportunityId)
       .eq('profile_id', user.id)
       .maybeSingle(),
@@ -56,6 +58,30 @@ export default async function OpportunityPage({
         .eq('opportunity_id', opportunityId)
         .order('created_at')
     : { data: null };
+
+  // The loop the platform is built on: an opening names skills, and the academy
+  // is shown as the way to them — to whoever does not have them yet.
+  const { data: learning } = isPoster
+    ? { data: null }
+    : await supabase.rpc('opportunity_learning', { p_opportunity: opportunityId });
+
+  // A poster who found nobody can ask somebody instead of waiting.
+  const { data: talent } = isPoster
+    ? await supabase.rpc('market_talent', { p_search: null, p_skill: null, p_limit: 6 })
+    : { data: null };
+
+  const { data: invited } = isPoster
+    ? await supabase.from('opportunity_invites')
+        .select('invited_profile, status').eq('opportunity_id', opportunityId)
+    : { data: null };
+
+  const { data: saved } = await supabase
+    .from('market_saves')
+    .select('target_id')
+    .eq('profile_id', user.id)
+    .eq('target_kind', 'opportunity')
+    .eq('target_id', opportunityId)
+    .maybeSingle();
 
   const matchInfo = (match as { meets_stars: boolean; meets_path: boolean; matched_skills: string[]; missing_skills: string[] }[] | null)?.[0];
   const isOpen =
@@ -90,6 +116,14 @@ export default async function OpportunityPage({
                 {t('يغلق ', 'Closes ')}{opportunity.closes_on}
               </p>
             )}
+            <div style={{ marginTop: 10 }}>
+              <SaveButton
+                kind="opportunity"
+                target={opportunityId}
+                saved={Boolean(saved)}
+                revalidate={`/marketplace/${opportunityId}`}
+              />
+            </div>
           </div>
         </div>
 
@@ -136,6 +170,28 @@ export default async function OpportunityPage({
                 ))
               )}
 
+              {(talent ?? []).length > 0 && opportunity.kind !== 'team_seat' && (
+                <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 14 }}>
+                  <h4 style={{ fontSize: '0.92rem' }}>{t('ادعُ شخصاً بالاسم', 'Invite somebody by name')}</h4>
+                  <p className="muted" style={{ fontSize: '0.78rem', marginTop: 4 }}>
+                    {t('من أعلنوا أنهم متاحون للعمل. الدعوة تدخل نفس الطابور — خطوة واحدة للأمام.',
+                       'People who said they are available. An invitation enters the same queue, one step further along.')}
+                  </p>
+                  <div className="stack" style={{ marginTop: 10 }}>
+                    {(talent ?? []).map((person) => (
+                      <InviteRow
+                        key={person.profile_id}
+                        opportunityId={opportunityId}
+                        profileId={person.profile_id}
+                        name={person.full_name}
+                        headline={person.headline}
+                        alreadyInvited={(invited ?? []).some((row) => row.invited_profile === person.profile_id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {opportunity.kind === 'team_seat' && (
                 <p className="muted" style={{ fontSize: '0.8rem', marginTop: 12 }}>
                   {t('مقاعد الفرق تُقرَّر من صفحة الفريق، والقرار ينعكس هنا تلقائياً.', 'Team seats are decided from the team page, and the decision shows up here automatically.')}
@@ -143,11 +199,37 @@ export default async function OpportunityPage({
               )}
             </div>
           ) : (
-            <ApplyForm
-              opportunityId={opportunityId}
-              isOpen={isOpen}
-              application={myApplication ?? null}
-            />
+            <>
+              <ApplyForm
+                opportunityId={opportunityId}
+                isOpen={isOpen}
+                needsProposal={opportunity.kind === 'freelance'}
+                application={myApplication ?? null}
+              />
+
+              {(learning ?? []).length > 0 && (
+                <div className="panel section-block" style={{ marginTop: 16 }}>
+                  <h3 style={{ fontSize: '0.98rem' }}>{t('الطريق إلى ما تطلبه هذه الفرصة', 'The way to what this asks for')}</h3>
+                  <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+                    {t('مسارات في الأكاديمية تُدرّس المهارات التي لم تُوثَّق في ملفك بعد. لا أحد يمنعك من التقدّم الآن.',
+                       'Academy paths that teach the skills your record does not carry yet. Nothing stops you applying today.')}
+                  </p>
+                  <ul className="plain-list" style={{ marginTop: 12 }}>
+                    {(learning ?? []).map((row) => (
+                      <li className="row-between" key={row.path_id} style={{ fontSize: '0.88rem' }}>
+                        <span>
+                          {row.title_ar}
+                          <span className="muted"> · {row.teaches.slice(0, 3).join('، ')}</span>
+                        </span>
+                        <Link className="btn btn-ghost btn-sm" href={`/academy/${row.slug}`}>
+                          {t('ابدأ', 'Start')}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
           )}
         </section>
 

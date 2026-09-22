@@ -14,6 +14,7 @@ export const KIND_LABEL: Record<ProjectKind, Text> = {
   team:     { ar: 'مشروع فريق',    en: 'Team project' },
   startup:  { ar: 'مشروع ناشئ',    en: 'Startup project' },
   personal: { ar: 'مشروع فردي',    en: 'Personal project' },
+  client:   { ar: 'عمل لعميل',     en: 'Client work' },
 };
 
 export const CRITERION_LABEL = {

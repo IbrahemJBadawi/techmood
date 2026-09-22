@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 512 business-rule assertions
+scripts/test.sh                   # 518 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0050, applied in order
+  migrations/        0001-0052, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
@@ -230,6 +230,11 @@ of them, blocked time) and the record each held session leaves behind.
 Also built: a team books a mentor — the leader picks who is coming, the price
 is the mentor's rate once per seat, and the room admits exactly the members
 those seats were bought for.
+
+Also built: the Market as one place — openings, available freelancers and teams
+for hire, saved things, invitations, and "my work"; applying with a chosen part
+of your TechMood identity and a proposal rather than a CV; and the workspace an
+accepted application opens, which both sides can see.
 
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,

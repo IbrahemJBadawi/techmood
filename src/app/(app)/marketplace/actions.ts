@@ -71,9 +71,16 @@ export async function applyToOpportunity(_prev: MarketState, formData: FormData)
   const supabase = await createClient();
   const opportunityId = String(formData.get('opportunity_id') ?? '');
 
+  const sections = formData.getAll('share').map(String).filter(Boolean);
+  const amount = formData.get('amount') ? Number(formData.get('amount')) : null;
+  const days = formData.get('days') ? Number(formData.get('days')) : null;
+
   const { error } = await supabase.rpc('apply_to_opportunity', {
     p_opportunity: opportunityId,
     p_cover: String(formData.get('cover') ?? '').trim() || null,
+    p_amount: amount,
+    p_days: days,
+    p_sections: sections,
   });
 
   if (error) {

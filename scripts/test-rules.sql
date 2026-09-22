@@ -4646,6 +4646,74 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 41. Applying with an identity, not a CV
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select (public.apply_to_opportunity(
+  :'gig',
+  'أستطيع تسليم اللوحة خلال أسبوعين.',
+  350, 14,
+  array['portfolio', 'certificates'])).id as gig_app \gset
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select proposed_amount_usd from public.opportunity_applications where id = :'gig_app') = 350
+  and (select proposed_days from public.opportunity_applications where id = :'gig_app') = 14,
+  '41.1 a proposal is part of the application, not a second object');
+
+select public.assert(
+  (select shared_sections from public.opportunity_applications where id = :'gig_app')
+    @> array['portfolio'],
+  '41.2 and what the applicant chose to share is recorded, because it was a choice');
+
+-- The ladder has the steps the document describes, and a poster can use them.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.decide_opportunity_application(:'gig_app', 'under_review');
+select public.decide_opportunity_application(:'gig_app', 'interview', 'نلتقي الخميس');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select stage from public.opportunity_applications where id = :'gig_app') = 'interview',
+  '41.3 being read, being interviewed and being offered are different answers');
+
+-- ===========================================================================
+-- 42. The work a client paid for is visible to both sides
+-- ===========================================================================
+select id as work_project from public.projects
+ where opportunity_id = :'job'
+   and owner_id = '11111111-1111-1111-1111-111111111111' \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.projects where id = :'work_project') = 1,
+  '42.1 the client can see the work they are paying for');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.projects where id = :'work_project') = 0,
+  '42.2 and nobody else can, because the work is private to the two of them');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+update public.projects set title_ar = 'عنوان من العميل' where id = :'work_project';
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select title_ar from public.projects where id = :'work_project') <> 'عنوان من العميل',
+  '42.3 the client reads the work; it still belongs to whoever is doing it');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

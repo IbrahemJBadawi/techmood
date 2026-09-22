@@ -990,6 +990,54 @@ them every booking in the list, but `my_calendar()` still gathers only their
 own dates. Rescheduling by dragging an entry is not built either — a booking's
 time is changed through the booking, where the rules that guard it live.
 
+## The market is the platform's other end, not a job board on the side
+
+0025 built one side of a marketplace: an opening is posted, somebody applies,
+and the poster sees a record rather than a CV. Four things were missing, and
+each of them is what makes a market a market. 0050 adds them, and builds none
+of them from scratch.
+
+**Nobody could be found.** `freelancer_profiles` is a single choice — am I
+available, from what price — hanging off the profile that already exists. There
+is no second identity: `market_talent()` reads the person's own skills, stars,
+exhibited projects and certificates. Listing yourself needs the freelancer role
+after review, enforced by a trigger, because the platform is saying something
+about you to somebody who will pay. `teams` gained the same three columns, so
+the thing this platform is best at making can be hired as one.
+
+**Nobody could be asked.** `opportunity_invites` lets a poster ask somebody by
+name — only somebody who offered their work, and only on their own opening.
+Accepting an invitation is applying: the same queue, at `shortlisted`, because
+being asked for is one step further along than asking.
+
+**Nothing could be kept.** `market_saves` is private to whoever saved it: not a
+count on a card, not a signal, not a ranking.
+
+**And "accepted" was the end of the road.** The market recorded a decision and
+forgot the work — although the work is the thing this whole platform exists to
+prove. Accepting now opens an ordinary TechMood project (`kind = 'client'`),
+owned by the person doing it, with the client on it and the amount agreed;
+0052 then lets the client read it, which `projects_read` had never allowed for
+a private project owned by somebody else. A team seat opens nothing: joining a
+team is not work being handed over, and the team already has a workspace.
+
+An application carries a proposal (`proposed_amount_usd`, `proposed_days`) and
+`shared_sections` — which parts of their identity the applicant put in front of
+this poster. That last column is the market's whole idea in one field: applying
+with a TechMood identity rather than a CV only means something if choosing what
+to share is a real, recorded choice.
+
+Two reads close the loop the platform is built on. `opportunity_learning()`
+takes the skills an opening asks for, subtracts the ones the reader has already
+earned, and names the academy paths that teach the rest — so an opening is a
+description of something learnable rather than a door. `trust_signals()` never
+says the word "verified": it names what was checked and counts the records
+behind it, so a reader can disagree with it.
+
+The application ladder gained `under_review`, `interview` and `offer` (0049),
+because "submitted" was silently covering all three and an applicant could not
+tell being read from being ignored.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

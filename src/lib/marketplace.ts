@@ -37,13 +37,25 @@ export const COMPENSATION_KIND: Record<CompensationKind, Text> = {
   unpaid:        { ar: 'غير مدفوع',         en: 'Unpaid' },
 };
 
+/**
+ * The ladder an application climbs. Each step exists because it is a different
+ * answer to "where do I stand?" — being read is not the same as being ignored,
+ * and an offer is not yet a yes.
+ */
 export const APPLICATION_STAGE: Record<ApplicationStage, { text: Text; className: string }> = {
-  submitted:   { text: { ar: 'قيد النظر',      en: 'Under consideration' }, className: 'status-pending' },
-  shortlisted: { text: { ar: 'قائمة مختصرة',   en: 'Shortlisted' },         className: 'status-pending' },
-  accepted:    { text: { ar: 'مقبول',          en: 'Accepted' },            className: 'status-ok' },
-  declined:    { text: { ar: 'غير مقبول',      en: 'Not accepted' },        className: 'status-danger' },
-  withdrawn:   { text: { ar: 'مسحوب',          en: 'Withdrawn' },           className: 'status-muted' },
+  submitted:    { text: { ar: 'وصل الطلب',      en: 'Submitted' },           className: 'status-muted' },
+  under_review: { text: { ar: 'قيد القراءة',    en: 'Under review' },        className: 'status-pending' },
+  shortlisted:  { text: { ar: 'قائمة مختصرة',   en: 'Shortlisted' },         className: 'status-pending' },
+  interview:    { text: { ar: 'مقابلة',         en: 'Interview' },           className: 'status-pending' },
+  offer:        { text: { ar: 'عرض',            en: 'Offer' },               className: 'status-ok' },
+  accepted:     { text: { ar: 'مقبول',          en: 'Accepted' },            className: 'status-ok' },
+  declined:     { text: { ar: 'غير مقبول',      en: 'Not accepted' },        className: 'status-danger' },
+  withdrawn:    { text: { ar: 'مسحوب',          en: 'Withdrawn' },           className: 'status-muted' },
 };
+
+/** The order a poster moves somebody through, before a yes or a no. */
+export const STAGE_LADDER: ApplicationStage[] =
+  ['submitted', 'under_review', 'shortlisted', 'interview', 'offer', 'accepted'];
 
 /** Reads the pay as a human would say it, from whatever the poster filled in. */
 export function compensationLabel(

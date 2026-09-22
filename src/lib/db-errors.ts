@@ -55,6 +55,15 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'لست من المشاركين في هذه الجلسة',  en: 'You are not one of this session\u2019s participants.' },
   { match: 'الباب يفتح قبل الموعد بخمس دقائق', en: 'The door opens five minutes before the session.' },
   { match: 'انتهت هذه الجلسة',               en: 'This session is over.' },
+  // the market
+  { match: 'دور فريلانسر معتمد',            en: 'Listing yourself for paid work needs an approved freelancer role.' },
+  { match: 'صاحب الفرصة فقط',              en: 'Only whoever posted the opening may invite to it.' },
+  { match: 'غير مدرج للعمل حالياً',          en: 'That person is not listed for work right now.' },
+  { match: 'لا يعرض خدماته حالياً',          en: 'That team is not offering its services right now.' },
+  { match: 'الدعوة مرسلة بالفعل',            en: 'That invitation has already been sent.' },
+  { match: 'تمّ الردّ على هذه الدعوة',        en: 'That invitation has already been answered.' },
+  { match: 'الدعوة ليست لك',                en: 'That invitation is not yours.' },
+  { match: 'الدعوة لشخص أو لفريق',          en: 'An invitation goes to a person or to a team, not to both.' },
   // team bookings
   { match: 'قائد الفريق فقط',                en: 'Only the team\u2019s leader books the team\u2019s sessions.' },
   { match: 'المقاعد لأعضاء الفريق فقط',      en: 'Seats are for members of the team only.' },

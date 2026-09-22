@@ -166,8 +166,9 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'العمل', en: 'Work' },
       items: [
-        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
-        { href: '/applications', label: { ar: 'طلباتي', en: 'My applications' }, icon: 'application' },
+        { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
+        { href: '/marketplace?tab=work', label: { ar: 'عملي', en: 'My work' }, icon: 'application' },
+        { href: '/settings/freelancer', label: { ar: 'إدراجي في السوق', en: 'My listing' }, icon: 'settings' },
         { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
       ],
     },
@@ -210,7 +211,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'العمل', en: 'Work' },
       items: [
-        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
+        { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
         { href: '/applications', label: { ar: 'طلبات فريقي', en: 'Team applications' }, icon: 'application' },
       ],
     },
@@ -227,7 +228,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الفريق والفرص', en: 'Team & openings' },
       items: [
         { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
-        { href: '/marketplace', label: { ar: 'سوق العمل', en: 'Marketplace' }, icon: 'work' },
+        { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
       ],
     },
   ],
@@ -235,7 +236,8 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'التوظيف', en: 'Hiring' },
       items: [
-        { href: '/marketplace', label: { ar: 'فرصي المنشورة', en: 'My postings' }, icon: 'work' },
+        { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
+        { href: '/marketplace?tab=talent', label: { ar: 'ابحث عن كفاءات', en: 'Find talent' }, icon: 'passport' },
         { href: '/applications', label: { ar: 'المتقدّمون', en: 'Applicants' }, icon: 'application' },
       ],
     },

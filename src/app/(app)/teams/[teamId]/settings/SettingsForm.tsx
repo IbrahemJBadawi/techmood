@@ -27,6 +27,29 @@ export function SettingsForm({ team }: { team: Team }) {
         <textarea id="description" name="description" rows={3} defaultValue={team.description_ar ?? ''} />
       </div>
 
+      {/* The team as something that can be hired, not only something you join. */}
+      <fieldset style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, margin: '0 0 14px' }}>
+        <legend className="muted" style={{ fontSize: '0.82rem', padding: '0 6px' }}>
+          {t('في السوق', 'In the market')}
+        </legend>
+
+        <label className="switch-row">
+          <input type="checkbox" name="offers_services" defaultChecked={team.offers_services} />
+          <span>{t('هذا الفريق يستقبل مشاريع', 'This team takes on projects')}</span>
+        </label>
+
+        <div className="field" style={{ marginTop: 12 }}>
+          <label htmlFor="service_summary">{t('ما الذي يقدّمه الفريق؟', 'What does the team offer?')}</label>
+          <input id="service_summary" name="service_summary" defaultValue={team.service_summary_ar ?? ''} />
+        </div>
+
+        <div className="field">
+          <label htmlFor="rate_from">{t('يبدأ من (دولار)', 'Starting from (USD)')}</label>
+          <input id="rate_from" name="rate_from" type="number" min="0" step="1"
+                 defaultValue={team.rate_from_usd ?? ''} />
+        </div>
+      </fieldset>
+
       <div className="field-row">
         <div className="field">
           <label htmlFor="kind">{t('النوع', 'Kind')}</label>

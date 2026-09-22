@@ -3,127 +3,203 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { OPPORTUNITY_KIND } from '@/lib/marketplace';
+import type { OpportunityKind } from '@/lib/database.types';
+import type { Text } from '@/lib/i18n';
 
-import { OPPORTUNITY_KIND, compensationLabel } from '@/lib/marketplace';
-import { Opportunity, OpportunityKind } from '@/lib/database.types';
+import { JobList } from './JobList';
+import { MyWork } from './MyWork';
+import { TalentList } from './TalentList';
+import { TeamList } from './TeamList';
 
-export default async function MarketplacePage({
+export const metadata = { title: 'Market — TechMood' };
+
+type Tab = 'all' | 'jobs' | 'talent' | 'teams' | 'work' | 'saved';
+
+const TAB_LABEL: Record<Tab, Text> = {
+  all:    { ar: 'السوق',          en: 'All market' },
+  jobs:   { ar: 'الفرص',          en: 'Jobs' },
+  talent: { ar: 'المستقلون',      en: 'Freelancers' },
+  teams:  { ar: 'الفرق',          en: 'Teams' },
+  work:   { ar: 'عملي',           en: 'My work' },
+  saved:  { ar: 'المحفوظات',      en: 'Saved' },
+};
+
+/**
+ * TechMood Market — where a record becomes work.
+ *
+ * This is not a job board bolted onto a learning platform. Everything a card
+ * shows was earned elsewhere in TechMood: the skills from approved work, the
+ * projects from the exhibition, the stars from real evaluations. That is why an
+ * application here carries a person's identity rather than a CV, and why an
+ * opening carries the way back into the academy for whoever is not ready yet.
+ */
+export default async function MarketPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string }>;
+  searchParams: Promise<{ tab?: string; kind?: string; q?: string; remote?: string }>;
 }) {
-  const { kind } = await searchParams;
   const t = await getT();
   const supabase = await createClient();
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  let query = supabase
-    .from('opportunities')
-    .select('*')
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
+  const params = await searchParams;
+  const tab = (['all', 'jobs', 'talent', 'teams', 'work', 'saved'] as Tab[])
+    .find((key) => key === params.tab) ?? 'all';
+  const kind = Object.keys(OPPORTUNITY_KIND).includes(params.kind ?? '')
+    ? (params.kind as OpportunityKind)
+    : undefined;
+  const search = (params.q ?? '').trim() || undefined;
+  const remoteOnly = params.remote === '1';
 
-  if (kind && kind in OPPORTUNITY_KIND) query = query.eq('kind', kind as OpportunityKind);
-
-  const [{ data: opportunities }, { data: canPost }, { data: myApplications }] = await Promise.all([
-    query,
+  const [{ data: overview }, { data: canPost }, { data: saves }] = await Promise.all([
+    supabase.rpc('market_overview'),
     supabase.rpc('can_post_opportunity', { p_kind: 'freelance', p_team: null }),
-    supabase.from('opportunity_applications').select('opportunity_id').eq('profile_id', user.id),
+    supabase.from('market_saves').select('target_kind, target_id').eq('profile_id', user.id),
   ]);
 
-  const applied = new Set((myApplications ?? []).map((row) => row.opportunity_id));
-  const posterIds = [...new Set((opportunities ?? []).map((row) => row.posted_by))];
+  const counts = overview?.[0];
+  const savedOf = (target: 'opportunity' | 'talent' | 'team') =>
+    new Set((saves ?? []).filter((row) => row.target_kind === target).map((row) => row.target_id));
 
-  const { data: posters } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .in('id', posterIds.length ? posterIds : ['00000000-0000-0000-0000-000000000000']);
-
-  const posterById = new Map((posters ?? []).map((row) => [row.id, row.full_name]));
+  const href = (next: Partial<{ tab: Tab; kind: string; q: string; remote: string }>) => {
+    const query = new URLSearchParams();
+    const merged = { tab, kind, q: search, remote: remoteOnly ? '1' : undefined, ...next };
+    for (const [key, value] of Object.entries(merged)) if (value) query.set(key, String(value));
+    return `/marketplace?${query.toString()}`;
+  };
 
   return (
     <>
-      <section className="section-block">
-        <div className="row-between">
-          <div>
-            <h2 style={{ fontSize: '1.2rem' }}>{t('سوق العمل', 'Work')}</h2>
-            <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-              {t('فرص تصل لمن يملك سجلاً مهنياً موثّقاً. عندما تتقدّم، يرى الناشر نقاطك ونجومك وشهاداتك وأعمالك المنشورة — لا خطاب تعريف فقط.',
-                 'Openings that reach people with a verifiable record. When you apply, the poster sees your points, your stars, your certificates and your published work — not just a cover letter.')}
-            </p>
-          </div>
+      <section className="market-hero section-block">
+        <h2>{t('ابنِ. اعمل. انمُ.', 'Build. Work. Grow.')}</h2>
+        <p className="muted">
+          {t('فرص حقيقية، ومهارات موثّقة بعمل تم تقييمه. هنا يتحوّل سجلّك في TechMood إلى عمل — لا سيرة ذاتية تُرسل وتُنسى.',
+             'Real openings, and skills proven by work somebody evaluated. This is where your TechMood record becomes work — not a CV sent into a void.')}
+        </p>
+
+        <form className="market-search" action="/marketplace">
+          <input type="hidden" name="tab" value={tab === 'all' ? 'jobs' : tab} />
+          <input
+            type="search"
+            name="q"
+            defaultValue={search ?? ''}
+            placeholder={t('فرصة، مهارة، أو شخص…', 'An opening, a skill, or a person…')}
+            aria-label={t('ابحث في السوق', 'Search the market')}
+          />
+          <button className="btn btn-primary btn-sm">{t('ابحث', 'Search')}</button>
+        </form>
+
+        <div className="row-actions">
+          <Link className="btn btn-ghost btn-sm" href={href({ tab: 'jobs' })}>{t('ابحث عن فرصة', 'Find jobs')}</Link>
+          <Link className="btn btn-ghost btn-sm" href={href({ tab: 'talent' })}>{t('ابحث عن شخص', 'Find talent')}</Link>
           {canPost === true && (
-            <Link className="btn btn-primary btn-sm" href="/marketplace/new">{t('+ انشر فرصة', '+ Post an opening')}</Link>
+            <Link className="btn btn-primary btn-sm" href="/marketplace/new">{t('انشر فرصة', 'Post an opening')}</Link>
           )}
         </div>
       </section>
 
-      <div className="date-tabs section-block">
-        <Link
-          href="/marketplace"
-          className={`date-tab${!kind ? ' selected' : ''}`}
-          style={{ textDecoration: 'none', minWidth: 0, padding: '8px 16px' }}
-        >
-          {t('الكل', 'All')}
-        </Link>
-        {Object.entries(OPPORTUNITY_KIND).map(([key, info]) => (
-          <Link
-            key={key}
-            href={`/marketplace?kind=${key}`}
-            className={`date-tab${kind === key ? ' selected' : ''}`}
-            style={{ textDecoration: 'none', minWidth: 0, padding: '8px 16px' }}
-          >
-            {t(info.label)}
+      {counts && (
+        <section className="stat-strip">
+          <Link className="stat-card" href={href({ tab: 'jobs' })}>
+            <span className="stat-value eng">{counts.jobs}</span>
+            <span className="stat-label">{t('فرص مفتوحة', 'Open jobs')}</span>
+          </Link>
+          <Link className="stat-card" href={href({ tab: 'talent' })}>
+            <span className="stat-value eng">{counts.freelancers}</span>
+            <span className="stat-label">{t('مستقلون متاحون', 'Freelancers')}</span>
+          </Link>
+          <Link className="stat-card" href={href({ tab: 'teams' })}>
+            <span className="stat-value eng">{counts.teams}</span>
+            <span className="stat-label">{t('فرق تستقبل عملاً', 'Teams for hire')}</span>
+          </Link>
+          <span className="stat-card">
+            <span className="stat-value eng">{counts.companies}</span>
+            <span className="stat-label">{t('جهات ناشرة', 'Organisations')}</span>
+          </span>
+        </section>
+      )}
+
+      <nav className="tabs" aria-label={t('أقسام السوق', 'Market sections')}>
+        {(['all', 'jobs', 'talent', 'teams', 'work', 'saved'] as Tab[]).map((key) => (
+          <Link className={`tab${key === tab ? ' is-active' : ''}`} href={href({ tab: key })} key={key}>
+            {t(TAB_LABEL[key])}
           </Link>
         ))}
-      </div>
+      </nav>
 
-      {(opportunities?.length ?? 0) === 0 ? (
-        <p className="notice">{t('لا فرص مطابقة حالياً.', 'Nothing matching right now.')}</p>
-      ) : (
-        (opportunities as Opportunity[]).map((opportunity) => (
-          <article className="opp-row panel section-block" key={opportunity.id}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="tags-row">
-                <span className="tag">{t(OPPORTUNITY_KIND[opportunity.kind].label)}</span>
-                {opportunity.is_remote && <span className="badge-pill">{t('عن بُعد', 'Remote')}</span>}
-                {applied.has(opportunity.id) && <span className="badge-pill">{t('قدّمت', 'Applied')}</span>}
-              </div>
-
-              <h3 style={{ fontSize: '1rem', marginTop: 8 }}>{opportunity.title_ar}</h3>
-              <p className="muted" style={{ fontSize: '0.85rem', marginTop: 4 }}>
-                {opportunity.organization_ar ?? posterById.get(opportunity.posted_by) ?? '—'}
-                {opportunity.location_ar ? ` · ${opportunity.location_ar}` : ''}
-              </p>
-
-              {(opportunity.required_skills.length > 0 || opportunity.tags.length > 0) && (
-                <div className="tags-row" style={{ marginTop: 8 }}>
-                  {opportunity.required_skills.map((skill) => (
-                    <span className="badge-pill eng" key={skill}>{skill}</span>
-                  ))}
-                  {opportunity.tags.map((tag) => <span className="badge-pill" key={tag}>{tag}</span>)}
-                </div>
-              )}
+      {tab === 'all' && (
+        <>
+          <section className="section-block">
+            <div className="row-between">
+              <h3 className="academy-heading">{t('فرص مفتوحة', 'Open opportunities')}</h3>
+              <Link className="btn btn-ghost btn-sm" href={href({ tab: 'jobs' })}>{t('الكل', 'See all')}</Link>
             </div>
+            <JobList saved={savedOf('opportunity')} />
+          </section>
 
-            <div style={{ textAlign: 'start' }}>
-              <div className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', marginBottom: 8 }}>
-                {compensationLabel(t.locale, opportunity)}
-              </div>
-              {opportunity.seats > 1 && (
-                <p className="muted eng" style={{ fontSize: '0.76rem', marginBottom: 8 }}>
-                  {opportunity.filled_count}/{opportunity.seats} {t('مقاعد', 'seats')}
-                </p>
-              )}
-              <Link className="btn btn-primary btn-sm" href={`/marketplace/${opportunity.id}`}>
-                {t('التفاصيل', 'Details')}
-              </Link>
+          <section className="section-block">
+            <div className="row-between">
+              <h3 className="academy-heading">{t('مستقلون متاحون', 'Available freelancers')}</h3>
+              <Link className="btn btn-ghost btn-sm" href={href({ tab: 'talent' })}>{t('الكل', 'See all')}</Link>
             </div>
-          </article>
-        ))
+            <TalentList saved={savedOf('talent')} />
+          </section>
+
+          <section className="section-block">
+            <div className="row-between">
+              <h3 className="academy-heading">{t('فرق تستقبل عملاً', 'Teams for hire')}</h3>
+              <Link className="btn btn-ghost btn-sm" href={href({ tab: 'teams' })}>{t('الكل', 'See all')}</Link>
+            </div>
+            <TeamList saved={savedOf('team')} />
+          </section>
+        </>
       )}
+
+      {tab === 'jobs' && (
+        <section className="section-block">
+          <div className="filter-row">
+            <Link className={`chip${!kind ? ' is-active' : ''}`} href={href({ tab: 'jobs', kind: '' })}>
+              {t('كل الأنواع', 'All kinds')}
+            </Link>
+            {Object.entries(OPPORTUNITY_KIND).map(([key, info]) => (
+              <Link className={`chip${kind === key ? ' is-active' : ''}`} href={href({ tab: 'jobs', kind: key })} key={key}>
+                {t(info.label)}
+              </Link>
+            ))}
+            <Link
+              className={`chip${remoteOnly ? ' is-active' : ''}`}
+              href={href({ tab: 'jobs', remote: remoteOnly ? '' : '1' })}
+            >
+              {t('عن بُعد فقط', 'Remote only')}
+            </Link>
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <JobList kind={kind} search={search} remoteOnly={remoteOnly} saved={savedOf('opportunity')} />
+          </div>
+        </section>
+      )}
+
+      {tab === 'talent' && (
+        <section className="section-block">
+          <TalentList search={search} saved={savedOf('talent')} />
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 14 }}>
+            {t('تريد أن تظهر هنا؟ ', 'Want to appear here? ')}
+            <Link href="/settings/freelancer">{t('أدرج نفسك في السوق', 'List yourself in the market')}</Link>
+          </p>
+        </section>
+      )}
+
+      {tab === 'teams' && (
+        <section className="section-block">
+          <TeamList search={search} saved={savedOf('team')} />
+        </section>
+      )}
+
+      {tab === 'work' && <MyWork />}
+      {tab === 'saved' && <MyWork only="saved" />}
     </>
   );
 }

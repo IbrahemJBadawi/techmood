@@ -30,6 +30,10 @@ export async function saveTeamSettings(_prev: SettingsState, formData: FormData)
       public_summary_ar: String(formData.get('public_summary') ?? '').trim() || null,
       needs: String(formData.get('needs') ?? '')
         .split(',').map((need) => need.trim()).filter(Boolean),
+      // Whether the team takes work from the market, and from what price.
+      offers_services: formData.get('offers_services') === 'on',
+      service_summary_ar: String(formData.get('service_summary') ?? '').trim() || null,
+      rate_from_usd: formData.get('rate_from') ? Number(formData.get('rate_from')) : null,
     })
     .eq('id', teamId);
 
@@ -37,6 +41,7 @@ export async function saveTeamSettings(_prev: SettingsState, formData: FormData)
 
   revalidatePath(`/teams/${teamId}/settings`);
   revalidatePath(`/teams/${teamId}`);
+  revalidatePath('/marketplace');
   return { ok: t('حُفظت الإعدادات.', 'Settings saved.') };
 }
 

@@ -139,7 +139,14 @@ export type PlanSection =
 export type SwotQuadrant = 'strength' | 'weakness' | 'opportunity' | 'threat';
 export type OpportunityKind = 'freelance' | 'job' | 'team_seat' | 'cofounder' | 'internship' | 'remote';
 export type CompensationKind = 'fixed' | 'hourly' | 'monthly' | 'equity' | 'revenue_share' | 'unpaid';
-export type ApplicationStage = 'submitted' | 'shortlisted' | 'accepted' | 'declined' | 'withdrawn';
+export type ApplicationStage =
+  | 'submitted' | 'under_review' | 'shortlisted' | 'interview' | 'offer'
+  | 'accepted' | 'declined' | 'withdrawn';
+
+export type MarketSaveKind = 'opportunity' | 'talent' | 'team';
+export type InviteStatus = 'sent' | 'accepted' | 'declined';
+export type TrustSignal = 'skills' | 'certificates' | 'exhibited' | 'evaluations' | 'client_work';
+export type MarketBucket = 'application' | 'invite' | 'work' | 'saved';
 
 export type Opportunity = {
   id: string;
@@ -178,6 +185,9 @@ export type OpportunityApplication = {
   decided_at: string | null;
   decision_note_ar: string | null;
   team_application_id: string | null;
+  proposed_amount_usd: number | null;
+  proposed_days: number | null;
+  shared_sections: string[];
   created_at: string;
 }
 export type GoalStatus = 'planned' | 'on_track' | 'at_risk' | 'achieved' | 'missed';
@@ -253,7 +263,7 @@ export type ReviewCriterion =
 
 export type ExhibitionDecision = 'approved' | 'revision_required';
 
-export type ProjectKind = 'course' | 'path' | 'capstone' | 'team' | 'startup' | 'personal';
+export type ProjectKind = 'course' | 'path' | 'capstone' | 'team' | 'startup' | 'personal' | 'client';
 
 /** Frozen at approval, so the public gallery never reads live workspace data. */
 export type ExhibitionSnapshot = {
@@ -335,6 +345,9 @@ export type Team = {
   avatar_url: string | null;
   focus_ar: string | null;
   public_summary_ar: string | null;
+  offers_services: boolean;
+  service_summary_ar: string | null;
+  rate_from_usd: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -825,6 +838,24 @@ export type Database = {
         status: VideoSessionStatus; ended_at: string | null; created_at: string;
       }>;
       booking_seats: Table<{ booking_id: string; profile_id: string }>;
+      freelancer_profiles: Table<{
+        profile_id: string; is_available: boolean; headline_ar: string | null;
+        summary_ar: string | null; rate_kind: 'hourly' | 'project';
+        rate_min_usd: number | null; rate_max_usd: number | null;
+        languages: string[]; updated_at: string;
+      }>;
+      freelancer_services: Table<{
+        id: string; profile_id: string; title_ar: string; detail_ar: string | null;
+        from_usd: number | null; sort_order: number;
+      }>;
+      market_saves: Table<{
+        profile_id: string; target_kind: MarketSaveKind; target_id: string; created_at: string;
+      }>;
+      opportunity_invites: Table<{
+        id: string; opportunity_id: string; invited_profile: string | null;
+        invited_team: string | null; invited_by: string; message_ar: string | null;
+        status: InviteStatus; created_at: string; responded_at: string | null;
+      }>;
       video_session_participants: Table<{
         session_id: string; profile_id: string; role: SessionRole;
       }>;
@@ -904,6 +935,7 @@ export type Database = {
         id: string; code: string; title_ar: string; description_ar: string | null;
         owner_id: string; team_id: string | null; path_id: string | null;
         status: ProjectStatus; kind: ProjectKind; tags: string[]; is_public: boolean;
+        opportunity_id: string | null; client_id: string | null; agreed_amount_usd: number | null;
         completed_at: string | null; created_at: string; updated_at: string;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
@@ -938,6 +970,10 @@ export type Database = {
       project_evidence: Table<{
         id: string; project_id: string; kind: EvidenceKind; url: string;
         label: string | null; created_at: string;
+      }>;
+      project_milestones: Table<{
+        id: string; project_id: string; title_ar: string; description_ar: string | null;
+        is_done: boolean; due_on: string | null; sort_order: number;
       }>;
       teams: Table<Team>;
       team_members: Table<TeamMember>;
@@ -1349,6 +1385,49 @@ export type Database = {
           mentor_done: number; mentor_earnings: number;
         }[];
       };
+      market_overview: {
+        Args: Record<string, never>;
+        Returns: { jobs: number; freelancers: number; teams: number; companies: number }[];
+      };
+      market_talent: {
+        Args: { p_search?: string | null; p_skill?: string | null; p_limit?: number };
+        Returns: {
+          profile_id: string; techmood_id: string; full_name: string; headline: string | null;
+          avatar_url: string | null; rate_kind: 'hourly' | 'project';
+          rate_min_usd: number | null; rate_max_usd: number | null;
+          stars_avg: number; total_xp: number; skills: string[];
+          projects: number; certificates: number;
+        }[];
+      };
+      market_teams: {
+        Args: { p_search?: string | null; p_limit?: number };
+        Returns: {
+          team_id: string; title_ar: string; summary_ar: string | null;
+          rate_from_usd: number | null; members: number; stars_avg: number;
+          projects: number; needs: string[];
+        }[];
+      };
+      trust_signals: {
+        Args: { p_profile: string };
+        Returns: { signal: TrustSignal; label_ar: string; count: number }[];
+      };
+      opportunity_learning: {
+        Args: { p_opportunity: string };
+        Returns: { path_id: string; slug: string; title_ar: string; teaches: string[] }[];
+      };
+      my_market: {
+        Args: Record<string, never>;
+        Returns: {
+          bucket: MarketBucket; item_id: string; title_ar: string | null;
+          detail_ar: string | null; state: string; link: string; at: string;
+        }[];
+      };
+      invite_to_opportunity: {
+        Args: { p_opportunity: string; p_profile?: string | null; p_team?: string | null; p_message?: string | null };
+        Returns: string;
+      };
+      respond_to_invite: { Args: { p_invite: string; p_accept: boolean }; Returns: undefined };
+      toggle_market_save: { Args: { p_kind: MarketSaveKind; p_target: string }; Returns: boolean };
       create_team_booking_request: {
         Args: {
           p_team: string; p_mentor: string; p_session_type: string; p_starts_at: string;
@@ -1388,7 +1467,11 @@ export type Database = {
           missing_skills: string[]; profile_stars: number; profile_xp: number;
         }[];
       };
-      apply_to_opportunity: { Args: { p_opportunity: string; p_cover?: string | null }; Returns: OpportunityApplication };
+      apply_to_opportunity: {
+        Args: {
+          p_opportunity: string; p_cover?: string | null;
+          p_amount?: number | null; p_days?: number | null; p_sections?: string[];
+        }; Returns: OpportunityApplication };
       decide_opportunity_application: {
         Args: { p_application: string; p_stage: ApplicationStage; p_note?: string | null };
         Returns: undefined;

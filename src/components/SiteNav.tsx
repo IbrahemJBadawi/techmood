@@ -19,7 +19,7 @@ export async function SiteNav() {
     { href: '/academy', label: t('الأكاديمية', 'Academy') },
     { href: '/mentors', label: t('المنتورز', 'Mentors') },
     { href: '/teams', label: t('الفرق', 'Teams') },
-    { href: '/marketplace', label: t('سوق العمل', 'Work') },
+    { href: '/marketplace', label: t('السوق', 'Market') },
     { href: '/startups', label: t('الشركات الناشئة', 'Startups') },
     { href: '/about', label: t('عن TechMood', 'About') },
   ];

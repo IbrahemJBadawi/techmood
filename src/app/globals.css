@@ -2623,3 +2623,57 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   .booking-table td { border: 0; padding: 4px 0; display: flex; justify-content: space-between; gap: 12px; }
   .booking-table td::before { content: attr(data-label); color: var(--ink-soft); font-size: 0.76rem; }
 }
+
+/* ---------- market ---------- */
+.market-hero h2 { font-size: 1.5rem; margin-bottom: 8px; }
+.market-hero p { font-size: 0.92rem; max-width: 68ch; }
+.market-search { display: flex; gap: 8px; margin: 18px 0 12px; max-width: 560px; }
+.market-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.talent-card { display: flex; flex-direction: column; }
+.talent-meta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 10px; font-size: 0.8rem; }
+
+.opp-side { display: grid; gap: 8px; justify-items: start; text-align: start; }
+
+.save-form { display: inline-flex; }
+.save-btn {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  width: 30px; height: 30px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  line-height: 1;
+  font-size: 0.9rem;
+}
+.save-btn:hover { border-color: var(--royal); color: var(--royal); }
+.save-btn.is-saved { color: var(--danger); border-color: var(--danger); }
+
+.invite-message {
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  min-width: 180px;
+}
+
+.switch-row { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; }
+.switch-row input { width: 16px; height: 16px; }
