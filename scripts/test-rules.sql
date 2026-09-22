@@ -4714,6 +4714,319 @@ select public.assert(
   (select title_ar from public.projects where id = :'work_project') <> 'عنوان من العميل',
   '42.3 the client reads the work; it still belongs to whoever is doing it');
 
+-- ===========================================================================
+-- 43. Money that is held, and a commission that is a rule
+-- ===========================================================================
+select public.assert(
+  public.compute_commission('market_work', 100) = 15.00
+  and public.compute_commission('market_work', 1000) = 120.00
+  and public.compute_commission('market_work', 5000) = 500.00
+  and public.compute_commission('project_sale', 500) = 50.00,
+  '43.1 the commission comes from brackets in a table, not from a number in the code');
+
+-- 22222222 pays for the work 11111111 is doing (the project of section 40).
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.open_escrow(
+  'market_work', :'work_project', '11111111-1111-1111-1111-111111111111',
+  400, 'jawwal_pay')).id as escrow1 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.escrows where id = :'escrow1') = 'awaiting_payment'
+  and (select commission_usd from public.escrows where id = :'escrow1') = 60.00
+  and (select net_usd from public.escrows where id = :'escrow1') = 340.00,
+  '43.2 opening a hold prices it, and holds nothing until the money arrives');
+
+select public.assert(
+  (select count(*) from public.wallet_entries
+    where ref_table = 'escrows' and ref_id = :'escrow1') = 0,
+  '43.3 nothing is in anybody''s wallet before the payment is verified');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.submit_escrow_proof(:'escrow1', '22222222-2222-2222-2222-222222222222/e1.png', 'JP-95001');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where escrow_id = :'escrow1'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.escrows where id = :'escrow1') = 'funded'
+  and (select status from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow1' and kind = 'earning') = 'pending',
+  '43.4 funding writes the earning into the wallet as held: visible, not spendable');
+
+-- The person waiting to be paid cannot pay themselves.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.release_escrow(%L)$$, :'escrow1'),
+  '43.5 only the side that paid can say the work arrived',
+  'الدافع فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.escrows where id = :'escrow1') = 0,
+  '43.6 and a stranger cannot read that the money exists at all');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.release_escrow(:'escrow1', 'تسليم ممتاز');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.escrows where id = :'escrow1') = 'released'
+  and (select status from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow1' and kind = 'earning') = 'available'
+  and (select amount_usd from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow1' and kind = 'commission') = -60.00,
+  '43.7 releasing makes the same row spendable and charges the commission once');
+
+-- A second hold, to argue about.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.open_escrow(
+  'market_work', :'work_project', '11111111-1111-1111-1111-111111111111',
+  200, 'jawwal_pay')).id as escrow2 \gset
+select public.submit_escrow_proof(:'escrow2', '22222222-2222-2222-2222-222222222222/e2.png', 'JP-95002');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where escrow_id = :'escrow2'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.dispute_escrow(:'escrow2', 'اتفقنا على نطاق أوسع من المسلَّم');
+select public.assert_rejects(
+  format($$select public.refund_escrow(%L, 'قرار')$$, :'escrow2'),
+  '43.8 opening a dispute freezes the money and hands the question to a human',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.refund_escrow(:'escrow2', 'لم يكتمل المتفق عليه');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.escrows where id = :'escrow2') = 'refunded'
+  and (select status from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow2' and kind = 'earning') = 'cancelled'
+  and (select amount_usd from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow2' and kind = 'refund') = 200.00,
+  '43.9 a refund cancels the held earning and gives the payer their money back');
+
+-- ===========================================================================
+-- 44. Bidding is a conversation with a number attached
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.propose_terms(%L, 100)$$, :'gig_app'),
+  '44.1 only the two sides of an application negotiate it',
+  'طرفا الاتفاق فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.propose_terms(:'gig_app', 300, 10, 'الميزانية 300')).id as offer1 \gset
+select (public.propose_terms(:'gig_app', 320, 12, 'قابل للتفاوض')).id as offer2 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.proposal_terms where id = :'offer1') = 'superseded'
+  and (select status from public.proposal_terms where id = :'offer2') = 'offered',
+  '44.2 a new offer replaces your own, never the other side''s');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.accept_terms(%L)$$, :'offer2'),
+  '44.3 nobody accepts their own offer — that is an announcement, not an agreement',
+  'الطرف الآخر');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.accept_terms(:'offer2');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.proposal_terms where id = :'offer2') = 'accepted'
+  and (select proposed_amount_usd from public.opportunity_applications where id = :'gig_app') = 320
+  and (select proposed_days from public.opportunity_applications where id = :'gig_app') = 12,
+  '44.4 accepting freezes those terms onto the application');
+
+select public.assert(
+  (select count(*) from public.proposal_terms where application_id = :'gig_app') = 2,
+  '44.5 and every round is kept — the agreed price is the last accepted one, not the only one');
+
+-- The talking happens in the Messages that already exist.
+select public.assert(
+  (select count(*) from public.conversations
+    where application_id = :'gig_app' and kind = 'market') = 1,
+  '44.6 shortlisting somebody opens a conversation where conversations already live');
+
+select public.assert(
+  (select count(*) from public.conversation_participants cp
+    join public.conversations c on c.id = cp.conversation_id
+   where c.application_id = :'gig_app') = 2,
+  '44.7 with both sides in it, and nobody else');
+
+-- ===========================================================================
+-- 45. The client's judgement, and meters that are computed
+-- ===========================================================================
+-- The work of section 40 is finished and its money was released in 43.
+update public.projects set status = 'completed' where id = :'work_project';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.review_client_work(%L, '{"quality":5}'::jsonb)$$, :'work_project'),
+  '45.1 the person who did the work does not review it',
+  'صاحب العمل فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.review_client_work(
+  :'work_project',
+  '{"quality":5,"communication":4,"deadline":5,"professionalism":5,"scope":4}'::jsonb,
+  'سلّم قبل الموعد وبجودة عالية.') as client_review \gset
+
+select public.assert_rejects(
+  format($$select public.review_client_work(%L, '{"quality":1}'::jsonb)$$, :'work_project'),
+  '45.2 one review per client per piece of work',
+  'قيّمت هذا العمل بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select stars from public.client_reviews where id = :'client_review') = 5,
+  '45.3 the star is the average of the criteria, not a number picked on its own');
+
+select public.assert(
+  (select value from public.reputation_scores
+    where profile_id = '11111111-1111-1111-1111-111111111111' and dimension = 'client_rating') = 100.00,
+  '45.4 the passport meter is computed from the review, not typed by an admin');
+
+select public.assert(
+  (select count(*) from public.reputation_scores
+    where profile_id = '77777777-7777-7777-7777-777777777777' and dimension = 'client_rating') = 0,
+  '45.5 a meter with no evidence behind it has no row — "nothing yet" is not zero');
+
+select public.assert(
+  (select rated_count from public.profile_stars
+    where profile_id = '11111111-1111-1111-1111-111111111111') >= 2,
+  '45.6 a client''s judgement counts in the same star average a mentor''s does');
+
+-- ===========================================================================
+-- 46. A finished project can be sold, and authorship cannot
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.list_project_for_sale(%L, 500, 'نظام كامل مع الكود والتوثيق والتسليمات')$$, :'work_project'),
+  '46.1 work somebody paid to have built is not the builder''s to sell',
+  'نُفّذ لعميل');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.list_project_for_sale(%L, 500, 'مشروع جاهز مع الكود والتوثيق كاملاً')$$, :'solo'),
+  '46.2 and only whoever made it — or their team lead — may put it on sale',
+  'صاحب المشروع أو قائد الفريق');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Section 29 took the solo entry off the wall; a sale needs judged work on it.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.publish_exhibition_entry(:'solo_entry');
+select (public.list_project_for_sale(
+  :'solo', 600, 'نظام جرد كامل: الكود، قاعدة البيانات، التوثيق، ونسخة تجريبية.',
+  'usage_rights', array['الكود المصدري', 'قاعدة البيانات', 'دليل التشغيل'])).id as listing \gset
+
+select public.assert_rejects(
+  format($$select public.buy_project(%L, 'jawwal_pay')$$, :'listing'),
+  '46.3 nobody buys their own project',
+  'شراء مشروعك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.buy_project(:'listing', 'jawwal_pay')).id as sale \gset
+select public.submit_escrow_proof(
+  (select escrow_id from public.project_sales where id = :'sale'),
+  '22222222-2222-2222-2222-222222222222/buy.png', 'JP-95003');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.project_listings where id = :'listing') = 'reserved'
+  and (select commission_usd from public.escrows
+        where id = (select escrow_id from public.project_sales where id = :'sale')) = 60.00,
+  '46.4 buying reserves the listing and holds the money, at the sale commission');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(
+  (select id from public.payments where escrow_id = (select escrow_id from public.project_sales where id = :'sale')),
+  true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.release_escrow((select escrow_id from public.project_sales where id = :'sale'));
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.project_listings where id = :'listing') = 'sold'
+  and (select status from public.projects where id = :'solo') = 'sold'
+  and (select completed_at from public.project_sales where id = :'sale') is not null,
+  '46.5 releasing the money is what completes a sale');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.projects where id = :'solo') = 1,
+  '46.6 the buyer can read what they bought, for good');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select owner_id from public.projects where id = :'solo') = '77777777-7777-7777-7777-777777777777'
+  and (select count(*) from public.profile_exhibition_entries('77777777-7777-7777-7777-777777777777')) >= 1,
+  '46.7 and the maker keeps the authorship: a sale moves the work, never the record of who built it');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

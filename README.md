@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 518 business-rule assertions
+scripts/test.sh                   # 547 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0052, applied in order
+  migrations/        0001-0057, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
