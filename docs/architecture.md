@@ -1301,6 +1301,15 @@ The call itself lives in `src/lib/ai-claude.ts` and is the only place in the
 platform that talks to a model, deliberately: everything that must be true
 whichever model answers lives in the database.
 
+Not having a key is not a reason to leave that file unexercised.
+`scripts/ai-smoke.mjs` points the SDK at a stub that speaks the Messages API
+wire format and checks both directions — the request (model, adaptive thinking,
+effort, streaming, one eagerly-streamed client tool, restricted kinds absent
+from its enum, the refusal wording and the caller-scoped context in the system
+prompt) and the parse (a proposal read off the stream; a restricted one, a
+malformed one, and anything from a `max_tokens` turn all dropped). Ten checks,
+no key, nothing spent.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

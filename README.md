@@ -308,3 +308,19 @@ purpose. **No key is configured in this repository.** Without it the assistant's
 threads, context, memory, proposals and confirmations all work and the panel
 says plainly that nothing is answering; with it, `src/lib/ai-claude.ts` is the
 one place that calls a model.
+
+The call itself is still checked. `scripts/ai-smoke.mjs` runs `askClaude()`
+against a stub that speaks the Messages API wire format, so the request it puts
+on the wire and the answer it parses are verified without a key and without
+spending anything:
+
+```
+node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/ai-smoke.mjs
+```
+
+Ten checks: the model, adaptive thinking, the effort setting, streaming, the one
+eagerly-streamed client tool, the restricted kinds never reaching the tool's
+enum, the refusal wording and the caller-scoped context reaching the system
+prompt — and, on the way back, a proposal read off the stream, a restricted one
+dropped, a malformed one dropped, nothing proposed from a turn cut off at
+`max_tokens`, and the honest message when there is no key.
