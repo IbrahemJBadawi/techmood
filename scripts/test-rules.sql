@@ -5187,6 +5187,175 @@ select public.assert(
   '48.8 and sees it the moment the company puts it on its public page');
 reset role;
 
+-- ===========================================================================
+-- 49. A mentor let in by name, and a company that books for itself
+-- ===========================================================================
+-- The lean canvas of section 48 is marked public; take it back to the room and
+-- then open it to mentors only, which is the case that never worked.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+update public.canvases set visibility = 'mentors' where id = :'lean';
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.canvas_board(:'lean')) = 0,
+  '49.1 "my mentors may see this" means nothing until a mentor is actually let in');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.startup_mentor_access (startup_id, mentor_id, granted_by, note_ar)
+values (:'startup', '33333333-3333-3333-3333-333333333333',
+        '11111111-1111-1111-1111-111111111111', 'مراجعة نموذج العمل');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.canvas_board(:'lean')) >= 1
+  and (select count(*) from public.my_mentored_companies()) = 1,
+  '49.2 a named mentor sees the walls the company opened to mentors, and only those');
+
+select public.assert(
+  (select count(*) from public.business_plan_sections where startup_id = :'startup') = 0,
+  '49.3 and nothing else in the room opens with them');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Access is the company's to withdraw.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+update public.startup_mentor_access
+   set expires_on = current_date - 1
+ where startup_id = :'startup' and mentor_id = '33333333-3333-3333-3333-333333333333';
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.canvas_board(:'lean')) = 0,
+  '49.4 and it ends on the day the company said it would');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A company books its own session, priced per seat, and lets the mentor in.
+select (select min(sl.slot_start) from public.mentor_available_slots(
+          '33333333-3333-3333-3333-333333333333',
+          (current_date + 96), (current_date + 120)) sl
+         where sl.state = 'available') as slot_c \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.create_company_booking_request(
+      %L, '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay')$$, :'startup', :'slot_c'),
+  '49.5 only whoever runs the company books in its name',
+  'إدارة الشركة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.create_company_booking_request(
+  :'startup', '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot_c'::timestamptz, 'jawwal_pay',
+  array['11111111-1111-1111-1111-111111111111']::uuid[],
+  'مراجعة نموذج العمل قبل اختبار السوق')).id as company_booking \gset
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select kind from public.bookings where id = :'company_booking') = 'company_mentor'
+  and (select startup_id from public.bookings where id = :'company_booking') = :'startup'
+  and (select price_usd from public.bookings where id = :'company_booking') = 15.00,
+  '49.6 a company session belongs to the company and is priced per seat');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.my_mentored_companies()) = 1,
+  '49.7 booking a mentor lets them in — they cannot advise on what they cannot see');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 50. A roadmap of real things, and a link that shows one of them
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.roadmap_items (startup_id, title_ar, detail_ar, year, quarter, created_by)
+values (:'startup', 'إطلاق النسخة التجريبية', 'مع خمس عيادات', 2026, 4,
+        '11111111-1111-1111-1111-111111111111')
+returning id as roadmap_item \gset
+
+select public.assert(
+  (select count(*) from public.roadmap(:'startup') where source = 'item') = 1
+  and (select count(*) from public.roadmap(:'startup') where source = 'goal') >= 1
+  and (select count(*) from public.roadmap(:'startup') where source = 'project') >= 1,
+  '50.1 the roadmap gathers intentions, goals and real projects into one timeline');
+
+select public.roadmap_item_to_project(:'roadmap_item') as roadmap_project \gset
+
+select public.assert(
+  (select project_id from public.roadmap_items where id = :'roadmap_item') = :'roadmap_project'
+  and (select status from public.roadmap_items where id = :'roadmap_item') = 'in_progress'
+  and (select startup_id from public.projects where id = :'roadmap_project') = :'startup',
+  '50.2 an intention becomes a project the moment work starts on it');
+
+insert into public.startup_shares (startup_id, scope, canvas_id, label_ar, created_by)
+values (:'startup', 'canvas', :'lean', 'لمستثمر', '11111111-1111-1111-1111-111111111111')
+returning id as share, token as share_token \gset
+reset role;
+reset request.jwt.claim.sub;
+
+-- A link is the whole authorisation, so it opens exactly one thing.
+set role anon;
+select public.assert(
+  (select count(*) from public.shared_view(:'share_token')) = 1
+  and (select scope from public.shared_view(:'share_token')) = 'canvas',
+  '50.3 a share link opens to somebody with no account at all');
+
+select public.assert(
+  (select count(*) from public.shared_view('deadbeef')) = 0,
+  '50.4 and a token nobody issued opens nothing');
+
+select public.assert(
+  (select count(*) from public.canvases where id = :'lean') = 0
+  and (select count(*) from public.startups where id = :'startup') = 1,
+  '50.5 holding a link is not being let into the room');
+reset role;
+
+-- Revoking is immediate, and the link dies where it stands.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.revoke_share(:'share');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.shared_view(:'share_token')) = 0,
+  '50.6 and sharing can be taken back the moment the company changes its mind');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.revoke_share(%L)$$, :'share'),
+  '50.7 a stranger cannot revoke — or issue — a company''s links',
+  'إدارة الشركة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
