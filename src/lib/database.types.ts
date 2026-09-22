@@ -136,6 +136,13 @@ export type StartupMemberRole =
 
 export type OrgKind = 'startup' | 'company';
 
+export type NotificationKind =
+  | 'evaluation' | 'academy' | 'booking' | 'payment' | 'team' | 'work' | 'project'
+  | 'message' | 'certificate' | 'role_review' | 'security' | 'system';
+
+export type NotifyPriority = 'critical' | 'important' | 'normal' | 'info';
+export type EmailStatus = 'queued' | 'sending' | 'sent' | 'failed' | 'skipped';
+
 export type RoadmapStatus = 'planned' | 'in_progress' | 'done' | 'dropped';
 export type ShareScope = 'canvas' | 'plan' | 'roadmap' | 'showcase';
 
@@ -998,8 +1005,29 @@ export type Database = {
       xp_rules: Table<{ source: XpSource; base_xp: number; per_star_xp: number; description_ar: string | null }>;
       schools: Table<{ id: string; slug: string; name_ar: string; name_en: string | null; sort_order: number }>;
       notifications: Table<{
-        id: string; profile_id: string; kind: string; title_ar: string;
+        id: string; profile_id: string; kind: NotificationKind; title_ar: string;
         body_ar: string | null; link: string | null; is_read: boolean; created_at: string;
+        entity_type: string | null; entity_id: string | null;
+        priority: NotifyPriority; read_at: string | null;
+        metadata: Record<string, unknown>; emailed_at: string | null;
+      }>;
+      notification_categories: Table<{
+        kind: NotificationKind; title_ar: string; detail_ar: string | null;
+        in_app_default: boolean; email_default: boolean; is_mandatory: boolean; sort_order: number;
+      }>;
+      notification_preferences: Table<{
+        profile_id: string; kind: NotificationKind; in_app: boolean; email: boolean; updated_at: string;
+      }>;
+      email_outbox: Table<{
+        id: string; notification_id: string | null; profile_id: string; to_email: string;
+        subject: string; body_ar: string; action_url: string | null; status: EmailStatus;
+        attempts: number; last_error: string | null; queued_at: string; sent_at: string | null;
+      }>;
+      notification_broadcasts: Table<{
+        id: string; kind: NotificationKind; title_ar: string; body_ar: string | null;
+        link: string | null; priority: NotifyPriority; audience_role: UserRole | null;
+        send_email: boolean; created_by: string | null; created_at: string;
+        sent_at: string | null; recipients: number;
       }>;
       mentor_profiles: Table<{
         profile_id: string; level: MentorLevel; headline_ar: string | null; bio_ar: string | null;
@@ -1586,6 +1614,31 @@ export type Database = {
         }[];
       };
       can_manage_startup: { Args: { p_startup: string }; Returns: boolean };
+      my_notifications: {
+        Args: { p_kind?: NotificationKind | null; p_unread?: boolean; p_limit?: number };
+        Returns: {
+          id: string; kind: NotificationKind; title_ar: string; body_ar: string | null;
+          link: string | null; entity_type: string | null; entity_id: string | null;
+          priority: NotifyPriority; is_read: boolean; created_at: string;
+        }[];
+      };
+      notification_counts: {
+        Args: Record<string, never>;
+        Returns: { kind: NotificationKind; unread: number; total: number }[];
+      };
+      wants_notification: {
+        Args: { p_profile: string; p_kind: NotificationKind; p_channel: 'in_app' | 'email' };
+        Returns: boolean;
+      };
+      send_broadcast: { Args: { p_broadcast: string }; Returns: number };
+      broadcast_log: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; title_ar: string; kind: NotificationKind; priority: NotifyPriority;
+          audience_role: UserRole | null; sent_at: string | null; recipients: number;
+          read_count: number; emails: number; emails_sent: number; emails_failed: number;
+        }[];
+      };
       is_startup_mentor: { Args: { p_startup: string }; Returns: boolean };
       my_mentored_companies: {
         Args: Record<string, never>;

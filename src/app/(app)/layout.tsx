@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
     supabase
       .from('notifications')
-      .select('id, kind, title_ar, body_ar, link, is_read, created_at')
+      .select('id, kind, title_ar, body_ar, link, is_read, created_at, priority')
       .eq('profile_id', user.id)
       .order('created_at', { ascending: false })
       .limit(12),

@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 577 business-rule assertions
+scripts/test.sh                   # 593 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0063, applied in order
+  migrations/        0001-0065, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
@@ -253,6 +253,12 @@ expiring on its own date, company-owned mentor bookings priced per seat, and
 share links that open one thing to somebody with no account until the day they
 stop working — plus print styles that drop the shell across the platform.
 
+Also built: one notification engine behind everything — twelve categories with
+their own in-app and email switches, three that nobody may silence, a
+notification that knows which entity it concerns, a full centre with filters,
+and platform announcements that go through the same engine and report what
+became of them.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.
@@ -266,6 +272,18 @@ never paid for. Run it every few minutes with pg_cron:
 
 ```sql
 select cron.schedule('expire-bookings', '*/5 * * * *', $$select public.expire_stale_bookings()$$);
+```
+
+`public.claim_email_batch()` hands a worker the queued copies of notifications
+to send, and `public.mark_email_sent()` records how each one fared. **No mail
+provider is configured in this repository** — the outbox is real and durable,
+the sender is not written here.
+
+```sql
+-- inside an edge function, service role:
+select * from public.claim_email_batch(20);
+-- …send each one, then:
+select public.mark_email_sent('<id>', true, null);
 ```
 
 `public.close_due_video_sessions()` ends sessions whose time has passed, marking

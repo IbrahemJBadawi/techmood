@@ -5,12 +5,14 @@ import { useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { formatDate } from '@/lib/i18n';
+import { NOTIFICATION_KIND } from '@/lib/notifications';
+import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from './actions';
 
 export type NotificationRow = {
   id: string;
-  kind: string;
+  kind: NotificationKind;
   title_ar: string;
   body_ar: string | null;
   link: string | null;
@@ -66,7 +68,10 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
             {items.map((item) => {
               const body = (
                 <>
-                  <strong dir="rtl">{item.title_ar}</strong>
+                  <strong dir="rtl">
+                    <span aria-hidden="true">{NOTIFICATION_KIND[item.kind].icon} </span>
+                    {item.title_ar}
+                  </strong>
                   {item.body_ar && <span className="muted" dir="rtl">{item.body_ar}</span>}
                   <time dateTime={item.created_at}>{formatDate(t.locale, item.created_at)}</time>
                 </>
@@ -80,6 +85,15 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
               );
             })}
           </ul>
+
+          <div className="header-dropdown-foot">
+            <Link href="/notifications" onClick={() => setOpen(false)}>
+              {t('كل الإشعارات ←', 'All notifications →')}
+            </Link>
+            <Link href="/settings/notifications" className="muted" onClick={() => setOpen(false)}>
+              {t('الإعدادات', 'Settings')}
+            </Link>
+          </div>
         </div>
       )}
     </div>

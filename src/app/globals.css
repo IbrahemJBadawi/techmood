@@ -2763,3 +2763,24 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   a[href]::after { content: ''; }
   body { background: #fff !important; color: #000 !important; }
 }
+
+/* ---------- notifications ---------- */
+.notification-row { display: flex; align-items: flex-start; gap: 12px; }
+.notification-row.is-unread { border-inline-start: 3px solid var(--royal); }
+.notification-icon {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--bg-deep);
+  flex: none;
+  font-size: 1rem;
+}
+.header-dropdown-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  font-size: 0.82rem;
+}
+.header-dropdown-foot a { text-decoration: none; }

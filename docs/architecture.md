@@ -1194,6 +1194,47 @@ kills a link where it stands. Printing is the other half of the same need: the
 print stylesheet drops the sidebar, the tabs and every button, so what lands on
 the paper — or in a PDF from the print dialog — is the content.
 
+## One notification engine, and email as a copy
+
+`notify()` has been the single way of telling somebody something since 0009, and
+twenty-four call sites depend on it. 0065 keeps that signature working and adds
+the four things a notification centre needs.
+
+**A notification knows what it is about.** `entity_type` and `entity_id` sit
+beside the link, so "your project was evaluated" is attached to the project
+rather than to a URL somebody typed. **And how loud it is:** `priority` runs
+critical → important → normal → info, which is what decides whether a copy goes
+out by mail.
+
+**Preferences, with a floor.** `notification_categories` names all twelve
+categories and carries each one's defaults; `notification_preferences` holds
+what a person chose. `wants_notification()` answers for one person and one
+channel, and it answers **true regardless** for the three categories marked
+mandatory — money, roles, and security. A platform that lets somebody switch off
+"your withdrawal was rejected" is not being respectful; it is being negligent.
+
+**Email is a copy, never the notification.** The in-app row is written first,
+always — even for a silenced category, where it is inserted already marked read,
+so a person has the record without the noise. The mail copy goes to
+`email_outbox` **in the same transaction**, which is what makes it impossible
+for an email to exist for something that did not happen. `claim_email_batch()`
+locks a batch with `for update skip locked` so two senders cannot send the same
+message twice, and `mark_email_sent()` records the outcome with its error.
+
+**What this repository does not do is send.** No mail provider is configured and
+none can be stood up in a migration; the outbox is the honest half — durable,
+claimable, and observable — and an edge function with a provider drains it.
+
+Announcements (`notification_broadcasts` + `send_broadcast()`) are a fan-out
+through the same engine rather than a second channel, so they obey the same
+preferences and land in the same inbox. `broadcast_log()` then says how many
+were reached, how many read it, and how the mail fared — which is the number
+worth knowing before writing the next one.
+
+The line against Messages is deliberate and kept: a conversation is a message,
+an event is a notification. "Ahmed asked to move the session" belongs in one,
+"your session moved to 7pm" in the other.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a
