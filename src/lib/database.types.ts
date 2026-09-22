@@ -623,6 +623,15 @@ export type SessionRole = 'mentor' | 'student' | 'member' | 'leader';
 /** Which door is open, decided by the server's clock. */
 export type SessionPhase = 'waiting' | 'lobby' | 'live' | 'ended';
 
+export type CalendarEntryKind =
+  | 'mentor_session' | 'team_session' | 'team_meeting' | 'task' | 'milestone' | 'sprint';
+
+export type CalendarTone =
+  | 'mentor' | 'team' | 'internal' | 'pending' | 'done' | 'cancelled' | 'task' | 'late' | 'milestone' | 'sprint';
+
+export type NeedsActionKey =
+  | 'pay' | 'rate' | 'decide' | 'review' | 'verify_payment' | 'payout' | 'empty_session';
+
 export type SessionCriterion =
   | 'quality' | 'clarity' | 'usefulness' | 'punctuality' | 'guidance'
   | 'commitment' | 'preparation' | 'participation' | 'use_of_session' | 'cooperation'
@@ -876,6 +885,7 @@ export type Database = {
       mentor_profiles: Table<{
         profile_id: string; level: MentorLevel; headline_ar: string | null; bio_ar: string | null;
         domains: string[]; session_minutes: number; is_accepting: boolean;
+        daily_session_limit: number; buffer_minutes: number;
         sessions_count: number; rating_avg: number | null;
         years_experience: number | null; weekly_hours: number | null;
         motivation_ar: string | null; experience_ar: string | null;
@@ -1298,6 +1308,31 @@ export type Database = {
       mentor_available_slots: {
         Args: { p_mentor: string; p_from: string; p_to: string };
         Returns: { slot_start: string; slot_end: string; state: SlotState }[];
+      };
+      mentor_day_load: {
+        Args: { p_date?: string };
+        Returns: { booked: number; day_limit: number }[];
+      };
+      my_calendar: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          entry_kind: CalendarEntryKind; entry_id: string;
+          title_ar: string; detail_ar: string | null;
+          starts_at: string | null; ends_at: string | null; on_date: string;
+          state: string; tone: CalendarTone; link: string;
+        }[];
+      };
+      needs_action: {
+        Args: Record<string, never>;
+        Returns: { action_key: NeedsActionKey; label_ar: string; count: number; link: string }[];
+      };
+      booking_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          upcoming: number; pending: number; completed: number; this_month: number; hours: number;
+          today_as_mentor: number; mentor_upcoming: number; mentor_pending: number;
+          mentor_done: number; mentor_earnings: number;
+        }[];
       };
       create_booking_request: {
         Args: {

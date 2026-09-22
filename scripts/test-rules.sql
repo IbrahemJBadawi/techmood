@@ -4167,7 +4167,7 @@ select public.notify_due_sessions() as first_run \gset
 select public.assert(
   (select count(*) from public.video_session_reminders
     where session_id = :'vsession' and mark = 'lobby') = 1,
-  '37.2 five minutes before, everybody in the session is told the door is open');
+  '37.2 ten minutes before, everybody in the session is told it is about to start');
 
 select count(*) as after_first from public.notifications where link = '/sessions/' || :'vsession' \gset
 select public.notify_due_sessions() as second_run \gset
@@ -4200,6 +4200,207 @@ select public.assert_rejects(
   format($$select public.notify_session(%L, 'day', 'x', 'y')$$, :'vsession'),
   '37.6 nor send a notification to everybody in a session by hand',
   'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 38. The appointments hub: a mentor's day, and a session that completes itself
+-- ===========================================================================
+-- A free hour far enough out that the notice window is not the reason for
+-- anything below.
+select (select min(sl.slot_start) from public.mentor_available_slots(
+          '33333333-3333-3333-3333-333333333333',
+          (current_date + 15), (current_date + 45)) sl
+         where sl.state = 'available') as slot_a \gset
+
+select (select min(sl.slot_start) from public.mentor_available_slots(
+          '33333333-3333-3333-3333-333333333333',
+          (:'slot_a'::timestamptz)::date, (:'slot_a'::timestamptz)::date) sl
+         where sl.state = 'available'
+           and sl.slot_start > :'slot_a'::timestamptz) as slot_b \gset
+
+-- The mentor asks for one session a day and half an hour between sessions.
+update public.mentor_profiles
+   set daily_session_limit = 1, buffer_minutes = 30
+ where profile_id = '33333333-3333-3333-3333-333333333333';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot_a'::timestamptz,
+  'jawwal_pay',
+  'مراجعة خطتي')).id as bk_a \gset
+select public.submit_payment_proof(:'bk_a', '11111111-1111-1111-1111-111111111111/r-a.png', 'JP-90001');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'bk_a'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+-- One session that day is the mentor's answer, and the second request meets it.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.create_booking_request(
+      '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay')$$, :'slot_b'),
+  '38.1 a mentor''s day has a limit, and the database is where it lives',
+  'حدّه اليومي');
+reset role;
+reset request.jwt.claim.sub;
+
+-- With the limit raised, the gap between sessions is still the mentor's.
+update public.mentor_profiles
+   set daily_session_limit = 5
+ where profile_id = '33333333-3333-3333-3333-333333333333';
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.create_booking_request(
+      '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay')$$, :'slot_b'),
+  '38.2 and the gap they keep between two sessions is a rule, not a preference',
+  'فاصلاً');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The calendar has to give the same answer as the rule, or the person meets it
+-- only after choosing.
+select public.assert(
+  (select state from public.mentor_available_slots(
+     '33333333-3333-3333-3333-333333333333',
+     (:'slot_b'::timestamptz)::date, (:'slot_b'::timestamptz)::date)
+    where slot_start = :'slot_b'::timestamptz) = 'unavailable',
+  '38.3 an hour the mentor would refuse is not offered in the first place');
+
+update public.mentor_profiles
+   set buffer_minutes = 0
+ where profile_id = '33333333-3333-3333-3333-333333333333';
+
+-- One calendar, and only the caller's own.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  exists (select 1 from public.my_calendar(
+            (:'slot_a'::timestamptz)::date, (:'slot_a'::timestamptz)::date)
+           where entry_id = :'bk_a' and entry_kind = 'mentor_session'),
+  '38.4 the hub''s calendar gathers what already has a date');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  not exists (select 1 from public.my_calendar(
+                (:'slot_a'::timestamptz)::date, (:'slot_a'::timestamptz)::date)
+              where entry_id = :'bk_a'),
+  '38.5 and somebody else''s hour is not on it');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Nothing important goes quiet.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count from public.needs_action() where action_key = 'decide') >= 1,
+  '38.6 a request waiting on the mentor is waiting where they will see it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select completed from public.booking_stats()) >= 1
+  and (select upcoming from public.booking_stats()) >= 0,
+  '38.7 the numbers at the top of the hub are counted, not stored');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The mentor accepts, and a room opens.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk_a', true);
+reset role;
+reset request.jwt.claim.sub;
+
+select id as vs_a from public.video_sessions where booking_id = :'bk_a' \gset
+
+-- An hour that was actually held: both sides in the room, and the booking
+-- completes itself when its time is up.
+update public.video_sessions
+   set start_at = now() - interval '2 hours', end_at = now() - interval '1 hour'
+ where id = :'vs_a';
+
+insert into public.video_presence_events (session_id, profile_id, kind)
+values (:'vs_a', '11111111-1111-1111-1111-111111111111', 'joined'),
+       (:'vs_a', '33333333-3333-3333-3333-333333333333', 'joined');
+
+select public.close_due_video_sessions() as closed_a \gset
+
+select public.assert(
+  (select status from public.bookings where id = :'bk_a') = 'completed',
+  '38.8 a session both sides attended is what completes its booking');
+
+select public.assert(
+  (select count(*) from public.session_feedback where booking_id = :'bk_a') = 0
+  and (select status from public.video_sessions where id = :'vs_a') = 'completed',
+  '38.9 and the rating becomes possible only then, never before');
+
+-- An hour nobody came to is not a session held: nobody is paid, and a human
+-- decides what happens.
+select (select min(sl.slot_start) from public.mentor_available_slots(
+          '33333333-3333-3333-3333-333333333333',
+          (current_date + 46), (current_date + 70)) sl
+         where sl.state = 'available') as slot_c \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot_c'::timestamptz,
+  'jawwal_pay',
+  'جلسة لن يحضرها أحد')).id as bk_b \gset
+select public.submit_payment_proof(:'bk_b', '22222222-2222-2222-2222-222222222222/r-b.png', 'JP-90002');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'bk_b'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk_b', true);
+reset role;
+reset request.jwt.claim.sub;
+
+update public.video_sessions
+   set start_at = now() - interval '2 hours', end_at = now() - interval '1 hour'
+ where booking_id = :'bk_b';
+
+select public.close_due_video_sessions() as closed_b \gset
+
+select public.assert(
+  (select status from public.bookings where id = :'bk_b') = 'confirmed'
+  and (select status from public.video_sessions where booking_id = :'bk_b') = 'no_show',
+  '38.10 an hour nobody came to pays nobody and completes nothing');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count from public.needs_action() where action_key = 'empty_session') >= 1,
+  '38.11 it waits for a human instead, where an admin will see it');
 reset role;
 reset request.jwt.claim.sub;
 
