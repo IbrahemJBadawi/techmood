@@ -4495,6 +4495,157 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 40. The market's other half: people, invitations, and what follows yes
+-- ===========================================================================
+-- Section 18 accepted 11111111 onto the job posted by 22222222. That is no
+-- longer where the story ends.
+select public.assert(
+  (select count(*) from public.projects
+    where opportunity_id = :'job'
+      and owner_id = '11111111-1111-1111-1111-111111111111'
+      and client_id = '22222222-2222-2222-2222-222222222222'
+      and kind = 'client') = 1,
+  '40.1 accepting somebody opens the work, instead of ending the record');
+
+select public.assert(
+  (select count(*) from public.projects where opportunity_id = :'seat') = 0,
+  '40.2 a team seat opens no second workspace — the team already has one');
+
+-- Being listed in the market is for accounts the platform reviewed.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$insert into public.freelancer_profiles (profile_id, is_available)
+    values ('11111111-1111-1111-1111-111111111111', true)$$,
+  '40.3 listing yourself for paid work needs the reviewed role',
+  'دور فريلانسر معتمد');
+reset role;
+reset request.jwt.claim.sub;
+
+-- 55555555 passes that review and lists themselves.
+insert into public.profile_roles (profile_id, role, status)
+values ('55555555-5555-5555-5555-555555555555', 'freelancer', 'approved')
+on conflict do nothing;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+insert into public.freelancer_profiles
+  (profile_id, is_available, headline_ar, rate_kind, rate_min_usd, rate_max_usd)
+values ('55555555-5555-5555-5555-555555555555', true, 'مطوّرة واجهات', 'hourly', 15, 35);
+
+insert into public.freelancer_services (profile_id, title_ar, from_usd)
+values ('55555555-5555-5555-5555-555555555555', 'بناء واجهة منتج', 200);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.market_talent()
+    where profile_id = '55555555-5555-5555-5555-555555555555') = 1,
+  '40.4 somebody who says they are available can be found');
+
+select public.assert(
+  (select count(*) from public.market_talent()
+    where profile_id = '11111111-1111-1111-1111-111111111111') = 0,
+  '40.5 and somebody who never said so is not in the market at all');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A second opening, to invite somebody to.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.opportunities
+  (kind, title_ar, description_ar, posted_by, compensation_kind, amount_min, amount_max,
+   required_skills, seats)
+values ('freelance', 'لوحة تحليلات لمتجر', 'تنظيف بيانات المبيعات وبناء لوحة تحليلات.',
+        '22222222-2222-2222-2222-222222222222', 'fixed', 300, 500,
+        array['SQL','Data Visualization'], 1)
+returning id as gig \gset
+reset role;
+reset request.jwt.claim.sub;
+
+-- Only the poster invites, and only somebody who is actually listed.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.invite_to_opportunity(%L, '55555555-5555-5555-5555-555555555555')$$, :'gig'),
+  '40.6 only the poster invites to their own opening',
+  'صاحب الفرصة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.invite_to_opportunity(%L, '11111111-1111-1111-1111-111111111111')$$, :'gig'),
+  '40.7 and nobody can be invited who never offered their work',
+  'غير مدرج للعمل');
+
+select public.invite_to_opportunity(
+  :'gig', '55555555-5555-5555-5555-555555555555', null, 'رأيت أعمالك — هل يناسبك هذا؟') as invite \gset
+reset role;
+reset request.jwt.claim.sub;
+
+-- Accepting an invitation is applying, one step further along.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.respond_to_invite(:'invite', true);
+
+select public.assert(
+  (select stage from public.opportunity_applications
+    where opportunity_id = :'gig'
+      and profile_id = '55555555-5555-5555-5555-555555555555') = 'shortlisted',
+  '40.8 accepting an invitation enters the same queue, already shortlisted');
+
+-- What somebody saved is theirs alone.
+select public.toggle_market_save('opportunity', :'gig') as saved \gset
+
+select public.assert(
+  :'saved'::boolean
+  and (select count(*) from public.market_saves
+        where profile_id = '55555555-5555-5555-5555-555555555555') = 1,
+  '40.9 saving something keeps it for later');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.market_saves) = 0,
+  '40.10 and nobody else can see what somebody saved');
+
+-- The way from an opening to the skills it asks for.
+select public.assert(
+  (select count(*) from public.opportunity_learning(:'gig')) >= 1,
+  '40.11 an opening names skills, and the academy is shown as the way to them');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Trust is counted from records somebody earned, never asserted.
+select public.assert(
+  (select count from public.trust_signals('11111111-1111-1111-1111-111111111111')
+    where signal = 'certificates') >= 1
+  and (select count from public.trust_signals('77777777-7777-7777-7777-777777777777')
+        where signal = 'certificates') = 0,
+  '40.12 every trust signal counts real records, and counts zero when there are none');
+
+select public.assert(
+  (select freelancers from public.market_overview()) >= 1
+  and (select jobs from public.market_overview()) >= 1,
+  '40.13 the market''s numbers are counted at read time, not advertised');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.my_market() where bucket = 'invite') = 1
+  and (select count(*) from public.my_market() where bucket = 'application') >= 1
+  and (select count(*) from public.my_market() where bucket = 'saved') = 1,
+  '40.14 one read gathers a person''s whole side of the market');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
