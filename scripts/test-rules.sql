@@ -5356,6 +5356,139 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 51. One engine, two channels, and a rule about which
+-- ===========================================================================
+-- 11111111 has been notified by half the platform by now; those rows are the
+-- fixture.
+select public.assert(
+  (select count(*) from public.notification_categories) = 12
+  and (select count(*) from public.notification_categories where is_mandatory) = 3,
+  '51.1 every category is named, and three of them are nobody''s to silence');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  public.wants_notification('11111111-1111-1111-1111-111111111111', 'booking', 'email')
+  and not public.wants_notification('11111111-1111-1111-1111-111111111111', 'message', 'email'),
+  '51.2 a person who never opened the settings still gets the category''s default');
+
+-- Silencing what is theirs to silence.
+insert into public.notification_preferences (profile_id, kind, in_app, email)
+values ('11111111-1111-1111-1111-111111111111', 'booking', false, false);
+
+-- …and trying to silence what is not.
+insert into public.notification_preferences (profile_id, kind, in_app, email)
+values ('11111111-1111-1111-1111-111111111111', 'payment', false, false);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  not public.wants_notification('11111111-1111-1111-1111-111111111111', 'booking', 'email'),
+  '51.3 what a person switches off stays off');
+
+select public.assert(
+  public.wants_notification('11111111-1111-1111-1111-111111111111', 'payment', 'email')
+  and public.wants_notification('11111111-1111-1111-1111-111111111111', 'security', 'in_app'),
+  '51.4 and money, security and account decisions arrive whatever the settings say');
+
+-- The engine: in-app always, email only when both sides agree.
+select public.notify(
+  '11111111-1111-1111-1111-111111111111', 'booking', 'جلسة صامتة', 'لن تصل بريداً',
+  '/bookings', 'booking', null, 'normal') as quiet \gset
+
+select public.assert(
+  (select count(*) from public.notifications where id = :'quiet') = 1
+  and (select is_read from public.notifications where id = :'quiet')
+  and (select count(*) from public.email_outbox where notification_id = :'quiet') = 0,
+  '51.5 a silenced category still leaves the record, already read, and sends no mail');
+
+select public.notify(
+  '11111111-1111-1111-1111-111111111111', 'payment', 'تمّ تحويل مستحقاتك', 'إلى حسابك',
+  '/wallet', 'payout', null, 'critical') as loud \gset
+
+select public.assert(
+  (select count(*) from public.email_outbox where notification_id = :'loud') = 1
+  and (select status from public.email_outbox where notification_id = :'loud') = 'queued'
+  and (select priority from public.notifications where id = :'loud') = 'critical',
+  '51.6 what cannot be silenced is written to the inbox and queued as mail');
+
+select public.assert(
+  (select entity_type from public.notifications where id = :'loud') = 'payout',
+  '51.7 a notification knows what it is about, not only where it points');
+
+-- Reading is a client's own business, and only their own.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.my_notifications() where id = :'loud') = 0,
+  '51.8 nobody reads somebody else''s inbox through the reader either');
+
+select public.assert_rejects(
+  $$select public.notify('11111111-1111-1111-1111-111111111111', 'system', 'مزيّف')$$,
+  '51.9 and nobody writes into it: the engine is the platform''s, not a client''s',
+  'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- An announcement is a fan-out through the same engine.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into public.notification_broadcasts (kind, title_ar, body_ar, priority, audience_role, created_by)
+values ('system', 'تحديث سياسة الاستخدام', 'اقرأ ما تغيّر.', 'info', null,
+        '44444444-4444-4444-4444-444444444444')
+returning id as broadcast \gset
+
+select public.send_broadcast(:'broadcast') as told \gset
+
+select public.assert(
+  :'told'::int >= 5
+  and (select recipients from public.notification_broadcasts where id = :'broadcast') = :'told'::int,
+  '51.10 an announcement reaches everybody it names, and says how many that was');
+
+select public.assert(
+  (select count(*) from public.broadcast_log() where id = :'broadcast') = 1,
+  '51.11 and the log says what happened to it afterwards');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.notifications
+    where entity_type = 'broadcast' and entity_id = :'broadcast'
+      and profile_id = '11111111-1111-1111-1111-111111111111') = 1,
+  '51.12 the announcement lands in the same inbox as everything else');
+
+select public.assert_rejects(
+  format($$select public.send_broadcast(%L)$$, :'broadcast'),
+  '51.13 and only an admin sends one',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The outbox is the platform's queue, not a client's.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.claim_email_batch(5)$$,
+  '51.14 a client cannot claim the mail queue',
+  'permission denied');
+
+select public.assert(
+  (select count(*) from public.email_outbox) >= 1,
+  '51.15 though a person can see the mail the platform sent them');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.email_outbox where notification_id = :'loud') = 0,
+  '51.16 and nobody else''s');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
