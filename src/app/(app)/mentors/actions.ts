@@ -46,11 +46,24 @@ export async function createBooking(_prev: BookingState, formData: FormData): Pr
   const teamId = String(formData.get('team_id') ?? '');
   const members = formData.getAll('seat').map(String).filter(Boolean);
 
-  if (teamId && members.length === 0) {
+  if ((teamId || String(formData.get('startup_id') ?? '')) && members.length === 0) {
     return { error: t('اختر عضواً واحداً على الأقل من الفريق.', 'Choose at least one member of the team.') };
   }
 
-  const { data, error } = teamId
+  const startupId = String(formData.get('startup_id') ?? '');
+
+  const { data, error } = startupId
+    ? await supabase.rpc('create_company_booking_request', {
+        p_startup: startupId,
+        p_mentor: mentorId,
+        p_session_type: sessionTypeId,
+        p_starts_at: startsAt,
+        p_method_key: methodKey,
+        p_members: members,
+        p_goal: goal,
+        p_grant_mentor: formData.get('grant_mentor') === 'on',
+      })
+    : teamId
     ? await supabase.rpc('create_team_booking_request', {
         p_team: teamId,
         p_mentor: mentorId,
@@ -80,7 +93,8 @@ export async function createBooking(_prev: BookingState, formData: FormData): Pr
     if (message.includes('availability')) {
       return { error: t('الموعد المختار خارج أوقات توفر المنتور.', 'That time is outside the mentor’s available hours.') };
     }
-    if (message.includes('قائد الفريق فقط') || message.includes('لأعضاء الفريق فقط')) {
+    if (message.includes('قائد الفريق فقط') || message.includes('لأعضاء الفريق فقط')
+        || message.includes('إدارة الشركة فقط') || message.includes('لأعضاء مساحة العمل')) {
       return { error: dbError(t, message) };
     }
     return { error: t('تعذّر إنشاء الطلب — حاول مرة أخرى.', 'The request could not be created — try again.') };

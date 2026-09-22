@@ -118,6 +118,36 @@ export default async function BookSessionPage({
       })),
   })).filter((team) => team.members.length > 0);
 
+  // The companies this person runs. A company session is booked by whoever runs
+  // the company, and the seats are its people.
+  const { data: runs } = await supabase
+    .from('startup_members')
+    .select('startup_id, startups(id, name_ar)')
+    .eq('profile_id', user.id)
+    .in('role', ['founder', 'cofounder', 'manager']);
+
+  const companyIds = (runs ?? []).map((row) => row.startup_id);
+  const { data: companyMembers } = companyIds.length
+    ? await supabase.from('startup_members')
+        .select('startup_id, profile_id, profiles(full_name)')
+        .in('startup_id', companyIds)
+    : { data: [] as { startup_id: string; profile_id: string; profiles: unknown }[] };
+
+  const companies = (runs ?? [])
+    .map((row) => row.startups as unknown as { id: string; name_ar: string } | null)
+    .filter(Boolean)
+    .map((company) => ({
+      id: (company as { id: string; name_ar: string }).id,
+      name_ar: (company as { id: string; name_ar: string }).name_ar,
+      members: (companyMembers ?? [])
+        .filter((member) => member.startup_id === (company as { id: string }).id)
+        .map((member) => ({
+          id: member.profile_id,
+          name: (member.profiles as unknown as { full_name: string } | null)?.full_name
+            ?? member.profile_id.slice(0, 8),
+        })),
+    }));
+
   const reviewCandidates = [
     ...(projects ?? []).map((row) => ({ kind: 'project', id: row.id, label: row.title_ar })),
     ...(enrolments ?? []).map((row) => ({
@@ -161,6 +191,7 @@ export default async function BookSessionPage({
         }}
         reviewCandidates={reviewCandidates}
         teams={teams}
+        companies={companies}
       />
     </>
   );

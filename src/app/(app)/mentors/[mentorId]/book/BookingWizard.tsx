@@ -12,6 +12,7 @@ import { createBooking, type BookingState } from '../../actions';
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
 type ReviewCandidate = { kind: string; id: string | null; label: string };
 export type LedTeam = { id: string; title_ar: string; members: { id: string; name: string }[] };
+export type LedCompany = { id: string; name_ar: string; members: { id: string; name: string }[] };
 
 export function BookingWizard({
   mentorId,
@@ -24,6 +25,7 @@ export function BookingWizard({
   student,
   reviewCandidates,
   teams,
+  companies,
 }: {
   mentorId: string;
   mentorName: string;
@@ -36,11 +38,14 @@ export function BookingWizard({
   reviewCandidates: ReviewCandidate[];
   /** The teams this person leads. A team session is the leader's to book. */
   teams: LedTeam[];
+  /** The companies they run. A company session is priced per seat too. */
+  companies: LedCompany[];
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createBooking, undefined as BookingState);
 
   const [teamId, setTeamId] = useState('');
+  const [companyId, setCompanyId] = useState('');
   const [seats, setSeats] = useState<string[]>([]);
   const [sessionTypeId, setSessionTypeId] = useState(sessionTypes[0]?.id ?? '');
   const [slotStart, setSlotStart] = useState('');
@@ -62,8 +67,14 @@ export function BookingWizard({
   const daySlots = byDay.find(([day]) => day === activeDay)?.[1] ?? [];
 
   const activeTeam = teams.find((team) => team.id === teamId);
-  const seatCount = activeTeam ? seats.length : 1;
-  const total = price * Math.max(seatCount, activeTeam ? 0 : 1);
+  const activeCompany = companies.find((company) => company.id === companyId);
+  const activeGroup = activeTeam
+    ? { members: activeTeam.members }
+    : activeCompany
+      ? { members: activeCompany.members }
+      : null;
+  const seatCount = activeGroup ? seats.length : 1;
+  const total = price * Math.max(seatCount, activeGroup ? 0 : 1);
   const selectedType = sessionTypes.find((type) => type.id === sessionTypeId);
   const selectedMethod = paymentMethods.find((method) => method.key === methodKey);
   const selected = slotStart ? formatSlot(slotStart) : null;
@@ -87,11 +98,12 @@ export function BookingWizard({
       <input type="hidden" name="starts_at" value={slotStart} />
       <input type="hidden" name="method_key" value={methodKey} />
       <input type="hidden" name="team_id" value={teamId} />
+      <input type="hidden" name="startup_id" value={companyId} />
       {seats.map((seat) => <input type="hidden" name="seat" value={seat} key={seat} />)}
 
       <div className="detail-grid">
         <div>
-          {teams.length > 0 && (
+          {(teams.length > 0 || companies.length > 0) && (
             <section className="step">
               <div className="step-head">
                 <span className="step-num">0</span>
@@ -99,9 +111,9 @@ export function BookingWizard({
               </div>
 
               <div className="choice-grid">
-                <label className={`choice${teamId === '' ? ' selected' : ''}`}>
-                  <input type="radio" name="for_pick" value="" checked={teamId === ''}
-                         onChange={() => { setTeamId(''); setSeats([]); }} />
+                <label className={`choice${teamId === '' && companyId === '' ? ' selected' : ''}`}>
+                  <input type="radio" name="for_pick" value="" checked={teamId === '' && companyId === ''}
+                         onChange={() => { setTeamId(''); setCompanyId(''); setSeats([]); }} />
                   <span className="choice-title">{t('لي', 'For me')}</span>
                   <span className="choice-sub">{t('جلسة فردية بسعر الجلسة الواحدة.', 'A one-to-one session, at the single-session price.')}</span>
                 </label>
@@ -109,23 +121,41 @@ export function BookingWizard({
                 {teams.map((team) => (
                   <label className={`choice${teamId === team.id ? ' selected' : ''}`} key={team.id}>
                     <input type="radio" name="for_pick" value={team.id} checked={teamId === team.id}
-                           onChange={() => { setTeamId(team.id); setSeats(team.members.map((member) => member.id)); }} />
+                           onChange={() => {
+                             setTeamId(team.id); setCompanyId('');
+                             setSeats(team.members.map((member) => member.id));
+                           }} />
                     <span className="choice-title">{team.title_ar}</span>
                     <span className="choice-sub">
                       {t('جلسة فريق — السعر لكل عضو حاضر.', 'A team session — priced per attending member.')}
                     </span>
                   </label>
                 ))}
+
+                {companies.map((company) => (
+                  <label className={`choice${companyId === company.id ? ' selected' : ''}`} key={company.id}>
+                    <input type="radio" name="for_pick" value={company.id} checked={companyId === company.id}
+                           onChange={() => {
+                             setCompanyId(company.id); setTeamId('');
+                             setSeats(company.members.map((member) => member.id).slice(0, 1));
+                           }} />
+                    <span className="choice-title">{company.name_ar}</span>
+                    <span className="choice-sub">
+                      {t('جلسة شركة — السعر لكل حاضر، ويُفتح للمنتور ما فتحتموه له.',
+                         'A company session — priced per attendee, and the mentor sees what you opened to mentors.')}
+                    </span>
+                  </label>
+                ))}
               </div>
 
-              {activeTeam && (
+              {activeGroup && (
                 <fieldset style={{ border: 0, padding: 0, margin: '12px 0 0' }}>
                   <legend className="muted" style={{ fontSize: '0.84rem', marginBottom: 8 }}>
                     {t('من سيحضر؟ المقاعد المدفوعة هي من يدخل الغرفة.',
                        'Who is coming? The seats that are paid for are who enters the room.')}
                   </legend>
                   <div className="tags-row">
-                    {activeTeam.members.map((member) => (
+                    {activeGroup.members.map((member) => (
                       <label className="badge-pill" key={member.id} style={{ cursor: 'pointer', gap: 6 }}>
                         <input
                           type="checkbox"
@@ -139,6 +169,16 @@ export function BookingWizard({
                       </label>
                     ))}
                   </div>
+
+                  {activeCompany && (
+                    <label className="switch-row" style={{ marginTop: 12 }}>
+                      <input type="checkbox" name="grant_mentor" defaultChecked />
+                      <span>
+                        {t('افتح للمنتور اللوحات المخصصة للمنتورين',
+                           'Let this mentor see the canvases opened to mentors')}
+                      </span>
+                    </label>
+                  )}
                 </fieldset>
               )}
             </section>
@@ -338,7 +378,7 @@ export function BookingWizard({
                 <span>{selectedMethod?.name_ar ?? '—'}</span>
               </div>
               <div className="summary-row"><span className="muted">{t('سعر الجلسة', 'Session price')}</span><span className="eng">{money(price)}</span></div>
-              {activeTeam && (
+              {activeGroup && (
                 <div className="summary-row">
                   <span className="muted">{t('المقاعد', 'Seats')}</span>
                   <span className="eng">{seatCount} × {money(price)}</span>
@@ -366,7 +406,7 @@ export function BookingWizard({
             <button
               className="btn btn-primary"
               style={{ width: '100%', marginTop: 16 }}
-              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeTeam) && seats.length === 0)}
+              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)}
             >
               {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
             </button>

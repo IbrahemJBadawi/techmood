@@ -17,10 +17,13 @@ const TABS = [
   { href: '/canvases',     label: { ar: 'اللوحات',     en: 'Canvases' } },
   { href: '/plan',         label: { ar: 'خطة العمل',   en: 'Business plan' } },
   { href: '/strategy',     label: { ar: 'الاستراتيجية', en: 'Strategy' } },
+  { href: '/roadmap',      label: { ar: 'خارطة الطريق', en: 'Roadmap' } },
   { href: '/projects',     label: { ar: 'المشاريع',    en: 'Projects' } },
   { href: '/team',         label: { ar: 'الفريق',      en: 'Team' } },
   { href: '/hiring',       label: { ar: 'التوظيف',     en: 'Hiring' } },
+  { href: '/mentors',      label: { ar: 'المنتورون',   en: 'Mentors' } },
   { href: '/documents',    label: { ar: 'المستندات',   en: 'Documents' } },
+  { href: '/share',        label: { ar: 'المشاركة',    en: 'Sharing' } },
 ];
 
 export function StartupNav({ startupId }: { startupId: string }) {

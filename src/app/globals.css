@@ -2715,3 +2715,51 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 }
 
 .public-page { max-width: 760px; margin: 0 auto; padding: 28px 16px; }
+
+/* ---------- roadmap ---------- */
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+.roadmap-quarter { display: flex; flex-direction: column; }
+.roadmap-source-item    { background: var(--sky-tint); color: var(--royal-dark); }
+.roadmap-source-goal    { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.roadmap-source-project { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+
+.share-page { max-width: 900px; }
+
+/* ---------- print: the content, and nothing that belongs to a screen ---------- */
+@media print {
+  .sidebar,
+  .topbar,
+  .landing-nav,
+  .site-actions,
+  .date-tabs,
+  .tabs,
+  .no-print,
+  .btn,
+  form,
+  .add-card-btn { display: none !important; }
+
+  .app, .main, .content, .public-page, .share-page {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    background: #fff !important;
+  }
+
+  .panel, .bmc-block, .roadmap-quarter {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border-color: #ddd !important;
+    background: #fff !important;
+  }
+
+  .bmc { grid-template-columns: repeat(2, 1fr) !important; }
+  .canvas-grid { grid-template-columns: repeat(3, 1fr) !important; }
+
+  a[href]::after { content: ''; }
+  body { background: #fff !important; color: #000 !important; }
+}

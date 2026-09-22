@@ -188,6 +188,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
+        { href: '/mentor-companies', label: { ar: 'شركات أُرشدها', en: 'Companies I advise' }, icon: 'startup' },
         { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
       ],
     },

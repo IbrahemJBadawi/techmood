@@ -136,6 +136,9 @@ export type StartupMemberRole =
 
 export type OrgKind = 'startup' | 'company';
 
+export type RoadmapStatus = 'planned' | 'in_progress' | 'done' | 'dropped';
+export type ShareScope = 'canvas' | 'plan' | 'roadmap' | 'showcase';
+
 export type CanvasKind =
   | 'business_model' | 'lean' | 'value_proposition' | 'market' | 'competitors'
   | 'persona' | 'customer_journey' | 'financial' | 'funding' | 'mvp'
@@ -496,12 +499,15 @@ export type PaymentMethod = {
   supports_payout: boolean;
 }
 
+export type BookingKind = 'student_mentor' | 'team_mentor' | 'company_mentor';
+
 export type Booking = {
   id: string;
   booking_code: string;
-  kind: 'student_mentor' | 'team_mentor';
+  kind: BookingKind;
   student_id: string | null;
   team_id: string | null;
+  startup_id: string | null;
   mentor_id: string;
   session_type_id: string | null;
   scheduled_start: string;
@@ -673,7 +679,7 @@ export type LessonVideo = {
   sort_order: number;
 }
 
-export type VideoSessionType = 'student_mentor' | 'team_mentor' | 'team_internal';
+export type VideoSessionType = 'student_mentor' | 'team_mentor' | 'company_mentor' | 'team_internal';
 export type VideoSessionStatus = 'scheduled' | 'live' | 'completed' | 'cancelled' | 'no_show';
 export type SessionRole = 'mentor' | 'student' | 'member' | 'leader';
 /** Which door is open, decided by the server's clock. */
@@ -1051,6 +1057,21 @@ export type Database = {
       startup_requirement_ticks: Table<{
         startup_id: string; requirement_key: string; note_ar: string | null;
         ticked_by: string | null; ticked_at: string;
+      }>;
+      startup_mentor_access: Table<{
+        startup_id: string; mentor_id: string; note_ar: string | null;
+        granted_by: string | null; granted_at: string; expires_on: string | null;
+      }>;
+      roadmap_items: Table<{
+        id: string; startup_id: string; title_ar: string; detail_ar: string | null;
+        year: number; quarter: number; status: RoadmapStatus;
+        project_id: string | null; goal_id: string | null; sort_order: number;
+        created_by: string | null; created_at: string;
+      }>;
+      startup_shares: Table<{
+        id: string; token: string; startup_id: string; scope: ShareScope;
+        canvas_id: string | null; label_ar: string | null; expires_on: string | null;
+        revoked_at: string | null; created_by: string | null; created_at: string; views: number;
       }>;
       startup_documents: Table<{
         id: string; startup_id: string; kind: CompanyDocumentKind; title_ar: string;
@@ -1565,6 +1586,41 @@ export type Database = {
         }[];
       };
       can_manage_startup: { Args: { p_startup: string }; Returns: boolean };
+      is_startup_mentor: { Args: { p_startup: string }; Returns: boolean };
+      my_mentored_companies: {
+        Args: Record<string, never>;
+        Returns: {
+          startup_id: string; name_ar: string; one_liner_ar: string | null;
+          stage: StartupStage; granted_at: string; expires_on: string | null; canvases: number;
+        }[];
+      };
+      create_company_booking_request: {
+        Args: {
+          p_startup: string; p_mentor: string; p_session_type: string; p_starts_at: string;
+          p_method_key: string; p_members?: string[] | null; p_goal?: string | null;
+          p_grant_mentor?: boolean;
+        };
+        Returns: Booking;
+      };
+      roadmap: {
+        Args: { p_startup: string };
+        Returns: {
+          source: 'item' | 'goal' | 'project'; item_id: string; title_ar: string;
+          detail_ar: string | null; year: number; quarter: number;
+          state: string; link: string | null;
+        }[];
+      };
+      roadmap_item_to_project: { Args: { p_item: string }; Returns: string };
+      shared_view: {
+        Args: { p_token: string };
+        Returns: {
+          scope: ShareScope; company_name: string; one_liner: string | null;
+          label_ar: string | null; canvas_id: string | null; canvas_title: string | null;
+          payload: Record<string, unknown>;
+        }[];
+      };
+      record_share_view: { Args: { p_token: string }; Returns: undefined };
+      revoke_share: { Args: { p_share: string }; Returns: undefined };
       stage_progress: {
         Args: { p_startup: string; p_stage?: StartupStage | null };
         Returns: {

@@ -11,6 +11,7 @@ type Session = Database['public']['Functions']['my_sessions']['Returns'][number]
 const TYPE_LABEL: Record<VideoSessionType, Text> = {
   student_mentor: { ar: 'جلسة مع منتور',      en: 'Mentor session' },
   team_mentor:    { ar: 'جلسة فريق مع منتور', en: 'Team session with a mentor' },
+  company_mentor: { ar: 'جلسة شركة مع منتور', en: 'Company session with a mentor' },
   team_internal:  { ar: 'اجتماع فريق داخلي',  en: 'Internal team meeting' },
 };
 
