@@ -270,6 +270,11 @@ candidate comparison that refuses to rank, the freelancer's review of the
 client that never existed before, and a mentorship journey where sessions add
 up to a goal instead of a pile of receipts.
 
+Also built: **credential-based courses** — a lesson earned with another
+organisation's free credential plus a practical task a mentor judges, that
+does not complete (and so cannot lead to a certificate) until both are done,
+with the credential always labelled as its provider's.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.

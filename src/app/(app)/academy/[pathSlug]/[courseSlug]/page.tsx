@@ -83,6 +83,8 @@ export default async function CoursePage({
   const reevaluationOpenFor = new Set((openReevaluations ?? []).map((row) => row.submission_id));
 
   const { data: courseSkills } = await supabase.rpc('course_skills', { p_course: course.id });
+  const { data: credentialRows } = await supabase.rpc('course_credential_progress', { p_course: course.id });
+  const credentials = credentialRows?.[0];
 
   const { data: isComplete } = await supabase.rpc('is_course_complete', {
     p_profile: user.id,
@@ -126,6 +128,23 @@ export default async function CoursePage({
           <strong>{t('واعتماد', 'and')}</strong>
           {t(' كل الأعمال المطلوبة أدناه.', ' every required piece of work below approved.')}
         </p>
+
+        {(credentials?.credential_lessons ?? 0) > 0 && (
+          <div className="stat-tiles" style={{ marginTop: 14 }}>
+            <div className="stat-tile">
+              <div className="val eng">{credentials?.completed}/{credentials?.credential_lessons}</div>
+              <div className="lbl">{t('دروس شهادات مكتملة', 'Credential lessons done')}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="val eng">{credentials?.applied}/{credentials?.credential_lessons}</div>
+              <div className="lbl">{t('تطبيقات عملية معتمدة', 'Practical tasks approved')}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="val eng">{credentials?.verified}/{credentials?.credential_lessons}</div>
+              <div className="lbl">{t('شهادات موثّقة', 'Credentials verified')}</div>
+            </div>
+          </div>
+        )}
       </section>
 
       {(courseSkills ?? []).length > 0 && (

@@ -257,6 +257,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
+        { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
         { href: '/mentor-companies', label: { ar: 'شركات أُرشدها', en: 'Companies I advise' }, icon: 'startup' },
         { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
       ],
@@ -336,6 +337,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'المال والمحتوى', en: 'Money & content' },
       items: [
         { href: '/admin/payments', label: { ar: 'مراجعة المدفوعات', en: 'Review payments' }, icon: 'wallet' },
+        { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
         { href: '/admin/payouts', label: { ar: 'طلبات السحب', en: 'Payout requests' }, icon: 'wallet' },
         { href: '/admin/escrows', label: { ar: 'الأموال المحتجزة', en: 'Escrow' }, icon: 'wallet' },
         { href: '/admin/academy', label: { ar: 'محتوى الأكاديمية', en: 'Academy content' }, icon: 'academy' },

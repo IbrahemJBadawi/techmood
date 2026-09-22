@@ -584,8 +584,14 @@ select public.assert(
   (select count(*) from public.courses where status = 'published') = 18,
   '10.2 all eighteen published courses were carried over');
 
+-- Counted inside published courses: the prototype's lessons are the published
+-- catalogue, and a draft course being written (0073's Claude Code) is not
+-- part of what was carried over.
 select public.assert(
-  (select count(*) from public.lessons) = 36,
+  (select count(*) from public.lessons l
+     join public.modules m on m.id = l.module_id
+     join public.courses c on c.id = m.course_id
+    where c.status = 'published') = 36,
   '10.3 all thirty-six lessons were carried over');
 
 select public.assert(
@@ -6074,6 +6080,182 @@ select public.assert(
   '54.17 and stop there — a public project page is finished work, not the drafts');
 reset role;
 reset request.jwt.claim.sub;
+
+
+-- ===========================================================================
+-- 55. A lesson earned with somebody else's credential
+-- ===========================================================================
+select id as cc_course from public.courses where slug = 'claude-code' \gset
+select l.id as cc_lesson from public.lessons l
+  join public.modules m on m.id = l.module_id
+ where m.course_id = :'cc_course' and l.title_en = 'Claude Code Fundamentals' \gset
+select id as cc_task from public.assignments where lesson_id = :'cc_lesson' \gset
+
+select public.assert(
+  (select count(*) from public.credential_providers) = 9
+  and (select name from public.credential_providers where slug = 'anthropic') = 'Anthropic',
+  '55.1 the organisations that issue credentials are named as themselves');
+
+select public.assert_rejects(
+  format($$update public.courses set status = 'published' where id = %L$$, :'cc_course'),
+  '55.2 a course with an empty credential slot cannot go live',
+  'لم تُحدَّد شهادته');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.submit_credential(%L, 'https://example.com/badge/1')$$, :'cc_lesson'),
+  '55.3 nor can anybody hand in a credential nobody has named yet',
+  'لم تُحدَّد شهادة');
+reset role;
+reset request.jwt.claim.sub;
+
+-- An admin names it, against the provider's catalogue.
+update public.lesson_credentials
+   set credential_name = 'Claude Code (test fixture)',
+       credential_url  = 'https://example.com/anthropic/claude-code'
+ where lesson_id = :'cc_lesson';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+           values ('11111111-1111-1111-1111-111111111111', %L, 'completed', now())$$, :'cc_lesson'),
+  '55.4 a credential lesson cannot be ticked done by the person taking it',
+  'بالتطبيق العملي');
+
+select public.submit_credential(:'cc_lesson', 'https://example.com/badge/sara', 'ABC-1', current_date) as cc_sub \gset
+
+select public.assert(
+  (select submitted from public.credential_lesson_state(:'cc_lesson'))
+  and not (select verified from public.credential_lesson_state(:'cc_lesson'))
+  and (select credential_name from public.credential_submissions where id = :'cc_sub')
+      = 'Claude Code (test fixture)',
+  '55.5 handing it in is not the same as it being checked, and the name is frozen');
+
+select public.assert_rejects(
+  format($$select public.review_credential(%L, true)$$, :'cc_sub'),
+  '55.6 a learner does not verify credentials',
+  'للإدارة والمنتورز');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.review_credential(%L, false)$$, :'cc_sub'),
+  '55.7 saying no needs a reason the learner can read',
+  'الرفض يحتاج سبباً');
+
+select public.review_credential(:'cc_sub', false, 'الاسم على الشارة لا يطابق الحساب.');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_credential(:'cc_lesson', 'https://example.com/badge/sara-yousef');
+
+select public.assert(
+  (select status from public.credential_submissions where id = :'cc_sub') = 'submitted'
+  and (select review_note from public.credential_submissions where id = :'cc_sub') is null,
+  '55.8 a rejected credential can be handed in again, and the old verdict goes with the old link');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.review_credential(:'cc_sub', true, 'مطابق.');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  not exists (select 1 from public.profile_skills ps
+                join public.skills s on s.id = ps.skill_id
+               where ps.profile_id = '11111111-1111-1111-1111-111111111111'
+                 and s.slug = 'claude-code' and ps.is_verified),
+  '55.9 a verified credential alone does not unlock the skill — the practice is missing');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+           values ('11111111-1111-1111-1111-111111111111', %L, 'completed', now())$$, :'cc_lesson'),
+  '55.10 and the lesson still does not complete on the credential alone',
+  'بالتطبيق العملي');
+
+select public.submit_work(
+  :'cc_task',
+  '[{"kind":"github","url":"https://github.com/sara/claude-refactor","label":"repo"}]'::jsonb,
+  'حلّلت المشروع وأصلحت ثلاث مشاكل'
+) as cc_work \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.evaluate_submission(:'cc_work', 'approved', 5::smallint, 'تطبيق متقن');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  exists (select 1 from public.profile_skills ps
+            join public.skills s on s.id = ps.skill_id
+           where ps.profile_id = '11111111-1111-1111-1111-111111111111'
+             and s.slug = 'claude-code' and ps.is_verified),
+  '55.11 with both halves done, the lesson''s skills open — whichever finished last');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('11111111-1111-1111-1111-111111111111', :'cc_lesson', 'completed', now());
+
+select public.assert(
+  (select verified from public.course_credential_progress(:'cc_course')) = 1
+  and (select completed from public.course_credential_progress(:'cc_course')) = 1,
+  '55.12 and the lesson completes, which the course counts as one of its credentials');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The other order: the practice approved first, the credential never handed in.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.submit_work(
+  :'cc_task',
+  '[{"kind":"github","url":"https://github.com/omar/claude-work","label":"repo"}]'::jsonb,
+  null
+) as cc_work2 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.evaluate_submission(:'cc_work2', 'approved', 4::smallint, 'جيد');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  not exists (select 1 from public.profile_skills ps
+                join public.skills s on s.id = ps.skill_id
+               where ps.profile_id = '77777777-7777-7777-7777-777777777777'
+                 and s.slug = 'claude-code'),
+  '55.13 approved practice on a credential lesson holds the lesson''s skills until the credential is checked');
+
+-- The record.
+select public.assert(
+  (select provider_name from public.profile_credentials('11111111-1111-1111-1111-111111111111')
+    where credential_name = 'Claude Code (test fixture)') = 'Anthropic',
+  '55.14 the profile shows the credential as Anthropic''s, not as TechMood''s');
+
+select public.assert(
+  exists (select 1 from public.profile_skill_evidence('11111111-1111-1111-1111-111111111111')
+           where skill_slug = 'claude-code' and source_kind = 'credential')
+  and exists (select 1 from public.profile_skill_evidence('11111111-1111-1111-1111-111111111111')
+               where skill_slug = 'claude-code' and source_kind = 'application' and stars = 5),
+  '55.15 and the skill carries its evidence: the credential, and the practice a mentor judged');
+
+select public.assert(
+  (select count(*) from public.profile_credentials('77777777-7777-7777-7777-777777777777')) = 0,
+  '55.16 an unchecked credential is not on anybody''s profile');
 
 \echo ''
 \echo '================================================'

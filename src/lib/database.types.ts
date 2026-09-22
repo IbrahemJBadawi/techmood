@@ -934,6 +934,22 @@ export type MentorshipGoal = {
   created_at: string; closed_at: string | null;
 };
 
+/* --------------------------------------------------------------------------
+ * Credential-based courses — somebody else's credential, TechMood's practice
+ * ----------------------------------------------------------------------- */
+export type CredentialStatus = 'submitted' | 'verified' | 'rejected';
+
+export type CredentialProvider = {
+  id: string; slug: string; name: string; website_url: string | null;
+  verify_hint_ar: string | null; is_active: boolean; sort_order: number;
+};
+
+export type LessonCredential = {
+  lesson_id: string; provider_id: string; credential_name: string | null;
+  credential_url: string | null; requires_application: boolean;
+  note_ar: string | null; created_at: string;
+};
+
 type Table<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
 type View<Row> = { Row: Row; Relationships: [] };
 
@@ -960,6 +976,8 @@ export type Database = {
       worker_reviews: Table<WorkerReview>;
       worker_review_scores: Table<{ review_id: string; criterion: WorkerCriterion; stars: number }>;
       mentorship_goals: Table<MentorshipGoal>;
+      credential_providers: Table<CredentialProvider>;
+      lesson_credentials: Table<LessonCredential>;
       profiles: Table<Profile>;
       profile_roles: Table<ProfileRole>;
       role_request_events: Table<RoleRequestEventRow>;
@@ -2174,6 +2192,55 @@ export type Database = {
         Returns: {
           id: string; session_code: string; topic_ar: string | null;
           start_at: string; end_at: string; status: VideoSessionStatus; attended: number;
+        }[];
+      };
+      credential_lesson_state: {
+        Args: { p_lesson: string };
+        Returns: {
+          is_credential: boolean; provider_name: string; credential_name: string | null;
+          credential_url: string | null; requires_application: boolean;
+          applied: boolean; submitted: boolean; credential_status: CredentialStatus | null;
+          review_note: string | null; verified: boolean; completed: boolean;
+        }[];
+      };
+      submit_credential: {
+        Args: { p_lesson: string; p_url: string; p_code?: string | null; p_issued?: string | null };
+        Returns: string;
+      };
+      review_credential: {
+        Args: { p_submission: string; p_accept: boolean; p_note?: string | null };
+        Returns: undefined;
+      };
+      credential_review_queue: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; learner_name: string; techmood_id: string; provider_name: string;
+          credential_name: string; evidence_url: string; credential_code: string | null;
+          issued_on: string | null; lesson_title: string; course_title: string;
+          application_done: boolean; submitted_at: string;
+        }[];
+      };
+      course_credential_progress: {
+        Args: { p_course: string };
+        Returns: {
+          credential_lessons: number; applied: number; submitted: number;
+          verified: number; completed: number;
+        }[];
+      };
+      profile_credentials: {
+        Args: { p_profile: string };
+        Returns: {
+          provider_slug: string; provider_name: string; credential_name: string;
+          evidence_url: string; issued_on: string | null; verified_at: string | null;
+          course_title: string;
+        }[];
+      };
+      profile_skill_evidence: {
+        Args: { p_profile: string };
+        Returns: {
+          skill_slug: string; skill_name: string; source_kind: 'credential' | 'application';
+          source_label: string; provider: string | null; stars: number | null;
+          link: string | null; at: string | null;
         }[];
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };

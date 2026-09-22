@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { dbError } from '@/lib/db-errors';
 import type { EvidenceKind } from '@/lib/database.types';
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -136,4 +137,34 @@ export async function clearGoal(formData: FormData) {
   await supabase.rpc('clear_career_goal');
 
   revalidatePath(String(formData.get('revalidate') ?? '/academy/goals'));
+}
+
+export type CredentialState = { error?: string; ok?: string } | undefined;
+
+/**
+ * Handing in somebody else's credential. The database checks that the lesson
+ * asks for one, that it has been named, and that the link is a link; a person
+ * then opens it at the provider. Nothing here claims it is verified.
+ */
+export async function submitCredential(
+  _prev: CredentialState,
+  formData: FormData,
+): Promise<CredentialState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const lessonId = String(formData.get('lesson_id') ?? '');
+  const { error } = await supabase.rpc('submit_credential', {
+    p_lesson: lessonId,
+    p_url: String(formData.get('url') ?? '').trim(),
+    p_code: String(formData.get('code') ?? '').trim() || null,
+    p_issued: String(formData.get('issued_on') ?? '') || null,
+  });
+
+  revalidatePath(String(formData.get('revalidate') ?? '/academy'));
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('وصلت الشهادة، وتنتظر من يفتحها عند المُصدِر ويوثّقها.',
+                 'Your credential is in, waiting for someone to open it at the provider and verify it.') };
 }

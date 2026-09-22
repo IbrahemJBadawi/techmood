@@ -11,6 +11,7 @@ import { toggleLesson } from '../../../actions';
 import { LessonBoard } from '../../../LessonBoard';
 import { ShareDraft } from '../../../ShareDraft';
 import { SubmissionPanel } from '../../../SubmissionPanel';
+import { CredentialPanel } from '../../../CredentialPanel';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 
@@ -104,6 +105,14 @@ export default async function LessonPage({
   // course_skills() and path_skills(), so the three cannot disagree.
   const { data: skills } = await supabase.rpc('lesson_skills_all', { p_lesson: lesson.id });
 
+  // A credential lesson reads its ladder off the records. When it is one, the
+  // "mark as done" button only appears once both halves are in — the database
+  // would refuse the tick before then, and a button that always fails is worse
+  // than no button.
+  const { data: credentialRows } = await supabase.rpc('credential_lesson_state', { p_lesson: lesson.id });
+  const credential = credentialRows?.[0] ?? null;
+  const canTick = !credential || (credential.verified && credential.applied) || credential.completed;
+
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
   let submission: Submission | null = null;
@@ -167,17 +176,23 @@ export default async function LessonPage({
               <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
             </div>
           </div>
-          <form action={toggleLesson}>
-            <input type="hidden" name="lesson_id" value={lesson.id} />
-            <input type="hidden" name="completed" value={String(done)} />
-            <input type="hidden" name="revalidate" value={here} />
-            <button className={`btn btn-sm ${done ? 'btn-ghost' : 'btn-primary'}`} type="submit">
-              {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم كمكتمل', 'Mark as done')}
-            </button>
-          </form>
+          {canTick && (
+            <form action={toggleLesson}>
+              <input type="hidden" name="lesson_id" value={lesson.id} />
+              <input type="hidden" name="completed" value={String(done)} />
+              <input type="hidden" name="revalidate" value={here} />
+              <button className={`btn btn-sm ${done ? 'btn-ghost' : 'btn-primary'}`} type="submit">
+                {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم كمكتمل', 'Mark as done')}
+              </button>
+            </form>
+          )}
         </div>
         {lesson.summary_ar && <p className="muted" style={{ fontSize: '0.9rem', marginTop: 10 }}>{lesson.summary_ar}</p>}
       </section>
+
+      {credential && (
+        <CredentialPanel lessonId={lesson.id} state={credential} revalidate={here} />
+      )}
 
       <div className="detail-grid">
         <section>

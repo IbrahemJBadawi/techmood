@@ -1329,6 +1329,71 @@ denied" before any storage policy is consulted — which made the policies
 untestable, and untested storage policies are how private files become public
 ones. Section 54 tests them.
 
+## Courses earned with somebody else's credential
+
+TechMood does not try to out-produce IBM, Google, AWS, Kaggle, Microsoft,
+HubSpot, Cisco, Fortinet or Anthropic. It takes the free credentials they
+already issue and wraps each in the part they cannot supply: a practical task,
+a mentor who judges it, a skill on a record, and a path that adds up to
+something.
+
+### Built on what was there
+
+The spec called the whole thing "TechMood Career Paths". That already exists:
+`career_goals` and their ordered steps (0035) are exactly "a career goal, and
+the path a person follows to it". The practical application is a lesson's
+assignment, judged by a mentor, which already turned approval into verified
+skills. The certificate at the end is the course certificate, issued only when
+`is_course_complete()` says so. None of that was rebuilt.
+
+What was missing is the credential itself — `credential_providers`,
+`lesson_credentials` (a lesson with a row there *is* a credential lesson), and
+`credential_submissions`.
+
+### The rule that makes it worth anything
+
+A credential lesson does not complete until **both** halves are done: the
+practical task approved by a mentor, and the credential verified by a person.
+`toggleLesson` lets a learner tick an ordinary lesson done; on a credential
+lesson a trigger refuses the tick until both are in. Because everything
+downstream reads lesson completion — `course_lessons_completed()`,
+`is_course_complete()`, `issue_certificate()` — the course certificate now
+requires every credential verified without a line changed in any of them.
+Collecting links does not finish a course.
+
+The same rule holds for skills. An approved task still grants the skills the
+task itself demands, but on a credential lesson the *lesson's* skills wait for
+the credential too, then open together — whichever half finishes last.
+
+### Verification is a person, on purpose
+
+There is no API that says a Credly or Skilljar badge is real; the provider's
+own badge page is the only authority. So verifying means a mentor or an admin
+opening the link and checking the name, the credential and the date — the same
+mechanism external exhibitions use. Nobody verifies their own, and a refusal
+needs a reason the learner can read. The credential's name is frozen onto the
+submission, so a provider renaming a course later does not rewrite a record.
+
+### Never somebody else's credential as TechMood's
+
+The provider's credential is labelled as the provider's everywhere: on the
+lesson ("Issued by Anthropic — not by TechMood"), in the review queue, and on
+the profile, which gains a section of credentials grouped by provider.
+TechMood's certificate is for the TechMood course around them. Each verified
+skill on a profile now shows its evidence — the provider's credential and the
+practical task a mentor approved, with their stars.
+
+### What is seeded, and what deliberately is not
+
+The nine providers are seeded by name. The Claude Code course is seeded as a
+**draft** with the one lesson and the final project the spec spelled out; its
+credential slot names Anthropic and leaves the credential itself empty. Which
+Anthropic credential it maps to — and the 5–10 credentials per career path the
+spec proposes next — has to be checked against each provider's live catalogue
+before it is typed in. The publish guard refuses to put a course live with an
+empty credential slot, or with a credential lesson that demands practice and
+gives no task to practise in.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every

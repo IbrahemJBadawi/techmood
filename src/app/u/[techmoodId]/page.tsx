@@ -117,6 +117,8 @@ export default async function PublicProfilePage({
     { data: learning },
     { data: focusRows },
     { data: clientRecord },
+    { data: externalCredentials },
+    { data: skillEvidence },
   ] = await Promise.all([
     can('identity')
       ? supabase.from('profile_roles').select('role, status').eq('profile_id', card.profile_id).eq('status', 'approved')
@@ -151,7 +153,27 @@ export default async function PublicProfilePage({
     // The record on the other side of the brief: what this person is like to
     // work *for*. It is public for the same reason the freelancer's record is.
     supabase.rpc('client_profile', { p_profile: card.profile_id }),
+    // Other organisations' credentials, checked by a person, named as theirs.
+    supabase.rpc('profile_credentials', { p_profile: card.profile_id }),
+    // Why each skill is here: the credential, the practice, the mentor's stars.
+    supabase.rpc('profile_skill_evidence', { p_profile: card.profile_id }),
   ]);
+
+  const evidenceFor = new Map<string, { kind: string; label: string; provider: string | null; stars: number | null }[]>();
+  for (const row of skillEvidence ?? []) {
+    const list = evidenceFor.get(row.skill_slug) ?? [];
+    if (!list.some((item) => item.kind === row.source_kind && item.label === row.source_label)) {
+      list.push({ kind: row.source_kind, label: row.source_label, provider: row.provider, stars: row.stars });
+    }
+    evidenceFor.set(row.skill_slug, list);
+  }
+
+  const credentialsByProvider = new Map<string, NonNullable<typeof externalCredentials>>();
+  for (const row of externalCredentials ?? []) {
+    const list = credentialsByProvider.get(row.provider_name) ?? [];
+    list.push(row);
+    credentialsByProvider.set(row.provider_name, list);
+  }
 
   const focus = (focusRows ?? [])[0] ?? null;
   const onPaths = (learning ?? []).filter((row) => !row.is_complete);
@@ -248,11 +270,48 @@ export default async function PublicProfilePage({
             {t('كل مهارة أثبتها عمل اعتمده منتور — لا مهارة مكتوبة عن النفس.',
                'Each one proven by work a mentor approved — none of it self-declared.')}
           </p>
-          <div className="tags-row" style={{ marginTop: 12 }}>
-            {(skills ?? []).map((skill) => (
-              <span className="tag" key={skill.slug}>{contentText(locale, skill.name_ar, skill.name_en)}</span>
-            ))}
-          </div>
+          <ul className="profile-list" style={{ marginTop: 12 }}>
+            {(skills ?? []).map((skill) => {
+              const evidence = evidenceFor.get(skill.slug) ?? [];
+              return (
+                <li key={skill.slug}>
+                  <span><strong>{contentText(locale, skill.name_ar, skill.name_en)}</strong> <span className="status-pill status-ok">✓</span></span>
+                  {evidence.length > 0 && (
+                    <span className="muted" style={{ fontSize: '0.8rem' }}>
+                      {t('الدليل: ', 'Evidence: ')}
+                      {evidence.map((item) => item.kind === 'credential'
+                        ? `🏆 ${item.provider} — ${item.label}`
+                        : `🧪 ${item.label}${item.stars ? ` (${'★'.repeat(item.stars)})` : ''}`).join(' · ')}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {credentialsByProvider.size > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">{t('شهادات من جهات أخرى', 'Credentials from other organisations')}</h2>
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+            {t('صادرة عن أصحابها، لا عن TechMood. كل واحدة فتحها شخص عند المُصدِر وتحقّق منها.',
+               'Issued by their providers, not by TechMood. Each one was opened at the provider and checked by a person.')}
+          </p>
+          {[...credentialsByProvider.entries()].map(([provider, rows]) => (
+            <div key={provider} className="credential-provider">
+              <h3>{provider}</h3>
+              <ul className="profile-list">
+                {rows.map((row) => (
+                  <li key={`${row.credential_name}-${row.evidence_url}`}>
+                    <a href={row.evidence_url} target="_blank" rel="noreferrer noopener">{row.credential_name}</a>
+                    <span className="muted">{row.course_title}</span>
+                    <span className="status-pill status-ok">{t('✓ موثّقة', '✓ Verified')}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       )}
 
