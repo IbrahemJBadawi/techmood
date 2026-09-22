@@ -4,11 +4,11 @@ import { useActionState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
-import type { ClientCriterion, EscrowStatus, PaymentMethod, SaleLicence } from '@/lib/database.types';
+import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethod, SaleLicence } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import {
-  buyProject, escrowAction, listForSale, openEscrow, reviewWork,
+  buyProject, escrowAction, listForSale, openEscrow, reviewClient, reviewWork,
   submitEscrowProof, withdrawListing, type MoneyState,
 } from './money-actions';
 
@@ -28,6 +28,18 @@ const CLIENT_CRITERION: Record<ClientCriterion, Text> = {
   professionalism: { ar: 'الاحترافية',     en: 'Professionalism' },
   scope:           { ar: 'الالتزام بالنطاق', en: 'Scope' },
 };
+
+/** What the person who did the work judges the client on. */
+const WORKER_CRITERION: Record<WorkerCriterion, Text> = {
+  clarity:         { ar: 'وضوح المطلوب',  en: 'Knew what they wanted' },
+  communication:   { ar: 'التواصل',       en: 'Communication' },
+  professionalism: { ar: 'الاحترافية',    en: 'Professionalism' },
+  payment:         { ar: 'الالتزام بالدفع', en: 'Paid as agreed' },
+  scope:           { ar: 'ثبات الاتفاق',  en: 'Kept to the scope' },
+};
+
+const WORKER_CRITERIA: WorkerCriterion[] =
+  ['clarity', 'communication', 'professionalism', 'payment', 'scope'];
 
 const CRITERIA: ClientCriterion[] = ['quality', 'communication', 'deadline', 'professionalism', 'scope'];
 
@@ -325,6 +337,59 @@ export function BuyForm({ listingId, methods }: { listingId: string; methods: Pa
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
+    </form>
+  );
+}
+
+/**
+ * And what the freelancer says about the client. It is the same form, pointed
+ * the other way — deliberately, because a review that looks different from the
+ * one facing it reads as the lesser of the two.
+ */
+export function WorkerReviewForm({ projectId }: { projectId: string }) {
+  const t = useT();
+  const [state, formAction, pending] = useActionState(reviewClient, undefined as MoneyState);
+
+  return (
+    <form action={formAction} className="panel section-block">
+      <h3 style={{ fontSize: '0.98rem' }}>{t('قيّم هذا العميل', 'Review this client')}</h3>
+      <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+        {t('يقرأه من يفكّر في العمل معه لاحقاً — كما يقرأ العملاء سجلّك أنت.',
+           'Whoever considers working for them next will read this — just as clients read your record.')}
+      </p>
+
+      <input type="hidden" name="project_id" value={projectId} />
+      <input type="hidden" name="criteria" value={WORKER_CRITERIA.join(',')} />
+
+      <table className="exhibit-criteria" style={{ marginTop: 14 }}>
+        <tbody>
+          {WORKER_CRITERIA.map((criterion) => (
+            <tr key={criterion}>
+              <th scope="row"><label htmlFor={`w-${criterion}`}>{t(WORKER_CRITERION[criterion])}</label></th>
+              <td>
+                <select id={`w-${criterion}`} name={criterion} defaultValue="">
+                  <option value="">—</option>
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <option value={value} key={value}>{'★'.repeat(value)}</option>
+                  ))}
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="field" style={{ marginTop: 14 }}>
+        <label htmlFor="worker-comment">{t('ملاحظة', 'A note')}</label>
+        <textarea id="worker-comment" name="comment" rows={3} />
+      </div>
+
+      {state?.error && <p className="notice notice-danger">{state.error}</p>}
+      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
+
+      <button className="btn btn-primary btn-sm" disabled={pending}>
+        {pending ? t('جارٍ…', 'Sending…') : t('أرسل التقييم', 'Send the review')}
+      </button>
     </form>
   );
 }

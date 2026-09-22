@@ -16,7 +16,7 @@ export async function applyForRole(_prev: RoleState, formData: FormData): Promis
   const supabase = await createClient();
   const role = String(formData.get('role') ?? '') as UserRole;
 
-  if (!SELECTABLE_ROLES.some((r) => r.value === role && r.needsReview)) {
+  if (!SELECTABLE_ROLES.some((r) => r.value === role && r.grant !== 'automatic')) {
     return { error: t('هذا الدور لا يُطلب من هنا.', 'That role is not requested from here.') };
   }
   // The mentor role has a form of its own; a one-line note is not enough to

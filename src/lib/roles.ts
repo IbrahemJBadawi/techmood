@@ -24,8 +24,15 @@ export type RoleDefinition = {
   label: Text;
   /** One line, in the second person, describing what the role opens. */
   blurb: Text;
-  /** Student is the one role every account starts with, already approved. */
-  needsReview: boolean;
+  /**
+   * How the role opens.
+   *
+   *   automatic  — every account has it (student).
+   *   self_serve — you choose it and it opens at once, because it claims
+   *                nothing about you that anybody could verify (mentee, client).
+   *   review     — a person reads it, because it does make a claim.
+   */
+  grant: 'automatic' | 'self_serve' | 'review';
   /** Where the shell lands when this is the role being browsed. */
   home: string;
   icon: IconName;
@@ -42,23 +49,45 @@ export const ROLES: RoleDefinition[] = [
     value: 'student',
     label: { ar: 'طالب', en: 'Student' },
     blurb: { ar: 'تتعلّم، تسلّم أعمالاً حقيقية، وتبني جوازك المهني.', en: 'You learn, submit real work, and build your professional passport.' },
-    needsReview: false,
+    grant: 'automatic',
     home: '/home',
     icon: 'academy',
+  },
+  {
+    value: 'mentee',
+    label: { ar: 'متدرّب', en: 'Mentee' },
+    blurb: {
+      ar: 'تبحث عن إرشاد: تختار منتوراً، تحجز جلسة، وتحوّلها إلى هدف تتابعه.',
+      en: 'You are here for guidance: pick a mentor, book a session, and turn it into a goal you follow.',
+    },
+    grant: 'self_serve',
+    home: '/mentorship',
+    icon: 'mentor',
   },
   {
     value: 'freelancer',
     label: { ar: 'فريلانسر', en: 'Freelancer' },
     blurb: { ar: 'تتقدّم على الفرص، تنفّذ أعمالاً مدفوعة، وتسحب أرباحك.', en: 'You apply for openings, do paid work, and withdraw what you earn.' },
-    needsReview: true,
+    grant: 'review',
     home: '/marketplace',
     icon: 'work',
+  },
+  {
+    value: 'client',
+    label: { ar: 'عميل', en: 'Client' },
+    blurb: {
+      ar: 'عندك عمل تريد تنفيذه: تنشر وصفه، تقارن العروض، وتتابع التنفيذ حتى التسليم.',
+      en: 'You have work you want done: publish the brief, compare the offers, and follow it through to delivery.',
+    },
+    grant: 'self_serve',
+    home: '/client',
+    icon: 'application',
   },
   {
     value: 'mentor',
     label: { ar: 'منتور', en: 'Mentor' },
     blurb: { ar: 'تراجع أعمال المتعلّمين وتقدّم جلسات إرشاد محجوزة.', en: 'You review learners\u2019 work and hold booked mentoring sessions.' },
-    needsReview: true,
+    grant: 'review',
     home: '/mentor-requests',
     icon: 'mentor',
   },
@@ -66,7 +95,7 @@ export const ROLES: RoleDefinition[] = [
     value: 'team_leader',
     label: { ar: 'قائد فريق', en: 'Team lead' },
     blurb: { ar: 'تؤسّس فرقاً، توزّع المهام، وتقود مشاريع جماعية.', en: 'You start teams, assign the work, and lead group projects.' },
-    needsReview: true,
+    grant: 'review',
     home: '/teams',
     icon: 'team',
   },
@@ -74,7 +103,7 @@ export const ROLES: RoleDefinition[] = [
     value: 'founder',
     label: { ar: 'مؤسس', en: 'Founder' },
     blurb: { ar: 'تبني شركة ناشئة داخل الحاضنة من الفكرة إلى نموذج العمل.', en: 'You build a startup inside the incubator, from idea to business model.' },
-    needsReview: true,
+    grant: 'review',
     home: '/startups',
     icon: 'startup',
   },
@@ -82,7 +111,7 @@ export const ROLES: RoleDefinition[] = [
     value: 'company',
     label: { ar: 'مؤسسة', en: 'Organisation' },
     blurb: { ar: 'تنشر فرص عمل وتستقطب فرقاً وكفاءات موثّقة.', en: 'You post openings and reach teams and people with a verified record.' },
-    needsReview: true,
+    grant: 'review',
     home: '/marketplace',
     icon: 'company',
   },
@@ -90,7 +119,7 @@ export const ROLES: RoleDefinition[] = [
     value: 'admin',
     label: { ar: 'إدارة', en: 'Admin' },
     blurb: { ar: 'تراجع الطلبات والمدفوعات والمحتوى.', en: 'You review requests, payments and content.' },
-    needsReview: true,
+    grant: 'review',
     home: '/admin',
     icon: 'shield',
   },
@@ -162,6 +191,43 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
+      ],
+    },
+  ],
+  mentee: [
+    {
+      label: { ar: 'الإرشاد', en: 'Mentoring' },
+      items: [
+        { href: '/mentorship', label: { ar: 'رحلتي', en: 'My journey' }, icon: 'mentor' },
+        { href: '/mentors', label: { ar: 'ابحث عن منتور', en: 'Find a mentor' }, icon: 'mentor' },
+        { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
+        { href: '/sessions', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
+      ],
+    },
+    {
+      label: { ar: 'سجلّي', en: 'My record' },
+      items: [
+        { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
+        { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
+      ],
+    },
+  ],
+  client: [
+    {
+      label: { ar: 'مشاريعي', en: 'My work' },
+      items: [
+        { href: '/client', label: { ar: 'لوحة العميل', en: 'Client dashboard' }, icon: 'application' },
+        { href: '/marketplace/new', label: { ar: 'انشر مشروعاً', en: 'Post a project' }, icon: 'work' },
+        { href: '/marketplace?tab=talent', label: { ar: 'ابحث عن منفّذ', en: 'Find a freelancer' }, icon: 'work' },
+        { href: '/marketplace?tab=teams', label: { ar: 'ابحث عن فريق', en: 'Find a team' }, icon: 'team' },
+      ],
+    },
+    {
+      label: { ar: 'التنفيذ والمال', en: 'Delivery & money' },
+      items: [
+        { href: '/marketplace?tab=work', label: { ar: 'العقود والتنفيذ', en: 'Contracts & delivery' }, icon: 'application' },
+        { href: '/marketplace?tab=money', label: { ar: 'المدفوعات والضمان', en: 'Payments & escrow' }, icon: 'wallet' },
+        { href: '/mentors', label: { ar: 'استشر منتوراً', en: 'Ask a mentor' }, icon: 'mentor' },
       ],
     },
   ],

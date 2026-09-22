@@ -13,7 +13,7 @@ import { setProjectStatus } from './actions';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
 import {
   ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS,
-  OpenEscrowForm, SellForm, WithdrawListing,
+  OpenEscrowForm, SellForm, WithdrawListing, WorkerReviewForm,
 } from './Money';
 import type { PaymentMethod } from '@/lib/database.types';
 import { AiSurface } from '@/components/AiSurface';
@@ -66,7 +66,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   ]);
 
   // The money, the judgement and the shelf — all of it for this one project.
-  const [{ data: escrows }, { data: methods }, { data: listing }, { data: review }] = await Promise.all([
+  const [{ data: escrows }, { data: methods }, { data: listing }, { data: review },
+         { data: workerReview }] = await Promise.all([
     supabase.from('escrows')
       .select('id, escrow_code, amount_usd, commission_usd, net_usd, status, payer_id, payee_id, dispute_reason_ar')
       .eq('project_id', projectId).order('created_at', { ascending: false }),
@@ -76,6 +77,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       .eq('project_id', projectId).maybeSingle(),
     supabase.from('client_reviews')
       .select('id, stars, comment_ar, client_id').eq('project_id', projectId).maybeSingle(),
+    supabase.from('worker_reviews')
+      .select('id, stars, comment_ar, worker_id').eq('project_id', projectId).maybeSingle(),
   ]);
 
   const holds = escrows ?? [];
@@ -257,6 +260,20 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
 
           {isClient && released && !review && <ClientReviewForm projectId={projectId} />}
+
+          {isOwner && project.client_id && released && !workerReview && (
+            <WorkerReviewForm projectId={projectId} />
+          )}
+
+          {workerReview && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('تقييم المنفّذ للعميل', 'What the freelancer said about the client')}</h3>
+              <p style={{ marginTop: 8 }}><Stars value={workerReview.stars} /></p>
+              {workerReview.comment_ar && (
+                <p className="muted" style={{ fontSize: '0.86rem' }}>{workerReview.comment_ar}</p>
+              )}
+            </div>
+          )}
 
           {review && (
             <div className="panel section-block">

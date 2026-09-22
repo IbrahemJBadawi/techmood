@@ -3012,3 +3012,43 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 @media print {
   .ai-fab, .ai-panel { display: none !important; }
 }
+
+/* ---------- comparing candidates, and a mentee's goals ---------- */
+/* A comparison is wide by nature; it scrolls sideways rather than wrapping
+   columns onto each other and losing the point of a table. */
+.compare-scroll { overflow-x: auto; }
+.compare-table { min-width: 860px; }
+.compare-table td, .compare-table th { white-space: nowrap; }
+.compare-table .tags-row { white-space: normal; max-width: 260px; }
+
+/* Matched and missing skills are the same size on purpose: a gap is
+   information, not a verdict. */
+.tag-ok  { border-color: var(--ok); color: var(--ok); }
+.tag-gap { border-color: var(--line-strong); color: var(--ink-soft); opacity: 0.8; }
+
+.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.goal-list li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 12px 14px;
+  background: var(--panel);
+}
+.goal-list li.is-closed { opacity: 0.72; }
+
+.goal-close {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.goal-close input, .goal-close select {
+  font: inherit;
+  padding: 5px 9px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+.goal-close input { flex: 1; min-width: 160px; }

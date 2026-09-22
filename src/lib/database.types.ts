@@ -15,7 +15,8 @@
  * signature, so interfaces silently resolve the whole schema to `never`.
  */
 export type UserRole =
-  | 'student' | 'freelancer' | 'mentor' | 'team_leader' | 'founder' | 'company' | 'admin';
+  | 'student' | 'mentee' | 'freelancer' | 'client' | 'mentor'
+  | 'team_leader' | 'founder' | 'company' | 'admin';
 
 export type RoleStatus =
   | 'approved' | 'pending_review' | 'needs_more_info' | 'rejected' | 'suspended';
@@ -207,6 +208,7 @@ export type Opportunity = {
   required_skills: string[];
   min_stars: number | null;
   required_path_id: string | null;
+  visibility: OpportunityVisibility;
   posted_by: string;
   team_id: string | null;
   startup_id: string | null;
@@ -514,6 +516,8 @@ export type Booking = {
   kind: BookingKind;
   student_id: string | null;
   team_id: string | null;
+  /** The mentorship goal this session was booked against, when there is one. */
+  mentorship_goal_id: string | null;
   startup_id: string | null;
   mentor_id: string;
   session_type_id: string | null;
@@ -898,6 +902,34 @@ export type AiActionKind = {
   is_enabled: boolean; sort_order: number;
 };
 
+/* --------------------------------------------------------------------------
+ * Client and mentee — two roles, and the little that was missing behind them
+ * ----------------------------------------------------------------------- */
+export type OpportunityVisibility = 'public' | 'invite_only';
+
+export type WorkerCriterion =
+  | 'clarity' | 'communication' | 'professionalism' | 'payment' | 'scope';
+
+export type MentorshipGoalStatus = 'active' | 'achieved' | 'dropped';
+
+export type OpportunityAttachment = {
+  id: string; opportunity_id: string; label: string; url: string;
+  kind: EvidenceKind; added_by: string | null; created_at: string;
+};
+
+export type WorkerReview = {
+  id: string; project_id: string; escrow_id: string | null;
+  worker_id: string; client_id: string; stars: number;
+  comment_ar: string | null; created_at: string;
+};
+
+export type MentorshipGoal = {
+  id: string; profile_id: string; title_ar: string; detail_ar: string | null;
+  mentor_id: string | null; status: MentorshipGoalStatus;
+  target_on: string | null; outcome_ar: string | null;
+  created_at: string; closed_at: string | null;
+};
+
 type Table<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
 type View<Row> = { Row: Row; Relationships: [] };
 
@@ -920,6 +952,10 @@ export type Database = {
         id: string; surface: AiSurface; label_ar: string; prompt_ar: string;
         icon: string | null; sort_order: number; is_active: boolean;
       }>;
+      opportunity_attachments: Table<OpportunityAttachment>;
+      worker_reviews: Table<WorkerReview>;
+      worker_review_scores: Table<{ review_id: string; criterion: WorkerCriterion; stars: number }>;
+      mentorship_goals: Table<MentorshipGoal>;
       profiles: Table<Profile>;
       profile_roles: Table<ProfileRole>;
       role_request_events: Table<RoleRequestEventRow>;
@@ -1860,7 +1896,10 @@ export type Database = {
         }[];
       };
       transfer_team_leadership: { Args: { p_team: string; p_to: string }; Returns: undefined };
-      can_post_opportunity: { Args: { p_kind: OpportunityKind; p_team?: string | null }; Returns: boolean };
+      can_post_opportunity: {
+        Args: { p_kind: OpportunityKind; p_team?: string | null; p_startup?: string | null };
+        Returns: boolean;
+      };
       opportunity_match: {
         Args: { p_opportunity: string; p_profile: string };
         Returns: {
@@ -2057,6 +2096,59 @@ export type Database = {
         Returns: {
           kind: string; title_ar: string;
           detail_ar: string | null; refusal_ar: string | null;
+        }[];
+      };
+      compare_candidates: {
+        Args: { p_opportunity: string };
+        Returns: {
+          application_id: string; profile_id: string; full_name: string;
+          techmood_id: string; invited_team: string | null; team_title: string | null;
+          stage: ApplicationStage; proposed_amount: number | null; proposed_days: number | null;
+          stars: number | null; rated_count: number; projects_done: number;
+          work_approved: number; xp: number;
+          matched_skills: string[]; missing_skills: string[];
+          meets_stars: boolean | null; meets_path: boolean | null; applied_at: string;
+        }[];
+      };
+      review_client: {
+        Args: { p_project: string; p_scores: Record<string, number>; p_comment?: string | null };
+        Returns: string;
+      };
+      client_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          open_briefs: number; proposals: number; new_proposals: number;
+          active_projects: number; completed: number; hires: number;
+          in_escrow_usd: number; released_usd: number; awaiting_review: number;
+        }[];
+      };
+      client_profile: {
+        Args: { p_profile: string };
+        Returns: {
+          briefs_posted: number; projects_done: number; hires: number;
+          stars: number | null; reviews: number; paid_on_time: number | null;
+        }[];
+      };
+      close_mentorship_goal: {
+        Args: { p_goal: string; p_status: MentorshipGoalStatus; p_outcome?: string | null };
+        Returns: undefined;
+      };
+      link_session_to_goal: { Args: { p_booking: string; p_goal: string | null }; Returns: undefined };
+      mentee_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          sessions_attended: number; mentors: number; hours: number; upcoming: number;
+          goals_active: number; goals_achieved: number;
+          rating_received: number | null; awaiting_rating: number;
+        }[];
+      };
+      my_mentorship: {
+        Args: Record<string, never>;
+        Returns: {
+          goal_id: string; title_ar: string; detail_ar: string | null;
+          status: MentorshipGoalStatus; target_on: string | null; outcome_ar: string | null;
+          mentor_id: string | null; mentor_name: string | null;
+          sessions: number; last_session: string | null;
         }[];
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };

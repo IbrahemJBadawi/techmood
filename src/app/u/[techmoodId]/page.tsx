@@ -116,6 +116,7 @@ export default async function PublicProfilePage({
     { data: achievements },
     { data: learning },
     { data: focusRows },
+    { data: clientRecord },
   ] = await Promise.all([
     can('identity')
       ? supabase.from('profile_roles').select('role, status').eq('profile_id', card.profile_id).eq('status', 'approved')
@@ -147,6 +148,9 @@ export default async function PublicProfilePage({
       : { data: [] },
     can('learning') ? supabase.rpc('profile_learning', { p_profile: card.profile_id }) : { data: [] },
     can('learning') ? supabase.rpc('profile_focus', { p_profile: card.profile_id }) : { data: [] },
+    // The record on the other side of the brief: what this person is like to
+    // work *for*. It is public for the same reason the freelancer's record is.
+    supabase.rpc('client_profile', { p_profile: card.profile_id }),
   ]);
 
   const focus = (focusRows ?? [])[0] ?? null;
@@ -380,6 +384,34 @@ export default async function PublicProfilePage({
           <p className="muted" style={{ fontSize: '0.74rem', marginTop: 12 }}>
             {t('كل مؤشر محسوب من سجلات حقيقية: تقييمات المنتورين، لجان المعرض، جلسات الإرشاد، وعملاء دفعوا فعلاً. ما كُتب لصاحب العمل شخصياً يبقى بينهما.',
                'Every meter is worked out from real records: mentors’ evaluations, exhibition panels, mentoring sessions and clients who actually paid. What was written to the person privately stays between them.')}
+          </p>
+        </section>
+      )}
+
+      {(clientRecord?.[0]?.reviews ?? 0) > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">{t('سجلّه كعميل', 'Their record as a client')}</h2>
+          <div className="stat-tiles">
+            <div className="stat-tile">
+              <div className="val eng">{clientRecord?.[0]?.projects_done ?? 0}</div>
+              <div className="lbl">{t('أعمال أنجزها آخرون له', 'Projects delivered for them')}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="val eng">{clientRecord?.[0]?.hires ?? 0}</div>
+              <div className="lbl">{t('أشخاص تعاقد معهم', 'People they hired')}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="val eng">{clientRecord?.[0]?.stars ?? '—'}</div>
+              <div className="lbl">{t('تقييم المنفّذين له', 'Rated by those who worked for them')}</div>
+            </div>
+            <div className="stat-tile">
+              <div className="val eng">{clientRecord?.[0]?.paid_on_time ?? '—'}</div>
+              <div className="lbl">{t('الالتزام بالدفع', 'Paid as agreed')}</div>
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
+            {t('يكتبه من نفّذ العمل، وبعد أن يتحرّك المال — تماماً كما يكتب العميل تقييمه.',
+               'Written by the people who did the work, and only once money has moved — exactly as the client’s own review is.')}
           </p>
         </section>
       )}

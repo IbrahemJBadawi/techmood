@@ -60,6 +60,38 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
     cta = { href: '/marketplace', label: t('تصفّح الفرص', 'Browse openings') };
   }
 
+  // The mentee's numbers are the journey, not the receipts: hours spent, the
+  // mentors who spent them, and whether the goals behind them closed.
+  if (role === 'mentee') {
+    const { data } = await supabase.rpc('mentee_overview');
+    const m = data?.[0];
+    lede = t('الإرشاد ليس مكالمة تُحجز — هو هدف تتابعه عبر جلسات.',
+             'Mentoring is not a call you book — it is a goal you follow across sessions.');
+    tiles = [
+      { value: m?.upcoming ?? 0, label: t('جلسات قادمة', 'Upcoming sessions'), href: '/bookings' },
+      { value: m?.goals_active ?? 0, label: t('أهداف مفتوحة', 'Open goals'), href: '/mentorship' },
+      { value: m?.sessions_attended ?? 0, label: t('جلسات حضرتها', 'Sessions attended'), href: '/sessions' },
+      { value: m?.awaiting_rating ?? 0, label: t('جلسات تنتظر تقييمك', 'Sessions waiting on your rating'), href: '/sessions' },
+    ];
+    cta = { href: '/mentors', label: t('ابحث عن منتور', 'Find a mentor') };
+  }
+
+  // A client's dashboard counts people and money, not postings: the number
+  // that matters is how many were actually hired and paid.
+  if (role === 'client') {
+    const { data } = await supabase.rpc('client_overview');
+    const c = data?.[0];
+    lede = t('عندك عمل تريد تنفيذه: انشر وصفه، قارن العروض، وتابع التنفيذ حتى التسليم.',
+             'You have work you want done: publish the brief, compare the offers, follow it to delivery.');
+    tiles = [
+      { value: c?.active_projects ?? 0, label: t('مشاريع جارية', 'Active projects'), href: '/marketplace?tab=work' },
+      { value: c?.new_proposals ?? 0, label: t('عروض جديدة', 'New proposals'), href: '/client' },
+      { value: c?.hires ?? 0, label: t('أشخاص تعاقدت معهم', 'People you hired'), href: '/client' },
+      { value: c?.awaiting_review ?? 0, label: t('أعمال تنتظر تقييمك', 'Work waiting on your review'), href: '/marketplace?tab=work' },
+    ];
+    cta = { href: '/marketplace/new', label: t('انشر مشروعاً', 'Post a project') };
+  }
+
   if (role === 'mentor') {
     const [requests, toReview, upcoming, earnings] = await Promise.all([
       n(from('bookings').eq('mentor_id', userId).eq('status', 'mentor_pending')),

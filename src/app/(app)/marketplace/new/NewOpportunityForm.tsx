@@ -161,6 +161,34 @@ export function NewOpportunityForm({
           <label htmlFor="tags">{t('وسوم', 'Tags')}</label>
           <input id="tags" name="tags" placeholder="Frontend, Design" />
         </div>
+
+        <fieldset className="field">
+          <legend>{t('من يرى هذا الوصف؟', 'Who can see this brief?')}</legend>
+          <label className="radio-row">
+            <input type="radio" name="visibility" value="public" defaultChecked />
+            <span>
+              <strong>{t('السوق كله', 'The whole market')}</strong>
+              <span className="muted">{t('يظهر للجميع ويستقبل عروضاً من أي شخص.', 'Listed for everybody, open to any proposal.')}</span>
+            </span>
+          </label>
+          <label className="radio-row">
+            <input type="radio" name="visibility" value="invite_only" />
+            <span>
+              <strong>{t('بدعوة فقط', 'Invite only')}</strong>
+              <span className="muted">{t('لا يراه إلا من تدعوه بنفسك.', 'Nobody sees it but the people you invite.')}</span>
+            </span>
+          </label>
+        </fieldset>
+
+        <div className="field">
+          <label htmlFor="attachments">{t('مرفقات', 'Attachments')}</label>
+          <textarea id="attachments" name="attachments" rows={3} dir="ltr"
+                    placeholder={'كراسة الشروط | https://…\nمخطط الشاشات | https://…'} />
+          <p className="muted" style={{ fontSize: '0.78rem' }}>
+            {t('رابط في كل سطر، ويمكن كتابة الاسم قبله وفاصلة رأسية.',
+               'One link per line; put a name and a pipe before it to label the file.')}
+          </p>
+        </div>
       </div>
 
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}

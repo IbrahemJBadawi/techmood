@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
-import type { ClientCriterion, SaleLicence } from '@/lib/database.types';
+import type { ClientCriterion, SaleLicence, WorkerCriterion } from '@/lib/database.types';
 
 export type MoneyState = { error?: string; ok?: string } | undefined;
 
@@ -159,4 +159,40 @@ export async function buyProject(_prev: MoneyState, formData: FormData): Promise
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('حُجز المشروع لك — أرسل الإيصال من «عملي».',
                  'The project is reserved for you — send the receipt from “My work”.') };
+}
+
+/**
+ * The other direction, and the one nobody was ever asked for: what the person
+ * who did the work thought of the client. Same gate as the client's own review
+ * — money has to have moved — for the same reason: a judgement that costs
+ * nothing to write is worth nothing to read.
+ */
+export async function reviewClient(_prev: MoneyState, formData: FormData): Promise<MoneyState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const projectId = String(formData.get('project_id') ?? '');
+  const criteria = String(formData.get('criteria') ?? '').split(',').filter(Boolean) as WorkerCriterion[];
+  const scores: Partial<Record<WorkerCriterion, number>> = {};
+  for (const criterion of criteria) {
+    const raw = String(formData.get(criterion) ?? '').trim();
+    if (raw) scores[criterion] = Number(raw);
+  }
+
+  if (Object.keys(scores).length === 0) {
+    return { error: t('اختر درجة واحدة على الأقل.', 'Give at least one score.') };
+  }
+
+  const { error } = await supabase.rpc('review_client', {
+    p_project: projectId,
+    p_scores: scores,
+    p_comment: String(formData.get('comment') ?? '').trim() || null,
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('وصل تقييمك، وهو الآن جزء من سجلّ هذا العميل.',
+                 'Your review is in, and it is now part of this client’s record.') };
 }

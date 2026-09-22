@@ -332,7 +332,7 @@ function RolesStep({
         </p>
       </div>
 
-      {SELECTABLE_ROLES.filter((role) => role.needsReview).map((role) => {
+      {SELECTABLE_ROLES.filter((role) => role.grant !== 'automatic').map((role) => {
         const existing = byRole.get(role.value);
         const checked = requested.includes(role.value);
         return (
@@ -357,11 +357,13 @@ function RolesStep({
               </span>
               {existing
                 ? <span className="pill pill-wait">{t(ROLE_STATUS_LABEL[existing.status])}</span>
-                : <span className="pill">{t('يحتاج مراجعة', 'Needs review')}</span>}
+                : role.grant === 'self_serve'
+                  ? <span className="pill pill-ok">{t('يفتح فوراً', 'Opens at once')}</span>
+                  : <span className="pill">{t('يحتاج مراجعة', 'Needs review')}</span>}
             </label>
             <p className="muted">{t(role.blurb)}</p>
 
-            {checked && !existing && (
+            {checked && !existing && role.grant === 'review' && (
               <div className="field" style={{ marginTop: 10 }}>
                 <label htmlFor={`note_${role.value}`}>{t('لماذا هذا الدور؟', 'Why this role?')}</label>
                 <textarea id={`note_${role.value}`} name={`note_${role.value}`} rows={2}
@@ -373,10 +375,11 @@ function RolesStep({
       })}
 
       <p className="notice">
-        {t('الأدوار التي تطلبها تبدأ بحالة ', 'A role you ask for starts as ')}
+        {t('دور يقول شيئاً عنك — منتور، فريلانسر، مؤسس، قائد فريق، مؤسسة — يبدأ ',
+           'A role that makes a claim about you — mentor, freelancer, founder, team lead, organisation — starts as ')}
         <strong>{t('قيد المراجعة', 'pending review')}</strong>
-        {t('. تراها في حسابك، لكنك لا تدخل مساحتها قبل الاعتماد.',
-           '. You can see it on your account, but you do not enter its workspace until it is approved.')}
+        {t('. أمّا «متدرّب» و«عميل» فيفتحان فوراً: طلب الإرشاد أو وجود عمل تريد تنفيذه ليس ادّعاءً يحتاج من يتحقّق منه.',
+           '. Mentee and client open at once: wanting guidance, or having work to hand out, claims nothing anyone could verify.')}
       </p>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

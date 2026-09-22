@@ -264,6 +264,12 @@ every page, threads per journey, a context chip, memory the person can read,
 edit, mute and delete, and actions the assistant proposes and only a person
 executes. Six things it may never do have no code path at all, confirmed or not.
 
+Also built: **client** and **mentee** as roles of their own — chosen, not
+reviewed — with a client dashboard, private briefs with attachments, a
+candidate comparison that refuses to rank, the freelancer's review of the
+client that never existed before, and a mentorship journey where sessions add
+up to a goal instead of a pile of receipts.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.

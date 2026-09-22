@@ -39,7 +39,8 @@ export default async function OpportunityPage({
 
   const isPoster = opportunity.posted_by === user.id;
 
-  const [{ data: poster }, { data: match }, { data: myApplication }, { data: path }] = await Promise.all([
+  const [{ data: poster }, { data: match }, { data: myApplication }, { data: path },
+         { data: attachments }] = await Promise.all([
     supabase.from('profiles').select('full_name, techmood_id').eq('id', opportunity.posted_by).single(),
     supabase.rpc('opportunity_match', { p_opportunity: opportunityId, p_profile: user.id }),
     supabase
@@ -51,6 +52,10 @@ export default async function OpportunityPage({
     opportunity.required_path_id
       ? supabase.from('learning_paths').select('title_ar').eq('id', opportunity.required_path_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase.from('opportunity_attachments')
+      .select('id, label, url, kind')
+      .eq('opportunity_id', opportunityId)
+      .order('created_at'),
   ]);
 
   // Only the poster sees who applied.
@@ -111,6 +116,9 @@ export default async function OpportunityPage({
               <span className="tag">{t(OPPORTUNITY_KIND[opportunity.kind].label)}</span>
               {opportunity.is_remote && <span className="badge-pill">{t('عن بُعد', 'Remote')}</span>}
               {!isOpen && <span className="status-pill status-muted">{t('مغلقة', 'Closed')}</span>}
+              {opportunity.visibility === 'invite_only' && (
+                <span className="status-pill status-pending">{t('بدعوة فقط', 'Invite only')}</span>
+              )}
             </div>
             <h2 style={{ fontSize: '1.25rem', marginTop: 10 }}>{opportunity.title_ar}</h2>
             <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
@@ -150,11 +158,33 @@ export default async function OpportunityPage({
           )}
         </div>
 
-        {isPoster && opportunity.status === 'published' && (
-          <form action={closeOpportunity} style={{ marginTop: 16 }}>
-            <input type="hidden" name="opportunity_id" value={opportunityId} />
-            <button className="btn btn-ghost btn-sm">{t('أغلق الفرصة', 'Close the opening')}</button>
-          </form>
+        {isPoster && (
+          <div className="row-actions" style={{ marginTop: 16 }}>
+            {(applications?.length ?? 0) > 1 && (
+              <Link className="btn btn-ghost btn-sm" href={`/marketplace/${opportunityId}/compare`}>
+                {t('قارن المتقدّمين', 'Compare candidates')}
+              </Link>
+            )}
+            {opportunity.status === 'published' && (
+              <form action={closeOpportunity}>
+                <input type="hidden" name="opportunity_id" value={opportunityId} />
+                <button className="btn btn-ghost btn-sm">{t('أغلق الفرصة', 'Close the opening')}</button>
+              </form>
+            )}
+          </div>
+        )}
+
+        {(attachments?.length ?? 0) > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <h3 style={{ fontSize: '0.9rem' }}>{t('مرفقات', 'Attachments')}</h3>
+            <ul className="plain-list">
+              {(attachments ?? []).map((file) => (
+                <li key={file.id}>
+                  <a href={file.url} target="_blank" rel="noreferrer noopener">{file.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
 

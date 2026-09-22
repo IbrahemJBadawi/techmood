@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
-import type { ApplicationStage, CompensationKind, OpportunityKind } from '@/lib/database.types';
+import type {
+  ApplicationStage, CompensationKind, OpportunityKind, OpportunityVisibility,
+} from '@/lib/database.types';
 
 export type MarketState = { error?: string; ok?: string } | undefined;
 
@@ -55,6 +57,9 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
       required_path_id: String(formData.get('required_path_id') ?? '') || null,
       required_skills: String(formData.get('required_skills') ?? '')
         .split(',').map((skill) => skill.trim()).filter(Boolean),
+      // A brief can be open to the market, or shown only to the people invited
+      // to it. Invites already existed; nothing had said the brief was private.
+      visibility: (String(formData.get('visibility') ?? 'public')) as OpportunityVisibility,
       tags: String(formData.get('tags') ?? '')
         .split(',').map((tag) => tag.trim()).filter(Boolean),
     })
@@ -63,6 +68,29 @@ export async function postOpportunity(_prev: MarketState, formData: FormData): P
 
   if (error || !data) {
     return { error: t('تعذّر نشر الفرصة — نشر الفرص يتطلب دوراً معتمداً (شركة، مؤسس، قائد فريق، أو فريلانسر).', 'The opening could not be published — posting needs an approved role (organisation, founder, team lead or freelancer).') };
+  }
+
+  // Files come after the row, because an attachment with no brief to hang on
+  // is a row nobody can ever read or delete.
+  const files = String(formData.get('attachments') ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [label, url] = line.split('|').map((part) => part.trim());
+      return url ? { label, url } : { label: line, url: line };
+    })
+    .filter((row) => row.url.startsWith('http'));
+
+  if (files.length > 0) {
+    await supabase.from('opportunity_attachments').insert(
+      files.map((file) => ({
+        opportunity_id: data.id,
+        label: file.label.slice(0, 120),
+        url: file.url,
+        added_by: user.id,
+      })),
+    );
   }
 
   revalidatePath('/marketplace');

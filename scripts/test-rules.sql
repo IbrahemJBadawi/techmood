@@ -5704,6 +5704,198 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+
+-- ===========================================================================
+-- 53. Two roles the platform had the behaviour for but not the word
+-- ===========================================================================
+-- 77777777 arrives wanting guidance, and later wanting work done. Neither is a
+-- claim about them, so neither waits for a human.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+
+select public.apply_for_role('mentee', 'أريد إرشاداً في إدارة المنتج') as mentee_req \gset
+
+select public.assert(
+  (select status from public.profile_roles where id = :'mentee_req') = 'approved'
+  and public.has_role('mentee'),
+  '53.1 asking to be a mentee opens it, because it claims nothing to verify');
+
+select public.apply_for_role('client', 'عندي مشروع أريد تنفيذه') as client_req \gset
+
+select public.assert(
+  (select status from public.profile_roles where id = :'client_req') = 'approved'
+  and (select event from public.role_request_events
+        where role_request_id = :'client_req' order by created_at desc limit 1) = 'approved',
+  '53.2 and so does client — and the trail says it opened, not that it was filed');
+
+select public.apply_for_role('mentor', 'أرشد في إدارة المنتج') as mentor_req \gset
+
+select public.assert(
+  (select status from public.profile_roles where id = :'mentor_req') = 'pending_review',
+  '53.3 a role that does make a claim still waits for a person to read it');
+
+-- The client's brief.
+select public.assert(
+  public.can_post_opportunity('freelance'::public.opportunity_kind),
+  '53.4 and the client may now publish a brief, which a bare account may not');
+
+insert into public.opportunities
+  (kind, title_ar, description_ar, posted_by, compensation_kind, amount_min, amount_max,
+   required_skills, seats, visibility)
+values ('freelance', 'متجر إلكتروني', 'بناء متجر إلكتروني بلوحة تحكم.',
+        '77777777-7777-7777-7777-777777777777', 'fixed', 300, 600,
+        array['Laravel','PHP','MySQL'], 1, 'invite_only')
+returning id as brief \gset
+
+insert into public.opportunity_attachments (opportunity_id, label, url, kind, added_by)
+values (:'brief', 'كراسة الشروط', 'https://example.com/brief.pdf', 'file',
+        '77777777-7777-7777-7777-777777777777')
+returning id as brief_file \gset
+
+select public.invite_to_opportunity(
+  :'brief', '55555555-5555-5555-5555-555555555555', null, 'هل يناسبك هذا؟') as brief_invite \gset
+reset role;
+reset request.jwt.claim.sub;
+
+-- A stranger to an invite-only brief.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.opportunities where id = :'brief') = 0
+  and (select count(*) from public.opportunity_attachments where id = :'brief_file') = 0,
+  '53.5 an invite-only brief, and its files, are invisible to anyone not asked');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.opportunities where id = :'brief') = 1
+  and (select count(*) from public.opportunity_attachments where id = :'brief_file') = 1,
+  '53.6 the person invited sees the brief and what came with it');
+
+select public.respond_to_invite(:'brief_invite', true);
+reset role;
+reset request.jwt.claim.sub;
+
+-- Comparing.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select * from public.compare_candidates(%L)$$, :'brief'),
+  '53.7 comparing candidates is the person who wrote the brief, and nobody else',
+  'لصاحب الفرصة وحده');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.compare_candidates(:'brief')) = 1
+  and (select profile_id from public.compare_candidates(:'brief'))
+      = '55555555-5555-5555-5555-555555555555'
+  and (select cardinality(missing_skills) from public.compare_candidates(:'brief')) >= 0,
+  '53.8 and it lays every applicant out against the brief — evidence, no ranking');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The other half of the review.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.review_client(%L, '{"payment":5}'::jsonb)$$, :'work_project'),
+  '53.9 only the person who did the work judges the client',
+  'من نفّذ العمل فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.review_client(
+  :'work_project',
+  '{"clarity":5,"communication":4,"professionalism":5,"payment":5,"scope":4}'::jsonb,
+  'كان يعرف ما يريد ودفع في وقته.') as worker_review \gset
+
+select public.assert_rejects(
+  format($$select public.review_client(%L, '{"payment":1}'::jsonb)$$, :'work_project'),
+  '53.10 once per piece of work, the same as the other direction',
+  'قيّمت هذا العميل بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select stars from public.worker_reviews where id = :'worker_review') = 5
+  and (select client_id from public.worker_reviews where id = :'worker_review')
+      = '22222222-2222-2222-2222-222222222222',
+  '53.11 the star is the average of what was scored, and it lands on the client');
+
+select public.assert(
+  (select value from public.reputation_scores
+    where profile_id = '22222222-2222-2222-2222-222222222222'
+      and dimension = 'client_conduct') is not null,
+  '53.12 and being a good client becomes a meter of its own, not a footnote');
+
+-- The client's own numbers.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select hires from public.client_overview()) >= 1
+  and (select released_usd from public.client_overview()) >= 400,
+  '53.13 a client counts the people they paid, not the briefs they wrote');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select stars from public.client_profile('22222222-2222-2222-2222-222222222222')) = 5.00
+  and (select paid_on_time from public.client_profile('22222222-2222-2222-2222-222222222222')) = 5.00,
+  '53.14 and a freelancer can read that record before saying yes');
+
+-- The mentee's journey.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.mentorship_goals (profile_id, title_ar, detail_ar, mentor_id, target_on)
+values ('11111111-1111-1111-1111-111111111111', 'أتقن مراجعة الكود',
+        'أريد أن أراجع كود فريقي بثقة.', '33333333-3333-3333-3333-333333333333',
+        current_date + 60)
+returning id as m_goal \gset
+
+select public.link_session_to_goal(:'booking4', :'m_goal');
+
+select public.assert(
+  (select sessions from public.my_mentorship() where goal_id = :'m_goal') = 1,
+  '53.15 a session can say which goal it served, so the sessions add up');
+
+select public.assert_rejects(
+  format($$select public.close_mentorship_goal(%L, 'active')$$, :'m_goal'),
+  '53.16 closing a goal needs an answer, not a shrug',
+  'الإغلاق يحتاج نتيجة');
+
+select public.close_mentorship_goal(:'m_goal', 'achieved', 'راجعت ثلاث مراجعات بنفسي.');
+
+select public.assert(
+  (select goals_achieved from public.mentee_overview()) = 1
+  and (select sessions_attended from public.mentee_overview()) >= 1
+  and (select rating_received from public.mentee_overview()) is not null,
+  '53.17 and the mentee has a record of their own — hours, mentors, goals, and what the mentors said');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.mentorship_goals where id = :'m_goal') = 1,
+  '53.18 the mentor named on a goal can read it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.mentorship_goals where id = :'m_goal') = 0,
+  '53.19 and nobody else can');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

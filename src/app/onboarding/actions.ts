@@ -91,7 +91,7 @@ export async function requestRoles(_prev: StepState, formData: FormData): Promis
     .getAll('roles')
     .map(String)
     .filter((role): role is UserRole =>
-      SELECTABLE_ROLES.some((r) => r.value === role && r.needsReview));
+      SELECTABLE_ROLES.some((r) => r.value === role && r.grant !== 'automatic'));
 
   for (const role of wanted) {
     const note = String(formData.get(`note_${role}`) ?? '').trim();

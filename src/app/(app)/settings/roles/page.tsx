@@ -47,7 +47,7 @@ export default async function MyRolesPage() {
     : { data: [] };
 
   const available = SELECTABLE_ROLES.filter(
-    (role) => role.needsReview && !held.some((row) => row.role === role.value),
+    (role) => role.grant !== 'automatic' && !held.some((row) => row.role === role.value),
   );
 
   const approved = held

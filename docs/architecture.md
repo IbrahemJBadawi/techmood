@@ -1235,6 +1235,66 @@ The line against Messages is deliberate and kept: a conversation is a message,
 an event is a notification. "Ahmed asked to move the session" belongs in one,
 "your session moved to 7pm" in the other.
 
+## Client and mentee: two roles, and the little that was missing
+
+The specs for both arrived describing whole journeys. Almost none of either
+was new behaviour, and saying so is the point.
+
+A client's journey — brief, proposals, terms, escrow, milestones, delivery,
+review — was already built across 0025, 0050, 0051, 0054, 0055 and 0056. A
+mentee's — find, book, pay, attend an internal room, and a two-way rating
+sealed until both sides write — was already built across 0014, 0044 and 0045.
+Rebuilding either would have been the fastest way to split the data in half.
+
+### Roles you choose, rather than roles somebody grants you
+
+Three ways in, not two. `student` is automatic for every account.
+`mentor`, `freelancer`, `founder`, `team_leader` and `company` pass a human,
+because each makes a claim about the person. `mentee` and `client` open the
+moment they are asked for: wanting guidance, or having work to hand out,
+claims nothing anybody could verify, so a review would be theatre. The trail
+is still written — the role request records that it opened, and when.
+
+`RoleDefinition.grant` carries this in the interface (`automatic`,
+`self_serve`, `review`), replacing a boolean that could only say two things.
+
+### What was genuinely missing
+
+* **A private brief.** Invites existed since 0050; nothing ever said the brief
+  itself was private, so every one was public whether its author meant it or
+  not. `opportunities.visibility` says it, and the read policy enforces it for
+  the poster, the invited, and anyone who already applied — because a brief
+  cannot vanish from under an open application.
+* **Comparing.** `opportunity_match()` has answered "how does this one person
+  line up against this brief" since 0025. `compare_candidates()` is that answer
+  for everybody who applied, in one table, deliberately with no score, no
+  winner and no sort but the order people applied. The platform does not know
+  what this client is optimising for, and a number pretending otherwise would
+  be the most confident lie on the page.
+* **The other half of the review.** 0056 gave the client a judgement of the
+  work. Nobody had ever asked the person who did the work what the client was
+  like to work for — the half that decides whether a good freelancer takes the
+  next brief. `worker_reviews` mirrors it exactly, with the same gate: money
+  has to have moved. Being a good client is its own reputation dimension,
+  because it is a different skill from being a good freelancer and blending
+  them would hide both.
+* **A mentorship goal.** Three sessions with three mentors are three receipts.
+  With a goal they are an attempt at something, and the person can say at the
+  end whether it worked. Deliberately not `smart_goals`, which belong to a
+  company and are measured in revenue and users.
+
+### Two conflicts found on the way, and fixed
+
+`can_post_opportunity` had existed twice since 0059 — the two-argument version
+from 0025 and the three-argument one meant to replace it. Both answer a
+one-argument call, so `can_post_opportunity('freelance')` was ambiguous and
+errored. The old one is dropped.
+
+Worse: `opportunities_create` checked `(kind, team_id)` and never looked at
+`startup_id`, which 0059 had added. Anybody could publish a brief stamped with
+a company they have no part in. The policy now asks the question the rest of
+the platform asks — may you manage that company?
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every
