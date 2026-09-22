@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { levelInfo } from '@/lib/xp';
+import { AiSurface } from '@/components/AiSurface';
 
 const ROLE_LABELS: Record<string, Text> = {
   student:     { ar: 'طالب',       en: 'Student' },
@@ -60,6 +61,8 @@ export default async function PassportPage() {
 
   return (
     <>
+      <AiSurface surface="profile" scope="profile" />
+
       <section className="panel section-block">
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
           <div>

@@ -13,6 +13,8 @@ import { Negotiation, type Round } from './Negotiation';
 import { SaveButton } from '../SaveButton';
 import { ApplicantRow } from './ApplicantRow';
 import { closeOpportunity } from '../actions';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 export default async function OpportunityPage({
   params,
@@ -97,7 +99,10 @@ export default async function OpportunityPage({
 
   return (
     <>
+      <AiSurface surface="opportunity" entityType="opportunity" entityId={opportunity.id} label={opportunity.title_ar} />
+
       <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
+      <AskAI prompt={`حلّل فرصة «${opportunity.title_ar}»: ما الذي تطلبه فعلاً، وهل أنا جاهز لها؟`} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

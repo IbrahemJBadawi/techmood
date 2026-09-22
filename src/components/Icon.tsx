@@ -6,6 +6,7 @@ import type { IconName } from '@/lib/roles';
  */
 const PATHS: Record<IconName, string> = {
   home: 'M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-6h5v6',
+  assistant: 'M12 3.5 13.6 8 18 9.5 13.6 11 12 15.5 10.4 11 6 9.5 10.4 8zM18 15.5l.7 1.9 1.8.7-1.8.7-.7 1.9-.7-1.9-1.8-.7 1.8-.7zM5.5 14l.5 1.4 1.4.5-1.4.5L5.5 18 5 16.4l-1.4-.5 1.4-.5z',
   passport: 'M5 3h14v18H5zM9 7h6M9 11h6M9 15h3',
   academy: 'M12 4 2.5 9 12 14l9.5-5zM6 11.5V17c0 1.1 2.7 2.5 6 2.5s6-1.4 6-2.5v-5.5',
   certificate: 'M6 3h12v13H6zM9 7h6M9 10h6M10 16l-1 5 3-1.6L15 21l-1-5',

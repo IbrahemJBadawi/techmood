@@ -12,6 +12,8 @@ import {
   addEducation, addExperience, addExternalExhibition, addLink, removeRow, setSectionAudience,
 } from './actions';
 import { BasicsForm } from './BasicsForm';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 export const metadata = { title: 'Profile — TechMood' };
 
@@ -93,9 +95,12 @@ export default async function ProfileSettingsPage() {
 
   return (
     <>
+      <AiSurface surface="cv" scope="profile" />
+
       <section className="section-block">
         <div className="row-between">
           <h2 style={{ fontSize: '1.2rem' }}>{t('ملفي المهني', 'My professional profile')}</h2>
+          <AskAI prompt="اقترح لي عنواناً مهنياً ونبذة من سطرين بناءً على مهاراتي الموثّقة وأعمالي." />
           {profile && (
             <Link className="btn btn-ghost btn-sm" href={`/u/${profile.techmood_id}`}>
               {t('اعرض ملفي كما يراه الزائر', 'See it as a visitor does')}

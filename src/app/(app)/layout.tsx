@@ -14,6 +14,8 @@ import { HeaderSearch } from './shell/HeaderSearch';
 import { Notifications } from './shell/Notifications';
 import { ProfileMenu } from './shell/ProfileMenu';
 import { ThemeToggle } from './shell/ThemeToggle';
+import { Assistant } from './shell/Assistant';
+import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -106,9 +108,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <div className="content" data-active-role={ROLE_BY_VALUE[active].value}>
-          {children}
-        </div>
+        <AssistantProvider>
+          <div className="content" data-active-role={ROLE_BY_VALUE[active].value}>
+            {children}
+          </div>
+
+          {/* A layer over every page, not a page of its own. */}
+          <Assistant />
+        </AssistantProvider>
       </div>
     </div>
   );

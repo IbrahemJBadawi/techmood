@@ -34,7 +34,8 @@ export type RoleDefinition = {
 export type IconName =
   | 'home' | 'passport' | 'academy' | 'certificate' | 'gallery' | 'team'
   | 'message' | 'mentor' | 'calendar' | 'wallet' | 'work' | 'application'
-  | 'startup' | 'incubator' | 'review' | 'shield' | 'settings' | 'company';
+  | 'startup' | 'incubator' | 'review' | 'shield' | 'settings' | 'company'
+  | 'assistant';
 
 export const ROLES: RoleDefinition[] = [
   {
@@ -137,6 +138,7 @@ const COMMON: NavGroup = {
     { href: '/passport', label: { ar: 'الجواز المهني', en: 'Passport' }, icon: 'passport' },
     { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
     { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'shield' },
+    { href: '/ai', label: { ar: 'المساعد', en: 'Assistant' }, icon: 'assistant' },
   ],
 };
 

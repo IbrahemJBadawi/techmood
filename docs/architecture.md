@@ -1235,6 +1235,72 @@ The line against Messages is deliberate and kept: a conversation is a message,
 an event is a notification. "Ahmed asked to move the session" belongs in one,
 "your session moved to 7pm" in the other.
 
+## The assistant reads as the person
+
+TechMood AI is a layer, not a page. A ✦ button sits in the shell over every
+screen, and what it knows about that screen comes from the page itself: pages
+render `<AiSurface surface=… entityId=… />`, which registers a surface and an
+**id** — never data. A route is a routing detail, and an assistant that infers
+"you are on a lesson" from a path segment starts lying the first time somebody
+renames a folder.
+
+### One function decides everything about what it can see
+
+`ai_context()` is `security invoker`. That single word is the whole
+authorization story: every select inside it runs under the caller's own row
+level security, so the assistant's view of TechMood is exactly the person's view
+of TechMood, never a row wider. There is no service key, no profile parameter,
+and nothing to tamper with — passing somebody else's canvas id returns an empty
+page slice, not their canvas (§29). The context chip — الصفحة الحالية / الدورة
+الحالية / ملفي / مشروعي / فريقي / TechMood كله — only widens *which* of the
+person's own slices are read.
+
+### A proposal is a row, not a call
+
+The model never executes anything. Its one tool writes a **proposal**:
+`propose_ai_action()` inserts a row with status `proposed`, and that is all that
+happens until a person presses a button. `confirm_ai_action()` is `security
+invoker` too, so a confirmed action is an ordinary write the person could have
+made from a form — RLS refuses it on exactly the same terms. Section 52 proves
+it: an action confirmed against somebody else's company is recorded `failed` and
+the goal is not written.
+
+Outcomes are returned, not raised. Raising would abort the transaction and take
+the status row down with it, and an assistant whose failures leave no trace is
+worse than one that cannot act at all. A proposal nobody answers within a day
+expires.
+
+### What it may never do, and why that is not a setting
+
+`ai_action_kinds` holds the whitelist. Six rows are marked `restricted` —
+booking a paid session, moving money, changing account data, deleting a project,
+sending a message in the person's name, and submitting a proposal to a client —
+and **they have no execution branch at all**. `propose_ai_action()` refuses them
+at the proposal, so no button is ever drawn; `confirm_ai_action()` refuses them
+again if a row somehow gets that far. Marking them "needs confirmation" would
+have been the easy answer and the wrong one: a confirmation dialog is a habit
+people learn to click through.
+
+Each restricted row carries its own `refusal_ar`, so the interface and the
+assistant say the same sentence — and say what *can* be done instead: it writes
+the proposal, you press send.
+
+### Memory the person owns
+
+`ai_memory` is a list, not a model. It can be read, reworded, muted line by
+line, deleted outright, or switched off entirely. Switching it off does not hide
+it — `ai_memory_json()` returns nothing, so it stops being sent, while the rows
+stay visible to the person who wrote them.
+
+### What is not built
+
+The model call needs a provider key. `ANTHROPIC_API_KEY` is read server-side
+only; without it the panel says so plainly, and the threads, context, memory,
+proposals and confirmations all still work — there is simply nobody answering.
+The call itself lives in `src/lib/ai-claude.ts` and is the only place in the
+platform that talks to a model, deliberately: everything that must be true
+whichever model answers lives in the database.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

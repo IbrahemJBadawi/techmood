@@ -16,6 +16,8 @@ import {
   OpenEscrowForm, SellForm, WithdrawListing,
 } from './Money';
 import type { PaymentMethod } from '@/lib/database.types';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
@@ -100,9 +102,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   return (
     <>
+      <AiSurface surface="project" entityType="project" entityId={project.id} label={project.title_ar} />
+
       <Link className="btn btn-ghost btn-sm" href="/marketplace?tab=work">
         {t('→ رجوع لعملي', '← Back to my work')}
       </Link>
+      <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

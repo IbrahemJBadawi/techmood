@@ -10,6 +10,8 @@ import { StartupNav } from '../StartupNav';
 import { addSwotItem, removeSwotItem, saveStrategy, updateGoalProgress } from '../../actions';
 import { NewGoalForm } from './NewGoalForm';
 import { SwotDoor, type SwotOption } from './SwotDoor';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 export default async function StrategyPage({
   params,
@@ -40,9 +42,12 @@ export default async function StrategyPage({
 
   return (
     <>
+      <AiSurface surface="startup" scope="startup" entityType="startup" entityId={startupId} label={startup.name_ar} />
+
       <section className="section-block">
         <div className="row-between">
           <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar}{t(' — الاستراتيجية', ' — strategy')}</h2>
+          <AskAI prompt={`بالنظر إلى تحليل SWOT وأهداف «${startup.name_ar}»، ما أخطر نقطة ضعف وكيف نعالجها هذا الربع؟`} />
           <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>

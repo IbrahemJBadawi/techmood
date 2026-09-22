@@ -845,12 +845,81 @@ export type ReviewQueueItem = {
   created_at: string | null;
 }
 
+/* --------------------------------------------------------------------------
+ * TechMood AI — a layer over the platform, not a page beside it
+ * ----------------------------------------------------------------------- */
+export type AiSurface =
+  | 'general' | 'lesson' | 'course' | 'assessment' | 'assignment' | 'project'
+  | 'profile' | 'cv' | 'market' | 'opportunity' | 'mentor' | 'booking'
+  | 'team' | 'startup' | 'canvas' | 'goal';
+
+export type AiScope =
+  | 'page' | 'course' | 'profile' | 'project' | 'team' | 'startup' | 'platform';
+
+export type AiRole = 'user' | 'assistant' | 'system';
+
+/** 👁️ read · ✏️ suggest · ✅ act · 🔒 restricted */
+export type AiPermission = 'read' | 'suggest' | 'act' | 'restricted';
+
+export type AiActionStatus =
+  | 'proposed' | 'confirmed' | 'executed' | 'declined' | 'failed' | 'expired';
+
+export type AiMemoryKind = 'goal' | 'preference' | 'skill' | 'context' | 'fact';
+
+export type AiThread = {
+  id: string; profile_id: string; title_ar: string;
+  surface: AiSurface; scope: AiScope;
+  entity_type: string | null; entity_id: string | null;
+  is_archived: boolean; created_at: string; last_message_at: string;
+};
+
+export type AiMessage = {
+  id: string; thread_id: string; role: AiRole; content: string;
+  surface: AiSurface | null; scope: AiScope | null;
+  model: string | null; error_ar: string | null; created_at: string;
+};
+
+export type AiMemoryRow = {
+  id: string; profile_id: string; kind: AiMemoryKind; content_ar: string;
+  from_assistant: boolean; is_active: boolean;
+  source_thread: string | null; created_at: string; updated_at: string;
+};
+
+export type AiActionRow = {
+  id: string; thread_id: string | null; profile_id: string; kind: string;
+  summary_ar: string; params: Record<string, unknown>; status: AiActionStatus;
+  result: Record<string, unknown> | null; error_ar: string | null;
+  proposed_at: string; decided_at: string | null; executed_at: string | null;
+};
+
+export type AiActionKind = {
+  kind: string; title_ar: string; detail_ar: string | null;
+  permission: AiPermission; refusal_ar: string | null;
+  is_enabled: boolean; sort_order: number;
+};
+
 type Table<Row> = { Row: Row; Insert: Partial<Row>; Update: Partial<Row>; Relationships: [] };
 type View<Row> = { Row: Row; Relationships: [] };
 
 export type Database = {
   public: {
     Tables: {
+      ai_preferences: Table<{
+        profile_id: string; memory_enabled: boolean; actions_enabled: boolean; updated_at: string;
+      }>;
+      ai_threads: Table<AiThread>;
+      ai_messages: Table<AiMessage>;
+      ai_memory: Table<AiMemoryRow>;
+      ai_actions: Table<AiActionRow>;
+      ai_action_kinds: Table<AiActionKind>;
+      ai_surface_permissions: Table<{
+        surface: AiSurface; title_ar: string; permission: AiPermission;
+        note_ar: string | null; sort_order: number;
+      }>;
+      ai_suggestions: Table<{
+        id: string; surface: AiSurface; label_ar: string; prompt_ar: string;
+        icon: string | null; sort_order: number; is_active: boolean;
+      }>;
       profiles: Table<Profile>;
       profile_roles: Table<ProfileRole>;
       role_request_events: Table<RoleRequestEventRow>;
@@ -1902,6 +1971,94 @@ export type Database = {
       };
       is_course_complete: { Args: { p_profile: string; p_course: string }; Returns: boolean };
       is_path_complete: { Args: { p_profile: string; p_path: string }; Returns: boolean };
+      ai_settings: {
+        Args: Record<string, never>;
+        Returns: { memory_enabled: boolean; actions_enabled: boolean }[];
+      };
+      set_ai_preferences: {
+        Args: { p_memory?: boolean | null; p_actions?: boolean | null };
+        Returns: undefined;
+      };
+      ai_memory_json: { Args: Record<string, never>; Returns: unknown };
+      ai_remember: {
+        Args: {
+          p_content: string; p_kind?: AiMemoryKind;
+          p_thread?: string | null; p_from_assistant?: boolean;
+        };
+        Returns: string;
+      };
+      my_ai_memory: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; kind: AiMemoryKind; content_ar: string;
+          from_assistant: boolean; is_active: boolean; created_at: string;
+        }[];
+      };
+      start_ai_thread: {
+        Args: {
+          p_title: string; p_surface?: AiSurface; p_scope?: AiScope;
+          p_entity_type?: string | null; p_entity_id?: string | null;
+        };
+        Returns: string;
+      };
+      my_ai_threads: {
+        Args: { p_include_archived?: boolean };
+        Returns: {
+          id: string; title_ar: string; surface: AiSurface; scope: AiScope;
+          entity_type: string | null; entity_id: string | null;
+          is_archived: boolean; messages: number; last_message_at: string;
+        }[];
+      };
+      ai_say: {
+        Args: {
+          p_thread: string; p_role: AiRole; p_content: string;
+          p_surface?: AiSurface | null; p_scope?: AiScope | null;
+          p_model?: string | null; p_error?: string | null;
+        };
+        Returns: string;
+      };
+      ai_context: {
+        Args: {
+          p_surface?: AiSurface; p_scope?: AiScope;
+          p_entity_type?: string | null; p_entity_id?: string | null;
+        };
+        Returns: unknown;
+      };
+      propose_ai_action: {
+        Args: {
+          p_thread: string | null; p_kind: string; p_summary: string;
+          p_params?: Record<string, unknown>;
+        };
+        Returns: string;
+      };
+      confirm_ai_action: { Args: { p_action: string }; Returns: unknown };
+      decline_ai_action: { Args: { p_action: string }; Returns: undefined };
+      ai_thread_messages: {
+        Args: { p_thread: string };
+        Returns: {
+          id: string; role: AiRole; content: string;
+          error_ar: string | null; created_at: string;
+        }[];
+      };
+      ai_thread_actions: {
+        Args: { p_thread?: string | null };
+        Returns: {
+          id: string; kind: string; title_ar: string; summary_ar: string;
+          params: Record<string, unknown>; status: AiActionStatus;
+          error_ar: string | null; proposed_at: string;
+        }[];
+      };
+      ai_suggestions_for: {
+        Args: { p_surface: AiSurface };
+        Returns: { label_ar: string; prompt_ar: string; icon: string | null }[];
+      };
+      ai_restrictions: {
+        Args: Record<string, never>;
+        Returns: {
+          kind: string; title_ar: string;
+          detail_ar: string | null; refusal_ar: string | null;
+        }[];
+      };
       is_admin: { Args: Record<string, never>; Returns: boolean };
       is_mentor: { Args: Record<string, never>; Returns: boolean };
     };

@@ -33,6 +33,13 @@ begin
 end
 $$;
 
+-- Supabase grants these on a real project, and client-facing SQL depends on it:
+-- every RLS policy calls auth.uid(), and so does any `security invoker`
+-- function meant to read as the caller. The schema is reachable; the users
+-- table behind it is not.
+grant usage on schema auth to anon, authenticated, service_role;
+grant execute on function auth.uid() to anon, authenticated, service_role;
+
 -- Supabase Storage, shimmed to the two objects our migrations touch.
 create schema if not exists storage;
 create table if not exists storage.buckets (

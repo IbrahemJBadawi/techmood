@@ -8,6 +8,8 @@ import type { BusinessPlanSection } from '@/lib/database.types';
 
 import { StartupNav } from '../StartupNav';
 import { PlanSectionCard } from './PlanSectionCard';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 export default async function BusinessPlanPage({
   params,
@@ -35,9 +37,12 @@ export default async function BusinessPlanPage({
 
   return (
     <>
+      <AiSurface surface="startup" scope="startup" entityType="startup" entityId={startupId} label={startup.name_ar} />
+
       <section className="section-block">
         <div className="row-between">
           <h2 style={{ fontSize: '1.15rem' }}>{startup.name_ar}{t(' — خطة العمل', ' — business plan')}</h2>
+          <AskAI prompt={`راجع خطة عمل «${startup.name_ar}»: أي الأقسام ضعيف أو ناقص، وما الذي أكتبه فيه؟`} />
           <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}`}>{t('نظرة عامة', 'Overview')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>

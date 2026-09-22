@@ -259,6 +259,11 @@ notification that knows which entity it concerns, a full centre with filters,
 and platform announcements that go through the same engine and report what
 became of them.
 
+Also built: TechMood AI as a layer over the whole platform — a ✦ button on
+every page, threads per journey, a context chip, memory the person can read,
+edit, mute and delete, and actions the assistant proposes and only a person
+executes. Six things it may never do have no code path at all, confirmed or not.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.
@@ -295,3 +300,11 @@ clients and are safe to run repeatedly:
 select cron.schedule('close-sessions',  '*/5 * * * *', $$select public.close_due_video_sessions()$$);
 select cron.schedule('notify-sessions', '*/5 * * * *', $$select public.notify_due_sessions()$$);
 ```
+
+### The assistant's model provider
+
+`ANTHROPIC_API_KEY` is read server-side only and has no `NEXT_PUBLIC_` prefix on
+purpose. **No key is configured in this repository.** Without it the assistant's
+threads, context, memory, proposals and confirmations all work and the panel
+says plainly that nothing is answering; with it, `src/lib/ai-claude.ts` is the
+one place that calls a model.

@@ -8,6 +8,7 @@ import { getT } from '@/lib/i18n.server';
 import { ACTIVITY_VERBS, SPRINT_STATUS, TEAM_KIND, TEAM_STATUS, isOverdue } from '@/lib/teams';
 
 import { TeamNav } from './TeamNav';
+import { AiSurface } from '@/components/AiSurface';
 
 export default async function TeamOverviewPage({
   params,
@@ -54,6 +55,8 @@ export default async function TeamOverviewPage({
 
   return (
     <>
+      <AiSurface surface="team" scope="team" entityType="team" entityId={team.id} label={team.title_ar} />
+
       <section className="panel section-block">
         <div className="row-between" style={{ alignItems: 'flex-start' }}>
           <div>

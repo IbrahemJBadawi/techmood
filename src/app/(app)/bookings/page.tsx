@@ -13,6 +13,7 @@ import { BookingList, FILTERS, type BookingFilter } from './BookingList';
 import { Calendar } from './Calendar';
 import { History } from './History';
 import { Preview } from './Preview';
+import { AiSurface } from '@/components/AiSurface';
 
 export const metadata = { title: 'Bookings & Calendar — TechMood' };
 
@@ -106,6 +107,8 @@ export default async function BookingsHub({
 
   return (
     <>
+      <AiSurface surface="booking" />
+
       <section className="section-block">
         <div className="row-between" style={{ alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
           <div>

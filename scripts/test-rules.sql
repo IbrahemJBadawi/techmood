@@ -5489,6 +5489,221 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+
+-- ===========================================================================
+-- 52. An assistant that reads as the person, and asks before it acts
+-- ===========================================================================
+-- Everything here is about two promises: the assistant sees exactly what the
+-- person sees, and it does nothing the person has not pressed a button for.
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert(
+  (select count(*) from public.ai_surface_permissions) = 16
+  and (select permission from public.ai_surface_permissions where surface = 'booking') = 'read',
+  '52.1 every surface says what the assistant may do there');
+
+select public.assert(
+  (select count(*) from public.ai_action_kinds where permission = 'restricted') = 6
+  and (select count(*) from public.ai_restrictions()) = 6,
+  '52.2 and the six things it may never do are written down, not implied');
+
+-- The context resolver.
+select public.assert(
+  (public.ai_context('general', 'profile') -> 'me' ->> 'name') = 'سارة يوسف'
+  and (public.ai_context('general', 'profile') ->> 'surface') = 'general',
+  '52.3 the assistant is told who is asking');
+
+select public.assert(
+  (public.ai_context('startup', 'page', 'startup', :'startup') -> 'page' ->> 'name') = 'صحة رقمية',
+  '52.4 and what is on the screen');
+
+select public.assert(
+  (public.ai_context('canvas', 'page', 'canvas', :'lean') -> 'page' ->> 'canvas_kind') = 'lean',
+  '52.5 including a canvas, block by block');
+
+-- Threads and memory.
+select public.start_ai_thread('تعلّم Python', 'lesson', 'course') as thread \gset
+
+select public.ai_say(:'thread', 'user', 'من أين أبدأ؟', 'lesson', 'course') as said \gset
+
+select public.assert(
+  (select count(*) from public.ai_thread_messages(:'thread')) = 1
+  and (select messages from public.my_ai_threads() where id = :'thread') = 1,
+  '52.6 a thread keeps its own history');
+
+select public.ai_remember('أفضّل الشرح بالأمثلة قبل النظرية', 'preference') as mem \gset
+
+select public.assert(
+  jsonb_array_length(public.ai_memory_json()) = 1
+  and jsonb_array_length(public.ai_context('general', 'page') -> 'memory') = 1,
+  '52.7 what the assistant remembers is part of what it is told');
+
+select public.set_ai_preferences(p_memory := false);
+
+select public.assert(
+  jsonb_array_length(public.ai_memory_json()) = 0
+  and (select count(*) from public.my_ai_memory()) = 1,
+  '52.8 switching memory off empties the prompt, not the list the person owns');
+
+select public.assert_rejects(
+  $$select public.ai_remember('شيء جديد')$$,
+  '52.9 and nothing new is remembered while it is off',
+  'ذاكرة المساعد موقوفة');
+
+select public.set_ai_preferences(p_memory := true);
+reset role;
+reset request.jwt.claim.sub;
+
+-- The five refusals, at the proposal, where the person never sees a button.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'book_paid_session', 'أحجز لك جلسة')$$,
+  '52.10 the assistant does not book a paid session',
+  'لا يحجز جلسة مدفوعة');
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'send_money', 'أحوّل المبلغ')$$,
+  '52.11 nor move money',
+  'لا يحرّك مالًا');
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'change_account_data', 'أغيّر بريدك')$$,
+  '52.12 nor change account data',
+  'بيانات الحساب الحسّاسة');
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'delete_project', 'أحذف المشروع')$$,
+  '52.13 nor delete work',
+  'لا يحذف عملًا');
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'send_message_as_user', 'أردّ على العميل')$$,
+  '52.14 nor speak in the person''s name',
+  'ولا يرسلها باسمك');
+
+select public.assert_rejects(
+  $$select public.propose_ai_action(null, 'transfer_the_company', 'خطوة مبتكرة')$$,
+  '52.15 and an action nobody wrote down does not exist',
+  'إجراء غير معروف');
+
+-- Proposing changes nothing.
+select public.propose_ai_action(
+  :'thread', 'add_canvas_card', 'أضيف بطاقة إلى لوحة Lean',
+  jsonb_build_object('canvas_id', :'lean'::text, 'block', 'solution',
+                     'body', 'تطبيق يسجّل الزيارة صوتياً')) as card_action \gset
+
+select public.assert(
+  (select status from public.ai_actions where id = :'card_action') = 'proposed'
+  and (select count(*) from public.canvas_cards
+        where canvas_id = :'lean' and block_key = 'solution') = 0,
+  '52.16 a proposal is a row, not a change');
+
+select public.confirm_ai_action(:'card_action') ->> 'ok' as card_ok \gset
+
+select public.assert(
+  :'card_ok' = 'true'
+  and (select count(*) from public.canvas_cards
+        where canvas_id = :'lean' and block_key = 'solution') = 1
+  and (select status from public.ai_actions where id = :'card_action') = 'executed',
+  '52.17 and the person''s confirmation is what makes it happen');
+
+select public.assert_rejects(
+  format($$select public.confirm_ai_action(%L)$$, :'card_action'),
+  '52.18 a confirmation is spent once',
+  'تمّت معالجته');
+
+-- Actions the person switched off.
+select public.propose_ai_action(:'thread', 'update_headline', 'أكتب عنوانك المهني',
+  jsonb_build_object('headline', 'مطوّرة واجهات')) as headline_action \gset
+
+select public.set_ai_preferences(p_actions := false);
+
+select public.assert_rejects(
+  format($$select public.confirm_ai_action(%L)$$, :'headline_action'),
+  '52.19 nothing runs while the person has actions switched off',
+  'إجراءات المساعد موقوفة');
+
+select public.set_ai_preferences(p_actions := true);
+
+select public.confirm_ai_action(:'headline_action');
+
+select public.assert(
+  (select headline from public.profiles
+    where id = '11111111-1111-1111-1111-111111111111') = 'مطوّرة واجهات',
+  '52.20 and runs, as the person, once they say so');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Somebody else's assistant is somebody else's business.
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+select public.assert(
+  (select count(*) from public.ai_thread_messages(:'thread')) = 0
+  and (select count(*) from public.ai_actions where id = :'card_action') = 0,
+  '52.21 another person sees neither the thread nor the proposal');
+
+select public.assert_rejects(
+  format($$select public.ai_say(%L, 'user', 'أنا لست صاحب هذه المحادثة')$$, :'thread'),
+  '52.22 and cannot write into it',
+  'row-level security');
+
+-- The canvas is workspace-visible and 22222222 is not in the workspace. The
+-- same id that filled the resolver for its owner fills nothing here — which is
+-- the whole argument for `security invoker` in one assertion.
+select public.assert(
+  (public.ai_context('canvas', 'page', 'canvas', :'lean') -> 'page') = 'null'::jsonb,
+  '52.23 the same id in the same call returns nothing to somebody who may not see it');
+
+-- A confirmed action still has to get past row level security.
+select public.propose_ai_action(null, 'create_goal', 'أضيف هدفاً لشركة ليست لي',
+  jsonb_build_object('startup_id', :'startup'::text, 'title', 'هدف مندسّ',
+                     'metric', 'مستخدمون', 'target', 100)) as sneaky \gset
+
+select public.confirm_ai_action(:'sneaky') ->> 'ok' as sneaky_ok \gset
+
+select public.assert(
+  :'sneaky_ok' = 'false'
+  and (select status from public.ai_actions where id = :'sneaky') = 'failed'
+  and (select count(*) from public.smart_goals where title_ar = 'هدف مندسّ') = 0,
+  '52.24 a confirmed action can do no more than the person could have done by hand');
+reset role;
+reset request.jwt.claim.sub;
+
+-- An offer nobody answered.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.propose_ai_action(:'thread', 'update_bio', 'أكتب نبذتك',
+  jsonb_build_object('bio', 'نبذة قديمة')) as stale \gset
+reset role;
+reset request.jwt.claim.sub;
+
+update public.ai_actions set proposed_at = now() - interval '2 days' where id = :'stale';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+select public.confirm_ai_action(:'stale') ->> 'ok' as stale_ok \gset
+
+select public.assert(
+  :'stale_ok' = 'false'
+  and (select status from public.ai_actions where id = :'stale') = 'expired'
+  and (select bio from public.profiles
+        where id = '11111111-1111-1111-1111-111111111111') is distinct from 'نبذة قديمة',
+  '52.25 an offer nobody answered in a day is not an offer any more');
+
+select public.assert(
+  (select count(*) from public.ai_suggestions_for('lesson')) = 3
+  and (select count(*) from public.ai_suggestions_for('general')) = 3,
+  '52.26 and every surface opens with something worth asking');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

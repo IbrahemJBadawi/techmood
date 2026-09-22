@@ -2784,3 +2784,231 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   font-size: 0.82rem;
 }
 .header-dropdown-foot a { text-decoration: none; }
+
+/* ---------- the assistant, as a layer over every page ---------- */
+.ai-fab {
+  position: fixed;
+  inset-block-end: 22px;
+  inset-inline-end: 22px;
+  z-index: 60;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(140deg, var(--royal), var(--sky-deep));
+  color: #fff;
+  font-size: 1.35rem;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(0, 82, 204, 0.32);
+}
+.ai-fab.is-open { transform: rotate(45deg); }
+
+.ai-panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 61;
+  width: min(430px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border-inline-start: 1px solid var(--line);
+  box-shadow: -18px 0 42px rgba(7, 28, 43, 0.14);
+}
+.ai-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ai-panel-head strong { display: block; }
+.ai-panel-tools { display: flex; align-items: center; gap: 6px; }
+.ai-surface-chip { font-size: 0.78rem; color: var(--ink-soft); }
+
+.ai-scope-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ai-scope {
+  border: 1px solid var(--line);
+  background: var(--bg-deep);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.ai-scope.is-on {
+  background: var(--sky-tint);
+  border-color: var(--royal);
+  color: var(--royal-dark);
+}
+
+.ai-notice {
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 0.8rem;
+  color: var(--warn);
+  background: rgba(181, 118, 10, 0.08);
+}
+
+.ai-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-stream.is-full { max-height: 58vh; }
+
+.ai-bubble {
+  border-radius: var(--radius-s);
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  max-width: 92%;
+}
+.ai-user { align-self: flex-end; background: var(--sky-tint); }
+.ai-assistant { align-self: flex-start; background: var(--bg-deep); }
+.ai-bubble.is-thinking { letter-spacing: 3px; color: var(--ink-soft); }
+.ai-error { color: var(--danger); font-style: normal; }
+
+.ai-empty { color: var(--ink-soft); font-size: 0.86rem; }
+.ai-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ai-suggestion {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+.ai-suggestion:hover { border-color: var(--royal); color: var(--royal-dark); }
+
+/* A proposal is a card with two answers, never a line of text that already ran. */
+.ai-action {
+  border: 1px solid var(--royal);
+  border-radius: var(--radius-s);
+  background: var(--sky-tint);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.ai-action p { margin: 4px 0 0; }
+.ai-action-buttons { display: flex; gap: 8px; }
+.ai-action.is-settled {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  border-color: var(--line);
+  background: var(--bg-deep);
+}
+
+.ai-composer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.ai-composer textarea {
+  flex: 1;
+  resize: vertical;
+  font: inherit;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.ai-panel-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+.ai-panel-foot a { text-decoration: none; }
+
+/* «✨ اسأل الذكاء» — the same assistant, opened from inside something */
+.ask-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px dashed var(--royal);
+  background: transparent;
+  color: var(--royal-dark);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.ask-ai:hover { background: var(--sky-tint); }
+.ask-ai-inline { border-style: none; padding: 2px 6px; }
+
+.ai-thread-list { list-style: none; margin: 0; padding: 0; }
+.ai-thread-list a {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+}
+.ai-thread-title { font-weight: 600; }
+
+.ai-restrictions { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ai-restrictions li { display: flex; gap: 10px; align-items: flex-start; }
+.ai-restrictions p { margin: 2px 0 0; color: var(--ink-soft); font-size: 0.85rem; }
+
+.ai-memory-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ai-memory-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ai-memory-list li.is-off { opacity: 0.55; }
+.ai-memory-text { flex: 1; min-width: 200px; }
+.ai-memory-buttons { display: flex; gap: 4px; margin-inline-start: auto; }
+.ai-memory-edit { display: flex; gap: 6px; flex: 1; }
+.ai-memory-edit input {
+  flex: 1;
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  /* On a phone it is a bottom sheet, because a side panel on a phone is a page. */
+  .ai-panel {
+    inset-block-start: auto;
+    inset-inline: 0;
+    width: 100%;
+    height: 82vh;
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
+    border-inline-start: none;
+    border-top: 1px solid var(--line);
+  }
+  .ai-fab { inset-block-end: 16px; inset-inline-end: 16px; }
+}
+
+@media print {
+  .ai-fab, .ai-panel { display: none !important; }
+}

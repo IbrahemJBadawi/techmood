@@ -11,6 +11,8 @@ import { StartupNav } from '../../StartupNav';
 import { CanvasBoard, type Block } from '../CanvasBoard';
 import { CardDoors } from './CardDoors';
 import { restoreVersion, setCanvasVisibility, snapshotCanvas } from '../actions';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 /**
  * One wall: its blocks, its cards, its history, and the doors out of it.
@@ -60,12 +62,15 @@ export default async function CanvasPage({
 
   return (
     <>
+      <AiSurface surface="canvas" entityType="canvas" entityId={canvasId} label={canvas.title_ar} />
+
       <section className="section-block">
         <div className="row-between">
           <div>
             <p className="kicker">{t(CANVAS_KIND[canvas.kind as CanvasKind].label)}</p>
             <h2 style={{ fontSize: '1.15rem', marginTop: 4 }}>{canvas.title_ar}</h2>
           </div>
+          <AskAI prompt={`انظر إلى لوحة «${canvas.title_ar}» واقترح بطاقات للخانات الفارغة.`} />
           <Link className="btn btn-ghost btn-sm" href={`/startups/${startupId}/canvases`}>
             {t('كل اللوحات', 'All canvases')}
           </Link>

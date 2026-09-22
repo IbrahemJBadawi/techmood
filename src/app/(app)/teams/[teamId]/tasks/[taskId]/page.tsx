@@ -8,6 +8,8 @@ import { TASK_COLUMNS, TASK_PRIORITY, isOverdue } from '@/lib/teams';
 
 import { addChecklistItem, addTaskComment, toggleChecklistItem } from '../../../actions';
 import { MoveTask } from '../MoveTask';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 export default async function TaskDetailPage({
   params,
@@ -50,7 +52,10 @@ export default async function TaskDetailPage({
 
   return (
     <>
+      <AiSurface surface="assignment" scope="team" entityType="team" entityId={teamId} label={task.title_ar} />
+
       <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}/tasks`}>{t('→ رجوع للمهام', '← Back to tasks')}</Link>
+      <AskAI prompt={`راجع مهمة «${task.title_ar}» وقل لي ما ينقصها قبل أن أعتبرها منتهية.`} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

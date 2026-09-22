@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { money } from '@/lib/booking';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -51,7 +53,10 @@ export default async function MentorProfilePage({
 
   return (
     <>
+      <AiSurface surface="mentor" entityType="mentor" entityId={mentorId} label={profile?.full_name ?? undefined} />
+
       <Link className="btn btn-ghost btn-sm" href="/mentors">{t('→ رجوع للمنتورز', '← Back to mentors')}</Link>
+      <AskAI prompt="جهّز لي خمسة أسئلة محدّدة أطرحها على هذا المنتور في الجلسة القادمة." />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

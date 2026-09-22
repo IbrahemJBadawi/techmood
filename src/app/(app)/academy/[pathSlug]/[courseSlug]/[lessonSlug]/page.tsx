@@ -11,6 +11,8 @@ import { toggleLesson } from '../../../actions';
 import { LessonBoard } from '../../../LessonBoard';
 import { ShareDraft } from '../../../ShareDraft';
 import { SubmissionPanel } from '../../../SubmissionPanel';
+import { AiSurface } from '@/components/AiSurface';
+import { AskAI } from '@/components/AskAI';
 
 const KIND_LABEL: Record<string, Text> = {
   video:    { ar: 'فيديو',       en: 'Video' },
@@ -145,6 +147,8 @@ export default async function LessonPage({
 
   return (
     <>
+      <AiSurface surface="lesson" entityType="lesson" entityId={lesson.id} label={title} />
+
       <nav className="lesson-trail" aria-label={t('مكانك', 'Where you are')}>
         <Link href={`/academy/${pathSlug}`}>{contentText(locale, path.title_ar, path.title_en)}</Link>
         <span aria-hidden>/</span>
@@ -160,6 +164,7 @@ export default async function LessonPage({
               <span className="tag">{KIND_LABEL[lesson.kind] ? t(KIND_LABEL[lesson.kind]) : lesson.kind}</span>
               {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
               <span className="eng muted">{t(`الدرس ${position} من ${lessons.length}`, `Lesson ${position} of ${lessons.length}`)}</span>
+              <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
             </div>
           </div>
           <form action={toggleLesson}>

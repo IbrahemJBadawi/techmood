@@ -13,6 +13,7 @@ import { MoneyTab } from './Money';
 import { MyWork } from './MyWork';
 import { TalentList } from './TalentList';
 import { TeamList } from './TeamList';
+import { AiSurface } from '@/components/AiSurface';
 
 export const metadata = { title: 'Market — TechMood' };
 
@@ -76,6 +77,8 @@ export default async function MarketPage({
 
   return (
     <>
+      <AiSurface surface="market" />
+
       <section className="market-hero section-block">
         <h2>{t('ابنِ. اعمل. انمُ.', 'Build. Work. Grow.')}</h2>
         <p className="muted">
