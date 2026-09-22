@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 
 export type PaymentState = { error?: string; ok?: string } | undefined;
@@ -69,4 +70,114 @@ export async function cancelBooking(formData: FormData) {
 
   revalidatePath('/bookings');
   revalidatePath(`/bookings/${bookingId}`);
+}
+
+// ---------------------------------------------------------------------------
+// The hub: a mentor's own week, and the rules their day runs by
+// ---------------------------------------------------------------------------
+
+export type HubState = { error?: string; ok?: string } | undefined;
+
+/**
+ * The mentor's week.
+ *
+ * One window per day, which is what the five-hour daily cap and the hourly
+ * slots make of it anyway. An empty pair of times closes that day, and the
+ * database keeps its own rule about how many hours a day may hold.
+ */
+export async function saveAvailability(_prev: HubState, formData: FormData): Promise<HubState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const rows: { mentor_id: string; day_of_week: number; start_time: string; end_time: string }[] = [];
+
+  for (let day = 0; day < 7; day += 1) {
+    const from = String(formData.get(`from-${day}`) ?? '').trim();
+    const to = String(formData.get(`to-${day}`) ?? '').trim();
+    if (!from || !to) continue;
+    if (to <= from) {
+      return { error: t('وقت النهاية يجب أن يكون بعد البداية.', 'The end time has to come after the start.') };
+    }
+    rows.push({ mentor_id: user.id, day_of_week: day, start_time: from, end_time: to });
+  }
+
+  await supabase.from('mentor_availability').delete().eq('mentor_id', user.id);
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from('mentor_availability').insert(rows);
+    if (error) return { error: dbError(t, error.message) };
+  }
+
+  revalidatePath('/bookings');
+  return { ok: t('حُفظت أوقاتك الأسبوعية.', 'Your weekly hours are saved.') };
+}
+
+/** How many sessions a day, and how much room between two of them. */
+export async function saveSchedulingRules(_prev: HubState, formData: FormData): Promise<HubState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase
+    .from('mentor_profiles')
+    .update({
+      daily_session_limit: Math.min(10, Math.max(1, Number(formData.get('limit') ?? 5))),
+      buffer_minutes: Math.min(60, Math.max(0, Number(formData.get('buffer') ?? 0))),
+    })
+    .eq('profile_id', user.id);
+
+  revalidatePath('/bookings');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('حُفظت إعدادات جدولك.', 'Your scheduling rules are saved.') };
+}
+
+/**
+ * Time that is yours.
+ *
+ * Blocked time is not a cancelled booking and never touches one: it closes
+ * hours that nobody has taken yet, and the calendar stops offering them.
+ */
+export async function blockTime(_prev: HubState, formData: FormData): Promise<HubState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const date = String(formData.get('date') ?? '');
+  const from = String(formData.get('from') ?? '');
+  const to = String(formData.get('to') ?? '');
+  if (!date || !from || !to) return { error: t('اختر اليوم والساعات.', 'Pick the day and the hours.') };
+
+  const starts = new Date(`${date}T${from}`);
+  const ends = new Date(`${date}T${to}`);
+  if (Number.isNaN(starts.getTime()) || ends <= starts) {
+    return { error: t('وقت النهاية يجب أن يكون بعد البداية.', 'The end time has to come after the start.') };
+  }
+
+  const { error } = await supabase.from('mentor_time_off').insert({
+    mentor_id: user.id,
+    starts_at: starts.toISOString(),
+    ends_at: ends.toISOString(),
+    reason: String(formData.get('reason') ?? '').trim() || null,
+  });
+
+  revalidatePath('/bookings');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('أُغلقت هذه الساعات.', 'Those hours are closed.') };
+}
+
+export async function unblockTime(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  await supabase.from('mentor_time_off')
+    .delete()
+    .eq('id', String(formData.get('block_id') ?? ''))
+    .eq('mentor_id', user.id);
+
+  revalidatePath('/bookings');
 }

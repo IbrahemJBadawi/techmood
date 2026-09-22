@@ -827,6 +827,13 @@ export type Database = {
       video_session_participants: Table<{
         session_id: string; profile_id: string; role: SessionRole;
       }>;
+      session_feedback: Table<{
+        id: string; booking_id: string; from_profile: string; to_profile: string;
+        stars: number; comment_ar: string | null; revealed_at: string | null; created_at: string;
+      }>;
+      session_feedback_scores: Table<{
+        feedback_id: string; criterion: SessionCriterion; stars: number;
+      }>;
       profile_section_visibility: Table<{
         profile_id: string; section: ProfileSection; audience: ProfileAudience;
       }>;
@@ -977,6 +984,13 @@ export type Database = {
       mentor_session_types: Table<{ mentor_id: string; session_type_id: string; is_active: boolean }>;
       mentor_availability: Table<{
         id: string; mentor_id: string; day_of_week: number; start_time: string; end_time: string;
+      }>;
+      mentor_time_off: Table<{
+        id: string; mentor_id: string; starts_at: string; ends_at: string; reason: string | null;
+      }>;
+      mentor_availability_exceptions: Table<{
+        id: string; mentor_id: string; on_date: string; is_open: boolean;
+        start_time: string | null; end_time: string | null; reason_ar: string | null;
       }>;
       platform_settings: Table<{ key: string; value: string; description_ar: string | null }>;
       wallet_entries: Table<WalletEntry>;

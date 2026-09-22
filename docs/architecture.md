@@ -929,6 +929,54 @@ the summary and the rating) is real and tested. Adding WebRTC over Supabase
 Realtime signalling, or an SFU, changes the tiles and nothing else: the
 authorization, the clock and the log stay where they are.
 
+## Bookings & Calendar is one place, not two pages
+
+Time was decided in four places: the mentor's availability (0006), the booking
+journey (0016), the team's calendar (0026) and the call (0044). Each was right
+where it stood, and nothing gathered them — so a person had to know where to
+look, and a mentor had no screen that showed their own week at all.
+
+0047 gives the hub three reads, each of which gathers and owns nothing:
+
+* `my_calendar(from, to)` — bookings the caller is a party to, their team's own
+  hours, what is due from them on a team board, their teams' milestones and
+  sprint ends. It reads as the caller, so a team-mate's personal mentor session
+  is not on anybody else's calendar.
+* `needs_action()` — what is waiting on this person *and only this person*:
+  a payment to finish, a request to decide, a session to rate, and for an admin
+  the payments, payouts and empty hours nobody else can settle.
+* `booking_stats()` — the numbers at the top, counted at read time.
+
+The page adds two rules the product had always stated and the database had
+never enforced: **five sessions a day** (`daily_session_limit`) and a **gap
+between sessions** (`buffer_minutes`). Both live in `enforce_booking_rules()`,
+and `mentor_available_slots()` asks the same questions — an hour the mentor
+would refuse is never offered, so nobody meets the rule only after choosing.
+
+### The gap that made rating unreachable
+
+0031 revoked writes on `bookings` from clients, for good reasons: completing a
+booking credits a wallet and awards XP. But nothing replaced the path, so no
+booking could ever reach `completed`, and `rate_session()` — which requires a
+completed booking — could never be called by anyone.
+
+What completes a booking is now the fact that the session happened.
+`close_due_video_sessions()` reads the presence log 0044 writes: two distinct
+people in the room means the hour took place, and the booking completes itself.
+One person alone in a room did not hold a session — that booking stays
+confirmed, nobody is paid, and it appears in the admin's `needs_action()` as an
+hour waiting for a human to settle.
+
+### What the hub does not do
+
+It does not let a team leader book a mentor for their team. `bookings` has
+carried `kind = 'team_mentor'` and `seats` since 0007, the hub shows such a
+booking correctly if one exists, and 0044 admits exactly the seats that were
+paid for — but no function creates one yet, so the price-per-member rule has
+nowhere to live. And an admin's global calendar is today the same page: RLS
+returns them every booking in the list, but `my_calendar()` still gathers only
+their own dates.
+
 ## Two languages
 
 TechMood is written in Arabic first. The Arabic is the source text, not a

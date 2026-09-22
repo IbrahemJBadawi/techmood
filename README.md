@@ -221,6 +221,12 @@ participants (WebRTC signalling or an SFU); the camera and microphone in the
 room are real, and the other tiles show presence rather than pretending to show
 video.
 
+Also built: Bookings & Calendar as one hub — month, week and day views over
+everything with a date on it, a preview of any entry without leaving the
+calendar, a bookings list with a "needs action" filter that is not a status,
+a mentor's own availability (weekly hours, sessions a day, the gap between two
+of them, blocked time) and the record each held session leaves behind.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.

@@ -135,7 +135,6 @@ const COMMON: NavGroup = {
   items: [
     { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
     { href: '/passport', label: { ar: 'الجواز المهني', en: 'Passport' }, icon: 'passport' },
-    { href: '/sessions', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
     { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
   ],
 };
@@ -158,7 +157,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الإرشاد والفرق', en: 'Mentoring & teams' },
       items: [
         { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
-        { href: '/bookings', label: { ar: 'حجوزاتي', en: 'My bookings' }, icon: 'calendar' },
+        { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
       ],
     },
@@ -185,6 +184,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الإرشاد', en: 'Mentoring' },
       items: [
         { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
+        { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
@@ -203,6 +203,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الفرق', en: 'Teams' },
       items: [
         { href: '/teams', label: { ar: 'فرقي', en: 'My teams' }, icon: 'team' },
+        { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
       ],
     },
