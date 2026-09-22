@@ -11,6 +11,7 @@ import { createBooking, type BookingState } from '../../actions';
 
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
 type ReviewCandidate = { kind: string; id: string | null; label: string };
+export type LedTeam = { id: string; title_ar: string; members: { id: string; name: string }[] };
 
 export function BookingWizard({
   mentorId,
@@ -22,6 +23,7 @@ export function BookingWizard({
   paymentMethods,
   student,
   reviewCandidates,
+  teams,
 }: {
   mentorId: string;
   mentorName: string;
@@ -32,10 +34,14 @@ export function BookingWizard({
   paymentMethods: PaymentMethod[];
   student: { full_name: string; techmood_id: string; email: string; phone: string | null };
   reviewCandidates: ReviewCandidate[];
+  /** The teams this person leads. A team session is the leader's to book. */
+  teams: LedTeam[];
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createBooking, undefined as BookingState);
 
+  const [teamId, setTeamId] = useState('');
+  const [seats, setSeats] = useState<string[]>([]);
   const [sessionTypeId, setSessionTypeId] = useState(sessionTypes[0]?.id ?? '');
   const [slotStart, setSlotStart] = useState('');
   const [methodKey, setMethodKey] = useState('');
@@ -55,6 +61,9 @@ export function BookingWizard({
   const [activeDay, setActiveDay] = useState(byDay[0]?.[0] ?? '');
   const daySlots = byDay.find(([day]) => day === activeDay)?.[1] ?? [];
 
+  const activeTeam = teams.find((team) => team.id === teamId);
+  const seatCount = activeTeam ? seats.length : 1;
+  const total = price * Math.max(seatCount, activeTeam ? 0 : 1);
   const selectedType = sessionTypes.find((type) => type.id === sessionTypeId);
   const selectedMethod = paymentMethods.find((method) => method.key === methodKey);
   const selected = slotStart ? formatSlot(slotStart) : null;
@@ -77,9 +86,64 @@ export function BookingWizard({
       <input type="hidden" name="session_type_id" value={sessionTypeId} />
       <input type="hidden" name="starts_at" value={slotStart} />
       <input type="hidden" name="method_key" value={methodKey} />
+      <input type="hidden" name="team_id" value={teamId} />
+      {seats.map((seat) => <input type="hidden" name="seat" value={seat} key={seat} />)}
 
       <div className="detail-grid">
         <div>
+          {teams.length > 0 && (
+            <section className="step">
+              <div className="step-head">
+                <span className="step-num">0</span>
+                <h3>{t('لمن هذه الجلسة؟', 'Who is this session for?')}</h3>
+              </div>
+
+              <div className="choice-grid">
+                <label className={`choice${teamId === '' ? ' selected' : ''}`}>
+                  <input type="radio" name="for_pick" value="" checked={teamId === ''}
+                         onChange={() => { setTeamId(''); setSeats([]); }} />
+                  <span className="choice-title">{t('لي', 'For me')}</span>
+                  <span className="choice-sub">{t('جلسة فردية بسعر الجلسة الواحدة.', 'A one-to-one session, at the single-session price.')}</span>
+                </label>
+
+                {teams.map((team) => (
+                  <label className={`choice${teamId === team.id ? ' selected' : ''}`} key={team.id}>
+                    <input type="radio" name="for_pick" value={team.id} checked={teamId === team.id}
+                           onChange={() => { setTeamId(team.id); setSeats(team.members.map((member) => member.id)); }} />
+                    <span className="choice-title">{team.title_ar}</span>
+                    <span className="choice-sub">
+                      {t('جلسة فريق — السعر لكل عضو حاضر.', 'A team session — priced per attending member.')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {activeTeam && (
+                <fieldset style={{ border: 0, padding: 0, margin: '12px 0 0' }}>
+                  <legend className="muted" style={{ fontSize: '0.84rem', marginBottom: 8 }}>
+                    {t('من سيحضر؟ المقاعد المدفوعة هي من يدخل الغرفة.',
+                       'Who is coming? The seats that are paid for are who enters the room.')}
+                  </legend>
+                  <div className="tags-row">
+                    {activeTeam.members.map((member) => (
+                      <label className="badge-pill" key={member.id} style={{ cursor: 'pointer', gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          checked={seats.includes(member.id)}
+                          onChange={(event) => setSeats((current) =>
+                            event.target.checked
+                              ? [...current, member.id]
+                              : current.filter((id) => id !== member.id))}
+                        />
+                        {member.name}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+            </section>
+          )}
+
           {/* 1 — session type */}
           <section className="step">
             <div className="step-head">
@@ -274,8 +338,14 @@ export function BookingWizard({
                 <span>{selectedMethod?.name_ar ?? '—'}</span>
               </div>
               <div className="summary-row"><span className="muted">{t('سعر الجلسة', 'Session price')}</span><span className="eng">{money(price)}</span></div>
+              {activeTeam && (
+                <div className="summary-row">
+                  <span className="muted">{t('المقاعد', 'Seats')}</span>
+                  <span className="eng">{seatCount} × {money(price)}</span>
+                </div>
+              )}
               <div className="summary-row"><span className="muted">{t('الخصم', 'Discount')}</span><span className="eng">{money(0)}</span></div>
-              <div className="summary-row total"><span>{t('الإجمالي', 'Total')}</span><span className="eng">{money(price)}</span></div>
+              <div className="summary-row total"><span>{t('الإجمالي', 'Total')}</span><span className="eng">{money(total)}</span></div>
             </div>
 
             <div style={{ borderTop: '1px solid var(--line)', marginTop: 16, paddingTop: 14 }}>
@@ -296,7 +366,7 @@ export function BookingWizard({
             <button
               className="btn btn-primary"
               style={{ width: '100%', marginTop: 16 }}
-              disabled={pending || !slotStart || !methodKey || !sessionTypeId}
+              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeTeam) && seats.length === 0)}
             >
               {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
             </button>

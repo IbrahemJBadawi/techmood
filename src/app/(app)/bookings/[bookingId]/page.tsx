@@ -49,6 +49,19 @@ export default async function BookingDetailPage({
     ? await supabase.from('payment_methods').select('name_ar, name_en, icon').eq('key', payment.method_key).maybeSingle()
     : { data: null };
 
+  // A team session is booked for named members — those are the people the room
+  // will admit, so this is who the booking is actually for.
+  const { data: seats } = booking.kind === 'team_mentor'
+    ? await supabase
+        .from('booking_seats')
+        .select('profile_id, profiles(full_name, techmood_id)')
+        .eq('booking_id', bookingId)
+    : { data: null };
+
+  const { data: team } = booking.team_id
+    ? await supabase.from('teams').select('title_ar').eq('id', booking.team_id).maybeSingle()
+    : { data: null };
+
   // Confirming the booking is what opens the room. There is no link to hand
   // out: the session is entered from the account it was booked for.
   const { data: videoSession } = await supabase
@@ -130,6 +143,32 @@ export default async function BookingDetailPage({
               ))}
             </ul>
           </div>
+
+          {seats && seats.length > 0 && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>
+                {t('المشاركون', 'Participants')}
+                {team && <span className="muted" style={{ fontWeight: 400 }}> · {team.title_ar}</span>}
+              </h3>
+              <ul className="plain-list">
+                {seats.map((seat) => {
+                  const person = seat.profiles as unknown as { full_name: string; techmood_id: string } | null;
+                  return (
+                    <li className="row-between" key={seat.profile_id} style={{ fontSize: '0.88rem' }}>
+                      <span>{person?.full_name ?? '—'}</span>
+                      <Link className="id-chip" href={`/u/${person?.techmood_id ?? ''}`}>
+                        {person?.techmood_id}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
+                {t('هؤلاء هم من دُفع لهم مقاعد، وهم وحدهم من تفتح لهم الغرفة.',
+                   'These are the seats that were paid for, and they are the only people the room admits.')}
+              </p>
+            </div>
+          )}
 
           {booking.session_goal_ar && (
             <div className="panel section-block">

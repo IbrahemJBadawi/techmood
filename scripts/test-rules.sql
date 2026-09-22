@@ -4404,6 +4404,97 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 39. A team books a mentor, and pays per member
+-- ===========================================================================
+-- The team has been led by 22222222 since the handover in section 19, and
+-- 11111111 stayed on as a member — which is exactly the pair this needs.
+select (select min(sl.slot_start) from public.mentor_available_slots(
+          '33333333-3333-3333-3333-333333333333',
+          (current_date + 71), (current_date + 95)) sl
+         where sl.state = 'available') as slot_t \gset
+
+-- A member is not the team's purse.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.create_team_booking_request(
+      %L, '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay')$$, :'team', :'slot_t'),
+  '39.1 only the team''s leader books the team''s sessions',
+  'قائد الفريق فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+-- A seat for somebody outside the team would be a stranger in the room.
+select public.assert_rejects(
+  format($$select public.create_team_booking_request(
+      %L, '33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay',
+      array['88888888-8888-8888-8888-888888888888']::uuid[])$$, :'team', :'slot_t'),
+  '39.2 a seat cannot be bought for somebody outside the team',
+  'لأعضاء الفريق فقط');
+
+select (public.create_team_booking_request(
+  :'team',
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot_t'::timestamptz,
+  'jawwal_pay',
+  array['22222222-2222-2222-2222-222222222222',
+        '11111111-1111-1111-1111-111111111111']::uuid[],
+  'مراجعة معمارية لمشروع الفريق')).id as bk_team \gset
+select public.submit_payment_proof(:'bk_team', '22222222-2222-2222-2222-222222222222/r-t.png', 'JP-90003');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select price_usd from public.bookings where id = :'bk_team') = 30.00
+  and (select mentor_share_usd from public.bookings where id = :'bk_team') = 20.00
+  and (select platform_share_usd from public.bookings where id = :'bk_team') = 10.00
+  and (select seats from public.bookings where id = :'bk_team') = 2,
+  '39.3 a team session costs the mentor''s rate once per member, counted here');
+
+select public.assert(
+  (select amount_usd from public.payments where booking_id = :'bk_team') = 30.00,
+  '39.4 and the payment asks for the whole of it, not for one seat');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'bk_team'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk_team', true);
+reset role;
+reset request.jwt.claim.sub;
+
+select id as vs_team from public.video_sessions where booking_id = :'bk_team' \gset
+
+select public.assert(
+  (select count(*) from public.video_session_participants where session_id = :'vs_team') = 3
+  and exists (select 1 from public.video_session_participants
+               where session_id = :'vs_team'
+                 and profile_id = '11111111-1111-1111-1111-111111111111'),
+  '39.5 the room admits the mentor and the members the seats were bought for');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  exists (select 1 from public.my_calendar(
+            (:'slot_t'::timestamptz)::date, (:'slot_t'::timestamptz)::date)
+          where entry_id = :'bk_team' and entry_kind = 'team_session'),
+  '39.6 the team''s session is on the calendar of the people it is for');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

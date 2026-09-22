@@ -55,6 +55,14 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'لست من المشاركين في هذه الجلسة',  en: 'You are not one of this session\u2019s participants.' },
   { match: 'الباب يفتح قبل الموعد بخمس دقائق', en: 'The door opens five minutes before the session.' },
   { match: 'انتهت هذه الجلسة',               en: 'This session is over.' },
+  // team bookings
+  { match: 'قائد الفريق فقط',                en: 'Only the team\u2019s leader books the team\u2019s sessions.' },
+  { match: 'المقاعد لأعضاء الفريق فقط',      en: 'Seats are for members of the team only.' },
+  { match: 'اختر عضواً واحداً على الأقل',     en: 'Choose at least one member.' },
+  { match: 'عشرون مقعداً كحد أقصى',          en: 'Twenty seats at most.' },
+  { match: 'هذا المنتور لا يستقبل حجوزات',   en: 'This mentor is not taking bookings.' },
+  { match: 'هذا المنتور لا يقدّم هذا النوع',  en: 'This mentor does not offer that session type.' },
+  { match: 'طريقة الدفع غير متاحة',          en: 'That payment method is not available.' },
   // rating a session
   { match: 'التقييم بعد اكتمال الجلسة فقط',   en: 'A session is rated once it has been completed.' },
   { match: 'طرفا الجلسة فقط من يقيّمانها',    en: 'Only the two sides of a session rate it.' },

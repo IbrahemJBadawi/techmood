@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 
 export type BookingState = { error?: string } | undefined;
@@ -39,14 +40,34 @@ export async function createBooking(_prev: BookingState, formData: FormData): Pr
       return { kind, id: id || null, label: label.join('|') };
     });
 
-  const { data, error } = await supabase.rpc('create_booking_request', {
-    p_mentor: mentorId,
-    p_session_type: sessionTypeId,
-    p_starts_at: startsAt,
-    p_method_key: methodKey,
-    p_goal: goal,
-    p_review_items: reviewItems,
-  });
+  // Who the session is for decides which request this is. A team's session is
+  // the leader's to book and is priced per seat — both of which the database
+  // decides, not this form.
+  const teamId = String(formData.get('team_id') ?? '');
+  const members = formData.getAll('seat').map(String).filter(Boolean);
+
+  if (teamId && members.length === 0) {
+    return { error: t('اختر عضواً واحداً على الأقل من الفريق.', 'Choose at least one member of the team.') };
+  }
+
+  const { data, error } = teamId
+    ? await supabase.rpc('create_team_booking_request', {
+        p_team: teamId,
+        p_mentor: mentorId,
+        p_session_type: sessionTypeId,
+        p_starts_at: startsAt,
+        p_method_key: methodKey,
+        p_members: members,
+        p_goal: goal,
+      })
+    : await supabase.rpc('create_booking_request', {
+        p_mentor: mentorId,
+        p_session_type: sessionTypeId,
+        p_starts_at: startsAt,
+        p_method_key: methodKey,
+        p_goal: goal,
+        p_review_items: reviewItems,
+      });
 
   if (error) {
     const message = error.message ?? '';
@@ -58,6 +79,9 @@ export async function createBooking(_prev: BookingState, formData: FormData): Pr
     }
     if (message.includes('availability')) {
       return { error: t('الموعد المختار خارج أوقات توفر المنتور.', 'That time is outside the mentor’s available hours.') };
+    }
+    if (message.includes('قائد الفريق فقط') || message.includes('لأعضاء الفريق فقط')) {
+      return { error: dbError(t, message) };
     }
     return { error: t('تعذّر إنشاء الطلب — حاول مرة أخرى.', 'The request could not be created — try again.') };
   }

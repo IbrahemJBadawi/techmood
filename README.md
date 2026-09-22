@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 481 business-rule assertions
+scripts/test.sh                   # 498 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -171,7 +171,7 @@ src/
     supabase/        browser, server and proxy clients
     database.types.ts
 supabase/
-  migrations/        0001-0046, applied in order
+  migrations/        0001-0048, applied in order
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
@@ -226,6 +226,10 @@ everything with a date on it, a preview of any entry without leaving the
 calendar, a bookings list with a "needs action" filter that is not a status,
 a mentor's own availability (weekly hours, sessions a day, the gap between two
 of them, blocked time) and the record each held session leaves behind.
+
+Also built: a team books a mentor — the leader picks who is coming, the price
+is the mentor's rate once per seat, and the room admits exactly the members
+those seats were bought for.
 
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,

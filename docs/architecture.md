@@ -967,15 +967,28 @@ One person alone in a room did not hold a session — that booking stays
 confirmed, nobody is paid, and it appears in the admin's `needs_action()` as an
 hour waiting for a human to settle.
 
+### A team books a mentor, and pays per member
+
+`bookings` has carried `kind = 'team_mentor'` and `seats` since 0007, and the
+pricing document says a team session costs the mentor's rate times the number
+of attending members — but nothing created such a booking, and nowhere said
+which members the seats were for. 0048 adds both.
+
+`booking_seats` names them. `create_team_booking_request()` is the leader's
+version of the student's request: it refuses anybody but the team's leader,
+refuses a seat for somebody outside the team, and reads the price here rather
+than taking it from the caller — seats × the mentor's rate, with the platform
+and mentor shares scaled the same way, so a crafted call cannot buy five seats
+at the price of one. `open_session_for_booking()` then admits exactly those
+members, and falls back to the old rule (the team's own members, up to the
+number of seats) only for bookings made before seats had names.
+
 ### What the hub does not do
 
-It does not let a team leader book a mentor for their team. `bookings` has
-carried `kind = 'team_mentor'` and `seats` since 0007, the hub shows such a
-booking correctly if one exists, and 0044 admits exactly the seats that were
-paid for — but no function creates one yet, so the price-per-member rule has
-nowhere to live. And an admin's global calendar is today the same page: RLS
-returns them every booking in the list, but `my_calendar()` still gathers only
-their own dates.
+An admin's global calendar is today the same page: row-level security returns
+them every booking in the list, but `my_calendar()` still gathers only their
+own dates. Rescheduling by dragging an entry is not built either — a booking's
+time is changed through the booking, where the rules that guard it live.
 
 ## Two languages
 

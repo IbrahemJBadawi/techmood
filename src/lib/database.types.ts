@@ -824,6 +824,7 @@ export type Database = {
         session_type: VideoSessionType; start_at: string; end_at: string;
         status: VideoSessionStatus; ended_at: string | null; created_at: string;
       }>;
+      booking_seats: Table<{ booking_id: string; profile_id: string }>;
       video_session_participants: Table<{
         session_id: string; profile_id: string; role: SessionRole;
       }>;
@@ -1347,6 +1348,13 @@ export type Database = {
           today_as_mentor: number; mentor_upcoming: number; mentor_pending: number;
           mentor_done: number; mentor_earnings: number;
         }[];
+      };
+      create_team_booking_request: {
+        Args: {
+          p_team: string; p_mentor: string; p_session_type: string; p_starts_at: string;
+          p_method_key: string; p_members?: string[] | null; p_goal?: string | null;
+        };
+        Returns: Booking;
       };
       create_booking_request: {
         Args: {

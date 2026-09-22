@@ -92,6 +92,32 @@ export default async function BookSessionPage({
       .limit(6),
   ]);
 
+  // The teams this person leads: a team session is the leader's to book, and is
+  // priced per attending member.
+  const { data: led } = await supabase
+    .from('teams')
+    .select('id, title_ar')
+    .eq('leader_id', user.id);
+
+  const { data: teamMembers } = (led ?? []).length
+    ? await supabase
+        .from('team_members')
+        .select('team_id, profile_id, profiles(full_name)')
+        .in('team_id', (led ?? []).map((row) => row.id))
+        .eq('is_active', true)
+    : { data: [] as { team_id: string; profile_id: string; profiles: unknown }[] };
+
+  const teams = (led ?? []).map((team) => ({
+    id: team.id,
+    title_ar: team.title_ar,
+    members: (teamMembers ?? [])
+      .filter((row) => row.team_id === team.id)
+      .map((row) => ({
+        id: row.profile_id,
+        name: (row.profiles as unknown as { full_name: string } | null)?.full_name ?? row.profile_id.slice(0, 8),
+      })),
+  })).filter((team) => team.members.length > 0);
+
   const reviewCandidates = [
     ...(projects ?? []).map((row) => ({ kind: 'project', id: row.id, label: row.title_ar })),
     ...(enrolments ?? []).map((row) => ({
@@ -134,6 +160,7 @@ export default async function BookSessionPage({
           phone: student?.phone ?? null,
         }}
         reviewCandidates={reviewCandidates}
+        teams={teams}
       />
     </>
   );
