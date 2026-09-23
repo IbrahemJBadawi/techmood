@@ -22,7 +22,7 @@ export default async function AdminPaymentsPage() {
 
   const { data: payments } = await supabase
     .from('payments')
-    .select('id, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason')
+    .select('id, payment_code, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason, paid_currency, paid_amount, exchange_rate, info_request_ar, payer_note_ar')
     .order('submitted_at', { ascending: true, nullsFirst: false });
 
   const bookingIds = [...new Set((payments ?? []).map((row) => row.booking_id).filter(Boolean))] as string[];
@@ -104,7 +104,10 @@ export default async function AdminPaymentsPage() {
                       {student?.full_name} → {mentor?.full_name}
                     </p>
                   </div>
-                  <span className="id-chip">{booking?.booking_code ?? escrow?.escrow_code}</span>
+                  <span>
+                    <span className="id-chip">{payment.payment_code}</span>{' '}
+                    <span className="id-chip">{booking?.booking_code ?? escrow?.escrow_code}</span>
+                  </span>
                 </div>
 
                 <div className="summary-rows" style={{ marginTop: 14 }}>
@@ -130,6 +133,21 @@ export default async function AdminPaymentsPage() {
                     <span className="muted">{method?.reference_label_ar ?? t('المرجع', 'Reference')}</span>
                     <span className="eng">{payment.reference ?? '—'}</span>
                   </div>
+                  {payment.paid_currency !== 'USD' && payment.paid_amount && (
+                    <div className="summary-row">
+                      <span className="muted">{t('ما أُرسل فعلاً', 'Actually sent')}</span>
+                      <span className="eng">
+                        {payment.paid_amount} {payment.paid_currency} @ {payment.exchange_rate}
+                        {' ≈ '}{money(Number(payment.paid_amount) / Number(payment.exchange_rate))}
+                      </span>
+                    </div>
+                  )}
+                  {payment.payer_note_ar && (
+                    <div className="summary-row">
+                      <span className="muted">{t('جواب الدافع', 'Payer’s answer')}</span>
+                      <span>{payment.payer_note_ar}</span>
+                    </div>
+                  )}
                   <div className="summary-row">
                     <span className="muted">{t('أُرسل في', 'Sent on')}</span>
                     <span className="eng">
@@ -156,10 +174,19 @@ export default async function AdminPaymentsPage() {
                   </form>
                   <form action={reviewPayment} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
                     <input type="hidden" name="payment_id" value={payment.id} />
-                    <input type="hidden" name="decision" value="reject" />
-                    <input name="reason" required placeholder={t('سبب الرفض — يظهر للطالب', 'Why — the student will see this')} style={{ flex: 1, minWidth: 0 }} />
-                    <button className="btn btn-ghost btn-sm">{t('رفض', 'Reject')}</button>
+                    <input name="reason" required
+                           placeholder={t('سؤال أو سبب — يظهر للدافع', 'A question or a reason — the payer sees it')}
+                           style={{ flex: 1, minWidth: 0 }} />
+                    <button className="btn btn-ghost btn-sm" name="decision" value="ask">
+                      {t('↩ اطلب معلومات', '↩ Ask for information')}
+                    </button>
+                    <button className="btn btn-ghost btn-sm" name="decision" value="reject">
+                      {t('✕ رفض', '✕ Reject')}
+                    </button>
                   </form>
+                  <a className="btn btn-ghost btn-sm" href={`/wallet/timeline/payment/${payment.id}`}>
+                    {t('السجلّ', 'Timeline')}
+                  </a>
                 </div>
               </article>
             );

@@ -3,9 +3,10 @@ import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
-import type { PaymentMethod, SessionType, SlotState } from '@/lib/database.types';
+import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database.types';
 
 import { BookingWizard } from './BookingWizard';
+import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 
 /** How far ahead the picker looks. The 72-hour floor is applied by the database. */
 const HORIZON_DAYS = 21;
@@ -54,7 +55,7 @@ export default async function BookSessionPage({
       p_from: asDate(today),
       p_to: asDate(horizon),
     }),
-    supabase.from('payment_methods').select('*').eq('is_enabled', true).order('sort_order'),
+    supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order'),
     supabase.from('profiles').select('full_name, techmood_id, phone').eq('id', user.id).single(),
   ]);
 
@@ -182,7 +183,7 @@ export default async function BookSessionPage({
         price={level?.session_price_usd ?? 0}
         sessionTypes={sessionTypes}
         slots={(slots ?? []) as { slot_start: string; slot_end: string; state: SlotState }[]}
-        paymentMethods={(methods ?? []) as PaymentMethod[]}
+        paymentMethods={(methods ?? []) as PaymentMethodPublic[]}
         student={{
           full_name: student?.full_name ?? '',
           techmood_id: student?.techmood_id ?? '',

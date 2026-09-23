@@ -4793,12 +4793,19 @@ select public.release_escrow(:'escrow1', 'تسليم ممتاز');
 reset role;
 reset request.jwt.claim.sub;
 
+-- The earning was written at net_usd (340 of 400): the commission is already
+-- out of it. This used to assert a separate -60 debit on release, which was
+-- the bug — the freelancer received 280. Now it asserts what they receive.
 select public.assert(
   (select status from public.escrows where id = :'escrow1') = 'released'
   and (select status from public.wallet_entries
         where ref_table = 'escrows' and ref_id = :'escrow1' and kind = 'earning') = 'available'
-  and (select amount_usd from public.wallet_entries
-        where ref_table = 'escrows' and ref_id = :'escrow1' and kind = 'commission') = -60.00,
+  and (select sum(amount_usd) from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'escrow1' and status <> 'cancelled')
+      = (select net_usd from public.escrows where id = :'escrow1')
+  and not exists (select 1 from public.wallet_entries
+                   where ref_table = 'escrows' and ref_id = :'escrow1'
+                     and kind = 'commission' and status <> 'cancelled'),
   '43.7 releasing makes the same row spendable and charges the commission once');
 
 -- A second hold, to argue about.
@@ -6256,6 +6263,295 @@ select public.assert(
 select public.assert(
   (select count(*) from public.profile_credentials('77777777-7777-7777-7777-777777777777')) = 0,
   '55.16 an unchecked credential is not on anybody''s profile');
+
+
+-- ===========================================================================
+-- 56. One financial system: accounts, questions, timelines, shares, the picture
+-- ===========================================================================
+
+-- Receiving accounts are not public.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.save_payment_account('jawwal_pay', true, 'TechMood', null, '0599123456');
+
+select public.assert_rejects(
+  $$select public.save_payment_account('palpay', true)$$,
+  '56.1 an account cannot be switched on with nowhere to send the money',
+  'بلا رقم حساب أو محفظة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  $$select account_number from public.payment_methods$$,
+  '56.2 a signed-in stranger cannot read the receiving account numbers',
+  'permission denied');
+
+select public.assert(
+  (select count(*) from public.payment_methods where key = 'jawwal_pay' and name_en = 'Jawwal Pay') = 1,
+  '56.3 though the methods themselves are listed as before');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A booking to pay for, made the way the fixtures have always made them.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '35 days') + interval '10 hours',
+        date_trunc('day', now() + interval '35 days') + interval '11 hours',
+        35, 10, 25, 'جلسة للمحفظة', 'draft')
+returning id as fin_booking \gset
+
+update public.bookings set status = 'payment_pending', reserved_until = now() + interval '1 hour'
+ where id = :'fin_booking';
+
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'fin_booking', 'jawwal_pay', 35, 'pending')
+returning id as fin_pay \gset
+
+select public.assert(
+  (select payment_code from public.payments where id = :'fin_pay') ~ '^TMPAY-[0-9A-F]{8}$',
+  '56.4 a payment has a code a person can read out, like every other money record');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select wallet_number from public.payment_instructions(:'fin_pay')) = '0599123456',
+  '56.5 the person who owes the money is shown exactly where to send it');
+
+select public.report_payment_currency(:'fin_pay', 'ILS', 130, 3.71);
+
+select public.submit_payment_proof(:'fin_booking', '55555555-5555-5555-5555-555555555555/r.png', 'JP-1001');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select paid_currency from public.payments where id = :'fin_pay') = 'ILS'
+  and (select paid_amount from public.payments where id = :'fin_pay') = 130
+  and (select amount_usd from public.payments where id = :'fin_pay') = 35,
+  '56.6 what was sent is recorded in its own currency, and the dollar amount owed is untouched');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.payment_instructions(:'fin_pay')) = 0,
+  '56.7 and nobody else is shown it');
+
+select public.assert_rejects(
+  format($$select public.request_payment_info(%L, 'ما هو رقم المرسل؟')$$, :'fin_pay'),
+  '56.8 only an admin asks a payer a question',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A question, not a rejection.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.request_payment_info(:'fin_pay', 'الإيصال مقصوص — من أي رقم أرسلت؟');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.payments where id = :'fin_pay') = 'needs_info'
+  and (select status from public.bookings where id = :'fin_booking') = 'payment_pending'
+  and (select proof_path from public.payments where id = :'fin_pay') is not null,
+  '56.9 a question keeps the receipt and the slot, and hands the payment back');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.answer_payment_info(:'fin_pay', 'أرسلت من الرقم 0599000111');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.payments where id = :'fin_pay') = 'under_review'
+  and (select status from public.bookings where id = :'fin_booking') = 'payment_submitted',
+  '56.10 and the answer puts it back in front of the admin');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'fin_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select string_agg(event_key, ',' order by at) from public.finance_timeline('payment', :'fin_pay')
+    where event_key not like 'booking:%')
+    = 'created,under_review,needs_info,under_review,verified'
+  and (select actor_is_admin from public.finance_timeline('payment', :'fin_pay')
+        where event_key = 'verified'),
+  '56.11 the payment keeps its whole story, and says an admin confirmed it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.finance_timeline('payment', :'fin_pay')) = 0,
+  '56.12 a stranger reads none of it');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The mentor sees the share the moment it is owed, and once.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'fin_booking', true);
+select public.assert(
+  (select status from public.wallet_entries
+    where ref_table = 'bookings' and ref_id = :'fin_booking' and kind = 'earning') = 'pending'
+  and (select amount_usd from public.wallet_entries
+        where ref_table = 'bookings' and ref_id = :'fin_booking' and kind = 'earning') = 25,
+  '56.13 a confirmed session shows the mentor their share as pending, not nothing');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.bookings set status = 'completed' where id = :'fin_booking';
+
+select public.assert(
+  (select count(*) from public.wallet_entries
+    where ref_table = 'bookings' and ref_id = :'fin_booking' and kind = 'earning') = 1
+  and (select status from public.wallet_entries
+        where ref_table = 'bookings' and ref_id = :'fin_booking' and kind = 'earning') = 'available',
+  '56.14 and when it happens the same row becomes spendable — one row, not two');
+
+-- The admin's picture.
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  $$select * from public.finance_overview()$$,
+  '56.15 the financial picture is the admin''s',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select gmv_usd from public.finance_overview()) > (select platform_revenue_usd from public.finance_overview())
+  and (select platform_revenue_usd from public.finance_overview()) > 0,
+  '56.16 volume is not revenue: what customers paid is more than TechMood''s share of it');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A withdrawal says where it is.
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+insert into public.payout_accounts (profile_id, method_key, holder_name, wallet_number)
+values ('33333333-3333-3333-3333-333333333333', 'jawwal_pay', 'منتور', '0599777666')
+returning id as fin_acct \gset
+select (public.request_payout(:'fin_acct', 20)).id as fin_wd \gset
+
+select public.assert(
+  (select withdrawal_pending_usd from public.wallet_overview()) >= 20,
+  '56.17 money asked for moves from available to "withdrawal pending", by name');
+
+select public.assert(
+  (select count(*) from public.wallet_transactions('withdrawals')) >= 1
+  and not exists (select 1 from public.wallet_transactions('withdrawals') where kind <> 'payout'),
+  '56.18 and the statement filters to exactly what was asked for');
+
+select public.assert_rejects(
+  format($$select public.start_payout_transfer(%L)$$, :'fin_wd'),
+  '56.19 only an admin starts a transfer',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.start_payout_transfer(:'fin_wd');
+select public.review_payout(:'fin_wd', true, 'JP-892173');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select string_agg(event_key, ',' order by at) from public.finance_timeline('payout', :'fin_wd'))
+    = 'requested,approved,paid'
+  and (select note_ar from public.finance_timeline('payout', :'fin_wd') where event_key = 'paid') = 'JP-892173',
+  '56.20 requested, processing, completed — with the transfer reference on the last line');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A team's share, as agreed.
+-- Leadership of :'team' moved to 22222222 in section 20, and 22222222 is also
+-- the client paying below; the member for this test is somebody who is
+-- neither the owner, the leader nor the payer. 77777777 joins for it.
+insert into public.team_members (team_id, profile_id, role)
+values (:'team', '77777777-7777-7777-7777-777777777777', 'member')
+on conflict (team_id, profile_id) do update set is_active = true;
+
+select '77777777-7777-7777-7777-777777777777' as mate \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.set_project_split(%L, %L::jsonb)$$, :'project',
+         json_build_array(json_build_object('profile_id', '11111111-1111-1111-1111-111111111111', 'percent', 60),
+                          json_build_object('profile_id', :'mate', 'percent', 30))::text),
+  '56.21 a split that does not add up to everything is refused',
+  'مجموع النسب');
+
+select public.set_project_split(:'project',
+  json_build_array(json_build_object('profile_id', '11111111-1111-1111-1111-111111111111', 'percent', 60),
+                   json_build_object('profile_id', :'mate', 'percent', 40))::jsonb);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = :'mate';
+select public.assert_rejects(
+  format($$select public.set_project_split(%L, %L::jsonb)$$, :'project',
+         json_build_array(json_build_object('profile_id', :'mate', 'percent', 100))::text),
+  '56.22 a member reads the split but does not rewrite it',
+  'قائد الفريق أو صاحب المشروع');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.open_escrow('market_work', :'project', '11111111-1111-1111-1111-111111111111',
+                           100, 'jawwal_pay')).id as team_escrow \gset
+select public.submit_escrow_proof(:'team_escrow', '22222222-2222-2222-2222-222222222222/t.png', 'JP-7');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where escrow_id = :'team_escrow'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.release_escrow(:'team_escrow', 'استلمنا');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select sum(amount_usd) from public.wallet_entries
+    where ref_table = 'escrows' and ref_id = :'team_escrow' and status = 'available')
+    = (select net_usd from public.escrows where id = :'team_escrow')
+  and (select amount_usd from public.wallet_entries
+        where ref_table = 'escrows' and ref_id = :'team_escrow' and status = 'available'
+          and profile_id = :'mate')
+    = trunc((select net_usd from public.escrows where id = :'team_escrow') * 0.40, 2),
+  '56.23 released team money is shared as agreed, and the shares add up to the net exactly');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.set_project_split(%L, %L::jsonb)$$, :'project',
+         json_build_array(json_build_object('profile_id', '11111111-1111-1111-1111-111111111111', 'percent', 100))::text),
+  '56.24 and once money has been paid out against a split, the split is fixed',
+  'ثابت بعد الإفراج');
+reset role;
+reset request.jwt.claim.sub;
 
 \echo ''
 \echo '================================================'

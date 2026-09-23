@@ -9,7 +9,7 @@ import type { BookingStatus, PaymentStatus, SlotState } from '@/lib/database.typ
 export const BOOKING_STATUS: Record<BookingStatus, { text: Text; className: string }> = {
   draft:             { text: { ar: 'مسودّة',                  en: 'Draft' },                  className: 'status-muted' },
   payment_pending:   { text: { ar: 'بانتظار الدفع',            en: 'Awaiting payment' },       className: 'status-pending' },
-  payment_submitted: { text: { ar: 'التحقق من الدفع',          en: 'Verifying payment' },      className: 'status-pending' },
+  payment_submitted: { text: { ar: 'بانتظار تأكيد TechMood للدفع', en: 'Waiting for TechMood to confirm payment' }, className: 'status-pending' },
   payment_verified:  { text: { ar: 'تم التحقق من الدفع',       en: 'Payment verified' },       className: 'status-ok' },
   mentor_pending:    { text: { ar: 'بانتظار موافقة المنتور',   en: 'Awaiting mentor' },        className: 'status-pending' },
   confirmed:         { text: { ar: 'مؤكَّد',                    en: 'Confirmed' },              className: 'status-ok' },
@@ -22,8 +22,9 @@ export const BOOKING_STATUS: Record<BookingStatus, { text: Text; className: stri
 
 export const PAYMENT_STATUS: Record<PaymentStatus, { text: Text; className: string }> = {
   pending:      { text: { ar: 'لم يُرسل بعد',   en: 'Not sent yet' },  className: 'status-muted' },
-  under_review: { text: { ar: 'قيد المراجعة',   en: 'Under review' },  className: 'status-pending' },
-  verified:     { text: { ar: 'تم التحقق',      en: 'Verified' },      className: 'status-ok' },
+  under_review: { text: { ar: 'بانتظار مراجعة TechMood', en: 'Waiting for TechMood' }, className: 'status-pending' },
+  needs_info:   { text: { ar: 'سؤال بانتظار جوابك', en: 'A question for you' }, className: 'status-pending' },
+  verified:     { text: { ar: 'تم استلام الدفعة', en: 'Payment received' }, className: 'status-ok' },
   rejected:     { text: { ar: 'مرفوض',          en: 'Rejected' },      className: 'status-danger' },
   failed:       { text: { ar: 'فشل',            en: 'Failed' },        className: 'status-danger' },
   refunded:     { text: { ar: 'مسترد',          en: 'Refunded' },      className: 'status-muted' },

@@ -336,6 +336,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'المال والمحتوى', en: 'Money & content' },
       items: [
+        { href: '/admin/finance', label: { ar: 'الصورة المالية', en: 'Finance' }, icon: 'wallet' },
         { href: '/admin/payments', label: { ar: 'مراجعة المدفوعات', en: 'Review payments' }, icon: 'wallet' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
         { href: '/admin/payouts', label: { ar: 'طلبات السحب', en: 'Payout requests' }, icon: 'wallet' },

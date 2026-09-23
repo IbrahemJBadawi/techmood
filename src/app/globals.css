@@ -3091,3 +3091,50 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 }
 .credential-provider { margin-top: 10px; }
 .credential-provider h3 { font-size: 0.9rem; }
+
+/* ---------- the wallet: a record, not a balance ---------- */
+.wallet-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+.wallet-hero .lbl { font-size: 0.82rem; color: var(--ink-soft); }
+.wallet-hero .val { font-size: 1.9rem; font-weight: 700; color: var(--royal-dark); }
+
+.wallet-statement { list-style: none; margin: 0; padding: 0; }
+.wallet-statement li {
+  display: grid;
+  grid-template-columns: 96px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.wallet-statement li.is-cancelled { opacity: 0.55; }
+.wallet-amount { font-weight: 700; }
+.wallet-amount.is-in  { color: var(--ok); }
+.wallet-amount.is-out { color: var(--ink); }
+.wallet-label { min-width: 0; }
+
+.finance-timeline { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 12px; }
+.finance-timeline li { display: flex; gap: 10px; align-items: flex-start; }
+.finance-dot { width: 24px; text-align: center; }
+
+.pay-to {
+  border: 1px dashed var(--royal);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: var(--sky-tint);
+}
+
+@media (max-width: 720px) {
+  .wallet-statement li { grid-template-columns: 80px 1fr; }
+  .wallet-statement li .status-pill, .wallet-statement li .btn { grid-column: 2; justify-self: start; }
+}

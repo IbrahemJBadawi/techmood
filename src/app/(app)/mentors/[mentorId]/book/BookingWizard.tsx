@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from 'react';
 
 import { formatSlot, money, SLOT_STATE } from '@/lib/booking';
-import type { PaymentMethod, SessionType, SlotState } from '@/lib/database.types';
+import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database.types';
 
 import { useT } from '@/lib/i18n.client';
 
@@ -33,7 +33,7 @@ export function BookingWizard({
   price: number;
   sessionTypes: SessionType[];
   slots: Slot[];
-  paymentMethods: PaymentMethod[];
+  paymentMethods: PaymentMethodPublic[];
   student: { full_name: string; techmood_id: string; email: string; phone: string | null };
   reviewCandidates: ReviewCandidate[];
   /** The teams this person leads. A team session is the leader's to book. */

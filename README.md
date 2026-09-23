@@ -275,6 +275,14 @@ organisation's free credential plus a practical task a mentor judges, that
 does not complete (and so cannot lead to a certificate) until both are done,
 with the credential always labelled as its provider's.
 
+Also built: **one financial system** — a wallet that is a record rather than
+money held, whose contents follow the role; payments that can be asked a
+question instead of rejected; a timeline for every payment, withdrawal and
+hold; withdrawals that say requested → processing → completed; team shares
+agreed before money moves; and an admin picture that never confuses volume
+with revenue. It also fixes market work being charged its commission twice,
+and receiving account numbers being readable by anyone signed in.
+
 **Every module now has its screens.** What remains is not a missing feature but
 the step this repository cannot take for you: creating the Supabase project,
 running `supabase db push`, and exercising the interface against live data.

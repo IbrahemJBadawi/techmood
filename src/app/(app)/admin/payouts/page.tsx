@@ -7,7 +7,8 @@ import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { PAYOUT_STATUS } from '@/lib/wallet';
 
-import { reviewPayout } from './actions';
+import { reviewPayout, startTransfer } from './actions';
+import { PayoutProof } from './PayoutProof';
 
 export default async function AdminPayoutsPage() {
   const t = await getT();
@@ -22,7 +23,7 @@ export default async function AdminPayoutsPage() {
 
   const { data: requests } = await supabase
     .from('payout_requests')
-    .select('id, request_code, profile_id, account_id, amount_usd, status, note_ar, paid_reference, created_at, reviewed_at')
+    .select('id, request_code, profile_id, account_id, amount_usd, status, note_ar, paid_reference, created_at, reviewed_at, proof_path')
     .order('created_at', { ascending: true });
 
   const profileIds = [...new Set((requests ?? []).map((row) => row.profile_id))];
@@ -132,6 +133,23 @@ export default async function AdminPayoutsPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+                  {request.status === 'requested' ? (
+                    <form action={startTransfer}>
+                      <input type="hidden" name="request_id" value={request.id} />
+                      <button className="btn btn-ghost btn-sm">
+                        {t('🟠 بدأتُ التحويل', '🟠 I am sending it now')}
+                      </button>
+                    </form>
+                  ) : (
+                    <span className="status-pill status-pending">{t('قيد التحويل', 'Transferring')}</span>
+                  )}
+                  <PayoutProof requestId={request.id} payeeId={request.profile_id} hasProof={Boolean(request.proof_path)} />
+                  <a className="btn btn-ghost btn-sm" href={`/wallet/timeline/payout/${request.id}`}>
+                    {t('السجلّ', 'Timeline')}
+                  </a>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
                   <form action={reviewPayout} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 280 }}>
                     <input type="hidden" name="request_id" value={request.id} />
                     <input type="hidden" name="decision" value="approve" />

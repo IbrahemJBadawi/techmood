@@ -198,11 +198,12 @@ export function PaymentForm({
           style={{ width: '100%' }}
           disabled={pending || uploading || (method.requires_receipt && !proofPath)}
         >
-          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('✓ حوّلت المبلغ — أرسل للتأكيد', '✓ I have transferred it — send for confirmation')}
         </button>
 
         <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-          {t('سيراجع فريق TechMood عملية الدفع، ثم يُرسل الطلب إلى المنتور للموافقة.', 'TechMood will check the payment, then send the request on to the mentor to accept.')}
+          {t('هذا لا يعني أن الدفع تمّ: يعني أنك تطلب من TechMood التأكّد. بعد التأكيد يُرسل الطلب إلى المنتور للموافقة.',
+             'This does not mean the payment is done: it asks TechMood to check it. Once confirmed, the request goes to the mentor to accept.')}
         </p>
       </form>
     </>

@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 
 import { ESCROW_STATUS, EscrowProofForm } from '../projects/[projectId]/Money';
+import { escrowPayTo, type EscrowPayTo } from '@/lib/escrow-instructions';
 
 /**
  * Every hold this person is on either side of. It is not a wallet — the wallet
@@ -16,8 +17,15 @@ export async function MoneyTab() {
   const locale = await getLocale();
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: rows } = await supabase.rpc('my_escrows');
   const escrows = rows ?? [];
+
+  const payTo = new Map<string, EscrowPayTo>();
+  for (const escrow of escrows.filter((row) => row.status === 'awaiting_payment' && row.side === 'paying')) {
+    const found = await escrowPayTo(supabase, escrow.id);
+    if (found) payTo.set(escrow.id, found);
+  }
 
   if (escrows.length === 0) {
     return (
@@ -52,7 +60,8 @@ export async function MoneyTab() {
             </p>
             {escrow.status === 'awaiting_payment' && escrow.side === 'paying' && (
               <div style={{ marginTop: 10 }}>
-                <EscrowProofForm escrowId={escrow.id} revalidate="/marketplace?tab=money" />
+                <EscrowProofForm escrowId={escrow.id} revalidate="/marketplace?tab=money"
+                                 userId={user?.id ?? ''} instructions={payTo.get(escrow.id) ?? null} />
               </div>
             )}
           </div>

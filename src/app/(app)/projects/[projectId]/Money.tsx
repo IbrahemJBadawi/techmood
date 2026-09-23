@@ -1,10 +1,11 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 
+import { createClient } from '@/lib/supabase/client';
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
-import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethod, SaleLicence } from '@/lib/database.types';
+import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import {
@@ -59,7 +60,7 @@ export function OpenEscrowForm({
   projectId: string;
   payeeId: string;
   payeeName: string;
-  methods: PaymentMethod[];
+  methods: PaymentMethodPublic[];
   suggested: number | null;
   /** What the platform takes at the suggested amount, worked out server-side. */
   commissionOf: number | null;
@@ -114,26 +115,130 @@ export function OpenEscrowForm({
 }
 
 /** The receipt for a hold that is waiting for its money. */
-export function EscrowProofForm({ escrowId, revalidate }: { escrowId: string; revalidate: string }) {
+export type EscrowInstructions = {
+  payment_code: string;
+  name_ar: string;
+  instructions_ar: string | null;
+  recipient_name: string | null;
+  account_number: string | null;
+  wallet_number: string | null;
+  iban: string | null;
+  bank_name: string | null;
+  requires_receipt: boolean;
+  requires_reference: boolean;
+  reference_label_ar: string | null;
+  info_request_ar: string | null;
+};
+
+/**
+ * Paying into a hold. It used to ask the client to type a storage path, and
+ * never said where to send the money — a form nobody could actually complete.
+ * It now shows the receiving account (read through `payment_instructions()`,
+ * so only the payer sees it) and uploads the receipt the way a session
+ * payment does, into the payer's own folder of the private proofs bucket.
+ */
+export function EscrowProofForm({
+  escrowId, revalidate, userId, instructions,
+}: {
+  escrowId: string;
+  revalidate: string;
+  userId: string;
+  instructions: EscrowInstructions | null;
+}) {
   const t = useT();
   const [state, formAction, pending] = useActionState(submitEscrowProof, undefined as MoneyState);
+  const [proofPath, setProofPath] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  async function upload(file: File) {
+    setUploadError('');
+    if (!['image/png', 'image/jpeg', 'application/pdf'].includes(file.type)) {
+      setUploadError(t('الصيغ المقبولة: PNG أو JPG أو PDF.', 'Accepted: PNG, JPG or PDF.'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError(t('أقصى حجم 5 ميغابايت.', 'At most 5 MB.'));
+      return;
+    }
+    setUploading(true);
+    const extension = file.type === 'application/pdf' ? 'pdf' : file.type === 'image/png' ? 'png' : 'jpg';
+    const key = `${userId}/${escrowId}-${Date.now()}.${extension}`;
+    const { error } = await createClient().storage.from('payment-proofs').upload(key, file, {
+      contentType: file.type, upsert: false,
+    });
+    setUploading(false);
+    if (error) {
+      setUploadError(t('تعذّر رفع الإيصال — حاول مرة أخرى.', 'The receipt could not be uploaded — try again.'));
+      return;
+    }
+    setProofPath(key);
+  }
+
+  const details = instructions
+    ? [
+        { label: t('اسم المستفيد', 'Recipient'), value: instructions.recipient_name },
+        { label: t('رقم الحساب', 'Account'), value: instructions.account_number },
+        { label: t('رقم المحفظة', 'Wallet'), value: instructions.wallet_number },
+        { label: 'IBAN', value: instructions.iban },
+        { label: t('البنك', 'Bank'), value: instructions.bank_name },
+      ].filter((row) => Boolean(row.value))
+    : [];
 
   return (
     <form action={formAction} className="meeting-form">
       <input type="hidden" name="escrow_id" value={escrowId} />
       <input type="hidden" name="revalidate" value={revalidate} />
+      <input type="hidden" name="proof_path" value={proofPath} />
+
+      {instructions && (
+        <div className="pay-to">
+          <p className="muted" style={{ fontSize: '0.8rem' }}>
+            {t('حوّل المبلغ إلى', 'Send the amount to')} <strong>{instructions.name_ar}</strong>
+            {' · '}<span className="id-chip">{instructions.payment_code}</span>
+          </p>
+          {details.map((row) => (
+            <div className="summary-row" key={row.label}>
+              <span className="muted">{row.label}</span>
+              <span className="eng" dir="ltr">{row.value}</span>
+            </div>
+          ))}
+          {instructions.instructions_ar && (
+            <p className="muted" style={{ fontSize: '0.78rem', marginTop: 6 }}>{instructions.instructions_ar}</p>
+          )}
+        </div>
+      )}
+
+      {instructions?.info_request_ar && (
+        <p className="notice">{t('سؤال من TechMood: ', 'TechMood asks: ')}{instructions.info_request_ar}</p>
+      )}
 
       <div className="field">
-        <label htmlFor="reference">{t('رقم العملية', 'Reference')}</label>
-        <input id="reference" name="reference" dir="ltr" />
+        <label htmlFor={`reference-${escrowId}`}>
+          {instructions?.reference_label_ar ?? t('رقم العملية', 'Reference')}
+        </label>
+        <input id={`reference-${escrowId}`} name="reference" dir="ltr"
+               required={instructions?.requires_reference ?? false} />
       </div>
+
       <div className="field">
-        <label htmlFor="proof_path">{t('مسار الإيصال', 'Receipt')}</label>
-        <input id="proof_path" name="proof_path" dir="ltr" placeholder="receipts/…" />
+        <label htmlFor={`receipt-${escrowId}`}>{t('إيصال التحويل', 'Transfer receipt')}</label>
+        <input id={`receipt-${escrowId}`} type="file" accept="image/png,image/jpeg,application/pdf"
+               disabled={uploading}
+               onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); }} />
+        {uploading && <p className="muted">{t('جارٍ الرفع…', 'Uploading…')}</p>}
+        {proofPath && <p className="notice notice-ok">{t('رُفع الإيصال.', 'Receipt uploaded.')}</p>}
+        {uploadError && <p className="notice notice-danger">{uploadError}</p>}
       </div>
-      <button className="btn btn-ghost btn-sm" disabled={pending}>
-        {pending ? t('جارٍ…', 'Sending…') : t('أرسل الإثبات', 'Send the receipt')}
+
+      <button className="btn btn-primary btn-sm"
+              disabled={pending || uploading || ((instructions?.requires_receipt ?? true) && !proofPath)}>
+        {pending ? t('جارٍ…', 'Sending…') : t('✓ حوّلت المبلغ — أرسل للتأكيد', '✓ I have transferred it — send for confirmation')}
       </button>
+      <p className="muted" style={{ fontSize: '0.76rem' }}>
+        {t('هذا طلب تأكيد، لا إعلان بأن الدفع تمّ. يُحجز المبلغ بعد أن تؤكّده TechMood.',
+           'This asks TechMood to confirm; it does not mean the payment is done. The money is held once TechMood confirms it.')}
+      </p>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
@@ -318,7 +423,7 @@ export function WithdrawListing({ listingId, revalidate }: { listingId: string; 
 }
 
 /** Buying one — which opens a hold rather than moving money. */
-export function BuyForm({ listingId, methods }: { listingId: string; methods: PaymentMethod[] }) {
+export function BuyForm({ listingId, methods }: { listingId: string; methods: PaymentMethodPublic[] }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(buyProject, undefined as MoneyState);
 

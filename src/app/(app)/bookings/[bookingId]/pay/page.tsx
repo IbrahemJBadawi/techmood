@@ -8,6 +8,7 @@ import { formatSlot, money } from '@/lib/booking';
 import type { PaymentMethod } from '@/lib/database.types';
 
 import { PaymentForm } from './PaymentForm';
+import { AnswerForm } from './AnswerForm';
 
 export default async function PayBookingPage({
   params,
@@ -36,9 +37,9 @@ export default async function PayBookingPage({
   const [{ data: payment }, { data: mentorProfile }, { data: sessionType }] = await Promise.all([
     supabase
       .from('payments')
-      .select('id, method_key, amount_usd, status, rejection_reason')
+      .select('id, payment_code, method_key, amount_usd, status, rejection_reason, info_request_ar')
       .eq('booking_id', bookingId)
-      .in('status', ['pending', 'rejected'])
+      .in('status', ['pending', 'rejected', 'needs_info'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -50,11 +51,23 @@ export default async function PayBookingPage({
 
   if (!payment) notFound();
 
-  const { data: method } = await supabase
-    .from('payment_methods')
-    .select('*')
-    .eq('key', payment.method_key)
-    .single();
+  // The receiving details are column-locked (0075): they come only from
+  // payment_instructions(), which shows them to the person who owes this
+  // payment, on the method they chose, while it is still open.
+  const { data: instructions } = await supabase.rpc('payment_instructions', { p_payment: payment.id });
+  const row = instructions?.[0] ?? null;
+  const method: PaymentMethod | null = row
+    ? {
+        key: row.method_key, name_ar: row.name_ar, name_en: row.name_en, icon: row.icon,
+        category: 'local', is_enabled: true, sort_order: 0, use_for: [],
+        instructions_ar: row.instructions_ar, recipient_name: row.recipient_name,
+        account_number: row.account_number, wallet_number: row.wallet_number, iban: row.iban,
+        swift: row.swift, bank_name: row.bank_name, bank_address: row.bank_address,
+        city: row.city, country: row.country, requires_receipt: row.requires_receipt,
+        requires_reference: row.requires_reference, reference_label_ar: row.reference_label_ar,
+        supports_automatic_payment: false, supports_payout: false,
+      }
+    : null;
 
   const when = formatSlot(booking.scheduled_start);
   const expired = booking.reserved_until ? new Date(booking.reserved_until) < new Date() : false;
@@ -67,6 +80,7 @@ export default async function PayBookingPage({
         <h2 style={{ fontSize: '1.2rem' }}>{t('إتمام الدفع', 'Complete your payment')}</h2>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
           {t('طلب رقم ', 'Request ')}<span className="id-chip">{booking.booking_code}</span>
+          {' · '}{t('دفعة ', 'Payment ')}<span className="id-chip">{payment.payment_code}</span>
         </p>
       </section>
 
@@ -96,10 +110,14 @@ export default async function PayBookingPage({
 
       <div className="detail-grid">
         <section>
-          {!expired && (
+          {!expired && payment.status === 'needs_info' && (
+            <AnswerForm paymentId={payment.id} bookingId={booking.id}
+                        question={payment.info_request_ar ?? ''} />
+          )}
+          {!expired && payment.status !== 'needs_info' && method && (
             <PaymentForm
               bookingId={booking.id}
-              method={method as PaymentMethod}
+              method={method}
               amount={payment.amount_usd}
               userId={user.id}
             />

@@ -196,3 +196,24 @@ export async function reviewClient(_prev: MoneyState, formData: FormData): Promi
   return { ok: t('وصل تقييمك، وهو الآن جزء من سجلّ هذا العميل.',
                  'Your review is in, and it is now part of this client’s record.') };
 }
+
+/**
+ * The team's split. Written by whoever leads, read by every member, fixed the
+ * moment money is released against it — set_project_split() checks all three.
+ */
+export async function saveProjectSplit(_prev: MoneyState, formData: FormData): Promise<MoneyState> {
+  const t = await getT();
+  const supabase = await createClient();
+
+  const projectId = String(formData.get('project_id') ?? '');
+  const people = formData.getAll('profile_id').map(String);
+  const splits = people
+    .map((id) => ({ profile_id: id, percent: Number(String(formData.get(`percent_${id}`) ?? '0')) }))
+    .filter((row) => row.percent > 0);
+
+  const { error } = await supabase.rpc('set_project_split', { p_project: projectId, p_splits: splits });
+
+  revalidatePath(`/projects/${projectId}`);
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('حُفظ التقسيم، ووصل كل عضو نصيبه.', 'The split is saved, and every member has been told their share.') };
+}

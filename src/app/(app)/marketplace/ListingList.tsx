@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
-import type { PaymentMethod, SaleLicence } from '@/lib/database.types';
+import type { PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { BuyForm } from '../projects/[projectId]/Money';
+import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 
 const LICENCE: Record<SaleLicence, Text> = {
   usage_rights:  { ar: 'حق استخدام',  en: 'Usage rights' },
@@ -26,7 +27,7 @@ export async function ListingList({ search }: { search?: string }) {
 
   const [{ data: listings }, { data: methods }] = await Promise.all([
     supabase.rpc('market_listings', { p_search: search ?? null, p_limit: 24 }),
-    supabase.from('payment_methods').select('*').eq('is_enabled', true).order('sort_order'),
+    supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order'),
   ]);
 
   if ((listings ?? []).length === 0) {
@@ -83,7 +84,7 @@ export async function ListingList({ search }: { search?: string }) {
           </div>
 
           <div style={{ marginTop: 10 }}>
-            <BuyForm listingId={listing.id} methods={(methods ?? []) as PaymentMethod[]} />
+            <BuyForm listingId={listing.id} methods={(methods ?? []) as PaymentMethodPublic[]} />
           </div>
 
           <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>

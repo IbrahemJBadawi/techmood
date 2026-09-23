@@ -11,15 +11,18 @@ import { money } from '@/lib/booking';
 
 import { recordProjectFile, setProjectStatus } from './actions';
 import { Meetings } from './Meetings';
+import { TeamSplit, type SplitRow } from './TeamSplit';
+import { escrowPayTo } from '@/lib/escrow-instructions';
 import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
 import {
-  ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS,
+  ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS, type EscrowInstructions,
   OpenEscrowForm, SellForm, WithdrawListing, WorkerReviewForm,
 } from './Money';
-import type { PaymentMethod } from '@/lib/database.types';
+import type { PaymentMethodPublic } from '@/lib/database.types';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
@@ -49,7 +52,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, status, kind, agreed_amount_usd, created_at')
+    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, created_at')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -73,7 +76,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     supabase.from('escrows')
       .select('id, escrow_code, amount_usd, commission_usd, net_usd, status, payer_id, payee_id, dispute_reason_ar')
       .eq('project_id', projectId).order('created_at', { ascending: false }),
-    supabase.from('payment_methods').select('*').eq('is_enabled', true).order('sort_order'),
+    supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order'),
     supabase.from('project_listings')
       .select('id, price_usd, licence, summary_ar, includes, status')
       .eq('project_id', projectId).maybeSingle(),
@@ -102,6 +105,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const released = holds.some((row) => row.status === 'released');
 
+  // Where the client sends the money for a hold they opened — shown only to
+  // the payer of that payment (see escrowPayTo).
+  const instructionsFor = new Map<string, EscrowInstructions>();
+  for (const hold of holds.filter((row) => row.status === 'awaiting_payment' && row.payer_id === user.id)) {
+    const payTo = await escrowPayTo(supabase, hold.id);
+    if (payTo) instructionsFor.set(hold.id, payTo);
+  }
+
   // The room and the files are between the parties to the work. A public
   // project page shows finished work; it does not open the drafts or the calls.
   const { data: isParty } = await supabase.rpc('is_project_party', { p_project: projectId });
@@ -118,6 +129,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     ? await supabase.storage.from('project-files').createSignedUrls(uploads.map((item) => item.url), 300)
     : { data: [] };
   const signedFor = new Map((signed ?? []).map((row) => [row.path, row.signedUrl]));
+
+  // A team's share: the suggestion from the board, and what was agreed.
+  let splitRows: SplitRow[] = [];
+  let canEditSplit = false;
+  if (isParty && project.team_id) {
+    const [{ data: suggested }, { data: agreed }, { data: team }] = await Promise.all([
+      supabase.rpc('suggested_project_split', { p_project: projectId }),
+      supabase.from('project_splits').select('profile_id, percent').eq('project_id', projectId),
+      supabase.from('teams').select('leader_id').eq('id', project.team_id).maybeSingle(),
+    ]);
+    const agreedFor = new Map((agreed ?? []).map((row) => [row.profile_id, Number(row.percent)]));
+    splitRows = (suggested ?? []).map((row) => ({
+      profile_id: row.profile_id, full_name: row.full_name, tasks_done: row.tasks_done,
+      suggested: Number(row.percent), agreed: agreedFor.get(row.profile_id) ?? null,
+    }));
+    canEditSplit = project.owner_id === user.id || team?.leader_id === user.id;
+  }
+
 
 
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
@@ -241,6 +270,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
             <Meetings projectId={projectId} meetings={meetings ?? []} />
           )}
 
+          {splitRows.length > 0 && (
+            <TeamSplit projectId={projectId} rows={splitRows} canEdit={canEditSplit} locked={released} />
+          )}
+
           {holds.length > 0 && (
             <div className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>{t('المال', 'The money')}</h3>
@@ -265,7 +298,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
                     {hold.status === 'awaiting_payment' && hold.payer_id === user.id && (
                       <div style={{ marginTop: 10 }}>
-                        <EscrowProofForm escrowId={hold.id} revalidate={`/projects/${projectId}`} />
+                        <EscrowProofForm escrowId={hold.id} revalidate={`/projects/${projectId}`}
+                                         userId={user.id} instructions={instructionsFor.get(hold.id) ?? null} />
                       </div>
                     )}
 
@@ -291,7 +325,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               projectId={projectId}
               payeeId={project.owner_id}
               payeeName={nameOf.get(project.owner_id) ?? ''}
-              methods={(methods ?? []) as PaymentMethod[]}
+              methods={(methods ?? []) as PaymentMethodPublic[]}
               suggested={suggested}
               commissionOf={commission ?? null}
             />

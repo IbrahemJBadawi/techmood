@@ -1394,6 +1394,74 @@ before it is typed in. The publish guard refuses to put a course live with an
 empty credential slot, or with a credential lesson that demands practice and
 gives no task to practise in.
 
+## One financial system: a record, not money held
+
+The wallet is a financial record, not a balance TechMood holds for people:
+what someone paid, what became owed to them, what was sent to them, and what
+is still being checked. The admin is the one point of financial control —
+payments are confirmed by a person, withdrawals are sent by a person — and
+nothing in the MVP pretends otherwise.
+
+Most of it existed: manual payments with receipts and an admin's verdict
+(0007, 0015, 0016), a ledger the balance is computed from, payout accounts and
+requests (0022), escrow for market work and commission brackets (0054). 0075
+adds the rest of the spec and corrects three things found while reading it.
+
+### Three corrections, because they were about money that was wrong
+
+1. **Market work was charged its commission twice.** Funding an escrow wrote
+   the payee's earning at `net_usd` — already after commission — and release
+   then debited `commission_usd` again. On a $400 job the freelancer was owed
+   $340 and received $280. Test 43.7 asserted the second debit existed; it now
+   asserts the payee receives exactly the net.
+2. **Every signed-in person could read every receiving account in full.**
+   `payment_methods` was readable column by column, account numbers and IBANs
+   included. The four sensitive columns are now column-locked;
+   `payment_instructions()` shows them to the person who owes an open payment on
+   that method, and admins read them through `admin_payment_accounts()`. The
+   old migrations end with `grant select on all tables`; running that line
+   again would undo this, which is why test 56.2 reads `account_number` as a
+   stranger and expects to be refused.
+3. **A mentor saw nothing between payment and payout.** The earning was
+   written only when the session completed. It is now written as *pending* when
+   the mentor accepts, and the same row becomes *available* when the session
+   happens — the shape market work always had.
+
+Two screens were also broken: the escrow receipt form asked the client to
+*type a storage path* and never said where to send the money. It now shows
+the receiving account and uploads the receipt like a session payment does.
+
+### What was added
+
+* **A question instead of a rejection.** `needs_info` keeps the receipt and
+  the slot and asks; the payer answers and it goes back for review.
+* **Currency recorded, never converted.** A payment records what was actually
+  sent — ILS, JOD or USD, the amount and the rate — beside the dollar amount
+  owed. The ledger stays in USD; the admin decides.
+* **A timeline for every payment, withdrawal and hold,** written by triggers on
+  the status column so no code path can move money without leaving a line, and
+  readable only by the parties. A booking's own steps are woven into its
+  payment's story.
+* **Withdrawals say where they are:** requested → processing → completed, with
+  the transfer reference and an optional receipt the payee can read.
+* **A team's share, as agreed.** Suggested from the tasks each member finished
+  on the board, set by the lead, visible to every member, fixed once money is
+  released against it. The shares are truncated and the payee takes the
+  rounding, so they always add up to the net exactly.
+* **The admin's picture keeps GMV, revenue and user earnings apart.** 100
+  sessions at $35 is $3,500 of volume, not of revenue.
+* **Receiving accounts per purpose** (mentoring, market work, project sales,
+  courses, withdrawals), changed from the admin screen without touching code.
+
+### What is deliberately not built
+
+The spec's second half suggested "Add Money" and a company wallet with a
+balance. That is stored value — TechMood holding people's money before it is
+spent — and it contradicts the first half, which is right: the wallet is a
+record. A company's wallet is its spending and payments. No payment gateway,
+no automatic payouts and no currency conversion exist; `supports_automatic_payment`
+stays false until a real integration does.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every

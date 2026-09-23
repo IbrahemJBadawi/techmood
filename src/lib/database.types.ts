@@ -67,7 +67,7 @@ export type BookingStatus =
   | 'refunded' | 'expired';
 
 export type PaymentStatus =
-  | 'pending' | 'under_review' | 'verified' | 'rejected' | 'failed' | 'refunded';
+  | 'pending' | 'under_review' | 'needs_info' | 'verified' | 'rejected' | 'failed' | 'refunded';
 
 export type SlotState = 'available' | 'pending' | 'booked' | 'unavailable';
 export type LedgerKind = 'earning' | 'fee' | 'commission' | 'payout' | 'refund';
@@ -85,6 +85,8 @@ export type WalletEntry = {
   ref_id: string | null;
   created_at: string;
 }
+
+export type FinanceEntity = 'payment' | 'payout' | 'escrow';
 
 export type PayoutAccount = {
   id: string;
@@ -114,6 +116,10 @@ export type PayoutRequest = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   paid_reference: string | null;
+  /** When an admin started sending it (status 'approved' = processing). */
+  processing_at: string | null;
+  /** The admin's receipt, a path in the private payout-proofs bucket. */
+  proof_path: string | null;
   created_at: string;
 }
 
@@ -483,6 +489,32 @@ export type SessionType = {
   is_active: boolean;
 }
 
+/**
+ * What anybody signed in may read about a payment method: its name, its
+ * instructions, what it requires. Since 0075 the receiving details below are
+ * column-locked — readable only through `payment_instructions()` by someone
+ * with a payment to make, and by admins.
+ */
+export type PaymentMethodPublic = {
+  key: string;
+  name_ar: string;
+  name_en: string;
+  icon: string | null;
+  category: 'local' | 'international';
+  is_enabled: boolean;
+  sort_order: number;
+  instructions_ar: string | null;
+  requires_receipt: boolean;
+  requires_reference: boolean;
+  reference_label_ar: string | null;
+  supports_automatic_payment: boolean;
+  supports_payout: boolean;
+  use_for: string[];
+};
+
+/** The columns of `PaymentMethodPublic`, for `.select()` — never `'*'`. */
+export const PUBLIC_METHOD_COLUMNS = 'key, name_ar, name_en, icon, category, is_enabled, sort_order, instructions_ar, requires_receipt, requires_reference, reference_label_ar, supports_automatic_payment, supports_payout, use_for';
+
 export type PaymentMethod = {
   key: string;
   name_ar: string;
@@ -492,6 +524,7 @@ export type PaymentMethod = {
   is_enabled: boolean;
   sort_order: number;
   instructions_ar: string | null;
+  use_for: string[];
   recipient_name: string | null;
   account_number: string | null;
   wallet_number: string | null;
@@ -556,6 +589,15 @@ export type Payment = {
   verified_at: string | null;
   rejection_reason: string | null;
   failure_reason: string | null;
+  /** A code a person can read out: TMPAY-XXXXXXXX. */
+  payment_code: string;
+  /** What was actually sent — the ledger stays in USD, nothing is converted. */
+  paid_currency: 'USD' | 'ILS' | 'JOD';
+  paid_amount: number | null;
+  exchange_rate: number;
+  /** The admin's question, and the payer's answer, when a receipt raised one. */
+  info_request_ar: string | null;
+  payer_note_ar: string | null;
   created_at: string;
 }
 
@@ -978,6 +1020,9 @@ export type Database = {
       mentorship_goals: Table<MentorshipGoal>;
       credential_providers: Table<CredentialProvider>;
       lesson_credentials: Table<LessonCredential>;
+      project_splits: Table<{
+        project_id: string; profile_id: string; percent: number; set_by: string | null; set_at: string;
+      }>;
       profiles: Table<Profile>;
       profile_roles: Table<ProfileRole>;
       role_request_events: Table<RoleRequestEventRow>;
@@ -2241,6 +2286,79 @@ export type Database = {
           skill_slug: string; skill_name: string; source_kind: 'credential' | 'application';
           source_label: string; provider: string | null; stars: number | null;
           link: string | null; at: string | null;
+        }[];
+      };
+      payment_instructions: {
+        Args: { p_payment: string };
+        Returns: {
+          method_key: string; name_ar: string; name_en: string; icon: string | null;
+          instructions_ar: string | null; recipient_name: string | null;
+          account_number: string | null; wallet_number: string | null; iban: string | null;
+          swift: string | null; bank_name: string | null; bank_address: string | null;
+          city: string | null; country: string | null;
+          requires_receipt: boolean; requires_reference: boolean;
+          reference_label_ar: string | null; amount_usd: number; payment_code: string;
+        }[];
+      };
+      admin_payment_accounts: { Args: Record<string, never>; Returns: PaymentMethod[] };
+      save_payment_account: {
+        Args: {
+          p_key: string; p_enabled: boolean; p_recipient_name?: string | null;
+          p_account_number?: string | null; p_wallet_number?: string | null;
+          p_iban?: string | null; p_swift?: string | null; p_bank_name?: string | null;
+          p_instructions?: string | null; p_use_for?: string[] | null;
+          p_supports_payout?: boolean | null;
+        };
+        Returns: undefined;
+      };
+      request_payment_info: { Args: { p_payment: string; p_question: string }; Returns: undefined };
+      answer_payment_info: {
+        Args: { p_payment: string; p_note: string; p_proof_path?: string | null; p_reference?: string | null };
+        Returns: undefined;
+      };
+      report_payment_currency: {
+        Args: { p_payment: string; p_currency: string; p_amount: number; p_rate?: number | null };
+        Returns: undefined;
+      };
+      start_payout_transfer: { Args: { p_request: string }; Returns: undefined };
+      attach_payout_proof: { Args: { p_request: string; p_path: string }; Returns: undefined };
+      finance_timeline: {
+        Args: { p_type: FinanceEntity; p_id: string };
+        Returns: {
+          event_key: string; note_ar: string | null; actor_name: string | null;
+          actor_is_admin: boolean; at: string;
+        }[];
+      };
+      suggested_project_split: {
+        Args: { p_project: string };
+        Returns: { profile_id: string; full_name: string; tasks_done: number; percent: number }[];
+      };
+      set_project_split: {
+        Args: { p_project: string; p_splits: { profile_id: string; percent: number }[] };
+        Returns: undefined;
+      };
+      wallet_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          paid_usd: number; under_review_usd: number; refunded_usd: number; open_payments: number;
+          pending_usd: number; available_usd: number; withdrawal_pending_usd: number;
+          withdrawn_usd: number; total_earned_usd: number; open_withdrawals: number;
+        }[];
+      };
+      wallet_transactions: {
+        Args: { p_filter?: string; p_limit?: number };
+        Returns: {
+          entity_type: 'payment' | 'payout' | 'ledger'; entity_id: string; code: string | null;
+          kind: string; label_ar: string; amount_usd: number; status: string; at: string;
+        }[];
+      };
+      finance_overview: {
+        Args: { p_from?: string | null; p_to?: string | null };
+        Returns: {
+          gmv_usd: number; platform_revenue_usd: number; user_earnings_usd: number;
+          refunded_usd: number; pending_verification_usd: number; pending_verification: number;
+          needs_info: number; pending_withdrawals_usd: number; pending_withdrawals: number;
+          held_in_escrow_usd: number; disputes: number; owed_to_users_usd: number;
         }[];
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };

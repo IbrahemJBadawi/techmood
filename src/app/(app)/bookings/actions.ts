@@ -181,3 +181,23 @@ export async function unblockTime(formData: FormData) {
 
   revalidatePath('/bookings');
 }
+
+/** Answering the admin's question about a payment. The receipt stays as it was. */
+export async function answerPaymentQuestion(_prev: PaymentState, formData: FormData): Promise<PaymentState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const { error } = await supabase.rpc('answer_payment_info', {
+    p_payment: String(formData.get('payment_id') ?? ''),
+    p_note: String(formData.get('note') ?? '').trim(),
+    p_reference: String(formData.get('reference') ?? '').trim() || null,
+  });
+
+  if (error) return { error: dbError(t, error.message) };
+
+  revalidatePath(`/bookings/${bookingId}`);
+  redirect(`/bookings/${bookingId}`);
+}

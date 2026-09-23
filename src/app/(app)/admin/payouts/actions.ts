@@ -21,3 +21,18 @@ export async function reviewPayout(formData: FormData) {
   revalidatePath('/admin/payouts');
   revalidatePath('/admin');
 }
+
+/** "I am sending it now" — the request moves to processing and the payee is told. */
+export async function startTransfer(formData: FormData) {
+  const supabase = await createClient();
+  await supabase.rpc('start_payout_transfer', { p_request: String(formData.get('request_id') ?? '') });
+  revalidatePath('/admin/payouts');
+}
+
+/** The admin's own receipt for a transfer, filed under the payee's folder. */
+export async function attachPayoutProof(requestId: string, path: string): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('attach_payout_proof', { p_request: requestId, p_path: path });
+  revalidatePath('/admin/payouts');
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
