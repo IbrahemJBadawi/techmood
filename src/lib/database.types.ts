@@ -510,10 +510,23 @@ export type PaymentMethodPublic = {
   supports_automatic_payment: boolean;
   supports_payout: boolean;
   use_for: string[];
+  display_fields: PayField[];
+  international_fields: PayField[];
 };
 
+/** The receiving fields a method may show a payer, in the order it shows them. */
+export type PayField =
+  | 'recipient_name' | 'bank_name' | 'account_number' | 'iban' | 'swift'
+  | 'bank_address' | 'wallet_number' | 'account_email' | 'city' | 'country';
+
+/**
+ * Where to send one payment, as `payment_instructions()` returns it: only the
+ * fields the chosen method shows, and only to the person who owes it.
+ */
+export type PayTo = Database['public']['Functions']['payment_instructions']['Returns'][number];
+
 /** The columns of `PaymentMethodPublic`, for `.select()` — never `'*'`. */
-export const PUBLIC_METHOD_COLUMNS = 'key, name_ar, name_en, icon, category, is_enabled, sort_order, instructions_ar, requires_receipt, requires_reference, reference_label_ar, supports_automatic_payment, supports_payout, use_for';
+export const PUBLIC_METHOD_COLUMNS = 'key, name_ar, name_en, icon, category, is_enabled, sort_order, instructions_ar, requires_receipt, requires_reference, reference_label_ar, supports_automatic_payment, supports_payout, use_for, display_fields, international_fields';
 
 export type PaymentMethod = {
   key: string;
@@ -525,6 +538,9 @@ export type PaymentMethod = {
   sort_order: number;
   instructions_ar: string | null;
   use_for: string[];
+  display_fields: PayField[];
+  international_fields: PayField[];
+  account_email: string | null;
   recipient_name: string | null;
   account_number: string | null;
   wallet_number: string | null;
@@ -2295,11 +2311,20 @@ export type Database = {
           instructions_ar: string | null; recipient_name: string | null;
           account_number: string | null; wallet_number: string | null; iban: string | null;
           swift: string | null; bank_name: string | null; bank_address: string | null;
-          city: string | null; country: string | null;
+          city: string | null; country: string | null; account_email: string | null;
+          display_fields: PayField[]; international_fields: PayField[];
           requires_receipt: boolean; requires_reference: boolean;
           reference_label_ar: string | null; amount_usd: number; payment_code: string;
         }[];
       };
+      payment_options: {
+        Args: { p_payment: string };
+        Returns: {
+          key: string; name_ar: string; name_en: string; icon: string | null;
+          category: string; is_current: boolean;
+        }[];
+      };
+      choose_payment_method: { Args: { p_payment: string; p_method: string }; Returns: undefined };
       admin_payment_accounts: { Args: Record<string, never>; Returns: PaymentMethod[] };
       save_payment_account: {
         Args: {
@@ -2307,7 +2332,9 @@ export type Database = {
           p_account_number?: string | null; p_wallet_number?: string | null;
           p_iban?: string | null; p_swift?: string | null; p_bank_name?: string | null;
           p_instructions?: string | null; p_use_for?: string[] | null;
-          p_supports_payout?: boolean | null;
+          p_supports_payout?: boolean | null; p_account_email?: string | null;
+          p_bank_address?: string | null; p_display_fields?: PayField[] | null;
+          p_international_fields?: PayField[] | null;
         };
         Returns: undefined;
       };

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { dbError } from '@/lib/db-errors';
 
 export type WalletState = { error?: string; ok?: string } | undefined;
 
@@ -69,4 +70,22 @@ export async function requestPayout(_prev: WalletState, formData: FormData): Pro
 
   revalidatePath('/wallet');
   return { ok: t('أُرسل طلب السحب، وينتظر مراجعة TechMood.', 'Payout requested; it is now waiting on a TechMood review.') };
+}
+
+/**
+ * Switching the method of an open payment, from the payment page itself.
+ * choose_payment_method() checks the payer, that the payment is still open,
+ * and that the method is on, complete, and collects for this kind of payment.
+ */
+export async function choosePaymentMethod(
+  paymentId: string,
+  method: string,
+  revalidate: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('choose_payment_method', { p_payment: paymentId, p_method: method });
+  revalidatePath(revalidate);
+  if (error) return { ok: false, error: dbError(t, error.message) };
+  return { ok: true };
 }

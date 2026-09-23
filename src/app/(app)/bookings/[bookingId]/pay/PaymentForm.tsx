@@ -3,8 +3,8 @@
 import { useActionState, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
-import { money } from '@/lib/booking';
-import type { PaymentMethod } from '@/lib/database.types';
+import type { PayTo } from '@/lib/database.types';
+import { PayToDetails } from '@/components/PayToDetails';
 
 import { useT } from '@/lib/i18n.client';
 
@@ -15,15 +15,14 @@ const ALLOWED = ['image/png', 'image/jpeg'];
 
 export function PaymentForm({
   bookingId,
-  method,
-  amount,
+  payTo,
   userId,
 }: {
   bookingId: string;
-  method: PaymentMethod;
-  amount: number;
+  payTo: PayTo;
   userId: string;
 }) {
+  const method = payTo;
   const t = useT();
   const [state, formAction, pending] = useActionState(submitPaymentProof, undefined as PaymentState);
 
@@ -32,29 +31,6 @@ export function PaymentForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [preview, setPreview] = useState('');
-  const [copied, setCopied] = useState('');
-
-  const details: { label: string; value: string | null }[] = [
-    { label: t('اسم المستفيد', 'Recipient name'), value: method.recipient_name },
-    { label: t('رقم الحساب', 'Account number'), value: method.account_number },
-    { label: t('رقم المحفظة', 'Wallet number'), value: method.wallet_number },
-    { label: 'IBAN', value: method.iban },
-    { label: 'SWIFT / BIC', value: method.swift },
-    { label: t('البنك', 'Bank'), value: method.bank_name },
-    { label: t('عنوان البنك', 'Bank address'), value: method.bank_address },
-    { label: t('المدينة', 'City'), value: method.city },
-    { label: t('الدولة', 'Country'), value: method.country },
-  ].filter((row) => Boolean(row.value));
-
-  async function copy(value: string, label: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(label);
-      setTimeout(() => setCopied(''), 2000);
-    } catch {
-      setCopied('');
-    }
-  }
 
   async function upload(file: File) {
     setUploadError('');
@@ -100,40 +76,7 @@ export function PaymentForm({
   return (
     <>
       <div className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>
-          {method.icon} {method.name_ar}
-        </h3>
-        <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 14 }}>
-          {method.instructions_ar}
-        </p>
-
-        <div className="copy-row">
-          <div>
-            <span className="cl">{t('المبلغ المطلوب', 'Amount due')}</span>
-            <div className="cv" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>{money(amount)}</div>
-          </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(String(amount), 'amount')}>
-            {copied === 'amount' ? t('تم النسخ ✓', 'Copied ✓') : t('نسخ', 'Copy')}
-          </button>
-        </div>
-
-        {details.map((row) => (
-          <div className="copy-row" key={row.label}>
-            <div>
-              <span className="cl">{row.label}</span>
-              <div className="cv">{row.value}</div>
-            </div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => copy(row.value!, row.label)}>
-              {copied === row.label ? t('تم النسخ ✓', 'Copied ✓') : t('نسخ', 'Copy')}
-            </button>
-          </div>
-        ))}
-
-        {details.length === 0 && (
-          <p className="notice">
-            {t('لم يضبط المشرف بيانات هذه الطريقة بعد. تواصل مع فريق TechMood قبل التحويل.', 'An admin has not filled in this method’s details yet. Talk to TechMood before transferring anything.')}
-          </p>
-        )}
+        <PayToDetails payTo={payTo} />
       </div>
 
       <form action={formAction} className="panel">
@@ -198,12 +141,12 @@ export function PaymentForm({
           style={{ width: '100%' }}
           disabled={pending || uploading || (method.requires_receipt && !proofPath)}
         >
-          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('✓ حوّلت المبلغ — أرسل للتأكيد', '✓ I have transferred it — send for confirmation')}
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('✓ تم الدفع', '✓ I have paid')}
         </button>
 
         <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-          {t('هذا لا يعني أن الدفع تمّ: يعني أنك تطلب من TechMood التأكّد. بعد التأكيد يُرسل الطلب إلى المنتور للموافقة.',
-             'This does not mean the payment is done: it asks TechMood to check it. Once confirmed, the request goes to the mentor to accept.')}
+          {t('بعد إتمام التحويل اضغط «تم الدفع». يُرسَل طلب تأكيد إلى TechMood، ولا يُعتمد الدفع قبل مراجعته — بعدها يُرسل الحجز إلى المنتور.',
+             'Once the transfer is done, press “I have paid”. A confirmation request goes to TechMood, and the payment is not approved until it is checked — then the booking goes to the mentor.')}
         </p>
       </form>
     </>

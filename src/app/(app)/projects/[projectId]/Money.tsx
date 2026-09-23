@@ -3,6 +3,9 @@
 import { useActionState, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import { MethodPicker } from '@/components/MethodPicker';
+import { PayToDetails } from '@/components/PayToDetails';
+import type { EscrowPayTo } from '@/lib/escrow-instructions';
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
 import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
@@ -115,20 +118,6 @@ export function OpenEscrowForm({
 }
 
 /** The receipt for a hold that is waiting for its money. */
-export type EscrowInstructions = {
-  payment_code: string;
-  name_ar: string;
-  instructions_ar: string | null;
-  recipient_name: string | null;
-  account_number: string | null;
-  wallet_number: string | null;
-  iban: string | null;
-  bank_name: string | null;
-  requires_receipt: boolean;
-  requires_reference: boolean;
-  reference_label_ar: string | null;
-  info_request_ar: string | null;
-};
 
 /**
  * Paying into a hold. It used to ask the client to type a storage path, and
@@ -138,13 +127,14 @@ export type EscrowInstructions = {
  * payment does, into the payer's own folder of the private proofs bucket.
  */
 export function EscrowProofForm({
-  escrowId, revalidate, userId, instructions,
+  escrowId, revalidate, userId, payment,
 }: {
   escrowId: string;
   revalidate: string;
   userId: string;
-  instructions: EscrowInstructions | null;
+  payment: EscrowPayTo | null;
 }) {
+  const instructions = payment?.payTo ?? null;
   const t = useT();
   const [state, formAction, pending] = useActionState(submitEscrowProof, undefined as MoneyState);
   const [proofPath, setProofPath] = useState('');
@@ -175,42 +165,24 @@ export function EscrowProofForm({
     setProofPath(key);
   }
 
-  const details = instructions
-    ? [
-        { label: t('اسم المستفيد', 'Recipient'), value: instructions.recipient_name },
-        { label: t('رقم الحساب', 'Account'), value: instructions.account_number },
-        { label: t('رقم المحفظة', 'Wallet'), value: instructions.wallet_number },
-        { label: 'IBAN', value: instructions.iban },
-        { label: t('البنك', 'Bank'), value: instructions.bank_name },
-      ].filter((row) => Boolean(row.value))
-    : [];
-
   return (
     <form action={formAction} className="meeting-form">
       <input type="hidden" name="escrow_id" value={escrowId} />
       <input type="hidden" name="revalidate" value={revalidate} />
       <input type="hidden" name="proof_path" value={proofPath} />
 
+      {payment && (
+        <MethodPicker paymentId={payment.paymentId} options={payment.options} revalidate={revalidate} />
+      )}
+
       {instructions && (
         <div className="pay-to">
-          <p className="muted" style={{ fontSize: '0.8rem' }}>
-            {t('حوّل المبلغ إلى', 'Send the amount to')} <strong>{instructions.name_ar}</strong>
-            {' · '}<span className="id-chip">{instructions.payment_code}</span>
-          </p>
-          {details.map((row) => (
-            <div className="summary-row" key={row.label}>
-              <span className="muted">{row.label}</span>
-              <span className="eng" dir="ltr">{row.value}</span>
-            </div>
-          ))}
-          {instructions.instructions_ar && (
-            <p className="muted" style={{ fontSize: '0.78rem', marginTop: 6 }}>{instructions.instructions_ar}</p>
-          )}
+          <PayToDetails payTo={instructions} />
         </div>
       )}
 
-      {instructions?.info_request_ar && (
-        <p className="notice">{t('سؤال من TechMood: ', 'TechMood asks: ')}{instructions.info_request_ar}</p>
+      {payment?.infoRequest && (
+        <p className="notice">{t('سؤال من TechMood: ', 'TechMood asks: ')}{payment.infoRequest}</p>
       )}
 
       <div className="field">
@@ -233,11 +205,11 @@ export function EscrowProofForm({
 
       <button className="btn btn-primary btn-sm"
               disabled={pending || uploading || ((instructions?.requires_receipt ?? true) && !proofPath)}>
-        {pending ? t('جارٍ…', 'Sending…') : t('✓ حوّلت المبلغ — أرسل للتأكيد', '✓ I have transferred it — send for confirmation')}
+        {pending ? t('جارٍ…', 'Sending…') : t('✓ تم الدفع', '✓ I have paid')}
       </button>
       <p className="muted" style={{ fontSize: '0.76rem' }}>
-        {t('هذا طلب تأكيد، لا إعلان بأن الدفع تمّ. يُحجز المبلغ بعد أن تؤكّده TechMood.',
-           'This asks TechMood to confirm; it does not mean the payment is done. The money is held once TechMood confirms it.')}
+        {t('بعد إتمام التحويل اضغط «تم الدفع». يُرسَل طلب تأكيد إلى TechMood، ويُحجز المبلغ بعد أن تؤكّده.',
+           'Once the transfer is done, press “I have paid”. A confirmation request goes to TechMood, and the money is held once it is confirmed.')}
       </p>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

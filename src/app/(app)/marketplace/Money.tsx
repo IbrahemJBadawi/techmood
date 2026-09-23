@@ -61,7 +61,7 @@ export async function MoneyTab() {
             {escrow.status === 'awaiting_payment' && escrow.side === 'paying' && (
               <div style={{ marginTop: 10 }}>
                 <EscrowProofForm escrowId={escrow.id} revalidate="/marketplace?tab=money"
-                                 userId={user?.id ?? ''} instructions={payTo.get(escrow.id) ?? null} />
+                                 userId={user?.id ?? ''} payment={payTo.get(escrow.id) ?? null} />
               </div>
             )}
           </div>

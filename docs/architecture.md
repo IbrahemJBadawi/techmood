@@ -1453,6 +1453,28 @@ the receiving account and uploads the receipt like a session payment does.
 * **Receiving accounts per purpose** (mentoring, market work, project sales,
   courses, withdrawals), changed from the admin screen without touching code.
 
+### Each method shows what it takes to pay with it
+
+A payer transfers the money themselves, so the payment page has one job: the
+fields their chosen method needs, each with its own copy button. Each method
+now says which of its fields a payer sees (`display_fields`) and which only
+matter from abroad (`international_fields` — SWIFT and the bank's address,
+under their own heading). `payment_instructions()` returns only those: a
+wallet payment never receives the IBAN, even if one was typed into it by
+mistake. A bank transfer shows the IBAN, which is what a local transfer needs.
+
+The payer chooses the method on the payment page itself, among the methods
+that are on, complete, and collect for that kind of payment — before this,
+the method was fixed at booking and a rejected payer was told to "choose a
+different method" with no way to. Once a receipt is with TechMood, the method
+is fixed. PayPal is added as a method that pays to an email address, switched
+off until an admin gives it one.
+
+TechMood's own account details are not in this repository and never will be:
+they are typed in on Admin → Finance → Receiving accounts, masked there until
+asked for, and a method cannot be switched on while any field it shows a payer
+is empty.
+
 ### What is deliberately not built
 
 The spec's second half suggested "Add Money" and a company wallet with a

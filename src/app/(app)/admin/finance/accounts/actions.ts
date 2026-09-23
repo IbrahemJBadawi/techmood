@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { dbError } from '@/lib/db-errors';
+import type { PayField } from '@/lib/database.types';
 
 export type AccountState = { error?: string; ok?: string } | undefined;
 
@@ -28,6 +29,10 @@ export async function savePaymentAccount(_prev: AccountState, formData: FormData
     p_instructions: val(formData, 'instructions'),
     p_use_for: formData.getAll('use_for').map(String),
     p_supports_payout: formData.get('supports_payout') === 'on',
+    p_account_email: val(formData, 'account_email'),
+    p_bank_address: val(formData, 'bank_address'),
+    p_display_fields: formData.getAll('display_fields').map(String) as PayField[],
+    p_international_fields: formData.getAll('international_fields').map(String) as PayField[],
   });
 
   revalidatePath('/admin/finance/accounts');

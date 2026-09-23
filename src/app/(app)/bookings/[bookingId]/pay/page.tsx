@@ -5,10 +5,10 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 import { formatSlot, money } from '@/lib/booking';
-import type { PaymentMethod } from '@/lib/database.types';
 
 import { PaymentForm } from './PaymentForm';
 import { AnswerForm } from './AnswerForm';
+import { MethodPicker } from '@/components/MethodPicker';
 
 export default async function PayBookingPage({
   params,
@@ -51,23 +51,14 @@ export default async function PayBookingPage({
 
   if (!payment) notFound();
 
-  // The receiving details are column-locked (0075): they come only from
-  // payment_instructions(), which shows them to the person who owes this
-  // payment, on the method they chose, while it is still open.
-  const { data: instructions } = await supabase.rpc('payment_instructions', { p_payment: payment.id });
-  const row = instructions?.[0] ?? null;
-  const method: PaymentMethod | null = row
-    ? {
-        key: row.method_key, name_ar: row.name_ar, name_en: row.name_en, icon: row.icon,
-        category: 'local', is_enabled: true, sort_order: 0, use_for: [],
-        instructions_ar: row.instructions_ar, recipient_name: row.recipient_name,
-        account_number: row.account_number, wallet_number: row.wallet_number, iban: row.iban,
-        swift: row.swift, bank_name: row.bank_name, bank_address: row.bank_address,
-        city: row.city, country: row.country, requires_receipt: row.requires_receipt,
-        requires_reference: row.requires_reference, reference_label_ar: row.reference_label_ar,
-        supports_automatic_payment: false, supports_payout: false,
-      }
-    : null;
+  // The receiving details come only from payment_instructions(): the fields
+  // the chosen method shows, to the person who owes this payment, while it is
+  // open. The options are the methods they may switch to.
+  const [{ data: instructions }, { data: options }] = await Promise.all([
+    supabase.rpc('payment_instructions', { p_payment: payment.id }),
+    supabase.rpc('payment_options', { p_payment: payment.id }),
+  ]);
+  const payTo = instructions?.[0] ?? null;
 
   const when = formatSlot(booking.scheduled_start);
   const expired = booking.reserved_until ? new Date(booking.reserved_until) < new Date() : false;
@@ -114,13 +105,12 @@ export default async function PayBookingPage({
             <AnswerForm paymentId={payment.id} bookingId={booking.id}
                         question={payment.info_request_ar ?? ''} />
           )}
-          {!expired && payment.status !== 'needs_info' && method && (
-            <PaymentForm
-              bookingId={booking.id}
-              method={method}
-              amount={payment.amount_usd}
-              userId={user.id}
-            />
+          {!expired && payment.status !== 'needs_info' && (
+            <MethodPicker paymentId={payment.id} options={options ?? []}
+                          revalidate={`/bookings/${booking.id}/pay`} />
+          )}
+          {!expired && payment.status !== 'needs_info' && payTo && (
+            <PaymentForm bookingId={booking.id} payTo={payTo} userId={user.id} />
           )}
         </section>
 

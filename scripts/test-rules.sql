@@ -860,8 +860,10 @@ select public.assert(
   '12.21 a student sees exactly the seven enabled methods');
 reset role;
 
+-- Nine since 0076 added PayPal — switched off until an admin gives it an
+-- address, so the student's count above is unchanged.
 select public.assert(
-  (select count(*) from public.payment_methods) = 8,
+  (select count(*) from public.payment_methods) = 9,
   '12.22 an admin still sees the disabled method in order to enable it');
 
 -- ===========================================================================
@@ -6277,7 +6279,7 @@ select public.save_payment_account('jawwal_pay', true, 'TechMood', null, '059912
 select public.assert_rejects(
   $$select public.save_payment_account('palpay', true)$$,
   '56.1 an account cannot be switched on with nowhere to send the money',
-  'بلا رقم حساب أو محفظة');
+  'ينقصها حقل');
 reset role;
 reset request.jwt.claim.sub;
 
@@ -6550,6 +6552,120 @@ select public.assert_rejects(
          json_build_array(json_build_object('profile_id', '11111111-1111-1111-1111-111111111111', 'percent', 100))::text),
   '56.24 and once money has been paid out against a split, the split is fixed',
   'ثابت بعد الإفراج');
+reset role;
+reset request.jwt.claim.sub;
+
+
+-- ===========================================================================
+-- 57. Each method shows what it takes to pay with it, and nothing else
+-- ===========================================================================
+-- Obviously fake details: TechMood's real accounts are typed in by an admin on
+-- the finance screen, never into a migration or a test.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+
+select public.assert_rejects(
+  $$select public.save_payment_account('bank_of_palestine', true, 'TechMood Test', '0000001', null,
+       null, 'TESTPS22', 'Bank of Palestine PLC', null, null, null, null, 'Test Street, Ramallah')$$,
+  '57.1 a bank transfer cannot go live without the IBAN it shows the payer',
+  'ينقصها حقل');
+
+select public.save_payment_account('bank_of_palestine', true, 'TechMood Test', '0000001', null,
+       'PS00 TEST 0000 0000 0000 0000 0000 0', 'testps22', 'Bank of Palestine PLC', null, null, null,
+       null, 'Test Street, Ramallah');
+
+-- the wallet method has an IBAN typed into it by mistake; it must not show
+select public.save_payment_account('jawwal_pay', true, 'TechMood Test', null, '0590000000',
+       'PS99WRONGFIELD');
+
+select public.save_payment_account('paypal', true, null, null, null, null, null, null, null, null, null,
+       'Pay@Example.com');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select iban from public.payment_methods where key = 'bank_of_palestine') = 'PS00TEST000000000000000000000'
+  and (select swift from public.payment_methods where key = 'bank_of_palestine') = 'TESTPS22'
+  and (select account_email from public.payment_methods where key = 'paypal') = 'pay@example.com',
+  '57.2 what an admin types is tidied the way a payer needs to copy it');
+
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '42 days') + interval '10 hours',
+        date_trunc('day', now() + interval '42 days') + interval '11 hours',
+        35, 10, 25, 'جلسة لاختيار الطريقة', 'draft')
+returning id as pick_booking \gset
+
+update public.bookings set status = 'payment_pending', reserved_until = now() + interval '1 hour'
+ where id = :'pick_booking';
+
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'pick_booking', 'jawwal_pay', 35, 'pending')
+returning id as pick_pay \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select wallet_number from public.payment_instructions(:'pick_pay')) = '0590000000'
+  and (select iban from public.payment_instructions(:'pick_pay')) is null,
+  '57.3 a wallet payment shows the wallet number — not the IBAN somebody typed into it');
+
+select public.assert(
+  (select count(*) from public.payment_options(:'pick_pay') where key in ('bank_of_palestine', 'jawwal_pay', 'paypal')) = 3
+  and not exists (select 1 from public.payment_options(:'pick_pay') where key = 'palpay'),
+  '57.4 the payer chooses among methods that are on and complete — not one that would show a blank');
+
+select public.choose_payment_method(:'pick_pay', 'paypal');
+select public.assert(
+  (select account_email from public.payment_instructions(:'pick_pay')) = 'pay@example.com'
+  and (select wallet_number from public.payment_instructions(:'pick_pay')) is null
+  and (select requires_reference from public.payment_instructions(:'pick_pay')),
+  '57.5 PayPal shows an address and asks for the transaction id, and nothing else');
+
+select public.choose_payment_method(:'pick_pay', 'bank_of_palestine');
+select public.assert(
+  (select iban from public.payment_instructions(:'pick_pay')) is not null
+  and (select international_fields from public.payment_instructions(:'pick_pay')) = array['swift', 'bank_address'],
+  '57.6 a bank transfer shows the IBAN, and marks SWIFT and the address as for transfers from abroad');
+
+select public.assert_rejects(
+  $$select account_email from public.payment_methods$$,
+  '57.7 the PayPal address is as private as an account number',
+  'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.choose_payment_method(%L, 'paypal')$$, :'pick_pay'),
+  '57.8 nobody else chooses how somebody pays',
+  'الدافع فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- An account that does not collect for sessions is not offered for one.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.save_payment_account('paypal', true, null, null, null, null, null, null, null,
+       array['projects'], null, 'pay@example.com');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.choose_payment_method(%L, 'paypal')$$, :'pick_pay'),
+  '57.9 a method set to collect only for projects is not offered for a session',
+  'غير متاحة');
+
+select public.submit_payment_proof(:'pick_booking', '55555555-5555-5555-5555-555555555555/b.png', 'BOP-1');
+select public.assert_rejects(
+  format($$select public.choose_payment_method(%L, 'jawwal_pay')$$, :'pick_pay'),
+  '57.10 and once the receipt is with TechMood, the method it was sent by is a fact',
+  'بعد إرسال الدفعة');
 reset role;
 reset request.jwt.claim.sub;
 

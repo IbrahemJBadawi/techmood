@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
-import type { PaymentMethod } from '@/lib/database.types';
+import type { PayField, PaymentMethod } from '@/lib/database.types';
 
 import { savePaymentAccount, type AccountState } from './actions';
 
@@ -12,6 +12,19 @@ const PURPOSES: { key: string; ar: string; en: string }[] = [
   { key: 'projects',  ar: 'أعمال السوق',  en: 'Projects' },
   { key: 'sales',     ar: 'بيع المشاريع', en: 'Project sales' },
   { key: 'courses',   ar: 'الدورات',      en: 'Courses' },
+];
+
+const FIELDS: { key: PayField; ar: string; en: string }[] = [
+  { key: 'recipient_name', ar: 'اسم المستفيد', en: 'Beneficiary' },
+  { key: 'bank_name',      ar: 'البنك',        en: 'Bank' },
+  { key: 'account_number', ar: 'رقم الحساب',   en: 'Account' },
+  { key: 'iban',           ar: 'IBAN',         en: 'IBAN' },
+  { key: 'swift',          ar: 'SWIFT',        en: 'SWIFT' },
+  { key: 'bank_address',   ar: 'عنوان البنك',  en: 'Bank address' },
+  { key: 'wallet_number',  ar: 'رقم المحفظة',  en: 'Wallet' },
+  { key: 'account_email',  ar: 'البريد',       en: 'Email' },
+  { key: 'city',           ar: 'المدينة',      en: 'City' },
+  { key: 'country',        ar: 'الدولة',       en: 'Country' },
 ];
 
 const mask = (value: string | null) =>
@@ -45,6 +58,7 @@ export function AccountForm({ method }: { method: PaymentMethod }) {
             [t('رقم الحساب', 'Account'), mask(method.account_number)],
             [t('رقم المحفظة', 'Wallet'), mask(method.wallet_number)],
             ['IBAN', mask(method.iban)],
+            [t('البريد', 'Email'), method.account_email ? method.account_email.replace(/^(.).*(@.*)$/, '$1•••$2') : null],
           ].filter(([, v]) => v).map(([label, value]) => (
             <div className="summary-row" key={label}>
               <span className="muted">{label}</span><span className="eng" dir="ltr">{value}</span>
@@ -86,12 +100,47 @@ export function AccountForm({ method }: { method: PaymentMethod }) {
               <input name="swift" dir="ltr" defaultValue={method.swift ?? ''} />
             </div>
           </div>
+          <div className="field-row">
+            <div className="field">
+              <label>{t('بريد الاستلام (PayPal)', 'Receiving email (PayPal)')}</label>
+              <input name="account_email" type="email" dir="ltr" defaultValue={method.account_email ?? ''} />
+            </div>
+            <div className="field">
+              <label>{t('عنوان البنك', 'Bank address')}</label>
+              <input name="bank_address" dir="ltr" defaultValue={method.bank_address ?? ''} />
+            </div>
+          </div>
           <div className="field">
             <label>{t('تعليمات للدافع', 'Instructions for the payer')}</label>
             <textarea name="instructions" rows={2} defaultValue={method.instructions_ar ?? ''} />
           </div>
         </div>
       )}
+
+      <fieldset className="field" style={{ marginTop: 10 }}>
+        <legend>{t('ما يراه الدافع — وما هو للتحويل من الخارج فقط', 'What the payer sees — and what is only for transfers from abroad')}</legend>
+        <table className="data">
+          <tbody>
+            {FIELDS.map((field) => (
+              <tr key={field.key}>
+                <td>{t(field.ar, field.en)}</td>
+                <td>
+                  <label>
+                    <input type="checkbox" name="display_fields" value={field.key}
+                           defaultChecked={method.display_fields.includes(field.key)} /> {t('يظهر', 'Shown')}
+                  </label>
+                </td>
+                <td>
+                  <label>
+                    <input type="checkbox" name="international_fields" value={field.key}
+                           defaultChecked={method.international_fields.includes(field.key)} /> {t('للخارج', 'Abroad only')}
+                  </label>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </fieldset>
 
       <fieldset className="field" style={{ marginTop: 10 }}>
         <legend>{t('يُستخدم لاستقبال', 'Used to receive')}</legend>
@@ -118,6 +167,8 @@ export function AccountForm({ method }: { method: PaymentMethod }) {
           <input type="hidden" name="wallet_number" value={method.wallet_number ?? ''} />
           <input type="hidden" name="iban" value={method.iban ?? ''} />
           <input type="hidden" name="swift" value={method.swift ?? ''} />
+          <input type="hidden" name="account_email" value={method.account_email ?? ''} />
+          <input type="hidden" name="bank_address" value={method.bank_address ?? ''} />
         </>
       )}
 
