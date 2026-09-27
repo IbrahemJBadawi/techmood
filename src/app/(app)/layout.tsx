@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: profile }, { data: roles }, { data: notifications }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: notifications }, { data: restrictions }] = await Promise.all([
     supabase
       .from('profiles')
       .select('full_name, display_name, username, techmood_id, avatar_url, language, primary_role, onboarding_completed_at')
@@ -37,6 +37,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq('profile_id', user.id)
       .order('created_at', { ascending: false })
       .limit(12),
+    // A decision about the account is shown on every page until it ends (0084).
+    supabase.rpc('my_restrictions'),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -110,6 +112,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
         <AssistantProvider>
           <div className="content" data-active-role={ROLE_BY_VALUE[active].value}>
+            {(restrictions ?? []).length > 0 && (
+              <p className="notice notice-danger" style={{ marginBottom: 16 }}>
+                {(restrictions ?? []).some((row) => row.feature === 'everything')
+                  ? t('حسابك موقوف بقرار إداري', 'Your account is suspended by an admin decision')
+                  : t('بعض الميزات موقوفة على حسابك بقرار إداري', 'Some features are restricted on your account by an admin decision')}
+                {': '}{(restrictions ?? []).map((row) => row.reason_ar).join(' · ')}
+                {' — '}<Link href="/support">{t('المساعدة والبلاغات', 'Help & reports')}</Link>
+              </p>
+            )}
             {children}
           </div>
 

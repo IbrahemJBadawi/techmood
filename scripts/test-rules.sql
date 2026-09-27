@@ -7349,6 +7349,136 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 62. Cases, admin actions, and restrictions that restrict
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.open_case('قضية', %L)$$, :'tk2'),
+  '62.1 a case is the administration''s to open',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select (public.open_case('شبهة احتيال خارج المنصة', :'tk2')).id as case1 \gset
+
+select public.assert(
+  (select code like 'CM-1___' and reported_profile_id = '33333333-3333-3333-3333-333333333333'
+          and reporter_id = '55555555-5555-5555-5555-555555555555' from public.cases where id = :'case1')
+  and (select case_id from public.support_tickets where id = :'tk2') = :'case1'
+  and (select count(*) from public.case_links where case_id = :'case1') >= 3,
+  '62.2 a case from a ticket carries the ticket, the reporter and the person reported');
+
+select public.assert(
+  jsonb_array_length(public.case_facts(:'case1') -> 'facts') >= 3,
+  '62.3 and its facts are gathered in one place before anyone decides');
+
+select public.assert_rejects(
+  format($$select public.admin_case_action(%L, 'warn', '   ')$$, :'case1'),
+  '62.4 no action without a written reason',
+  'سبباً مكتوباً');
+
+select public.assert_rejects(
+  format($$select public.admin_case_action(%L, 'restrict_feature', 'تواصل خارج المنصة', null, null, 'messaging')$$, :'case1'),
+  '62.5 taking a feature away needs a duration',
+  'حدّد المدة');
+
+select public.admin_case_action(:'case1', 'restrict_feature', 'طلب الدفع خارج المنصة', null, null, 'messaging', 7);
+
+select (public.open_case('حساب بلا أدلة', null, '77777777-7777-7777-7777-777777777777')).id as case2 \gset
+select public.assert_rejects(
+  format($$select public.admin_case_action(%L, 'suspend_account', 'بلا دليل', null, null, null, 3)$$, :'case2'),
+  '62.6 and suspending an account needs evidence on the case first',
+  'أرفق دليلاً');
+reset role;
+reset request.jwt.claim.sub;
+
+select c.id as mentor_conv from public.conversations c
+  join public.conversation_participants cp on cp.conversation_id = c.id
+ where cp.profile_id = '33333333-3333-3333-3333-333333333333' and c.kind <> 'admin' limit 1 \gset
+select c.id as mentor_admin_conv from public.conversations c
+  join public.conversation_participants cp on cp.conversation_id = c.id
+ where cp.profile_id = '33333333-3333-3333-3333-333333333333' and c.kind = 'admin' limit 1 \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar)
+           values (%L, '33333333-3333-3333-3333-333333333333', 'مرحبا')$$, :'mentor_conv'),
+  '62.7 a restriction is enforced by the database, not by a page',
+  'موقوفة على حسابك');
+
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'mentor_admin_conv', '33333333-3333-3333-3333-333333333333', 'لماذا قُيّد حسابي؟');
+select public.assert(
+  (select count(*) from public.my_restrictions() where feature = 'messaging') = 1
+  and exists (select 1 from public.notifications where profile_id = '33333333-3333-3333-3333-333333333333'
+                and title_ar = 'قُيّدت ميزة على حسابك'),
+  '62.8 the conversation with the administration stays open, and the person knows why they are restricted');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.add_case_evidence(:'case2', 'لقطة شاشة', null, 'https://example.com/evidence.png');
+select public.admin_case_action(:'case2', 'suspend_account', 'مخالفة شروط الاستخدام', null, null, null, 0);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  public.is_restricted('77777777-7777-7777-7777-777777777777', 'booking')
+  and public.is_restricted('77777777-7777-7777-7777-777777777777', 'withdrawals'),
+  '62.9 a suspended account loses every restricted feature at once');
+
+select (public.open_ticket('account', 'اعتراض', 'أعترض على إيقاف حسابي وأطلب المراجعة')).id as appeal \gset
+select public.assert(
+  (select count(*) from public.support_tickets where id = :'appeal') = 1,
+  '62.10 but can always appeal through Help & Reports');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select r.id as restriction1 from public.user_restrictions r
+ where r.profile_id = '33333333-3333-3333-3333-333333333333' and r.feature = 'messaging' \gset
+select public.admin_case_action(:'case1', 'lift_restriction', 'انتهى التحقيق', null, :'restriction1');
+select public.admin_case_action(:'case1', 'warn', 'تنبيه أول: التعامل المالي داخل المنصة فقط');
+select public.admin_case_action(:'case1', 'escalate', 'تحتاج رأياً ثانياً');
+select public.assert(
+  (select priority from public.cases where id = :'case1') = 'urgent',
+  '62.11 escalating raises the case''s priority');
+
+select public.admin_case_action(:'case1', 'request_info', 'أرسل لقطة الرسالة التي طُلب فيها الدفع خارج المنصة');
+select public.assert(
+  (select status from public.support_tickets where id = :'tk2') = 'pending_user'
+  and (select status from public.cases where id = :'case1') = 'awaiting_info',
+  '62.12 requesting information asks the reporter in their own ticket');
+
+select public.admin_case_action(:'case1', 'resolve', 'صدر تنبيه رسمي للمنتور، وأُغلقت القضية.');
+select public.assert(
+  (select status from public.support_tickets where id = :'tk2') = 'resolved'
+  and (select status = 'decided' and decision_ar is not null and decided_by is not null from public.cases where id = :'case1')
+  and (select count(*) from public.case_events where case_id = :'case1' and kind like 'action_%') = 6
+  and (select count(*) from public.admin_audit_log where entity_id = :'case1' and action like 'case_action:%') = 6,
+  '62.13 every action is an event on the case and a line in the audit log');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+insert into public.messages (conversation_id, sender_id, body_ar) values (:'mentor_conv', '33333333-3333-3333-3333-333333333333', 'عدت');
+select public.assert(
+  (select count(*) from public.user_warnings where profile_id = '33333333-3333-3333-3333-333333333333') = 1
+  and (select count(*) from public.cases) = 0,
+  '62.14 a lifted restriction lifts at once; the warned person reads the warning, never the case');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

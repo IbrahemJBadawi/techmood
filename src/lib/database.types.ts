@@ -163,6 +163,15 @@ export type TicketRelated =
   | 'booking' | 'payment' | 'escrow' | 'project' | 'team' | 'video_session'
   | 'course' | 'profile' | 'opportunity' | 'payout' | 'message';
 
+export type CaseStatus = 'open' | 'investigating' | 'awaiting_info' | 'decided' | 'closed';
+export type AdminActionKind =
+  | 'request_info' | 'warn' | 'restrict_feature' | 'suspend_session' | 'cancel_booking'
+  | 'refund' | 'reject_report' | 'resolve' | 'escalate' | 'suspend_account' | 'lift_restriction';
+export type RestrictedFeature = 'booking' | 'messaging' | 'marketplace' | 'withdrawals' | 'reviews' | 'everything';
+export type CaseLinkType =
+  | 'ticket' | 'profile' | 'booking' | 'payment' | 'escrow' | 'project'
+  | 'video_session' | 'message' | 'payout' | 'course' | 'opportunity' | 'team';
+
 export type SupportTicket = {
   id: string; code: string; reporter_id: string; category: TicketCategory;
   related_type: TicketRelated | null; related_id: string | null; reported_profile_id: string | null;
@@ -1100,6 +1109,33 @@ export type Database = {
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
       support_tickets: Table<SupportTicket>;
+      cases: Table<{
+        id: string; code: string; title_ar: string; status: CaseStatus; priority: TicketPriority;
+        reporter_id: string | null; reported_profile_id: string | null; decision_ar: string | null;
+        decided_by: string | null; decided_at: string | null; ai_summary_ar: string | null;
+        ai_next_step_ar: string | null; created_by: string | null; created_at: string; updated_at: string;
+      }>;
+      case_links: Table<{
+        case_id: string; entity_type: CaseLinkType; entity_id: string; note_ar: string | null;
+        added_by: string | null; created_at: string;
+      }>;
+      case_notes: Table<{ id: string; case_id: string; author_id: string | null; body_ar: string; created_at: string }>;
+      case_evidence: Table<{
+        id: string; case_id: string; label_ar: string; path: string | null; url: string | null;
+        added_by: string | null; created_at: string;
+      }>;
+      case_events: Table<{
+        id: string; case_id: string; kind: string; actor_id: string | null; note_ar: string | null;
+        data: Record<string, unknown>; created_at: string;
+      }>;
+      user_warnings: Table<{
+        id: string; profile_id: string; case_id: string | null; reason_ar: string; issued_by: string | null; created_at: string;
+      }>;
+      user_restrictions: Table<{
+        id: string; profile_id: string; feature: RestrictedFeature; reason_ar: string; case_id: string | null;
+        starts_at: string; ends_at: string | null; created_by: string | null; lifted_at: string | null;
+        lifted_by: string | null; created_at: string;
+      }>;
       ticket_messages: Table<{
         id: string; ticket_id: string; author_kind: TicketAuthor; author_id: string | null;
         body_ar: string; attachment_path: string | null; is_internal: boolean; created_at: string;
@@ -2545,6 +2581,47 @@ export type Database = {
           reporter_id: string; reporter_name: string; reporter_techmood_id: string;
           reported_profile_id: string | null; reported_name: string | null; case_id: string | null;
           updated_at: string; created_at: string;
+        }[];
+      };
+      is_restricted: { Args: { p_profile: string; p_feature: RestrictedFeature }; Returns: boolean };
+      my_restrictions: {
+        Args: Record<string, never>;
+        Returns: { feature: RestrictedFeature; reason_ar: string; ends_at: string | null }[];
+      };
+      open_case: {
+        Args: { p_title: string; p_ticket?: string | null; p_reported?: string | null };
+        Returns: Database['public']['Tables']['cases']['Row'];
+      };
+      link_to_case: { Args: { p_case: string; p_type: CaseLinkType; p_id: string; p_note?: string | null }; Returns: undefined };
+      add_case_note: { Args: { p_case: string; p_body: string }; Returns: undefined };
+      add_case_evidence: {
+        Args: { p_case: string; p_label: string; p_path?: string | null; p_url?: string | null };
+        Returns: undefined;
+      };
+      save_ai_assist: {
+        Args: {
+          p_case: string | null; p_ticket: string | null; p_summary: string; p_next_step: string;
+          p_category?: TicketCategory | null; p_confidence?: number | null;
+        };
+        Returns: undefined;
+      };
+      admin_case_action: {
+        Args: {
+          p_case: string; p_action: AdminActionKind; p_reason: string; p_target_profile?: string | null;
+          p_target_id?: string | null; p_feature?: RestrictedFeature | null; p_duration_days?: number | null;
+          p_notify?: boolean;
+        };
+        Returns: undefined;
+      };
+      case_facts: {
+        Args: { p_case: string };
+        Returns: { code: string; title: string; facts: string[]; evidence: number; messages: number; attachments: number } | null;
+      };
+      admin_cases: {
+        Args: { p_filter?: string };
+        Returns: {
+          id: string; code: string; title_ar: string; status: CaseStatus; priority: TicketPriority;
+          reporter_name: string | null; reported_name: string | null; tickets: number; updated_at: string;
         }[];
       };
       course_feedback_texts: {
