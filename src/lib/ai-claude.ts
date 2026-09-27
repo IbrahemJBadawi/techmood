@@ -200,3 +200,107 @@ export async function askClaude(input: {
     };
   }
 }
+
+/* -------------------------------------------------------------------------
+ * AI Assist for the administration (0084)
+ *
+ * The model reads a case or a ticket — the facts the database gathered and
+ * the conversation — and returns a summary, the evidence that matters and a
+ * suggested next step. It is a reading, not a verdict: the result is stored
+ * beside the case as a suggestion, nothing acts on it, and the admin decides.
+ * ------------------------------------------------------------------------- */
+
+export type AdminAssessment = {
+  summary_ar: string;
+  evidence: string[];
+  next_step_ar: string;
+  category: string | null;
+  confidence: number | null;
+};
+
+const CATEGORIES = [
+  'payment', 'booking', 'mentor', 'mentee', 'freelancer', 'client',
+  'content', 'account', 'behavior', 'fraud', 'copyright', 'technical', 'other',
+] as const;
+
+function validAssessment(raw: unknown): AdminAssessment | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const input = raw as Record<string, unknown>;
+  if (typeof input.summary_ar !== 'string' || typeof input.next_step_ar !== 'string') return null;
+  const evidence = Array.isArray(input.evidence) ? input.evidence.filter((item): item is string => typeof item === 'string') : [];
+  const category = typeof input.category === 'string' && (CATEGORIES as readonly string[]).includes(input.category)
+    ? input.category : null;
+  const confidence = typeof input.confidence === 'number' && Number.isFinite(input.confidence)
+    ? Math.max(0, Math.min(100, Math.round(input.confidence))) : null;
+  return {
+    summary_ar: input.summary_ar.slice(0, 2000),
+    evidence: evidence.slice(0, 10).map((item) => item.slice(0, 300)),
+    next_step_ar: input.next_step_ar.slice(0, 600),
+    category,
+    confidence,
+  };
+}
+
+export async function assessForAdmin(input: {
+  kind: 'case' | 'ticket';
+  facts: unknown;
+  conversation: { author: string; body: string }[];
+}): Promise<{ assessment: AdminAssessment | null; error_ar: string | null }> {
+  if (!aiConfigured()) {
+    return {
+      assessment: null,
+      error_ar: 'AI Assist غير موصول بمزوّد نموذج في هذه البيئة (ANTHROPIC_API_KEY غير مضبوط). الحقائق المجمّعة أدناه من قاعدة البيانات مباشرة.',
+    };
+  }
+
+  const client = new Anthropic();
+  try {
+    const stream = client.messages.stream({
+      model: AI_MODEL,
+      max_tokens: 2048,
+      system: [
+        'أنت مساعد لفريق إدارة TechMood يقرأ بلاغاً أو قضية ويلخّصها للموظف.',
+        '- لا تحكم على أي شخص ولا تتخذ قراراً: القرار للإدارة وحدها.',
+        '- اعتمد على الحقائق والمحادثة المعطاة فقط، ولا تخترع أرقاماً أو أحداثاً.',
+        '- إن كان هناك نقص في المعلومات فاذكره واجعل الخطوة التالية جمعه.',
+        '- اكتب بالعربية وبإيجاز، ثم سجّل قراءتك بالأداة record_assessment.',
+      ].join('\n'),
+      tools: [{
+        name: 'record_assessment',
+        description: 'سجّل قراءتك للبلاغ أو القضية: ملخص، الأدلة المهمة، الخطوة التالية المقترحة، التصنيف ودرجة الثقة.',
+        eager_input_streaming: true,
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            summary_ar: { type: 'string', description: 'ملخص القضية في 2–4 جمل.' },
+            evidence: { type: 'array', items: { type: 'string' }, description: 'الأدلة ذات الصلة كما وردت في الحقائق.' },
+            next_step_ar: { type: 'string', description: 'الخطوة التالية المقترحة على الموظف، جملة واحدة.' },
+            category: { type: 'string', enum: [...CATEGORIES], description: 'التصنيف الأنسب.' },
+            confidence: { type: 'integer', minimum: 0, maximum: 100, description: 'ثقتك في التصنيف.' },
+          },
+          required: ['summary_ar', 'evidence', 'next_step_ar', 'category', 'confidence'],
+        },
+      }],
+      tool_choice: { type: 'tool', name: 'record_assessment' },
+      messages: [{
+        role: 'user',
+        content: JSON.stringify({ kind: input.kind, facts: input.facts, conversation: input.conversation }),
+      }],
+    });
+
+    const message = await stream.finalMessage();
+    if (message.stop_reason === 'max_tokens' || message.stop_reason === 'refusal') {
+      return { assessment: null, error_ar: 'لم تكتمل قراءة الذكاء الاصطناعي. حاول مرة أخرى.' };
+    }
+    const block = message.content.find((item) => item.type === 'tool_use' && item.name === 'record_assessment');
+    const assessment = block ? validAssessment((block as Anthropic.ToolUseBlock).input) : null;
+    return assessment
+      ? { assessment, error_ar: null }
+      : { assessment: null, error_ar: 'جاء ردّ النموذج بصيغة غير صالحة. حاول مرة أخرى.' };
+  } catch (error) {
+    if (error instanceof Anthropic.APIError) {
+      return { assessment: null, error_ar: `تعذّر الوصول إلى النموذج (${error.status ?? 'خطأ'}). حاول بعد قليل.` };
+    }
+    return { assessment: null, error_ar: 'تعذّر قراءة ردّ النموذج. حاول مرّة أخرى.' };
+  }
+}

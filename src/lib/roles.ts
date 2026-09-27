@@ -322,29 +322,47 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
   ],
   admin: [
     {
-      label: { ar: 'المراجعة', en: 'Review' },
+      label: { ar: 'مركز التحكم', en: 'Control center' },
       items: [
-        { href: '/admin', label: { ar: 'لوحة الإدارة', en: 'Admin panel' }, icon: 'shield' },
-        { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
-        { href: '/admin/taxonomy', label: { ar: 'المصطلحات المقترحة', en: 'Suggested terms' }, icon: 'settings' },
-        { href: '/admin/notifications', label: { ar: 'الإعلانات', en: 'Announcements' }, icon: 'message' },
-        { href: '/admin/external', label: { ar: 'مشاركات خارجية', en: 'External claims' }, icon: 'application' },
-        { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
-        { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
+        { href: '/admin', label: { ar: 'نظرة عامة', en: 'Overview' }, icon: 'home' },
+        { href: '/admin/users', label: { ar: 'المستخدمون', en: 'Users' }, icon: 'team' },
       ],
     },
     {
-      label: { ar: 'المال والمحتوى', en: 'Money & content' },
+      label: { ar: 'الدعم والإشراف', en: 'Support & moderation' },
+      items: [
+        { href: '/admin/support', label: { ar: 'الدعم والبلاغات', en: 'Support & reports' }, icon: 'message' },
+        { href: '/admin/cases', label: { ar: 'القضايا', en: 'Cases' }, icon: 'shield' },
+        { href: '/admin/external', label: { ar: 'مشاركات خارجية', en: 'External claims' }, icon: 'application' },
+        { href: '/admin/taxonomy', label: { ar: 'المصطلحات المقترحة', en: 'Suggested terms' }, icon: 'settings' },
+      ],
+    },
+    {
+      label: { ar: 'الأكاديمية والمنتورز', en: 'Academy & mentors' },
+      items: [
+        { href: '/admin/academy', label: { ar: 'المسارات والدورات', en: 'Paths & courses' }, icon: 'academy' },
+        { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
+        { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
+        { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
+        { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
+        { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
+      ],
+    },
+    {
+      label: { ar: 'المال', en: 'Money' },
       items: [
         { href: '/admin/finance', label: { ar: 'الصورة المالية', en: 'Finance' }, icon: 'wallet' },
-        { href: '/admin/pricing', label: { ar: 'التسعير والعمولات', en: 'Pricing & commission' }, icon: 'wallet' },
         { href: '/admin/payments', label: { ar: 'مراجعة المدفوعات', en: 'Review payments' }, icon: 'wallet' },
-        { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
         { href: '/admin/payouts', label: { ar: 'طلبات السحب', en: 'Payout requests' }, icon: 'wallet' },
         { href: '/admin/escrows', label: { ar: 'الأموال المحتجزة', en: 'Escrow' }, icon: 'wallet' },
-        { href: '/admin/academy', label: { ar: 'محتوى الأكاديمية', en: 'Academy content' }, icon: 'academy' },
-        { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
+        { href: '/admin/pricing', label: { ar: 'التسعير والعمولات والإرجاع', en: 'Pricing, commission & refunds' }, icon: 'wallet' },
+      ],
+    },
+    {
+      label: { ar: 'العمل والإعدادات', en: 'Work & settings' },
+      items: [
         { href: '/admin/incubator', label: { ar: 'طلبات الحاضنة', en: 'Incubator applications' }, icon: 'incubator' },
+        { href: '/admin/notifications', label: { ar: 'الإعلانات', en: 'Announcements' }, icon: 'message' },
       ],
     },
   ],

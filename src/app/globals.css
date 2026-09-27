@@ -3169,3 +3169,29 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .ticket-line.is-assistant { background: var(--sky-tint); }
 .ticket-line.is-admin { border-inline-start: 3px solid var(--ok); }
 .ticket-line.is-internal { border-style: dashed; background: color-mix(in srgb, var(--warn) 8%, transparent); }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-danger:disabled { opacity: 0.5; }
+
+/* ---------- admin control center ---------- */
+.attention-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.attention-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 16px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+.attention-card .val { font-size: 1.6rem; font-weight: 700; }
+.tone-red { border-inline-start: 4px solid #D64545; }
+.tone-orange { border-inline-start: 4px solid #E07B28; }
+.tone-yellow { border-inline-start: 4px solid #D4A72C; }
+.tone-blue { border-inline-start: 4px solid #2F6FDB; }
+.tone-green { border-inline-start: 4px solid #2E9E5B; }
+.tone-purple { border-inline-start: 4px solid #7B4FD6; }
+.event-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.event-feed li { padding: 8px 12px; border-radius: var(--radius-s); background: var(--panel); border: 1px solid var(--line); }
+.user-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 16px; }

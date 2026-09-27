@@ -33,10 +33,26 @@ export default async function AdminPage() {
     );
   }
 
-  const { data: queue } = await supabase
-    .from('admin_review_queue')
-    .select('*')
-    .order('created_at', { ascending: true });
+  const [{ data: queue }, { data: overviewRows }, { data: feed }, { data: me }] = await Promise.all([
+    supabase.from('admin_review_queue').select('*').order('created_at', { ascending: true }),
+    supabase.rpc('admin_overview'),
+    supabase.rpc('admin_event_feed', { p_limit: 30 }),
+    supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single(),
+  ]);
+  const overview = overviewRows?.[0];
+  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : hour < 18 ? t('مساء الخير', 'Good afternoon') : t('مساء الخير', 'Good evening');
+  const firstName = (me?.display_name ?? me?.full_name ?? '').split(' ')[0];
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const attention = overview ? [
+    { tone: 'red', value: overview.high_priority_reports, label: t('بلاغات عالية الأولوية', 'High-priority reports'), href: '/admin/support?filter=escalated' },
+    { tone: 'orange', value: overview.pending_payments, label: t('مدفوعات بانتظار المراجعة', 'Payments to review'), href: '/admin/payments' },
+    { tone: 'yellow', value: overview.mentor_applications, label: t('طلبات منتورز', 'Mentor applications'), href: '/admin/role-requests' },
+    { tone: 'blue', value: overview.escalations, label: t('تصعيدات تحتاج شخصاً', 'Escalations needing a person'), href: '/admin/support?filter=escalated' },
+    { tone: 'purple', value: overview.pending_withdrawals, label: t('طلبات سحب', 'Withdrawals'), href: '/admin/payouts' },
+    { tone: 'red', value: overview.refunds_owed, label: t('مبالغ مستحقة الإرجاع', 'Refunds owed'), href: '/admin/pricing' },
+    { tone: 'orange', value: overview.open_cases, label: t('قضايا مفتوحة', 'Open cases'), href: '/admin/cases' },
+  ].filter((card) => card.value > 0) : [];
 
   const { data: pendingRoles } = await supabase
     .from('profile_roles')
@@ -48,10 +64,58 @@ export default async function AdminPage() {
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>{t('لوحة الإدارة', 'Admin panel')}</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{greeting}{firstName ? `${t('، ', ', ')}${firstName}` : ''}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          {t('كل ما ينتظر قراراً بشرياً في مكان واحد. كل إجراء هنا يُسجَّل في سجل التدقيق.', 'Everything waiting on a human decision, in one place. Every action here is written to the audit log.')}
+          {t('مركز تحكم تكمود: ما يحتاج انتباهك أولاً، ثم كل ما يحدث على المنصة. كل إجراء هنا يُسجَّل في سجل التدقيق.',
+             'TechMood Control Center: what needs your attention first, then everything happening on the platform. Every action here is written to the audit log.')}
         </p>
+      </section>
+
+      {overview && (
+        <section className="section-block">
+          <h3 className="academy-heading">{t('نظرة على المنصة', 'Platform overview')}</h3>
+          <div className="stat-tiles">
+            <div className="stat-tile"><div className="val eng">{overview.users}</div><div className="lbl">{t('المستخدمون', 'Users')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.active_today}</div><div className="lbl">{t('نشطون اليوم', 'Active today')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.mentors}</div><div className="lbl">{t('المنتورز', 'Mentors')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.open_tickets}</div><div className="lbl">{t('بلاغات مفتوحة', 'Open tickets')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.pending_payments}</div><div className="lbl">{t('مدفوعات معلّقة', 'Pending payments')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.pending_withdrawals}</div><div className="lbl">{t('سحوبات معلّقة', 'Pending withdrawals')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.open_reports}</div><div className="lbl">{t('بلاغات عن أشخاص', 'Reports about people')}</div></div>
+            <div className="stat-tile"><div className="val eng">{overview.escalations}</div><div className="lbl">{t('تصعيدات', 'Escalations')}</div></div>
+          </div>
+        </section>
+      )}
+
+      <section className="section-block">
+        <h3 className="academy-heading">⚠️ {t('يحتاج انتباهك', 'Requires attention')}</h3>
+        {attention.length === 0 ? (
+          <p className="muted" style={{ fontSize: '0.88rem' }}>{t('لا شيء ينتظرك الآن.', 'Nothing is waiting on you right now.')}</p>
+        ) : (
+          <div className="attention-grid">
+            {attention.map((card) => (
+              <Link key={card.label} className={`attention-card tone-${card.tone}`} href={card.href}>
+                <span className="val eng">{card.value}</span>
+                <span>{card.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="section-block">
+        <h3 className="academy-heading">{t('ما يحدث على تكمود', 'What is happening on TechMood')}</h3>
+        <ul className="event-feed">
+          {(feed ?? []).map((event, index) => (
+            <li key={index} className={`tone-${event.tone}`}>
+              {event.link ? <Link href={event.link}>{event.title_ar}</Link> : event.title_ar}
+              <span className="muted" style={{ fontSize: '0.74rem', marginInlineStart: 8 }}>{time.format(new Date(event.at))}</span>
+              {event.profile_id && (
+                <Link className="muted" style={{ fontSize: '0.74rem', marginInlineStart: 8 }} href={`/admin/users/${event.profile_id}`}>{t('الشخص', 'Person')}</Link>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="section-block">

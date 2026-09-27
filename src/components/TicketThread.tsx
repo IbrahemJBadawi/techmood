@@ -6,7 +6,7 @@ import { TICKET_EVENT } from '@/lib/support';
  * A ticket's timeline and conversation, as whoever is reading may see them —
  * row level security decides whether internal notes are among them (0083).
  */
-export async function TicketThread({ ticketId }: { ticketId: string }) {
+export async function TicketThread({ ticketId, viewer = 'reporter' }: { ticketId: string; viewer?: 'reporter' | 'admin' }) {
   const t = await getT();
   const supabase = await createClient();
 
@@ -29,7 +29,7 @@ export async function TicketThread({ ticketId }: { ticketId: string }) {
     kind === 'assistant' ? t('🤖 مساعد تكمود (رد آلي)', '🤖 TechMood assistant (automated)')
       : kind === 'admin' ? t('🛟 فريق الدعم', '🛟 Support team')
         : kind === 'system' ? t('النظام', 'System')
-          : t('أنت', 'You');
+          : viewer === 'admin' ? t('👤 صاحب البلاغ', '👤 Reporter') : t('أنت', 'You');
 
   return (
     <div className="detail-grid">

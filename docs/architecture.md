@@ -1549,6 +1549,55 @@ Two things this exposed, fixed in the same migration:
 team-meeting limit counted meetings in the *current* week whatever week the
 new one was booked into, so any team could book unlimited meetings next week.
 
+## Rating, reports, cases: one system, four layers
+
+Rating → report → investigation and decision → reputation and action. The
+spec draws it as one flow, and that is how it is built (0080–0085).
+
+**Rating is not reputation.** Every rating was already on criteria and
+mutual (sessions sealed until both sides write, 0045; client ↔ freelancer,
+0056/0069). 0081 adds "would you recommend it?" and the two written
+questions to every kind, lets a finished course be rated, and keeps four
+layers apart: the rating of one experience, the written review,
+*performance* counted from what happened (sessions held, attendance,
+satisfaction, recommendation, rebooking) and the long-term reputation meters.
+The feedback digest reads strengths and improvements off the criteria; the
+comments behind it are the rated person's and the admins' to read, and an AI
+summary of them describes the feedback, never the person.
+
+**Help & Reports** (0083). A report is a ticket, and a ticket is a
+conversation. It may point only at an operation the reporter is part of —
+checked in the database — and the person it is about never sees it. The
+system sets the priority. The automated first line reads the operation and
+says where it stands (payment under review, mentor has until …, refund due),
+lists what it already knows and asks only for what is missing; it never
+decides. Fraud, abuse, account risk, refunds, money and project disputes,
+repeated complaints about one person, a request for a human and anything it
+cannot place go to a person ("Needs Human Review"), by written rules that run
+whether or not a model is configured.
+
+**Cases and actions** (0084). A case gathers tickets, people, operations,
+evidence, notes and a timeline. Every admin action needs a written reason;
+the ones that take something away also need a duration and evidence on the
+case, and the page asks for an explicit confirmation. Each action is a case
+event, an audit-log line and, if chosen, a notification. Restrictions are
+enforced by triggers on the rows they stop (bookings, messages, market
+applications and postings, withdrawals, ratings), so no page can forget
+them; the conversation with the administration and Help & Reports stay open,
+so a restricted person can always ask why and appeal.
+
+**The Control Center** (0085). The admin home is what needs attention and
+what is happening, as events; every person has one unified profile tied to
+their TechMood ID, with an activity timeline across the platform. ✨ AI
+Assist reads a ticket or a case and stores a summary, evidence and a
+suggested next step beside it; nothing reads that to act. Without
+`ANTHROPIC_API_KEY` the page says so and shows the facts the database
+gathered instead.
+
+Not built from the spec's sidebar: cohorts, an AI-conversations browser for
+admins, a knowledge base, AI logs, analytics and an admin-permissions screen.
+Their sections are not in the sidebar rather than pointing at empty pages.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every

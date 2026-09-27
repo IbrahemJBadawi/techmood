@@ -23,7 +23,7 @@ function sse(res, events) {
   res.end();
 }
 
-function message({ text, tools = [], stopReason = 'end_turn' }) {
+function message({ text, tools = [], stopReason = 'end_turn', toolName = 'propose_action' }) {
   const events = [
     {
       type: 'message_start',
@@ -42,7 +42,7 @@ function message({ text, tools = [], stopReason = 'end_turn' }) {
     const index = i + 1;
     events.push(
       { type: 'content_block_start', index,
-        content_block: { type: 'tool_use', id: `toolu_${index}`, name: 'propose_action', input: {} } },
+        content_block: { type: 'tool_use', id: `toolu_${index}`, name: toolName, input: {} } },
       { type: 'content_block_delta', index,
         delta: { type: 'input_json_delta', partial_json: JSON.stringify(input) } },
       { type: 'content_block_stop', index },
@@ -73,7 +73,7 @@ const { port } = server.address();
 process.env.ANTHROPIC_BASE_URL = `http://127.0.0.1:${port}`;
 process.env.ANTHROPIC_API_KEY = 'stub-key-not-a-real-credential';
 
-const { askClaude, aiConfigured } = await import('../src/lib/ai-claude.ts');
+const { askClaude, aiConfigured, assessForAdmin } = await import('../src/lib/ai-claude.ts');
 
 const KINDS = [
   { kind: 'add_canvas_card', title_ar: 'يضيف بطاقة', detail_ar: null,
@@ -170,13 +170,58 @@ answer = await call();
 assert.equal(answer.proposals.length, 0);
 ok('9 nothing is proposed from a turn that ran out of tokens');
 
-// 6 — no key at all
+// 6 — AI Assist for the administration: a reading, never a decision
+script = message({
+  text: '',
+  toolName: 'record_assessment',
+  tools: [{ summary_ar: 'يدّعي المستخدم أنه دفع 25$ والدفعة قيد المراجعة.', evidence: ['إيصال مرفق', 'الحجز TM-821'],
+            next_step_ar: 'تحقق من الدفعة يدوياً.', category: 'payment', confidence: 92 }],
+  stopReason: 'tool_use',
+});
+let assessed = await assessForAdmin({
+  kind: 'ticket',
+  facts: { code: 'TM-10482', category: 'payment' },
+  conversation: [{ author: 'user', body: 'دفعت ولم يتأكد الحجز' }],
+});
+assert.deepEqual(captured.tool_choice, { type: 'tool', name: 'record_assessment' });
+assert.equal(captured.thinking, undefined);
+assert.equal(captured.tools[0].eager_input_streaming, true);
+assert.ok(captured.system.includes('القرار للإدارة وحدها'));
+ok('11 AI Assist forces its one recording tool, streams it eagerly, and is told the decision is not its own');
+
+assert.equal(assessed.error_ar, null);
+assert.equal(assessed.assessment.category, 'payment');
+assert.equal(assessed.assessment.confidence, 92);
+assert.deepEqual(assessed.assessment.evidence, ['إيصال مرفق', 'الحجز TM-821']);
+ok('12 its reading comes back as summary, evidence, next step, category and confidence');
+
+script = message({
+  text: '',
+  toolName: 'record_assessment',
+  tools: [{ summary_ar: 'ملخص', evidence: [], next_step_ar: 'خطوة', category: 'not-a-category', confidence: 250 }],
+  stopReason: 'tool_use',
+});
+assessed = await assessForAdmin({ kind: 'case', facts: {}, conversation: [] });
+assert.equal(assessed.assessment.category, null);
+assert.equal(assessed.assessment.confidence, 100);
+ok('13 an unknown category is dropped and a confidence is held to 0–100');
+
+script = message({ text: '', toolName: 'record_assessment', tools: [{ evidence: [] }], stopReason: 'tool_use' });
+assessed = await assessForAdmin({ kind: 'case', facts: {}, conversation: [] });
+assert.equal(assessed.assessment, null);
+assert.ok(assessed.error_ar);
+ok('14 a reading missing its summary is refused, not repaired');
+
+// 7 — no key at all
 delete process.env.ANTHROPIC_API_KEY;
 assert.equal(aiConfigured(), false);
 answer = await call();
 assert.equal(answer.proposals.length, 0);
 assert.ok(answer.error_ar.includes('ANTHROPIC_API_KEY'));
-ok('10 without a key it says so plainly instead of pretending');
+assessed = await assessForAdmin({ kind: 'case', facts: {}, conversation: [] });
+assert.equal(assessed.assessment, null);
+assert.ok(assessed.error_ar.includes('ANTHROPIC_API_KEY'));
+ok('10 without a key it says so plainly instead of pretending — the assistant and AI Assist alike');
 
 server.close();
 console.log(`\n${passed} assistant provider checks passed against the stub`);

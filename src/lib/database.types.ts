@@ -2624,6 +2624,43 @@ export type Database = {
           reporter_name: string | null; reported_name: string | null; tickets: number; updated_at: string;
         }[];
       };
+      admin_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          users: number; active_today: number; mentors: number; open_tickets: number; pending_payments: number;
+          pending_withdrawals: number; open_reports: number; escalations: number; high_priority_reports: number;
+          mentor_applications: number; open_cases: number; refunds_owed: number;
+        }[];
+      };
+      admin_event_feed: {
+        Args: { p_limit?: number };
+        Returns: {
+          at: string; tone: 'red' | 'orange' | 'yellow' | 'blue' | 'green' | 'purple';
+          kind: string; title_ar: string; link: string | null; profile_id: string | null;
+        }[];
+      };
+      admin_users: {
+        Args: { p_role?: UserRole | null; p_query?: string | null; p_limit?: number };
+        Returns: {
+          id: string; techmood_id: string; full_name: string; username: string | null; roles: UserRole[];
+          restricted: boolean; open_reports: number; created_at: string;
+        }[];
+      };
+      admin_user_summary: {
+        Args: { p_profile: string };
+        Returns: {
+          roles: { role: UserRole; status: string }[]; xp: number; stars: number | null;
+          wallet_available: number | null; wallet_pending: number | null; enrolments: number; certificates: number;
+          bookings: number; sessions_as_mentor: number; teams: number; projects: number; tickets_filed: number;
+          reports_about: number; warnings: number;
+          active_restrictions: { id: string; feature: RestrictedFeature; reason: string; ends_at: string | null }[];
+          cases: { id: string; code: string; title: string; status: CaseStatus }[];
+        } | null;
+      };
+      admin_user_activity: {
+        Args: { p_profile: string; p_limit?: number };
+        Returns: { at: string; area: string; title_ar: string; link: string | null }[];
+      };
       course_feedback_texts: {
         Args: { p_course: string };
         Returns: { stars: number; recommend: boolean | null; liked_ar: string | null; improve_ar: string | null; created_at: string }[];

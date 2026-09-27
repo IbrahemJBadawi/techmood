@@ -7479,6 +7479,51 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 63. Admin OS: what needs attention, what is happening, who is who
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.admin_overview()) = 0
+  and (select count(*) from public.admin_event_feed()) = 0
+  and (select count(*) from public.admin_users()) = 0
+  and public.admin_user_summary('33333333-3333-3333-3333-333333333333') is null
+  and (select count(*) from public.admin_user_activity('33333333-3333-3333-3333-333333333333')) = 0,
+  '63.1 the control center is the administration''s, all of it');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select users >= 5 and mentors >= 1 and escalations >= 1 and open_tickets >= 1 from public.admin_overview()),
+  '63.2 the overview counts what exists, including what needs a person');
+
+select public.assert(
+  exists (select 1 from public.admin_event_feed(200) where tone = 'yellow' and kind = 'ticket')
+  and exists (select 1 from public.admin_event_feed(200) where tone = 'blue' and kind = 'escalation'),
+  '63.3 everything happening arrives as one stream of events');
+
+select public.assert(
+  (select '{mentor}'::text[] <@ roles from public.admin_users(null,
+      (select techmood_id from public.profiles where id = '33333333-3333-3333-3333-333333333333'))
+    where id = '33333333-3333-3333-3333-333333333333')
+  and (select count(*) from public.admin_users('mentor')) >= 1,
+  '63.4 anyone can be found by name or TechMood ID, and filtered by role');
+
+select public.assert(
+  (public.admin_user_summary('33333333-3333-3333-3333-333333333333') ->> 'warnings')::int = 1
+  and (public.admin_user_summary('33333333-3333-3333-3333-333333333333') ->> 'reports_about')::int >= 2,
+  '63.5 the unified profile knows the person''s whole standing');
+
+select public.assert(
+  exists (select 1 from public.admin_user_activity('55555555-5555-5555-5555-555555555555') where area = 'support')
+  and exists (select 1 from public.admin_user_activity('33333333-3333-3333-3333-333333333333') where area = 'moderation'),
+  '63.6 and one timeline tells their story across the platform');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
