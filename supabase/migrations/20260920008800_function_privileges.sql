@@ -14,8 +14,8 @@
 --   * `authenticated` keeps exactly what it has today (a function that was
 --     deliberately revoked stays revoked; one it reached through PUBLIC is now
 --     granted by name).
---   * `anon` keeps a function only if some migration granted it to anon by
---     name, or a policy/view anon reads calls it, or an anon-callable function
+--   * `anon` keeps a function only if a migration granted it to anon by name
+--     (listed below), or a policy/view anon reads calls it, or an anon-callable function
 --     that runs as its caller (security invoker) calls it — followed until
 --     nothing new is found.
 --   * PUBLIC loses EXECUTE on every function in the schema, and functions
@@ -34,12 +34,29 @@ declare
   v_texts    text;
   f          record;
 begin
-  -- 1. What anon was granted by name.
-  select coalesce(array_agg(distinct p.oid), '{}') into v_keep
-    from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace,
-         aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-   where n.nspname = 'public' and a.grantee = 'anon'::regrole and a.privilege_type = 'EXECUTE';
+  -- 1. What a migration granted to anon by name. Written out, because on
+  --    Supabase every new function is granted to anon by name by default, so
+  --    the live grants cannot tell an intended grant from an accidental one.
+  select coalesce(array_agg(to_regprocedure('public.' || sig)) filter (where to_regprocedure('public.' || sig) is not null), '{}')
+    into v_keep
+    from unnest(array[
+    'is_admin()', 'compute_commission(text,numeric)', 'is_team_member(uuid)',
+    'has_role(user_role)', 'mentor_available_slots(uuid,date,date)', 'profile_exhibition_entries(uuid)',
+    'can_see_profile_section(uuid,profile_section)', 'is_username_available(text)', 'leaderboard_students_ranked(timestamp with time zone,integer)',
+    'leaderboard_companies_ranked(timestamp with time zone,integer)', 'leaderboard_mentors_ranked(timestamp with time zone,integer)', 'leaderboard_teams_ranked(timestamp with time zone,integer)',
+    'academy_roadmap()', 'course_skills(uuid)', 'verify_exhibition_entry(text)',
+    'exhibition_entry_history(text)', 'exhibition_featured(integer)', 'verify_certificate(text)',
+    'profile_verified_skills(uuid)', 'lesson_skills_all(uuid)', 'profile_card(text)',
+    'profile_reputation(uuid)', 'profile_focus(uuid)', 'profile_learning(uuid)',
+    'booking_holds_time(booking_status)', 'market_overview()', 'trust_signals(uuid)',
+    'client_reviews_for(uuid)', 'market_listings(text,integer)', 'canvas_board(uuid)',
+    'roadmap(uuid)', 'shared_view(text)', 'record_share_view(text)',
+    'can_see_private_brief(uuid)', 'client_profile(uuid)', 'is_credential_lesson(uuid)',
+    'profile_credentials(uuid)', 'profile_skill_evidence(uuid)', 'mask_account(text)',
+    'session_quote(uuid,uuid)', 'mentor_price_list(uuid)', 'course_counts_in_path(uuid)',
+    'path_skills(uuid)', 'course_rating(uuid)', 'mentor_performance(uuid)',
+    'feedback_digest(uuid)'
+    ]) as sig;
 
   -- 2. What anon-visible policies and anon-readable views call.
   select string_agg(coalesce(pg_get_expr(pol.polqual, pol.polrelid), '') || ' '
@@ -94,4 +111,7 @@ begin
 end
 $migration$;
 
+-- New functions start with nobody: not PUBLIC (Postgres' default) and not anon
+-- (Supabase's default). A migration grants each one explicitly.
 alter default privileges in schema public revoke execute on functions from public;
+alter default privileges in schema public revoke execute on functions from anon;
