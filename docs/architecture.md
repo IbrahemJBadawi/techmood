@@ -1614,6 +1614,18 @@ The rest of the sidebar (0087):
   permission for now — partial admin roles are not built. The audit log is
   readable there, filtered by kind.
 
+## Function privileges (0088)
+
+Postgres grants EXECUTE on every new function to PUBLIC. Supabase's security
+advisor found ~300 functions callable by signed-out visitors on the first live
+deploy — each checks its caller inside, but a visitor should not reach them.
+0088 computes the fix: `authenticated` keeps exactly what it had; `anon` keeps
+only functions granted to it by name, called by policies and views it can
+read, or called in turn by those; PUBLIC loses EXECUTE everywhere, and new
+functions no longer start with it. **From 0088 on, a migration that adds a
+function must grant it explicitly** (`to authenticated`, and `to anon` only if
+a signed-out page needs it) — otherwise nobody can call it.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every
