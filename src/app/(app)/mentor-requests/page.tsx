@@ -8,6 +8,7 @@ import { getT } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 
 import { decideBooking } from './actions';
+import { AvailabilitySwitch } from './AvailabilitySwitch';
 
 export default async function MentorRequestsPage() {
   const t = await getT();
@@ -23,7 +24,7 @@ export default async function MentorRequestsPage() {
   // Only bookings whose payment TechMood already verified reach a mentor.
   const { data: requests } = await supabase
     .from('bookings')
-    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id')
+    .select('id, booking_code, status, scheduled_start, scheduled_end, price_usd, mentor_share_usd, session_goal_ar, session_type_id, student_id, mentor_respond_by')
     .eq('mentor_id', user.id)
     .in('status', ['mentor_pending', 'confirmed'])
     .order('scheduled_start');
@@ -53,6 +54,17 @@ export default async function MentorRequestsPage() {
     : { data: [] as { id: string; booking_id: string | null }[] };
   const roomOf = new Map((rooms ?? []).map((room) => [room.booking_id ?? '', room.id]));
 
+  const [{ data: me }, { data: settings }] = await Promise.all([
+    supabase
+      .from('mentor_profiles')
+      .select('is_accepting, pause_reason, paused_until, pause_note_ar')
+      .eq('profile_id', user.id)
+      .single(),
+    supabase.from('platform_settings').select('key, value').in('key', ['mentor_response_hours', 'mentor_unanswered_limit']),
+  ]);
+  const setting = (key: string, fallback: number) =>
+    Number((settings ?? []).find((row) => row.key === key)?.value ?? fallback);
+
   const pending = (requests ?? []).filter((row) => row.status === 'mentor_pending');
   const confirmed = (requests ?? []).filter((row) => row.status === 'confirmed');
 
@@ -63,7 +75,19 @@ export default async function MentorRequestsPage() {
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
           {t('كل طلب هنا تم التحقق من دفعه بالفعل. موافقتك هي الشرط الثاني والأخير لتأكيد الجلسة.', 'Every request here has already had its payment verified. Your acceptance is the second and final condition.')}
         </p>
+        <Link className="btn btn-ghost btn-sm" href="/mentor-requests/pricing" style={{ marginTop: 10 }}>
+          {t('أسعاري وأنواع جلساتي', 'My prices and session types')}
+        </Link>
       </section>
+
+      <AvailabilitySwitch
+        accepting={me?.is_accepting ?? true}
+        reason={me?.pause_reason ?? null}
+        until={me?.paused_until ?? null}
+        note={me?.pause_note_ar ?? null}
+        responseHours={setting('mentor_response_hours', 48)}
+        unansweredLimit={setting('mentor_unanswered_limit', 3)}
+      />
 
       <section className="section-block">
         <div className="stat-tiles">
@@ -102,6 +126,13 @@ export default async function MentorRequestsPage() {
                     {when.date} · <span className="eng">{when.time}</span> ·{' '}
                     <span className="eng">{type?.duration_minutes ?? 60} min</span>
                   </p>
+                  {request.mentor_respond_by && (
+                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4, color: 'var(--warn)' }}>
+                      {t('ردّ قبل ', 'Answer before ')}
+                      {formatSlot(request.mentor_respond_by).date} · <span className="eng">{formatSlot(request.mentor_respond_by).time}</span>
+                      {t(' — وإلا يُعتذر عنه تلقائياً ويُعاد المبلغ للطالب.', ' — or it is declined for you and the learner refunded.')}
+                    </p>
+                  )}
                 </div>
                 <span className="badge-pill eng">{t('حصتك ', 'Your share ')}{money(request.mentor_share_usd)}</span>
               </div>

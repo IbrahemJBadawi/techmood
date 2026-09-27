@@ -105,6 +105,24 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'لا يمكن تقييم نفسك',             en: 'You cannot rate yourself.' },
   { match: 'قيّمت هذه الجلسة بالفعل',         en: 'You have already rated this session.' },
   { match: 'التقييم يحتاج درجة واحدة على الأقل', en: 'A rating needs at least one score.' },
+  // pricing and availability (0077)
+  { match: 'السعر خارج حدود مستواك',         en: 'That price is outside your level\u2019s range for this session.' },
+  { match: 'التسعير للمنتورز فقط',           en: 'Only mentors set session prices.' },
+  { match: 'التسعير للإدارة فقط',            en: 'Only an admin changes the price bands.' },
+  { match: 'الإعدادات للإدارة فقط',          en: 'Only an admin changes platform settings.' },
+  { match: 'إعداد غير معروف',               en: 'Unknown setting.' },
+  { match: 'الشريحة الأولى (من صفر) لا تُحذف', en: 'The first bracket (from zero) cannot be removed — every amount needs a rate.' },
+  { match: 'المنتور وحده من يغيّر استقباله',  en: 'Only the mentor (or an admin) switches their requests on or off.' },
+  { match: 'تاريخ العودة يجب أن يكون',       en: 'The return date has to be today or later.' },
+  { match: 'mentor_levels_band_ordered',     en: 'The band must run floor ≤ default ≤ ceiling, all above zero.' },
+  { match: 'mentor_levels_commission_sane',  en: 'The commission must be between 0% and 60%.' },
+  // the catalogue (0078)
+  { match: 'لا يُفتح مسار ليس فيه دورة',      en: 'A path cannot open without at least one ready course.' },
+  { match: 'هذا الدرس غير متاح حالياً',       en: 'This lesson is not available right now.' },
+  { match: 'هذا المشروع غير متاح للتسليم',    en: 'This project is not taking submissions right now.' },
+  { match: 'إدارة المسارات للإدارة فقط',      en: 'Only an admin manages paths.' },
+  { match: 'لا يمكن نشر دورة بلا دروس',       en: 'A course without lessons cannot be published — write its lessons first.' },
+  { match: 'لا يُحجز اجتماع في وقت مضى',      en: 'A meeting cannot be booked in the past.' },
 ];
 
 /** Translates a database message when the interface is in English. */

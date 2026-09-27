@@ -60,6 +60,8 @@ export type EvidenceKind =
 export type CertificateKind = 'course' | 'path';
 export type CertificateStatus = 'active' | 'revoked';
 export type MentorLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+/** Why a mentor is not taking requests: their choice, a holiday, or unanswered requests (0077). */
+export type MentorPauseReason = 'manual' | 'vacation' | 'unresponsive';
 
 export type BookingStatus =
   | 'draft' | 'payment_pending' | 'payment_submitted' | 'payment_verified'
@@ -586,6 +588,10 @@ export type Booking = {
   confirmed_at: string | null;
   completed_at: string | null;
   cancelled_reason: string | null;
+  /** When the mentor must answer a paid request by (0077). */
+  mentor_respond_by: string | null;
+  /** Declined by the platform because the mentor did not answer in time. */
+  auto_declined: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -735,6 +741,8 @@ export type Lesson = {
   case_question_ar: string | null;
   challenge_ar: string | null;
   sort_order: number;
+  /** published: open · planned: «قريباً» (shown, not completable) · draft/archived: hidden (0078). */
+  status: ContentStatus;
 }
 
 export type LessonVideo = {
@@ -802,6 +810,8 @@ export type Assignment = {
   required_evidence: EvidenceKind[];
   is_required: boolean;
   is_group_work: boolean;
+  /** Only a published assignment takes submissions (0078). */
+  status: ContentStatus;
 }
 
 export type Submission = {
@@ -1227,6 +1237,8 @@ export type Database = {
         motivation_ar: string | null; experience_ar: string | null;
         linkedin_url: string | null; portfolio_url: string | null;
         languages: string[]; approved_at: string | null;
+        pause_reason: MentorPauseReason | null; paused_until: string | null;
+        pause_note_ar: string | null; paused_at: string | null; accepting_since: string;
       }>;
       projects: Table<{
         id: string; code: string; title_ar: string; description_ar: string | null;
@@ -1366,7 +1378,11 @@ export type Database = {
       payments: Table<Payment>;
       booking_events: Table<BookingEvent>;
       booking_review_items: Table<BookingReviewItem>;
-      mentor_session_types: Table<{ mentor_id: string; session_type_id: string; is_active: boolean }>;
+      mentor_session_types: Table<{
+        mentor_id: string; session_type_id: string; is_active: boolean;
+        /** The mentor's own price for this session type; null = the level's default (0077). */
+        price_usd: number | null;
+      }>;
       mentor_availability: Table<{
         id: string; mentor_id: string; day_of_week: number; start_time: string; end_time: string;
       }>;
@@ -1384,6 +1400,7 @@ export type Database = {
       mentor_levels: Table<{
         level: MentorLevel; session_price_usd: number; platform_share_usd: number;
         mentor_share_usd: number; min_sessions: number; min_rating: number; sort_order: number;
+        min_session_usd: number; max_session_usd: number; commission_pct: number;
       }>;
     };
     Views: {
@@ -2390,6 +2407,48 @@ export type Database = {
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };
       is_mentor: { Args: Record<string, never>; Returns: boolean };
+      session_quote: {
+        Args: { p_mentor: string; p_session_type: string };
+        Returns: {
+          price_usd: number; platform_share_usd: number; mentor_share_usd: number;
+          min_usd: number; max_usd: number; default_usd: number; commission_pct: number;
+          duration_minutes: number;
+        }[];
+      };
+      mentor_price_list: {
+        Args: { p_mentor: string };
+        Returns: {
+          session_type_id: string; name_ar: string; name_en: string | null; duration_minutes: number;
+          price_usd: number; mentor_share_usd: number; min_usd: number; max_usd: number;
+          default_usd: number; is_custom: boolean; is_active: boolean;
+        }[];
+      };
+      set_session_price: { Args: { p_session_type: string; p_price: number | null }; Returns: undefined };
+      save_mentor_level: {
+        Args: {
+          p_level: MentorLevel; p_default_usd: number; p_min_usd: number; p_max_usd: number;
+          p_commission_pct: number;
+        };
+        Returns: undefined;
+      };
+      save_commission_tier: {
+        Args: { p_kind: string; p_min_amount: number; p_rate: number; p_note?: string | null; p_remove?: boolean };
+        Returns: undefined;
+      };
+      save_platform_setting: { Args: { p_key: string; p_value: string }; Returns: undefined };
+      set_mentor_accepting: {
+        Args: { p_accepting: boolean; p_until?: string | null; p_note?: string | null; p_mentor?: string | null };
+        Returns: undefined;
+      };
+      refunds_owed: {
+        Args: Record<string, never>;
+        Returns: {
+          booking_id: string; booking_code: string; student_name: string | null; mentor_name: string | null;
+          amount_usd: number; reason_ar: string | null; auto_declined: boolean; since: string;
+        }[];
+      };
+      set_path_mode: { Args: { p_path: string; p_mode: 'auto' | 'draft' | 'archived' }; Returns: ContentStatus };
+      course_counts_in_path: { Args: { p_course: string }; Returns: boolean };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

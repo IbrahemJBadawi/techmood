@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 593 business-rule assertions
+scripts/test.sh                   # 741 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -318,6 +318,15 @@ clients and are safe to run repeatedly:
 ```sql
 select cron.schedule('close-sessions',  '*/5 * * * *', $$select public.close_due_video_sessions()$$);
 select cron.schedule('notify-sessions', '*/5 * * * *', $$select public.notify_due_sessions()$$);
+```
+
+`public.mentor_request_housekeeping()` declines paid requests a mentor did not
+answer in time (the learner is told and the booking joins Admin → Pricing →
+refunds owed), pauses a mentor after repeated lapses, and ends holidays that
+have reached their date. Revoked from clients; safe to run repeatedly:
+
+```sql
+select cron.schedule('mentor-requests', '*/10 * * * *', $$select public.mentor_request_housekeeping()$$);
 ```
 
 ### The assistant's model provider

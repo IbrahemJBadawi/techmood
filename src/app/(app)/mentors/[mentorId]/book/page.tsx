@@ -37,14 +37,14 @@ export default async function BookSessionPage({
 
   const [
     { data: mentorProfile },
-    { data: level },
+    { data: prices },
     { data: offered },
     { data: slots },
     { data: methods },
     { data: student },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', mentorId).single(),
-    supabase.from('mentor_levels').select('session_price_usd').eq('level', mentor.level).single(),
+    supabase.rpc('mentor_price_list', { p_mentor: mentorId }),
     supabase
       .from('mentor_session_types')
       .select('session_types(id, slug, name_ar, name_en, description_ar, duration_minutes, sort_order, is_active)')
@@ -180,7 +180,7 @@ export default async function BookSessionPage({
         mentorId={mentorId}
         mentorName={mentorProfile?.full_name ?? ''}
         mentorLevel={mentor.level}
-        price={level?.session_price_usd ?? 0}
+        prices={Object.fromEntries((prices ?? []).map((row) => [row.session_type_id, Number(row.price_usd)]))}
         sessionTypes={sessionTypes}
         slots={(slots ?? []) as { slot_start: string; slot_end: string; state: SlotState }[]}
         paymentMethods={(methods ?? []) as PaymentMethodPublic[]}

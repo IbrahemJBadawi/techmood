@@ -9,16 +9,21 @@ export default async function MentorsPage() {
   const t = await getT();
   const supabase = await createClient();
 
-  const [{ data: mentors }, { data: levels }] = await Promise.all([
-    supabase
-      .from('mentor_profiles')
-      .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg')
-      .order('rating_avg', { ascending: false, nullsFirst: false }),
-    supabase.from('mentor_levels').select('level, session_price_usd'),
-  ]);
+  const { data: mentors } = await supabase
+    .from('mentor_profiles')
+    .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg')
+    .order('rating_avg', { ascending: false, nullsFirst: false });
 
-  const priceByLevel = new Map((levels ?? []).map((row) => [row.level, row.session_price_usd]));
   const mentorIds = (mentors ?? []).map((row) => row.profile_id);
+
+  // Each mentor's cheapest offered session, from their own prices (0077).
+  const priceLists = await Promise.all(
+    mentorIds.map((id) => supabase.rpc('mentor_price_list', { p_mentor: id })),
+  );
+  const fromPrice = new Map(mentorIds.map((id, index) => {
+    const offered = (priceLists[index].data ?? []).filter((row) => row.is_active).map((row) => Number(row.price_usd));
+    return [id, offered.length ? Math.min(...offered) : undefined] as const;
+  }));
 
   const { data: profiles } = await supabase
     .from('profiles')
@@ -32,8 +37,8 @@ export default async function MentorsPage() {
       <section className="section-block">
         <h2 style={{ fontSize: '1.2rem' }}>{t('المنتورز', 'Mentors')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          {t('إرشاد بشري بجلسات محجوزة. سعر الجلسة يحدده مستوى المنتور، والحجز يحتاج 72 ساعة مسبقاً لإتاحة وقت لمراجعة الدفع.',
-             'Human mentoring in booked sessions. The price comes from the mentor\u2019s level, and a booking needs 72 hours\u2019 notice so there is time to check the payment.')}
+          {t('إرشاد بشري بجلسات محجوزة. كل منتور يسعّر جلساته ضمن حدود مستواه، والحجز يحتاج 72 ساعة مسبقاً لإتاحة وقت لمراجعة الدفع.',
+             'Human mentoring in booked sessions. Each mentor prices their sessions within their level\u2019s range, and a booking needs 72 hours\u2019 notice so there is time to check the payment.')}
         </p>
       </section>
 
@@ -43,7 +48,7 @@ export default async function MentorsPage() {
         <div className="card-grid">
           {mentors!.map((mentor) => {
             const profile = profileById.get(mentor.profile_id);
-            const price = priceByLevel.get(mentor.level);
+            const price = fromPrice.get(mentor.profile_id);
 
             return (
               <article className="card" key={mentor.profile_id}>
@@ -65,7 +70,7 @@ export default async function MentorsPage() {
                     <Stars value={mentor.rating_avg ?? 0} /> ·{' '}
                     {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}
                   </span>
-                  {price !== undefined && <span className="eng">{money(price)}{t(' / جلسة', ' / session')}</span>}
+                  {price !== undefined && <span className="eng">{t('من ', 'From ')}{money(price)}{t(' / جلسة', ' / session')}</span>}
                 </div>
 
                 {mentor.is_accepting ? (

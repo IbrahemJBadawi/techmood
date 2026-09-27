@@ -30,15 +30,15 @@ export default async function MentorProfilePage({
 
   const { data: mentor } = await supabase
     .from('mentor_profiles')
-    .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg')
+    .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg, pause_reason, paused_until, pause_note_ar')
     .eq('profile_id', mentorId)
     .maybeSingle();
 
   if (!mentor) notFound();
 
-  const [{ data: profile }, { data: level }, { data: availability }, { data: offered }] = await Promise.all([
+  const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }] = await Promise.all([
     supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url').eq('id', mentorId).single(),
-    supabase.from('mentor_levels').select('session_price_usd, platform_share_usd, mentor_share_usd').eq('level', mentor.level).single(),
+    supabase.rpc('mentor_price_list', { p_mentor: mentorId }),
     supabase.from('mentor_availability').select('day_of_week, start_time, end_time').eq('mentor_id', mentorId).order('day_of_week'),
     supabase
       .from('mentor_session_types')
@@ -50,6 +50,10 @@ export default async function MentorProfilePage({
   const sessionTypes = (offered ?? []).map(
     (row) => row.session_types as unknown as { id: string; name_ar: string; description_ar: string | null; duration_minutes: number },
   );
+  // Each mentor prices their own sessions inside their level's band (0077).
+  const priceOf = new Map((prices ?? []).map((row) => [row.session_type_id, Number(row.price_usd)]));
+  const offeredPrices = sessionTypes.map((type) => priceOf.get(type.id)).filter((value): value is number => value !== undefined);
+  const fromPrice = offeredPrices.length ? Math.min(...offeredPrices) : null;
 
   return (
     <>
@@ -83,14 +87,21 @@ export default async function MentorProfilePage({
 
         <div className="row-between" style={{ marginTop: 18 }}>
           <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', fontSize: '1.1rem' }}>
-            {level ? money(level.session_price_usd) : '—'}{t(' / جلسة', ' / session')}
+            {fromPrice !== null ? <>{t('من ', 'From ')}{money(fromPrice)}{t(' / جلسة', ' / session')}</> : '—'}
           </span>
           {mentor.is_accepting && sessionTypes.length > 0 ? (
             <Link className="btn btn-primary" href={`/mentors/${mentorId}/book`}>{t('احجز جلسة', 'Book a session')}</Link>
           ) : (
-            <span className="status-pill status-muted">{t('لا يستقبل حجوزات حالياً', 'Not taking bookings right now')}</span>
+            <span className="status-pill status-muted">
+              {mentor.pause_reason === 'vacation' && mentor.paused_until
+                ? t(`في إجازة حتى ${mentor.paused_until}`, `On holiday until ${mentor.paused_until}`)
+                : t('لا يستقبل حجوزات حالياً', 'Not taking bookings right now')}
+            </span>
           )}
         </div>
+        {!mentor.is_accepting && mentor.pause_note_ar && mentor.pause_reason !== 'unresponsive' && (
+          <p className="muted" style={{ fontSize: '0.84rem', marginTop: 8 }}>{mentor.pause_note_ar}</p>
+        )}
       </section>
 
       <div className="detail-grid">
@@ -107,7 +118,9 @@ export default async function MentorProfilePage({
                     <p className="muted" style={{ fontSize: '0.82rem', marginTop: 3 }}>{type.description_ar}</p>
                   )}
                 </div>
-                <span className="badge-pill eng">{type.duration_minutes} min</span>
+                <span className="badge-pill eng">
+                  {type.duration_minutes} min{priceOf.has(type.id) ? ` · ${money(priceOf.get(type.id)!)}` : ''}
+                </span>
               </div>
             ))
           )}

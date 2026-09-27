@@ -16,22 +16,31 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const { data: path } = await supabase
     .from('learning_paths')
-    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours')
+    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours, status')
     .eq('slug', pathSlug)
     .single();
 
   if (!path) notFound();
+  // A path the admin hid or switched off is not on the map, nor behind its URL.
+  if (path.status === 'draft' || path.status === 'archived') {
+    const { data: isAdmin } = await supabase.rpc('is_admin');
+    if (!isAdmin) notFound();
+  }
 
   const { data: pathCourses } = await supabase
     .from('path_courses')
-    .select('is_required, sort_order, courses(id, slug, title_ar, description_ar, estimated_hours)')
+    .select('is_required, sort_order, courses(id, slug, title_ar, description_ar, estimated_hours, status)')
     .eq('path_id', path.id)
     .order('sort_order');
 
-  const courses = (pathCourses ?? []).map((row) => ({
-    ...(row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null }),
-    isRequired: row.is_required,
-  }));
+  // A draft or switched-off course is not part of the path a learner sees;
+  // a «قريباً» one is shown, and opens when it is published (0078).
+  const courses = (pathCourses ?? [])
+    .map((row) => ({
+      ...(row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null; status: string }),
+      isRequired: row.is_required,
+    }))
+    .filter((course) => course.status === 'published' || course.status === 'planned');
 
   // Completion is asked of the database so the UI and the certificate rule can
   // never disagree about what "complete" means.
@@ -138,14 +147,18 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
                   <span className="muted eng" style={{ fontSize: '0.76rem' }}>
                     Course {index + 1} / {courses.length}
                   </span>
-                  <span className={`status-pill ${complete ? 'status-ok' : 'status-muted'}`}>
-                    {complete ? t('مكتملة', 'Completed') : course.isRequired ? t('مطلوبة', 'Required') : t('اختيارية', 'Elective')}
-                  </span>
+                  {course.status === 'planned' ? (
+                    <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>
+                  ) : (
+                    <span className={`status-pill ${complete ? 'status-ok' : 'status-muted'}`}>
+                      {complete ? t('مكتملة', 'Completed') : course.isRequired ? t('مطلوبة', 'Required') : t('اختيارية', 'Elective')}
+                    </span>
+                  )}
                 </div>
                 <h3>{course.title_ar}</h3>
                 <p>{course.description_ar}</p>
                 <Link className="btn btn-ghost btn-sm" href={`/academy/${path.slug}/${course.slug}`}>
-                  {t('افتح الدورة', 'Open the course')}
+                  {course.status === 'planned' ? t('ما ستتعلمه', 'What it will teach') : t('افتح الدورة', 'Open the course')}
                 </Link>
               </article>
             );

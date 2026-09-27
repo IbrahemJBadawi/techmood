@@ -35,7 +35,7 @@ const EVIDENCE_LABEL: Record<string, Text> = {
 
 type LessonRow = Pick<Lesson,
   'id' | 'slug' | 'title_ar' | 'title_en' | 'kind' | 'duration_minutes' | 'summary_ar' |
-  'outcomes_ar' | 'case_study_ar' | 'case_question_ar' | 'challenge_ar' | 'sort_order'>;
+  'outcomes_ar' | 'case_study_ar' | 'case_question_ar' | 'challenge_ar' | 'sort_order' | 'status'>;
 
 /**
  * One lesson, with everything it takes to finish it.
@@ -71,12 +71,13 @@ export default async function LessonPage({
   // one after it, come from the same list — there is no "next lesson" column.
   const { data: modules } = await supabase
     .from('modules')
-    .select('id, sort_order, lessons(id, slug, title_ar, title_en, kind, duration_minutes, summary_ar, outcomes_ar, case_study_ar, case_question_ar, challenge_ar, sort_order)')
+    .select('id, sort_order, lessons(id, slug, title_ar, title_en, kind, duration_minutes, summary_ar, outcomes_ar, case_study_ar, case_question_ar, challenge_ar, sort_order, status)')
     .eq('course_id', course.id)
     .order('sort_order');
 
   const lessons = (modules ?? [])
     .flatMap((module) => ((module.lessons as unknown as LessonRow[]) ?? [])
+      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
       .map((lesson) => ({ lesson, moduleOrder: module.sort_order })))
     .sort((a, b) => a.moduleOrder - b.moduleOrder || a.lesson.sort_order - b.lesson.sort_order)
     .map((entry) => entry.lesson);
@@ -95,7 +96,7 @@ export default async function LessonPage({
   ] = await Promise.all([
     supabase.from('lesson_videos').select('id, lesson_id, title_ar, title_en, description_ar, url, duration_minutes, sort_order').eq('lesson_id', lesson.id).order('sort_order'),
     supabase.from('lesson_resources').select('id, lesson_id, label, url, kind').eq('lesson_id', lesson.id),
-    supabase.from('assignments').select('id, kind, lesson_id, course_id, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work').eq('lesson_id', lesson.id),
+    supabase.from('assignments').select('id, kind, lesson_id, course_id, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work').eq('lesson_id', lesson.id).eq('status', 'published'),
     supabase.from('lesson_progress').select('status').eq('profile_id', user.id).eq('lesson_id', lesson.id).maybeSingle(),
     supabase.rpc('lesson_board', { p_lesson: lesson.id }),
   ]);
@@ -111,7 +112,9 @@ export default async function LessonPage({
   // than no button.
   const { data: credentialRows } = await supabase.rpc('credential_lesson_state', { p_lesson: lesson.id });
   const credential = credentialRows?.[0] ?? null;
-  const canTick = !credential || (credential.verified && credential.applied) || credential.completed;
+  // A «قريباً» lesson is shown but cannot be finished until it is published (0078).
+  const soon = lesson.status !== 'published';
+  const canTick = !soon && (!credential || (credential.verified && credential.applied) || credential.completed);
 
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
@@ -188,6 +191,11 @@ export default async function LessonPage({
           )}
         </div>
         {lesson.summary_ar && <p className="muted" style={{ fontSize: '0.9rem', marginTop: 10 }}>{lesson.summary_ar}</p>}
+        {soon && (
+          <p className="notice" style={{ marginTop: 10 }}>
+            {t('هذا الدرس «قريباً» — يُفتح للإكمال حين يُنشر.', 'This lesson is «coming soon» — it can be completed once it is published.')}
+          </p>
+        )}
       </section>
 
       {credential && (

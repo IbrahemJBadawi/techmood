@@ -1484,6 +1484,71 @@ record. A company's wallet is its spending and payments. No payment gateway,
 no automatic payouts and no currency conversion exist; `supports_automatic_payment`
 stays false until a real integration does.
 
+## A mentor's own price, and a mentor's own "not now"
+
+A mentor level used to be one price. It is now a band — a floor, a default
+and a ceiling for an hour — plus TechMood's percentage (0077). A mentor prices
+each kind of session inside their level's band; shorter sessions are priced
+by their length, so a 45-minute session at L3 defaults to $26.25, not the
+hour's $35. `session_quote()` is the only place a price and its split are
+decided, and a trigger applies it to every booking that names a session type
+— a learner's, a team's (per seat) or a company's (per seat) — so no booking
+path can charge by a rule of its own. When the admin narrows a band, a price
+set before is charged at the new edge, never outside it.
+
+The backfilled percentages reproduce yesterday's fixed splits exactly
+(L3: $10 of $35 is 28.57%), so nothing already priced moved.
+
+A mentor can stop taking requests — for now, or until a date — and start
+again whenever they like. Two gaps behind that were found and closed:
+
+* **A paid request waited for the mentor forever.** It now carries a deadline
+  (48 hours, or two hours before the session, whichever is sooner, but never
+  under an hour). Past it, `mentor_request_housekeeping()` declines it on the
+  mentor's behalf and tells the learner their money is coming back.
+* **Nothing listed the refunds owed.** `refunds_owed()` does, on Admin →
+  Pricing, with the refund one click away.
+
+After three lapsed requests in thirty days a mentor stops receiving new ones
+until they switch themselves back on; lapses before their last switch-on are
+forgiven. The platform's own reason ("unresponsive") cannot be claimed or
+cleared by editing the row directly — the guard trigger keeps the switch
+coherent however it is flipped.
+
+`mentor_request_housekeeping()` has to be scheduled (pg_cron or a Supabase
+scheduled function), like `expire_stale_bookings()`; nothing runs it yet.
+
+## The catalogue: open with one ready course, «قريباً» with none
+
+The founder's rule (0078): **a path with at least one ready course is open; a
+path with none is «قريباً».** It replaced 0036's rule, which refused to open a
+path until *every* required course was published — the two contradict each
+other, and the founder's instruction wins. A trigger keeps every path in step
+with its courses; the admin chooses whether a path follows the rule (auto), is
+held back (hidden) or switched off (hidden, and never reopened by a course
+change). Sixteen paths are open under the rule today instead of six.
+
+Every course, lesson and project now has the same four states: open,
+«قريباً» (shown, counted, not usable yet), draft (hidden) and off (hidden,
+not counted). A draft course inside a path does not hold anyone's path back —
+which is what let the Claude Code credential course join the AI path as its
+fourth required course while it is still being prepared.
+
+Two things this exposed, fixed in the same migration:
+
+* A course task or a path project handed out the skills of a credential
+  lesson inside it, so approving the AI path project would have written
+  "Claude Code" onto a profile that never showed the Anthropic credential.
+  Rollups no longer grant a credential lesson's skills; only the credential
+  path does (0073).
+* Course levels are read from open paths, so opening js-ts made Modern
+  JavaScript its first course and therefore *beginner* (it was intermediate
+  as the web path's second course).
+
+0079 fixes an older bug found by a test that failed on a Sunday: the weekly
+team-meeting limit counted meetings in the *current* week whatever week the
+new one was booked into, so any team could book unlimited meetings next week.
+
 ## The assistant reads as the person
 
 TechMood AI is a layer, not a page. A ✦ button sits in the shell over every

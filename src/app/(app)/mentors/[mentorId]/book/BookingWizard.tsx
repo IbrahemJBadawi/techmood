@@ -18,7 +18,7 @@ export function BookingWizard({
   mentorId,
   mentorName,
   mentorLevel,
-  price,
+  prices,
   sessionTypes,
   slots,
   paymentMethods,
@@ -30,7 +30,8 @@ export function BookingWizard({
   mentorId: string;
   mentorName: string;
   mentorLevel: string;
-  price: number;
+  /** Each session type's price for this mentor (session_quote, 0077); the database charges the same. */
+  prices: Record<string, number>;
   sessionTypes: SessionType[];
   slots: Slot[];
   paymentMethods: PaymentMethodPublic[];
@@ -48,6 +49,7 @@ export function BookingWizard({
   const [companyId, setCompanyId] = useState('');
   const [seats, setSeats] = useState<string[]>([]);
   const [sessionTypeId, setSessionTypeId] = useState(sessionTypes[0]?.id ?? '');
+  const price = prices[sessionTypeId] ?? 0;
   const [slotStart, setSlotStart] = useState('');
   const [methodKey, setMethodKey] = useState('');
 
@@ -205,7 +207,7 @@ export function BookingWizard({
                   />
                   <span className="choice-title">{type.name_ar}</span>
                   <span className="choice-sub">
-                    {type.description_ar} · {t(`${type.duration_minutes} دقيقة`, `${type.duration_minutes} min`)}
+                    {type.description_ar} · {t(`${type.duration_minutes} دقيقة`, `${type.duration_minutes} min`)} · <span className="eng">{money(prices[type.id] ?? 0)}</span>
                   </span>
                 </label>
               ))}

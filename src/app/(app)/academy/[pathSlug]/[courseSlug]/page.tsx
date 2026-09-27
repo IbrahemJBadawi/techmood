@@ -31,20 +31,28 @@ export default async function CoursePage({
 
   const { data: course } = await supabase
     .from('courses')
-    .select('id, slug, title_ar, description_ar, estimated_hours')
+    .select('id, slug, title_ar, description_ar, estimated_hours, status')
     .eq('slug', courseSlug)
     .single();
 
   if (!course) notFound();
+  // Drafts and switched-off courses are not a learner's to open.
+  if (course.status === 'draft' || course.status === 'archived') {
+    const { data: isAdmin } = await supabase.rpc('is_admin');
+    if (!isAdmin) notFound();
+  }
 
   const { data: modules } = await supabase
     .from('modules')
-    .select('id, title_ar, sort_order, lessons(id, slug, title_ar, title_en, kind, duration_minutes, summary_ar, sort_order)')
+    .select('id, title_ar, sort_order, lessons(id, slug, title_ar, title_en, kind, duration_minutes, summary_ar, sort_order, status)')
     .eq('course_id', course.id)
     .order('sort_order');
 
   const lessons = (modules ?? [])
-    .flatMap((module) => (module.lessons as unknown as { id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number }[]) ?? [])
+    .flatMap((module) => (module.lessons as unknown as { id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number; status: string }[]) ?? [])
+    // Hidden and switched-off lessons are not part of the course a learner
+    // sees (an admin previewing sees the same); «قريباً» lessons are (0078).
+    .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
     .sort((a, b) => a.sort_order - b.sort_order);
 
   const lessonIds = lessons.map((lesson) => lesson.id);
@@ -53,7 +61,8 @@ export default async function CoursePage({
     supabase.from('lesson_progress').select('lesson_id, status').eq('profile_id', user.id).in('lesson_id', lessonIds.length ? lessonIds : ['00000000-0000-0000-0000-000000000000']),
     supabase
       .from('assignments')
-      .select('id, kind, lesson_id, course_id, title_ar, brief_ar, required_evidence, is_required, is_group_work')
+      .select('id, kind, lesson_id, course_id, title_ar, brief_ar, required_evidence, is_required, is_group_work, status')
+      .eq('status', 'published')
       .or(`course_id.eq.${course.id},lesson_id.in.(${lessonIds.length ? lessonIds.join(',') : '00000000-0000-0000-0000-000000000000'})`),
   ]);
 
@@ -123,6 +132,12 @@ export default async function CoursePage({
           </span>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{course.description_ar}</p>
+        {course.status === 'planned' && (
+          <p className="notice" style={{ marginTop: 10 }}>
+            {t('هذه الدورة «قريباً» — تظهر هنا لتعرف ما سيأتي، وتُفتح دروسها حين تُنشر.',
+               'This course is «coming soon» — shown so you know what is coming; its lessons open when it is published.')}
+          </p>
+        )}
         <p className="muted" style={{ fontSize: '0.8rem', marginTop: 10 }}>
           {t('الشهادة تتطلب إكمال كل الدروس ', 'The certificate needs every lesson finished ')}
           <strong>{t('واعتماد', 'and')}</strong>
@@ -168,8 +183,12 @@ export default async function CoursePage({
             <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('دروس الدورة', 'Course lessons')}</h3>
             {lessons.map((lesson) => {
               const done = completedLessons.has(lesson.id);
+              const soon = lesson.status !== 'published';
               return (
                 <div className="lesson-row" key={lesson.id}>
+                  {soon ? (
+                    <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}>…</span>
+                  ) : (
                   <form action={toggleLesson}>
                     <input type="hidden" name="lesson_id" value={lesson.id} />
                     <input type="hidden" name="completed" value={String(done)} />
@@ -184,6 +203,7 @@ export default async function CoursePage({
                       ✓
                     </button>
                   </form>
+                  )}
                   <div className="lesson-info">
                     <Link className="lesson-open" href={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`}>
                       {lesson.title_ar}
@@ -193,6 +213,7 @@ export default async function CoursePage({
                     )}
                     <div className="lesson-meta">
                       <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
+                      {soon && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
                       {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
                       {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}
                     </div>
