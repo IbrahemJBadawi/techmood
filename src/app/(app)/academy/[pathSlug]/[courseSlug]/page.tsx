@@ -8,6 +8,7 @@ import { Assignment, Evaluation, Submission } from '@/lib/database.types';
 
 import { toggleLesson } from '../../actions';
 import { SubmissionPanel } from '../../SubmissionPanel';
+import { CourseRatingForm } from '../../CourseRatingForm';
 
 const LESSON_KIND_LABELS: Record<string, Text> = {
   video:    { ar: 'فيديو',        en: 'Video' },
@@ -100,6 +101,12 @@ export default async function CoursePage({
     p_course: course.id,
   });
 
+  const [{ data: ratingRows }, { data: myRating }] = await Promise.all([
+    supabase.rpc('course_rating', { p_course: course.id }),
+    supabase.from('course_feedback').select('id').eq('course_id', course.id).eq('profile_id', user.id).maybeSingle(),
+  ]);
+  const rating = ratingRows?.[0];
+
   const completedLessons = new Set(
     (progress ?? []).filter((row) => row.status === 'completed').map((row) => row.lesson_id),
   );
@@ -132,6 +139,13 @@ export default async function CoursePage({
           </span>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{course.description_ar}</p>
+        {rating && rating.rated_count > 0 && (
+          <p className="muted" style={{ fontSize: '0.82rem', marginTop: 8 }}>
+            <span className="eng">{rating.stars_avg}★</span>
+            {t(` من ${rating.rated_count} تقييم`, ` from ${rating.rated_count} ratings`)}
+            {rating.recommend_pct !== null && t(` · ${rating.recommend_pct}% يوصون بها`, ` · ${rating.recommend_pct}% recommend it`)}
+          </p>
+        )}
         {course.status === 'planned' && (
           <p className="notice" style={{ marginTop: 10 }}>
             {t('هذه الدورة «قريباً» — تظهر هنا لتعرف ما سيأتي، وتُفتح دروسها حين تُنشر.',
@@ -176,6 +190,8 @@ export default async function CoursePage({
           </div>
         </section>
       )}
+
+      {isComplete && !myRating && <CourseRatingForm courseId={course.id} revalidate={revalidate} />}
 
       <div className="detail-grid">
         <section>

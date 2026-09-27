@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import type { SessionCriterion } from '@/lib/database.types';
+import { saveRatingDetails } from '@/lib/rating-details';
 
 export type RateState = { error?: string; ok?: string } | undefined;
 
@@ -33,11 +34,16 @@ export async function rateSession(_prev: RateState, formData: FormData): Promise
     return { error: t('اختر درجة واحدة على الأقل.', 'Give at least one score.') };
   }
 
-  const { error } = await supabase.rpc('rate_session', {
+  const { data: feedbackId, error } = await supabase.rpc('rate_session', {
     p_booking: String(formData.get('booking_id') ?? ''),
     p_scores: scores,
     p_comment: String(formData.get('comment') ?? '').trim() || null,
   });
+
+  if (!error) {
+    const detailsError = await saveRatingDetails(supabase, 'session', feedbackId, formData);
+    if (detailsError) return { error: dbError(t, detailsError.message) };
+  }
 
   revalidatePath(String(formData.get('revalidate') ?? '/sessions'));
   if (error) return { error: dbError(t, error.message) };

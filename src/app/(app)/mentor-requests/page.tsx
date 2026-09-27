@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
@@ -186,6 +187,8 @@ export default async function MentorRequestsPage() {
           );
         })
       )}
+
+      <FeedbackSummary profileId={user.id} isMentor />
 
       {confirmed.length > 0 && (
         <section className="section-block">

@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { dbError } from '@/lib/db-errors';
-import type { EvidenceKind } from '@/lib/database.types';
+import type { CourseCriterion, EvidenceKind } from '@/lib/database.types';
 
 export type ActionState = { error?: string; ok?: string } | undefined;
 
@@ -167,4 +167,29 @@ export async function submitCredential(
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('وصلت الشهادة، وتنتظر من يفتحها عند المُصدِر ويوثّقها.',
                  'Your credential is in, waiting for someone to open it at the provider and verify it.') };
+}
+
+/** Rating a finished course (0081). The database checks the course is finished. */
+export async function rateCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const scores: Partial<Record<CourseCriterion, number>> = {};
+  for (const criterion of ['content', 'clarity', 'practice', 'pace', 'usefulness'] as CourseCriterion[]) {
+    const raw = String(formData.get(criterion) ?? '').trim();
+    if (raw) scores[criterion] = Number(raw);
+  }
+  if (Object.keys(scores).length === 0) {
+    return { error: t('اختر درجة واحدة على الأقل.', 'Give at least one score.') };
+  }
+  const recommend = formData.get('recommend');
+  const { error } = await supabase.rpc('rate_course', {
+    p_course: String(formData.get('course_id') ?? ''),
+    p_scores: scores,
+    p_recommend: recommend === 'yes' ? true : recommend === 'no' ? false : null,
+    p_liked: String(formData.get('liked') ?? '').trim() || null,
+    p_improve: String(formData.get('improve') ?? '').trim() || null,
+  });
+  revalidatePath(String(formData.get('revalidate') ?? '/academy'));
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('شكراً — وصل تقييمك للأكاديمية.', 'Thank you — your rating reached the academy.') };
 }

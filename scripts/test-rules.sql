@@ -7133,6 +7133,93 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 60. Rating, review, performance and reputation are four layers
+-- ===========================================================================
+select id as sara_fb from public.session_feedback
+ where booking_id = :'booking4' and from_profile = '11111111-1111-1111-1111-111111111111' \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.add_rating_details('session', %L, true, 'x', 'y')$$, :'sara_fb'),
+  '60.1 nobody adds words to a rating they did not write',
+  'التقييم ليس لك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.add_rating_details('session', :'sara_fb', true, 'الأمثلة العملية', 'وقت أطول للأسئلة');
+select public.assert_rejects(
+  format($$select public.add_rating_details('session', %L, false, null, null)$$, :'sara_fb'),
+  '60.2 and the author adds them once — a rating is not rewritten later',
+  'بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select recommend and liked_ar = 'الأمثلة العملية' and improve_ar = 'وقت أطول للأسئلة'
+     from public.session_feedback where id = :'sara_fb'),
+  '60.3 "would you recommend it", what helped and what could be better sit with the stars');
+
+-- Performance is counted, and kept apart from stars.
+select public.assert(
+  (select sessions_held >= 1 and rated_count >= 1 and recommend_pct = 100 and satisfaction_pct = 100
+     from public.mentor_performance('33333333-3333-3333-3333-333333333333')),
+  '60.4 a mentor''s performance is what happened: sessions held, satisfaction, recommendation');
+
+select public.assert(
+  exists (select 1 from public.feedback_digest('33333333-3333-3333-3333-333333333333')
+           where source = 'session' and criterion = 'quality'),
+  '60.5 the digest reads strengths and improvements off the criteria themselves');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.feedback_texts('33333333-3333-3333-3333-333333333333')) = 0,
+  '60.6 the written comments behind it are not a stranger''s to read');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.feedback_texts('33333333-3333-3333-3333-333333333333')
+    where improve_ar = 'وقت أطول للأسئلة') = 1,
+  '60.7 but they are the rated person''s own to read');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A finished course can be rated; an unfinished one cannot.
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  $$select public.rate_course((select id from public.courses where slug = 'dashboards'), '{"content":5}'::jsonb)$$,
+  '60.8 a course is rated after it is finished',
+  'بعد إكمالها');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.rate_course((select id from public.courses where slug = 'python-for-ai'),
+  '{"content":5,"clarity":4,"practice":5,"pace":3,"usefulness":5}'::jsonb, true, 'التمارين', 'الإيقاع سريع');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select rated_count = 1 and stars_avg = 4 and recommend_pct = 100 and (criteria ->> 'pace')::numeric = 3
+     from public.course_rating((select id from public.courses where slug = 'python-for-ai'))),
+  '60.9 its rating is public: stars, criteria and the share who recommend it');
+
+set role anon;
+select public.assert_rejects(
+  $$select improve_ar from public.course_feedback$$,
+  '60.10 while the words stay with the academy',
+  'permission denied');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

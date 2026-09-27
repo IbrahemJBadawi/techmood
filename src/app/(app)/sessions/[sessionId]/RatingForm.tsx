@@ -4,23 +4,11 @@ import { useActionState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import type { SessionCriterion } from '@/lib/database.types';
-import type { Text } from '@/lib/i18n';
+import { RatingExtras } from '@/components/RatingExtras';
+import { SESSION_CRITERION as LABEL } from '@/lib/criteria';
 
 import { rateSession, type RateState } from './actions';
 
-const LABEL: Record<SessionCriterion, Text> = {
-  quality:        { ar: 'جودة الجلسة',        en: 'Session quality' },
-  clarity:        { ar: 'الوضوح',             en: 'Clarity' },
-  usefulness:     { ar: 'الفائدة',            en: 'Usefulness' },
-  punctuality:    { ar: 'الالتزام بالموعد',   en: 'Punctuality' },
-  guidance:       { ar: 'جودة التوجيه',       en: 'Guidance' },
-  commitment:     { ar: 'الالتزام',           en: 'Commitment' },
-  preparation:    { ar: 'الاستعداد',          en: 'Preparation' },
-  participation:  { ar: 'المشاركة',           en: 'Participation' },
-  use_of_session: { ar: 'استثمار الوقت',      en: 'Use of the session' },
-  cooperation:    { ar: 'التعاون',            en: 'Cooperation' },
-  communication:  { ar: 'التواصل',            en: 'Communication' },
-};
 
 /**
  * The rating, on the criteria of whichever side is writing.
@@ -77,6 +65,7 @@ export function RatingForm({
         <label htmlFor="comment">{t('ملاحظة اختيارية', 'An optional note')}</label>
         <textarea id="comment" name="comment" rows={3} />
       </div>
+      <RatingExtras idPrefix="session" />
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}

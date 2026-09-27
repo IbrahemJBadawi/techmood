@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
+import { saveRatingDetails } from '@/lib/rating-details';
 import type { ClientCriterion, SaleLicence, WorkerCriterion } from '@/lib/database.types';
 
 export type MoneyState = { error?: string; ok?: string } | undefined;
@@ -98,12 +99,16 @@ export async function reviewWork(_prev: MoneyState, formData: FormData): Promise
     return { error: t('اختر درجة واحدة على الأقل.', 'Give at least one score.') };
   }
 
-  const { error } = await supabase.rpc('review_client_work', {
+  const { data: reviewId, error } = await supabase.rpc('review_client_work', {
     p_project: projectId,
     p_scores: scores,
     p_comment: String(formData.get('comment') ?? '').trim() || null,
   });
 
+  if (!error) {
+    const detailsError = await saveRatingDetails(supabase, 'client_work', reviewId, formData);
+    if (detailsError) return { error: dbError(t, detailsError.message) };
+  }
   revalidatePath(`/projects/${projectId}`);
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('وصل تقييمك، وهو الآن جزء من سجلّ من نفّذ العمل.',
@@ -185,12 +190,16 @@ export async function reviewClient(_prev: MoneyState, formData: FormData): Promi
     return { error: t('اختر درجة واحدة على الأقل.', 'Give at least one score.') };
   }
 
-  const { error } = await supabase.rpc('review_client', {
+  const { data: reviewId, error } = await supabase.rpc('review_client', {
     p_project: projectId,
     p_scores: scores,
     p_comment: String(formData.get('comment') ?? '').trim() || null,
   });
 
+  if (!error) {
+    const detailsError = await saveRatingDetails(supabase, 'client', reviewId, formData);
+    if (detailsError) return { error: dbError(t, detailsError.message) };
+  }
   revalidatePath(`/projects/${projectId}`);
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('وصل تقييمك، وهو الآن جزء من سجلّ هذا العميل.',

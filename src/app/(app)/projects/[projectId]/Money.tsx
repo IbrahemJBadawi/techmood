@@ -5,6 +5,8 @@ import { useActionState, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MethodPicker } from '@/components/MethodPicker';
 import { PayToDetails } from '@/components/PayToDetails';
+import { RatingExtras } from '@/components/RatingExtras';
+import { CLIENT_CRITERION, WORKER_CRITERION } from '@/lib/criteria';
 import type { EscrowPayTo } from '@/lib/escrow-instructions';
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
@@ -25,22 +27,8 @@ export const ESCROW_STATUS: Record<EscrowStatus, { text: Text; className: string
   cancelled:        { text: { ar: 'ملغى',          en: 'Cancelled' },        className: 'status-muted' },
 };
 
-const CLIENT_CRITERION: Record<ClientCriterion, Text> = {
-  quality:         { ar: 'جودة العمل',     en: 'Quality' },
-  communication:   { ar: 'التواصل',        en: 'Communication' },
-  deadline:        { ar: 'الالتزام بالموعد', en: 'Deadline' },
-  professionalism: { ar: 'الاحترافية',     en: 'Professionalism' },
-  scope:           { ar: 'الالتزام بالنطاق', en: 'Scope' },
-};
 
 /** What the person who did the work judges the client on. */
-const WORKER_CRITERION: Record<WorkerCriterion, Text> = {
-  clarity:         { ar: 'وضوح المطلوب',  en: 'Knew what they wanted' },
-  communication:   { ar: 'التواصل',       en: 'Communication' },
-  professionalism: { ar: 'الاحترافية',    en: 'Professionalism' },
-  payment:         { ar: 'الالتزام بالدفع', en: 'Paid as agreed' },
-  scope:           { ar: 'ثبات الاتفاق',  en: 'Kept to the scope' },
-};
 
 const WORKER_CRITERIA: WorkerCriterion[] =
   ['clarity', 'communication', 'professionalism', 'payment', 'scope'];
@@ -306,6 +294,7 @@ export function ClientReviewForm({ projectId }: { projectId: string }) {
         <label htmlFor="comment">{t('ملاحظة', 'A note')}</label>
         <textarea id="comment" name="comment" rows={3} />
       </div>
+      <RatingExtras idPrefix="work" />
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
@@ -460,6 +449,7 @@ export function WorkerReviewForm({ projectId }: { projectId: string }) {
         <label htmlFor="worker-comment">{t('ملاحظة', 'A note')}</label>
         <textarea id="worker-comment" name="comment" rows={3} />
       </div>
+      <RatingExtras idPrefix="client" />
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}

@@ -60,6 +60,8 @@ export type EvidenceKind =
 export type CertificateKind = 'course' | 'path';
 export type CertificateStatus = 'active' | 'revoked';
 export type MentorLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+/** What a finished course is rated on (0080). */
+export type CourseCriterion = 'content' | 'clarity' | 'practice' | 'pace' | 'usefulness';
 /** Why a mentor is not taking requests: their choice, a holiday, or unanswered requests (0077). */
 export type MentorPauseReason = 'manual' | 'vacation' | 'unresponsive';
 
@@ -1076,6 +1078,10 @@ export type Database = {
       }>;
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
+      course_feedback: Table<{
+        id: string; course_id: string; profile_id: string; stars: number; recommend: boolean | null;
+        liked_ar: string | null; improve_ar: string | null; created_at: string;
+      }>;
       path_courses: Table<{ path_id: string; course_id: string; is_required: boolean; sort_order: number }>;
       modules: Table<{ id: string; course_id: string; title_ar: string; sort_order: number }>;
       lessons: Table<Lesson>;
@@ -2449,6 +2455,40 @@ export type Database = {
       };
       set_path_mode: { Args: { p_path: string; p_mode: 'auto' | 'draft' | 'archived' }; Returns: ContentStatus };
       course_counts_in_path: { Args: { p_course: string }; Returns: boolean };
+      add_rating_details: {
+        Args: { p_kind: 'session' | 'client_work' | 'client'; p_id: string; p_recommend: boolean | null; p_liked?: string | null; p_improve?: string | null };
+        Returns: undefined;
+      };
+      rate_course: {
+        Args: { p_course: string; p_scores: Partial<Record<CourseCriterion, number>>; p_recommend?: boolean | null; p_liked?: string | null; p_improve?: string | null };
+        Returns: string;
+      };
+      course_rating: {
+        Args: { p_course: string };
+        Returns: { stars_avg: number | null; rated_count: number; recommend_pct: number | null; criteria: Partial<Record<CourseCriterion, number>> }[];
+      };
+      mentor_performance: {
+        Args: { p_mentor: string };
+        Returns: {
+          stars_avg: number | null; rated_count: number; sessions_held: number; attendance_pct: number | null;
+          satisfaction_pct: number | null; recommend_pct: number | null; rebook_pct: number | null;
+        }[];
+      };
+      feedback_digest: {
+        Args: { p_profile: string };
+        Returns: { source: 'session' | 'work' | 'as_client'; criterion: string; stars_avg: number; rated: number; kind: 'strength' | 'improve' | 'steady' }[];
+      };
+      feedback_texts: {
+        Args: { p_profile: string };
+        Returns: {
+          source: 'session' | 'work' | 'as_client'; stars: number; recommend: boolean | null;
+          liked_ar: string | null; improve_ar: string | null; comment_ar: string | null; created_at: string;
+        }[];
+      };
+      course_feedback_texts: {
+        Args: { p_course: string };
+        Returns: { stars: number; recommend: boolean | null; liked_ar: string | null; improve_ar: string | null; created_at: string }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

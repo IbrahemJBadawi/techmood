@@ -8,6 +8,7 @@ import { type Text } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { FeedbackSummary } from '@/components/FeedbackSummary';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -103,6 +104,8 @@ export default async function MentorProfilePage({
           <p className="muted" style={{ fontSize: '0.84rem', marginTop: 8 }}>{mentor.pause_note_ar}</p>
         )}
       </section>
+
+      <FeedbackSummary profileId={mentorId} isMentor />
 
       <div className="detail-grid">
         <section className="panel">
