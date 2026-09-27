@@ -26,6 +26,8 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
   if (!ticket || ticket.reporter_id !== user.id) notFound();
 
   const closed = ['resolved', 'rejected', 'closed'].includes(ticket.status);
+  const { data: articles } = await supabase.from('kb_articles').select('slug, title_ar')
+    .eq('status', 'published').eq('category', ticket.category).order('sort_order').limit(3);
 
   return (
     <>
@@ -50,6 +52,15 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
           </p>
         )}
       </section>
+
+      {(articles ?? []).length > 0 && !closed && (
+        <p className="notice section-block">
+          {t('قد تفيدك: ', 'This may help: ')}
+          {articles!.map((article, index) => (
+            <span key={article.slug}>{index > 0 && ' · '}<Link href={`/support/help/${article.slug}`}>{article.title_ar}</Link></span>
+          ))}
+        </p>
+      )}
 
       <TicketThread ticketId={ticket.id} />
 

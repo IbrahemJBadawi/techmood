@@ -1594,9 +1594,25 @@ suggested next step beside it; nothing reads that to act. Without
 `ANTHROPIC_API_KEY` the page says so and shows the facts the database
 gathered instead.
 
-Not built from the spec's sidebar: cohorts, an AI-conversations browser for
-admins, a knowledge base, AI logs, analytics and an admin-permissions screen.
-Their sections are not in the sidebar rather than pointing at empty pages.
+The rest of the sidebar (0087):
+
+* **Cohorts** are a lens, not a split: who started the same path in the same
+  month, how many are active and how many finished. A path stays one open
+  community with one conversation.
+* **AI oversight** shows how the assistant is used — people, volume, model
+  errors, every proposed action and its fate — never what anybody said to it.
+  A private conversation's words can be read only within an open case with a
+  written reason; the access is a case event, an audit-log line and a
+  notification to its owner.
+* **Knowledge base**: help articles an admin writes; published ones appear in
+  Help & reports and on every ticket of their category.
+* **Analytics**: twelve weeks of counts (sign-ups, active people, enrolments,
+  certificates, sessions, tickets), each on its own chart, tickets by type,
+  most-joined paths, and the scheduled jobs' last runs.
+* **Admins & permissions**: admins are made and removed by admins, with a
+  reason; nobody removes their own role, so there is always one. One admin
+  permission for now — partial admin roles are not built. The audit log is
+  readable there, filtered by kind.
 
 ## The assistant reads as the person
 

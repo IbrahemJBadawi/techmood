@@ -326,6 +326,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/admin', label: { ar: 'نظرة عامة', en: 'Overview' }, icon: 'home' },
         { href: '/admin/users', label: { ar: 'المستخدمون', en: 'Users' }, icon: 'team' },
+        { href: '/admin/analytics', label: { ar: 'التحليلات', en: 'Analytics' }, icon: 'review' },
       ],
     },
     {
@@ -333,6 +334,8 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/admin/support', label: { ar: 'الدعم والبلاغات', en: 'Support & reports' }, icon: 'message' },
         { href: '/admin/cases', label: { ar: 'القضايا', en: 'Cases' }, icon: 'shield' },
+        { href: '/admin/knowledge', label: { ar: 'قاعدة المعرفة', en: 'Knowledge base' }, icon: 'academy' },
+        { href: '/admin/ai', label: { ar: 'الذكاء الاصطناعي', en: 'AI' }, icon: 'assistant' },
         { href: '/admin/external', label: { ar: 'مشاركات خارجية', en: 'External claims' }, icon: 'application' },
         { href: '/admin/taxonomy', label: { ar: 'المصطلحات المقترحة', en: 'Suggested terms' }, icon: 'settings' },
       ],
@@ -341,6 +344,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الأكاديمية والمنتورز', en: 'Academy & mentors' },
       items: [
         { href: '/admin/academy', label: { ar: 'المسارات والدورات', en: 'Paths & courses' }, icon: 'academy' },
+        { href: '/admin/cohorts', label: { ar: 'الدفعات', en: 'Cohorts' }, icon: 'team' },
         { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
@@ -363,6 +367,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/admin/incubator', label: { ar: 'طلبات الحاضنة', en: 'Incubator applications' }, icon: 'incubator' },
         { href: '/admin/notifications', label: { ar: 'الإعلانات', en: 'Announcements' }, icon: 'message' },
+        { href: '/admin/permissions', label: { ar: 'الإدارة والصلاحيات', en: 'Admins & permissions' }, icon: 'shield' },
       ],
     },
   ],

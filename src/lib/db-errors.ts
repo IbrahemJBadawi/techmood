@@ -138,6 +138,12 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'أُغلق هذا البلاغ',                 en: 'This ticket is closed — open a new one if the problem continues.' },
   { match: 'اكتب لصاحب البلاغ',              en: 'Write the reporter what happened or what you need from them.' },
   { match: 'إدارة البلاغات للإدارة فقط',       en: 'Only admins manage tickets.' },
+  // admin sections (0087)
+  { match: 'قراءة محادثة خاصة تحتاج قضية مفتوحة', en: 'Reading a private conversation needs an open case.' },
+  { match: 'اكتب سبب الاطلاع',              en: 'Write why you need to read it (ten characters at least).' },
+  { match: 'منح صلاحية الإدارة أو سحبها يحتاج سبباً', en: 'Granting or removing admin needs a written reason.' },
+  { match: 'لا تسحب صلاحية الإدارة من نفسك',  en: 'You cannot remove your own admin role.' },
+  { match: 'هذا الحساب ليس مديراً',          en: 'That account is not an admin.' },
 ];
 
 /** Translates a database message when the interface is in English. */

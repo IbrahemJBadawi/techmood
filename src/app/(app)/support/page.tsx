@@ -18,7 +18,10 @@ export default async function SupportCenterPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: tickets } = await supabase.rpc('my_tickets');
+  const [{ data: tickets }, { data: articles }] = await Promise.all([
+    supabase.rpc('my_tickets'),
+    supabase.from('kb_articles').select('slug, title_ar, title_en').eq('status', 'published').order('sort_order').limit(12),
+  ]);
   const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
 
   return (
@@ -33,6 +36,17 @@ export default async function SupportCenterPage() {
         </div>
         <Link className="btn btn-primary" href="/support/new">{t('بلّغ عن مشكلة / اطلب مساعدة', 'Report / get help')}</Link>
       </section>
+
+      {(articles ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 8 }}>{t('أسئلة شائعة', 'Common questions')}</h3>
+          <ul className="admin-mini-list">
+            {articles!.map((article) => (
+              <li key={article.slug}><Link href={`/support/help/${article.slug}`}>{t.locale === 'en' && article.title_en ? article.title_en : article.title_ar}</Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {(tickets ?? []).length === 0 ? (
         <p className="notice">{t('لا بلاغات لديك.', 'You have no tickets.')}</p>

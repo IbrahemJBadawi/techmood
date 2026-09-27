@@ -3195,3 +3195,26 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .event-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .event-feed li { padding: 8px 12px; border-radius: var(--radius-s); background: var(--panel); border: 1px solid var(--line); }
 .user-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 16px; }
+
+/* ---------- control-center charts (see src/components/Charts.tsx) ---------- */
+.chart-grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.chart-card { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--panel); }
+.chart-title { font-size: 0.86rem; font-weight: 600; margin-bottom: 6px; }
+.chart-svg { width: 100%; height: auto; display: block; }
+.chart-mark { fill: var(--royal); }
+.chart-hit { fill: transparent; }
+.chart-band:hover .chart-mark { filter: brightness(1.15); }
+.chart-band:hover .chart-hit { fill: color-mix(in srgb, var(--royal) 6%, transparent); }
+.chart-axis { stroke: var(--line-strong); stroke-width: 1; }
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-tick { fill: var(--ink-soft); font-size: 9px; }
+.chart-value { fill: var(--ink); font-size: 10px; font-weight: 600; }
+.chart-table { margin-top: 6px; font-size: 0.78rem; }
+.chart-table summary { cursor: pointer; color: var(--ink-soft); }
+.bar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bar-list li { display: grid; grid-template-columns: minmax(110px, 30%) 1fr; gap: 10px; align-items: center; font-size: 0.84rem; }
+.bar-list-track { display: flex; align-items: center; gap: 6px; }
+.bar-list-bar { height: 12px; max-width: calc(100% - 40px); background: var(--royal); border-radius: 0 4px 4px 0; }
+[dir='rtl'] .bar-list-bar { border-radius: 4px 0 0 4px; }
+.bar-list-value { color: var(--ink); font-weight: 600; }
+.bar-list-note { grid-column: 2; font-size: 0.74rem; }

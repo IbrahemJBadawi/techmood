@@ -1109,6 +1109,11 @@ export type Database = {
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
       support_tickets: Table<SupportTicket>;
+      kb_articles: Table<{
+        id: string; slug: string; category: TicketCategory | null; title_ar: string; title_en: string | null;
+        body_ar: string; status: ContentStatus; sort_order: number; updated_by: string | null;
+        created_at: string; updated_at: string;
+      }>;
       cases: Table<{
         id: string; code: string; title_ar: string; status: CaseStatus; priority: TicketPriority;
         reporter_id: string | null; reported_profile_id: string | null; decision_ar: string | null;
@@ -2660,6 +2665,73 @@ export type Database = {
       admin_user_activity: {
         Args: { p_profile: string; p_limit?: number };
         Returns: { at: string; area: string; title_ar: string; link: string | null }[];
+      };
+      admin_scheduled_jobs: {
+        Args: Record<string, never>;
+        Returns: { job: string; schedule: string; active: boolean; last_run: string | null; last_status: string | null; last_message: string | null }[];
+      };
+      admin_cohorts: {
+        Args: { p_months?: number };
+        Returns: {
+          path_id: string; path_title_ar: string; cohort_month: string; enrolled: number;
+          active_30d: number; completed: number; completion_pct: number;
+        }[];
+      };
+      admin_ai_overview: {
+        Args: { p_days?: number };
+        Returns: {
+          threads: number; people: number; messages: number; model_errors: number; proposals: number;
+          confirmed: number; declined: number; failed: number; escalations: number;
+        }[];
+      };
+      admin_ai_threads: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string; profile_id: string; full_name: string; techmood_id: string; surface: string; scope: string;
+          messages: number; errors: number; created_at: string; last_message_at: string | null;
+        }[];
+      };
+      admin_ai_actions: {
+        Args: { p_status?: string | null; p_limit?: number };
+        Returns: {
+          id: string; profile_id: string; full_name: string; kind: string; summary_ar: string; status: string;
+          error_ar: string | null; proposed_at: string; decided_at: string | null;
+        }[];
+      };
+      admin_ai_log: {
+        Args: { p_errors_only?: boolean; p_limit?: number };
+        Returns: { at: string; profile_id: string; surface: string; model: string | null; error_ar: string | null }[];
+      };
+      admin_read_ai_thread: {
+        Args: { p_thread: string; p_case: string; p_reason: string };
+        Returns: { role: string; content: string; created_at: string }[];
+      };
+      admin_weekly_metrics: {
+        Args: { p_weeks?: number };
+        Returns: {
+          week: string; signups: number; active_people: number; enrolments: number; certificates: number;
+          sessions_completed: number; tickets_opened: number; tickets_resolved: number;
+        }[];
+      };
+      admin_ticket_stats: {
+        Args: { p_days?: number };
+        Returns: { category: TicketCategory; opened: number; escalated: number; resolved: number; avg_hours_to_resolve: number | null }[];
+      };
+      admin_top_paths: {
+        Args: { p_limit?: number };
+        Returns: { path_id: string; title_ar: string; enrolled: number; completed: number }[];
+      };
+      admin_team: {
+        Args: Record<string, never>;
+        Returns: { profile_id: string; full_name: string; techmood_id: string; status: string; since: string; granted_by: string | null }[];
+      };
+      set_admin_role: { Args: { p_profile: string; p_grant: boolean; p_reason: string }; Returns: undefined };
+      admin_audit_trail: {
+        Args: { p_action?: string | null; p_limit?: number };
+        Returns: {
+          at: string; actor_name: string | null; action: string; entity_table: string; entity_id: string | null;
+          detail: Record<string, unknown> | null;
+        }[];
       };
       course_feedback_texts: {
         Args: { p_course: string };

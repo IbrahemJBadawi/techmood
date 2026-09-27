@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 786 business-rule assertions
+scripts/test.sh                   # 802 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -289,7 +289,22 @@ running `supabase db push`, and exercising the interface against live data.
 Each already has its tables, policies and tested rules — see
 `docs/architecture.md`.
 
-### Scheduled job
+### Scheduled jobs
+
+Migration 0086 schedules the platform's clock with pg_cron as soon as it is
+pushed to Supabase — nothing to run by hand:
+
+| Job | Every | What it does |
+|---|---|---|
+| `techmood-expire-bookings` | 5 min | `expire_stale_bookings()` |
+| `techmood-close-sessions` | 5 min | `close_due_video_sessions()` |
+| `techmood-notify-sessions` | 5 min | `notify_due_sessions()` |
+| `techmood-mentor-requests` | 10 min | `mentor_request_housekeeping()` |
+
+Their last run is on Admin → Analytics. A database without pg_cron (or not the
+database pg_cron runs in) skips the migration with a notice; the functions stay
+callable by hand with the commands below.
+
 
 `public.expire_stale_bookings()` releases slots held by reservations that were
 never paid for. Run it every few minutes with pg_cron:

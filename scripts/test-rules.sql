@@ -7524,6 +7524,134 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 64. The rest of the Control Center: cohorts, AI oversight, knowledge base,
+--     analytics, admins
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.admin_cohorts()) = 0
+  and (select count(*) from public.admin_ai_overview()) = 0
+  and (select count(*) from public.admin_ai_threads()) = 0
+  and (select count(*) from public.admin_ai_actions()) = 0
+  and (select count(*) from public.admin_ai_log()) = 0
+  and (select count(*) from public.admin_weekly_metrics()) = 0
+  and (select count(*) from public.admin_team()) = 0
+  and (select count(*) from public.admin_audit_trail()) = 0,
+  '64.1 every reader in the Control Center answers admins only');
+
+select public.assert_rejects(
+  $$insert into public.kb_articles (slug, title_ar, body_ar, status)
+    values ('x-y', 'مقال', 'نص طويل بما يكفي ليكون مقالاً حقيقياً', 'published')$$,
+  '64.2 nobody but an admin writes the knowledge base',
+  'row-level security');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  exists (select 1 from public.admin_cohorts(24) c
+            join public.learning_paths lp on lp.id = c.path_id
+           where lp.slug = 'genai' and c.enrolled >= 1),
+  '64.3 a cohort is who started the same path in the same month — a lens, not a split');
+
+select public.assert(
+  exists (select 1 from public.admin_ai_threads() where id = :'thread' and messages >= 1)
+  and (select threads >= 1 from public.admin_ai_overview(365)),
+  '64.4 the admin sees how the assistant is used');
+
+select public.assert(
+  not exists (select 1 from information_schema.routines r
+                join information_schema.parameters p on p.specific_name = r.specific_name
+               where r.routine_name = 'admin_ai_threads' and p.parameter_mode = 'OUT'
+                 and p.parameter_name in ('content', 'title_ar')),
+  '64.5 but not what anybody said: the thread list carries no words');
+
+select public.assert_rejects(
+  format($$select * from public.admin_read_ai_thread(%L, %L, 'مراجعة شكوى محددة')$$, :'thread', :'case1'),
+  '64.6 reading a private conversation needs an open case',
+  'قضية مفتوحة');
+
+select public.assert_rejects(
+  format($$select * from public.admin_read_ai_thread(%L, %L, 'لأن')$$, :'thread', :'case2'),
+  '64.7 and a written reason',
+  'سبب الاطلاع');
+
+-- Read in its own statement: rows it writes are not visible to the statement that wrote them.
+select count(*) as read_lines from public.admin_read_ai_thread(:'thread', :'case2', 'التحقق من ادعاء ورد في القضية') \gset
+select public.assert(
+  :read_lines >= 1
+  and exists (select 1 from public.case_events where case_id = :'case2' and kind = 'ai_thread_read')
+  and exists (select 1 from public.admin_audit_log where action = 'ai_thread_read' and entity_id = :'thread'),
+  '64.8 when it is read, the case and the audit log say so');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = (select profile_id from public.ai_threads where id = :'thread')
+             and n.title_ar = 'اطّلعت إدارة تكمود على إحدى محادثاتك مع المساعد'),
+  '64.9 and so is the person whose conversation it was — never quietly');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into public.kb_articles (slug, category, title_ar, body_ar, status)
+values ('payment-under-review', 'payment', 'دفعتي قيد المراجعة، ماذا يعني؟',
+        'تراجع الإدارة إيصال التحويل يدوياً، وتصلك رسالة عند تأكيده أو إن احتاجت معلومة.', 'published'),
+       ('draft-article', 'booking', 'مقال قيد الكتابة', 'نص لم يُنشر بعد ولا يجب أن يراه أحد.', 'draft');
+select public.assert(
+  (select updated_by from public.kb_articles where slug = 'payment-under-review') = '44444444-4444-4444-4444-444444444444',
+  '64.10 an article records who last wrote it');
+
+select public.assert(
+  (select count(*) from public.admin_weekly_metrics(8)) = 8
+  and (select sum(tickets_opened) from public.admin_weekly_metrics(8)) >= 1
+  and exists (select 1 from public.admin_ticket_stats() where category = 'fraud' and escalated >= 1),
+  '64.11 analytics are weekly counts of what happened, and ticket stats by category');
+
+select public.assert_rejects(
+  $$select public.set_admin_role('55555555-5555-5555-5555-555555555555', true, '  ')$$,
+  '64.12 granting admin needs a written reason',
+  'سبباً مكتوباً');
+select public.set_admin_role('55555555-5555-5555-5555-555555555555', true, 'مشرف دعم جديد');
+select public.assert_rejects(
+  $$select public.set_admin_role('44444444-4444-4444-4444-444444444444', false, 'تجربة')$$,
+  '64.13 nobody removes their own admin role — so the platform is never left without one',
+  'من نفسك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  public.is_admin()
+  and (select count(*) from public.kb_articles where slug = 'draft-article') = 1,
+  '64.14 a granted admin is an admin at once');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.set_admin_role('55555555-5555-5555-5555-555555555555', false, 'انتهت المهمة');
+select public.assert(
+  (select status from public.admin_team() where profile_id = '55555555-5555-5555-5555-555555555555') = 'suspended'
+  and (select count(*) from public.admin_audit_trail('admin_')) = 2,
+  '64.15 and revoking it is recorded the same way');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  not public.is_admin()
+  and (select count(*) from public.kb_articles where slug = 'draft-article') = 0
+  and (select count(*) from public.kb_articles where slug = 'payment-under-review') = 1,
+  '64.16 a draft article is the admins''; a published one is everyone''s');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
