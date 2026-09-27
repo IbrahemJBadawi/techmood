@@ -362,7 +362,7 @@ select public.assert_rejects(
   $$insert into public.bookings
       (kind, student_id, mentor_id, scheduled_start, scheduled_end, price_usd, platform_share_usd, mentor_share_usd)
     values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-            now() + interval '1 day', now() + interval '1 day 1 hour', 15, 5, 10)$$,
+            date_trunc('week', now()) + interval '8 days 10 hours', date_trunc('week', now()) + interval '8 days 11 hours', 15, 5, 10)$$,
   '6.3 a session cannot be booked inside the 72-hour notice window',
   'at least 72 hours');
 
@@ -576,8 +576,14 @@ reset role;
 -- ===========================================================================
 -- 10. Catalogue integrity
 -- ===========================================================================
+-- Since 0078 a path is open exactly when it has at least one published course
+-- («كل مسار فيه كورس واحد على الأقل جاهز بكون مفتوح»), so the six prototype
+-- paths are open along with every catalogue path that shares one of their
+-- published courses.
 select public.assert(
-  (select count(*) from public.learning_paths where status = 'published') = 6,
+  (select count(*) from public.learning_paths
+    where slug in ('web', 'data', 'genai', 'business', 'cloud', 'product')
+      and status = 'published') = 6,
   '10.1 all six prototype paths were carried over');
 
 select public.assert(
@@ -1111,7 +1117,11 @@ select public.assert(
 -- ===========================================================================
 
 select public.assert(
-  (select count(*) from public.conversations where kind = 'learning_path') = 6,
+  (select count(*) from public.conversations where kind = 'learning_path')
+    = (select count(*) from public.learning_paths where status = 'published')
+  and (select count(*) from public.learning_paths lp
+        where lp.status = 'published'
+          and not exists (select 1 from public.conversations c where c.path_id = lp.id)) = 0,
   '14.1 every published path opens exactly one conversation');
 
 select public.assert(
@@ -2827,7 +2837,8 @@ set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
 select public.assert(
-  (select count(*) from public.academy_paths()) = 6,
+  (select count(*) from public.academy_paths())
+    = (select count(*) from public.learning_paths where status = 'published'),
   '23.3 every published path comes back as one row');
 
 select public.assert(
@@ -2932,8 +2943,14 @@ select public.assert(
   '24.5 the map holds fifty paths');
 
 select public.assert(
-  (select count(*) from public.learning_paths where status = 'planned') = 44,
-  '24.6 forty-four of them are announced, not written');
+  (select count(*) from public.learning_paths where status = 'planned') = 34
+  and not exists (
+    select 1 from public.learning_paths p
+     where p.status = 'planned'
+       and exists (select 1 from public.path_courses pc
+                     join public.courses c on c.id = pc.course_id
+                    where pc.path_id = p.id and c.status = 'published')),
+  '24.6 a path with no ready course is announced («قريباً»), not open (0078)');
 
 select public.assert(
   (select count(distinct sort_order) from public.learning_paths) = 50
@@ -2953,7 +2970,8 @@ select public.assert(
   '24.8 a planned path carries no lesson — nothing is invented to fill it');
 
 select public.assert(
-  (select count(*) from public.academy_paths() ) = 6,
+  (select count(*) from public.academy_paths())
+    = (select count(*) from public.learning_paths where status = 'published'),
   '24.9 the discovery page still sees only what is published');
 
 select public.assert(
@@ -2963,33 +2981,40 @@ select public.assert(
   ),
   '24.10 and an outline course is never offered as a card');
 
--- Depth and Breadth live in is_required, not in a second column.
+-- Depth and Breadth live in is_required, not in a second column. (back-end
+-- used to be the example; since 0078 it is open because it carries the
+-- published SQL course, so the roadmap no longer lists it.)
 select public.assert(
-  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'back-end') = 6
-  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'back-end') = 4,
+  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'python') = 4
+  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'python') = 3,
   '24.11 a path''s depth is what it requires, its breadth what it carries');
 
 select public.assert(
-  (select count(*) from public.academy_roadmap()) = 44,
+  (select count(*) from public.academy_roadmap())
+    = (select count(*) from public.learning_paths where status = 'planned'),
   '24.12 the roadmap returns every announced path');
 
 select public.assert(
   (select school_slug from public.academy_roadmap() where slug = 'icdl') = 'digital-admin',
   '24.13 a path belongs to the school the document put it in');
 
--- A course shared between a live path and a planned one keeps the level the
--- live path gives it.
+-- A published course shared between paths opens every path that carries it
+-- (0078 — before that, the js-ts path was an outline that listed it), and it
+-- keeps the level its first live path gave it.
 select public.assert(
   (select count(*) from public.path_courses pc
      join public.learning_paths p on p.id = pc.path_id
     where pc.course_id = (select id from public.courses where slug = 'modern-js')
-      and p.status = 'planned') > 0,
-  '24.14 a published course can appear in an outline as well');
+      and p.status = 'planned') = 0
+  and (select status from public.learning_paths where slug = 'js-ts') = 'published',
+  '24.14 a published course opens every path that carries it');
 
+-- A level is still read off open paths only. Now that js-ts is open, Modern
+-- JavaScript is the first course of a live path, so it reads as beginner.
 select public.assert(
-  (select level from public.courses where slug = 'modern-js') = 'intermediate'
+  (select level from public.courses where slug = 'modern-js') = 'beginner'
   and (select level from public.courses where slug = 'react') = 'advanced',
-  '24.15 and an outline cannot change the level of a course being taught');
+  '24.15 a level is where a course first sits in what is actually taught');
 
 select public.assert(
   (select count(*) from public.conversations c
@@ -3231,15 +3256,18 @@ select public.assert(
   (select status from public.courses where slug = 'typescript') = 'published',
   '27.2 once it has a lesson, it can');
 
--- A path cannot go live while a course it requires is still an outline.
+-- A path cannot go live while it has no ready course at all (0078 replaced
+-- the older "every required course" rule with the founder's: one ready course
+-- opens the path, none keeps it «قريباً»).
 select public.assert_rejects(
-  $$update public.learning_paths set status = 'published' where slug = 'js-ts'$$,
-  '27.3 a path cannot be published while its required courses are outlines',
-  'قبل نشر دوراته الأساسية');
+  $$update public.learning_paths set status = 'published' where slug = 'java'$$,
+  '27.3 a path with no ready course cannot be published',
+  'دورة واحدة جاهزة');
 
 select public.assert(
-  (select status from public.learning_paths where slug = 'js-ts') = 'planned',
-  '27.4 and the refusal leaves it announced, not half published');
+  (select status from public.learning_paths where slug = 'java') = 'planned'
+  and (select status from public.learning_paths where slug = 'js-ts') = 'published',
+  '27.4 the refusal leaves it announced; a path with a ready course is open');
 
 -- Publishing recomputes the ladder, so a newly written course is not stuck at
 -- the default level.
@@ -4025,13 +4053,15 @@ select public.assert(
   '35.13 a session whose time has passed is closed, and one nobody attended reads as a no-show');
 
 -- A team's own time: free, and limited to the team rather than to each member.
+-- All of these fall in next week, so the result does not depend on the day the
+-- suite runs (0079: the limit counts the week the meeting is booked into).
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
-select (public.schedule_internal_session(:'team', now() + interval '1 day', now() + interval '1 day 1 hour')).id as internal1 \gset
-select (public.schedule_internal_session(:'team', now() + interval '2 days', now() + interval '2 days 1 hour')).id as internal2 \gset
+select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '8 days 10 hours', date_trunc('week', now()) + interval '8 days 11 hours')).id as internal1 \gset
+select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '9 days 10 hours', date_trunc('week', now()) + interval '9 days 11 hours')).id as internal2 \gset
 
 select public.assert_rejects(
-  format($$select public.schedule_internal_session(%L, now() + interval '3 days', now() + interval '3 days 1 hour')$$, :'team'),
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '10 days 10 hours', date_trunc('week', now()) + interval '10 days 11 hours')$$, :'team'),
   '35.14 a team gets two internal sessions a week, and the limit is the team''s',
   'حدّ اجتماعين');
 reset role;
@@ -4041,7 +4071,7 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 select public.assert_rejects(
-  format($$select public.schedule_internal_session(%L, now() + interval '4 days', now() + interval '4 days 1 hour')$$, :'team'),
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '11 days 10 hours', date_trunc('week', now()) + interval '11 days 11 hours')$$, :'team'),
   '35.15 a second member cannot spend the same week again',
   'حدّ اجتماعين');
 reset role;
@@ -4051,7 +4081,7 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
 select public.assert_rejects(
-  format($$select public.schedule_internal_session(%L, now() + interval '5 days', now() + interval '5 days 1 hour')$$, :'team'),
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '12 days 10 hours', date_trunc('week', now()) + interval '12 days 11 hours')$$, :'team'),
   '35.16 and somebody outside the team cannot book its room at all',
   'أعضاء الفريق فقط');
 reset role;
@@ -6666,6 +6696,440 @@ select public.assert_rejects(
   format($$select public.choose_payment_method(%L, 'jawwal_pay')$$, :'pick_pay'),
   '57.10 and once the receipt is with TechMood, the method it was sent by is a fact',
   'بعد إرسال الدفعة');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 58. A mentor's own price inside their level, and a mentor's own "not now"
+-- ===========================================================================
+-- The level is the admin's to set (0028), so the fixture sets it as the admin.
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+update public.mentor_profiles
+   set level = 'L3', daily_session_limit = 5, buffer_minutes = 0
+ where profile_id = '33333333-3333-3333-3333-333333333333';
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select min_session_usd || '-' || session_price_usd || '-' || max_session_usd || '@' || commission_pct
+     from public.mentor_levels where level = 'L3') = '25.00-35.00-50.00@28.57'
+  and (select platform_share_usd from public.mentor_levels where level = 'L3') = 10,
+  '58.1 every level has a band and a percentage, and yesterday''s split is what the percentage gives');
+
+select public.assert(
+  (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
+     from public.session_quote('33333333-3333-3333-3333-333333333333',
+                               (select id from public.session_types where slug = 'career_guidance')))
+    = '35.00/10.00/25.00',
+  '58.2 a mentor who never set a price charges the level''s default, split as before');
+
+select public.assert(
+  (select min_usd || '-' || default_usd || '-' || max_usd
+     from public.session_quote('33333333-3333-3333-3333-333333333333',
+                               (select id from public.session_types where slug = 'portfolio_review')))
+    = '18.75-26.25-37.50',
+  '58.3 a 45-minute session is priced for 45 minutes, band and all');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 60)$$,
+  '58.4 a mentor cannot price above their level''s ceiling',
+  'خارج حدود مستواك');
+
+select public.assert_rejects(
+  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 20)$$,
+  '58.5 nor below its floor',
+  'خارج حدود مستواك');
+
+select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 45);
+
+select public.assert(
+  (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
+     from public.session_quote('33333333-3333-3333-3333-333333333333',
+                               (select id from public.session_types where slug = 'career_guidance')))
+    = '45.00/12.86/32.14'
+  and (select is_custom from public.mentor_price_list('33333333-3333-3333-3333-333333333333')
+        where session_type_id = (select id from public.session_types where slug = 'career_guidance')),
+  '58.6 inside the band the mentor names the price, and TechMood''s share follows the percentage');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 30)$$,
+  '58.7 somebody who is not a mentor has no price to set',
+  'للمنتورز فقط');
+
+select public.assert_rejects(
+  $$select public.save_mentor_level('L3', 40, 30, 60, 20)$$,
+  '58.8 and only the admin moves a level''s band',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Whatever a booking function writes, the booking is charged the quote.
+insert into public.bookings
+  (kind, student_id, mentor_id, session_type_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        (select id from public.session_types where slug = 'career_guidance'),
+        date_trunc('day', now() + interval '44 days') + interval '10 hours',
+        date_trunc('day', now() + interval '44 days') + interval '11 hours',
+        1, 0, 1, 'سعر مكتوب خطأ', 'draft')
+returning id as priced_booking \gset
+
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'priced_booking', 'jawwal_pay', 1, 'pending')
+returning id as priced_pay \gset
+
+select public.assert(
+  (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
+     from public.bookings where id = :'priced_booking') = '45.00/12.86/32.14'
+  and (select amount_usd from public.payments where id = :'priced_pay') = 45,
+  '58.9 a booking is charged the mentor''s quote, and its payment asks for the same');
+
+-- The admin narrows the band; a price set before is held to it, not charged outside it.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.save_mentor_level('L3', 35, 25, 40, 28.57);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select price_usd from public.session_quote('33333333-3333-3333-3333-333333333333',
+          (select id from public.session_types where slug = 'career_guidance'))) = 40,
+  '58.10 when the ceiling comes down, a higher price comes down with it');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.save_mentor_level('L3', 35, 25, 50, 28.57);
+select public.assert_rejects(
+  $$select public.save_platform_setting('no_such_setting', '1')$$,
+  '58.11 a setting that does not exist is not invented by saving it',
+  'إعداد غير معروف');
+reset role;
+reset request.jwt.claim.sub;
+
+-- "Not now": the mentor's own switch.
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.set_mentor_accepting(false, null, null, '33333333-3333-3333-3333-333333333333')$$,
+  '58.12 nobody switches a mentor off for them but the mentor (or an admin)',
+  'المنتور وحده');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.set_mentor_accepting(false, current_date + 7, 'إجازة قصيرة');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select not is_accepting and pause_reason = 'vacation' and paused_until = current_date + 7
+     from public.mentor_profiles where profile_id = '33333333-3333-3333-3333-333333333333'),
+  '58.13 a mentor can stop taking requests until a date');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  $$select public.create_booking_request('33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      date_trunc('day', now() + interval '45 days') + interval '10 hours', 'jawwal_pay')$$,
+  '58.14 and while they are away nobody can book them',
+  'not accepting');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The holiday ends by itself.
+update public.mentor_profiles set paused_until = current_date - 1
+ where profile_id = '33333333-3333-3333-3333-333333333333';
+select * from public.mentor_request_housekeeping() \gset hk_
+
+select public.assert(
+  :hk_resumed >= 1
+  and (select is_accepting and pause_reason is null
+         from public.mentor_profiles where profile_id = '33333333-3333-3333-3333-333333333333'),
+  '58.15 a holiday with an end date ends on its own');
+
+-- A request that reached the mentor has a deadline, and lapses are counted.
+insert into public.bookings
+  (kind, student_id, mentor_id, session_type_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        (select id from public.session_types where slug = 'career_guidance'),
+        date_trunc('day', now() + interval '46 days') + interval '10 hours',
+        date_trunc('day', now() + interval '46 days') + interval '11 hours',
+        0, 0, 0, 'طلب ينتظر المنتور 1', 'draft')
+returning id as lapse1 \gset
+update public.bookings set status = 'payment_pending', reserved_until = now() + interval '1 hour'
+ where id = :'lapse1';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'lapse1', 'jawwal_pay', 0, 'pending');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.submit_payment_proof(:'lapse1', '55555555-5555-5555-5555-555555555555/lapse1.png', 'LAPSE-1');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'lapse1'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+insert into public.bookings
+  (kind, student_id, mentor_id, session_type_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        (select id from public.session_types where slug = 'career_guidance'),
+        date_trunc('day', now() + interval '47 days') + interval '10 hours',
+        date_trunc('day', now() + interval '47 days') + interval '11 hours',
+        0, 0, 0, 'طلب ينتظر المنتور 2', 'draft')
+returning id as lapse2 \gset
+update public.bookings set status = 'payment_pending', reserved_until = now() + interval '1 hour'
+ where id = :'lapse2';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'lapse2', 'jawwal_pay', 0, 'pending');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.submit_payment_proof(:'lapse2', '55555555-5555-5555-5555-555555555555/lapse2.png', 'LAPSE-2');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'lapse2'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+insert into public.bookings
+  (kind, student_id, mentor_id, session_type_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        (select id from public.session_types where slug = 'career_guidance'),
+        date_trunc('day', now() + interval '48 days') + interval '10 hours',
+        date_trunc('day', now() + interval '48 days') + interval '11 hours',
+        0, 0, 0, 'طلب ينتظر المنتور 3', 'draft')
+returning id as lapse3 \gset
+update public.bookings set status = 'payment_pending', reserved_until = now() + interval '1 hour'
+ where id = :'lapse3';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'lapse3', 'jawwal_pay', 0, 'pending');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.submit_payment_proof(:'lapse3', '55555555-5555-5555-5555-555555555555/lapse3.png', 'LAPSE-3');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment((select id from public.payments where booking_id = :'lapse3'), true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select count(*) from public.bookings
+    where id in (:'lapse1', :'lapse2', :'lapse3')
+      and status = 'mentor_pending'
+      and mentor_respond_by between now() + interval '47 hours' and now() + interval '49 hours') = 3,
+  '58.16 a paid request that reaches the mentor carries a deadline for their answer');
+
+-- Nobody answers.
+update public.bookings set mentor_respond_by = now() - interval '1 minute'
+ where id in (:'lapse1', :'lapse2', :'lapse3');
+
+select * from public.mentor_request_housekeeping() \gset hk_
+
+select public.assert(
+  :hk_declined >= 3
+  and (select count(*) from public.bookings
+        where id in (:'lapse1', :'lapse2', :'lapse3')
+          and status = 'rejected' and auto_declined
+          and cancelled_reason = 'انتهت مهلة ردّ المنتور') = 3,
+  '58.17 past the deadline the request is declined on the mentor''s behalf — the learner''s money is not left waiting');
+
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = '55555555-5555-5555-5555-555555555555'
+             and n.entity_id = :'lapse1'),
+  '58.18 and the learner is told, with the refund promised');
+
+select public.assert(
+  (select not is_accepting and pause_reason = 'unresponsive'
+     from public.mentor_profiles where profile_id = '33333333-3333-3333-3333-333333333333'),
+  '58.19 a mentor who lets three requests lapse stops receiving new ones');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.refunds_owed()
+    where booking_id in (:'lapse1', :'lapse2', :'lapse3') and auto_declined) = 3,
+  '58.20 every paid request declined this way is on the admin''s list of refunds owed');
+select public.refund_booking(:'lapse1', 'انتهت مهلة ردّ المنتور');
+select public.assert(
+  not exists (select 1 from public.refunds_owed() where booking_id = :'lapse1')
+  and (select status from public.bookings where id = :'lapse1') = 'refunded',
+  '58.21 refunding one takes it off the list, and the learner is credited');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.refunds_owed()) = 0,
+  '58.22 that list is the admin''s, not anybody''s');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.set_mentor_accepting(true);
+reset role;
+reset request.jwt.claim.sub;
+
+select * from public.mentor_request_housekeeping() \gset hk_
+
+select public.assert(
+  (select is_accepting from public.mentor_profiles
+    where profile_id = '33333333-3333-3333-3333-333333333333')
+  and :hk_paused = 0,
+  '58.23 switching back on is a fresh start: the old lapses do not switch them off again');
+
+-- ===========================================================================
+-- 59. The catalogue: open with one ready course, «قريباً» with none
+-- ===========================================================================
+select public.assert(
+  not exists (
+    select 1 from public.learning_paths p
+     where p.status in ('planned', 'published')
+       and (p.status = 'published') is distinct from exists (
+             select 1 from public.path_courses pc
+               join public.courses c on c.id = pc.course_id
+              where pc.path_id = p.id and c.status = 'published')),
+  '59.1 every path is open exactly when at least one of its courses is ready');
+
+select public.assert(
+  exists (select 1 from public.path_courses pc
+            join public.learning_paths p on p.id = pc.path_id
+            join public.courses c on c.id = pc.course_id
+           where p.slug = 'genai' and c.slug = 'claude-code' and pc.is_required)
+  and not public.course_counts_in_path((select id from public.courses where slug = 'claude-code')),
+  '59.2 the Claude Code course belongs to the AI path, and as a draft holds nobody''s path back');
+
+-- Publishing the first course of a «قريباً» path opens it; taking it back closes it.
+insert into public.modules (course_id, title_ar, sort_order)
+select id, 'وحدة Java الأولى', 1 from public.courses where slug = 'java-basics';
+insert into public.lessons (module_id, title_ar, kind, sort_order)
+select m.id, 'أول برنامج Java', 'video', 1
+  from public.modules m join public.courses c on c.id = m.course_id
+ where c.slug = 'java-basics';
+
+update public.courses set status = 'published' where slug = 'java-basics';
+select public.assert(
+  (select status from public.learning_paths where slug = 'java') = 'published',
+  '59.3 one ready course opens its path');
+
+update public.courses set status = 'draft' where slug = 'java-basics';
+select public.assert(
+  (select status from public.learning_paths where slug = 'java') = 'planned',
+  '59.4 and with none left, the path goes back to «قريباً»');
+
+-- An announced course counts; a switched-off lesson does not show.
+update public.courses set status = 'planned' where slug = 'claude-code';
+select public.assert(
+  public.course_counts_in_path((select id from public.courses where slug = 'claude-code'))
+  and (select status from public.learning_paths where slug = 'genai') = 'published',
+  '59.5 once announced, the Claude Code course counts towards the AI path');
+update public.courses set status = 'draft' where slug = 'claude-code';
+
+select l.id as dark_lesson from public.lessons l where l.slug = 'python-for-ai-l2' \gset
+update public.lessons set status = 'draft' where id = :'dark_lesson';
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.lessons where id = :'dark_lesson') = 0,
+  '59.6 a lesson the admin switched off is not shown to learners');
+
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+           values ('77777777-7777-7777-7777-777777777777', %L, 'completed', now())$$, :'dark_lesson'),
+  '59.7 nor can it be completed',
+  'غير متاح');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.lessons set status = 'planned' where id = :'dark_lesson';
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.lessons where id = :'dark_lesson') = 1,
+  '59.8 a lesson marked «قريباً» is shown');
+
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+           values ('77777777-7777-7777-7777-777777777777', %L, 'completed', now())$$, :'dark_lesson'),
+  '59.9 but it cannot be completed before it is written',
+  'غير متاح');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.lessons set status = 'published' where id = :'dark_lesson';
+
+-- A project switched off cannot be handed in.
+select a.id as dark_task from public.assignments a
+ where a.kind = 'path_project'
+   and a.path_id = (select id from public.learning_paths where slug = 'data') \gset
+update public.assignments set status = 'archived' where id = :'dark_task';
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.submit_work(%L, '[{"kind":"github","url":"https://github.com/x/y","label":"repo"},
+          {"kind":"linkedin","url":"https://linkedin.com/posts/x","label":"post"},
+          {"kind":"youtube","url":"https://youtube.com/watch?v=x","label":"demo"}]'::jsonb, null)$$, :'dark_task'),
+  '59.10 a project the admin switched off takes no submissions',
+  'غير متاح');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.assignments set status = 'published' where id = :'dark_task';
+
+-- The admin's switch: auto, held back, switched off.
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.set_path_mode((select id from public.learning_paths where slug = 'js-ts'), 'archived');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.courses set status = 'draft' where slug = 'modern-js';
+update public.courses set status = 'published' where slug = 'modern-js';
+select public.assert(
+  (select status from public.learning_paths where slug = 'js-ts') = 'archived',
+  '59.11 a path the admin switched off stays off whatever its courses do');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  public.set_path_mode((select id from public.learning_paths where slug = 'js-ts'), 'auto') = 'published'
+  and public.set_path_mode((select id from public.learning_paths where slug = 'java'), 'auto') = 'planned',
+  '59.12 back on auto, the rule decides: open with a ready course, «قريباً» without');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.set_path_mode((select id from public.learning_paths where slug = 'java'), 'archived')$$,
+  '59.13 and only the admin has that switch',
+  'للإدارة فقط');
 reset role;
 reset request.jwt.claim.sub;
 

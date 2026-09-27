@@ -247,6 +247,15 @@ from public.learning_paths lp, public.courses c
 where lp.slug = 'genai' and c.slug = 'generative-ai'
 on conflict do nothing;
 
+-- The Claude Code credential course (0073) is the fourth course of this path.
+-- It stays a draft until an admin announces or publishes it, and a draft
+-- course does not count towards finishing the path (0078).
+insert into public.path_courses (path_id, course_id, is_required, sort_order)
+select lp.id, c.id, true, 4
+from public.learning_paths lp, public.courses c
+where lp.slug = 'genai' and c.slug = 'claude-code'
+on conflict do nothing;
+
 insert into public.modules (course_id, title_ar, sort_order)
 select c.id, 'وحدة الذكاء الاصطناعي التوليدي', 1 from public.courses c where c.slug = 'generative-ai';
 
