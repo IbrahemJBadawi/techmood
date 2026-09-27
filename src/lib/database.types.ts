@@ -149,7 +149,28 @@ export type OrgKind = 'startup' | 'company';
 
 export type NotificationKind =
   | 'evaluation' | 'academy' | 'booking' | 'payment' | 'team' | 'work' | 'project'
-  | 'message' | 'certificate' | 'role_review' | 'security' | 'system';
+  | 'message' | 'certificate' | 'role_review' | 'security' | 'system' | 'support';
+
+/** Help & Reports (0082–0083). */
+export type TicketCategory =
+  | 'payment' | 'booking' | 'mentor' | 'mentee' | 'freelancer' | 'client'
+  | 'content' | 'account' | 'behavior' | 'fraud' | 'copyright' | 'technical' | 'other';
+export type TicketStatus =
+  | 'open' | 'assistant' | 'needs_human' | 'pending_user' | 'under_review' | 'resolved' | 'rejected' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TicketAuthor = 'user' | 'assistant' | 'admin' | 'system';
+export type TicketRelated =
+  | 'booking' | 'payment' | 'escrow' | 'project' | 'team' | 'video_session'
+  | 'course' | 'profile' | 'opportunity' | 'payout' | 'message';
+
+export type SupportTicket = {
+  id: string; code: string; reporter_id: string; category: TicketCategory;
+  related_type: TicketRelated | null; related_id: string | null; reported_profile_id: string | null;
+  subject_ar: string; status: TicketStatus; priority: TicketPriority; needs_human: boolean;
+  escalation_reason: string | null; ai_category: TicketCategory | null; ai_confidence: number | null;
+  ai_suggested_action: string | null; ai_summary_ar: string | null; assigned_to: string | null;
+  case_id: string | null; created_at: string; updated_at: string; resolved_at: string | null;
+};
 
 export type NotifyPriority = 'critical' | 'important' | 'normal' | 'info';
 export type EmailStatus = 'queued' | 'sending' | 'sent' | 'failed' | 'skipped';
@@ -1078,6 +1099,15 @@ export type Database = {
       }>;
       learning_paths: Table<LearningPath>;
       courses: Table<Course>;
+      support_tickets: Table<SupportTicket>;
+      ticket_messages: Table<{
+        id: string; ticket_id: string; author_kind: TicketAuthor; author_id: string | null;
+        body_ar: string; attachment_path: string | null; is_internal: boolean; created_at: string;
+      }>;
+      ticket_events: Table<{
+        id: string; ticket_id: string; kind: string; actor_id: string | null; note_ar: string | null;
+        is_internal: boolean; created_at: string;
+      }>;
       course_feedback: Table<{
         id: string; course_id: string; profile_id: string; stars: number; recommend: boolean | null;
         liked_ar: string | null; improve_ar: string | null; created_at: string;
@@ -2483,6 +2513,38 @@ export type Database = {
         Returns: {
           source: 'session' | 'work' | 'as_client'; stars: number; recommend: boolean | null;
           liked_ar: string | null; improve_ar: string | null; comment_ar: string | null; created_at: string;
+        }[];
+      };
+      open_ticket: {
+        Args: {
+          p_category: TicketCategory; p_subject: string; p_description: string;
+          p_related?: TicketRelated | null; p_related_id?: string | null;
+          p_attachment?: string | null; p_reported?: string | null;
+        };
+        Returns: SupportTicket;
+      };
+      post_ticket_message: {
+        Args: { p_ticket: string; p_body: string; p_attachment?: string | null; p_internal?: boolean };
+        Returns: string;
+      };
+      set_ticket_status: { Args: { p_ticket: string; p_status: TicketStatus; p_note?: string | null }; Returns: undefined };
+      escalation_label: { Args: { p_reason: string }; Returns: string };
+      my_tickets: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; code: string; category: TicketCategory; subject_ar: string; status: TicketStatus;
+          needs_human: boolean; updated_at: string; created_at: string;
+        }[];
+      };
+      admin_tickets: {
+        Args: { p_filter?: string };
+        Returns: {
+          id: string; code: string; category: TicketCategory; subject_ar: string; status: TicketStatus;
+          priority: TicketPriority; needs_human: boolean; escalation_reason: string | null;
+          ai_category: TicketCategory | null; ai_confidence: number | null; ai_suggested_action: string | null;
+          reporter_id: string; reporter_name: string; reporter_techmood_id: string;
+          reported_profile_id: string | null; reported_name: string | null; case_id: string | null;
+          updated_at: string; created_at: string;
         }[];
       };
       course_feedback_texts: {

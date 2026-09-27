@@ -196,6 +196,9 @@ export default async function PublicProfilePage({
           <Link className="btn btn-ghost btn-sm" href={`/u/${card.techmood_id}/card`}>
             {t('بطاقة للمشاركة', 'A card to share')}
           </Link>
+          <Link className="btn btn-ghost btn-sm" href={`/support/new?type=profile&id=${card.profile_id}`}>
+            {t('بلّغ عن هذا الحساب', 'Report this account')}
+          </Link>
         </div>
       </div>
 

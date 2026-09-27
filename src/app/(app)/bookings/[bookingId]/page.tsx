@@ -86,7 +86,12 @@ export default async function BookingDetailPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/bookings">{t('→ حجوزاتي', '← My bookings')}</Link>
+      <div className="row-between">
+        <Link className="btn btn-ghost btn-sm" href="/bookings">{t('→ حجوزاتي', '← My bookings')}</Link>
+        <Link className="btn btn-ghost btn-sm" href={`/support/new?type=booking&id=${booking.id}&category=booking`}>
+          {t('مشكلة في هذا الحجز؟', 'A problem with this booking?')}
+        </Link>
+      </div>
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

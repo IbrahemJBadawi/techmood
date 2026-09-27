@@ -3157,3 +3157,15 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   background: var(--panel);
 }
 .method-card.is-current { border-color: var(--royal); background: var(--sky-tint); }
+
+/* ---------- support conversation ---------- */
+.ticket-line {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+  background: var(--panel);
+}
+.ticket-line.is-user { border-inline-start: 3px solid var(--royal); }
+.ticket-line.is-assistant { background: var(--sky-tint); }
+.ticket-line.is-admin { border-inline-start: 3px solid var(--ok); }
+.ticket-line.is-internal { border-style: dashed; background: color-mix(in srgb, var(--warn) 8%, transparent); }

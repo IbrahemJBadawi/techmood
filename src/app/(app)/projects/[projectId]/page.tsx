@@ -160,6 +160,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
         {t('→ رجوع لعملي', '← Back to my work')}
       </Link>
       <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
+      {isParty && (
+        <Link className="btn btn-ghost btn-sm" href={`/support/new?type=project&id=${project.id}`}>
+          {t('مشكلة في هذا المشروع؟', 'A problem with this project?')}
+        </Link>
+      )}
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

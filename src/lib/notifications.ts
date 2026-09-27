@@ -22,6 +22,7 @@ export const NOTIFICATION_KIND: Record<NotificationKind, { label: Text; icon: st
   role_review: { label: { ar: 'الأدوار',          en: 'Roles' },          icon: '🪪' },
   security:    { label: { ar: 'الأمان والحساب',   en: 'Account' },        icon: '🛡️' },
   system:      { label: { ar: 'إعلانات المنصة',   en: 'Announcements' },  icon: '📣' },
+  support:     { label: { ar: 'الدعم والبلاغات',  en: 'Support' },        icon: '🛟' },
 };
 
 /**

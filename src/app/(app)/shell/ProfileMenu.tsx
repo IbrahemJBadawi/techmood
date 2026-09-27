@@ -70,6 +70,9 @@ export function ProfileMenu({
           <Link className="header-dropdown-item" href="/wallet" onClick={() => setOpen(false)}>
             {t('المحفظة', 'Wallet')}
           </Link>
+          <Link className="header-dropdown-item" href="/support" onClick={() => setOpen(false)}>
+            {t('المساعدة والبلاغات', 'Help & reports')}
+          </Link>
 
           <div className="header-dropdown-section">
             <span className="muted">{t('اللغة', 'Language')}</span>

@@ -7220,6 +7220,135 @@ select public.assert_rejects(
   'permission denied');
 reset role;
 
+-- ===========================================================================
+-- 61. Help & Reports: a ticket that becomes a conversation
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.open_ticket('booking', 'حجزي', 'لم يؤكد الحجز حتى الآن', 'booking', %L)$$, :'lapse2'),
+  '61.1 nobody reports on an operation they are not part of',
+  'لست طرفاً');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select (public.open_ticket('booking', 'حجزي لم يتم', 'دفعت ولم يتم الحجز مع المنتور', 'booking', :'lapse2')).id as tk1 \gset
+
+select public.assert(
+  (select code like 'TM-1____' and status = 'assistant' and not needs_human
+          and reported_profile_id = '33333333-3333-3333-3333-333333333333'
+     from public.support_tickets where id = :'tk1'),
+  '61.2 a report becomes Ticket #TM-…, knows who it is about, and the first line takes it');
+
+select public.assert(
+  (select body_ar like '%اعتذر المنتور%' and body_ar like '%يُعاد%'
+     from public.ticket_messages where ticket_id = :'tk1' and author_kind = 'assistant'),
+  '61.3 the first line reads the operation and says where it stands — no one asks the same thing twice');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.support_tickets where id = :'tk1') = 0
+  and (select count(*) from public.ticket_messages where ticket_id = :'tk1') = 0,
+  '61.4 the person a ticket is about cannot read it — reporting must not expose the reporter');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.post_ticket_message(:'tk1', 'أريد استرداد المبلغ لو سمحتم');
+select public.assert(
+  (select status = 'needs_human' and needs_human and escalation_reason = 'refund' and priority = 'high'
+     from public.support_tickets where id = :'tk1'),
+  '61.5 asking for a refund sends the conversation to a person — the assistant does not decide money');
+
+select public.assert_rejects(
+  format($$select public.post_ticket_message(%L, 'ملف', '44444444-4444-4444-4444-444444444444/x.png')$$, :'tk1'),
+  '61.6 an attachment has to be the reporter''s own file',
+  'من ملفاتك');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = '44444444-4444-4444-4444-444444444444'
+             and n.entity_id = :'tk1' and n.kind = 'support'),
+  '61.7 and the admins are told, with a link to the ticket');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.post_ticket_message(:'tk1', 'تحقق من الدفعة قبل الإرجاع', null, true);
+select public.assert_rejects(
+  format($$select public.set_ticket_status(%L, 'pending_user')$$, :'tk1'),
+  '61.8 asking the reporter for something needs the question written',
+  'اكتب لصاحب البلاغ');
+select public.set_ticket_status(:'tk1', 'pending_user', 'أرسل رقم التحويل من فضلك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select count(*) from public.ticket_messages where ticket_id = :'tk1' and body_ar = 'تحقق من الدفعة قبل الإرجاع') = 0
+  and (select count(*) from public.ticket_messages where ticket_id = :'tk1' and body_ar = 'أرسل رقم التحويل من فضلك') = 1,
+  '61.9 an admin''s internal note never reaches the reporter; the question does');
+
+select public.post_ticket_message(:'tk1', 'رقم التحويل LAPSE-2');
+select public.assert(
+  (select status from public.support_tickets where id = :'tk1') = 'under_review'
+  and (select count(*) from public.ticket_events where ticket_id = :'tk1') >= 5,
+  '61.10 answering puts it back with the admin, and every step is on the timeline');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.set_ticket_status(:'tk1', 'resolved', 'أُعيد المبلغ إلى محفظتك.');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.post_ticket_message(%L, 'شكراً')$$, :'tk1'),
+  '61.11 a resolved ticket is closed to new messages — a new problem is a new ticket',
+  'أُغلق هذا البلاغ');
+
+select (public.open_ticket('fraud', 'محاولة احتيال', 'طلب مني الدفع خارج المنصة', 'profile',
+        '33333333-3333-3333-3333-333333333333')).id as tk2 \gset
+select public.assert(
+  (select priority = 'urgent' and needs_human and escalation_reason = 'fraud' from public.support_tickets where id = :'tk2'),
+  '61.12 fraud is urgent and goes straight to a person');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select (public.open_ticket('content', 'محتوى', 'محتوى الملف الشخصي منسوخ من غيري', 'profile',
+        '33333333-3333-3333-3333-333333333333')).id as tk3 \gset
+select public.assert(
+  (select needs_human and escalation_reason = 'repeated_complaints' from public.support_tickets where id = :'tk3'),
+  '61.13 a third complaint about the same person in a month is escalated as a pattern');
+
+select public.assert(
+  (select count(*) from public.admin_tickets('all')) = 0,
+  '61.14 the admin queue is the admins''');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.admin_tickets('escalated')) >= 2
+  and (select priority from public.admin_tickets('escalated') limit 1) = 'urgent',
+  '61.15 and it lists the urgent first');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

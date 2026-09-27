@@ -123,6 +123,21 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'إدارة المسارات للإدارة فقط',      en: 'Only an admin manages paths.' },
   { match: 'لا يمكن نشر دورة بلا دروس',       en: 'A course without lessons cannot be published — write its lessons first.' },
   { match: 'لا يُحجز اجتماع في وقت مضى',      en: 'A meeting cannot be booked in the past.' },
+  // ratings (0081)
+  { match: 'التقييم ليس لك',                  en: 'That rating is not yours.' },
+  { match: 'أُضيفت تفاصيل هذا التقييم',        en: 'The details of this rating were already added.' },
+  { match: 'تُضاف التفاصيل مع التقييم نفسه',  en: 'Details are added with the rating itself, not days later.' },
+  { match: 'تُقيَّم الدورة بعد إكمالها',        en: 'A course is rated once you have finished it.' },
+  { match: 'قيّمت هذه الدورة بالفعل',         en: 'You have already rated this course.' },
+  // help & reports (0083)
+  { match: 'اشرح المشكلة في عشرة أحرف',       en: 'Describe the problem in at least ten characters.' },
+  { match: 'لا يمكنك الإبلاغ عن عملية لست طرفاً', en: 'You can only report an operation you are part of.' },
+  { match: 'لا يمكنك الإبلاغ عن نفسك',        en: 'You cannot report yourself.' },
+  { match: 'الشخص المُبلَّغ عنه ليس طرفاً',     en: 'That person is not part of this operation.' },
+  { match: 'المرفق يجب أن يكون من ملفاتك',    en: 'The attachment has to be one of your own files.' },
+  { match: 'أُغلق هذا البلاغ',                 en: 'This ticket is closed — open a new one if the problem continues.' },
+  { match: 'اكتب لصاحب البلاغ',              en: 'Write the reporter what happened or what you need from them.' },
+  { match: 'إدارة البلاغات للإدارة فقط',       en: 'Only admins manage tickets.' },
 ];
 
 /** Translates a database message when the interface is in English. */
