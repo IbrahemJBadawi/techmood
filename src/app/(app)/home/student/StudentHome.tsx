@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
+import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
+import { avatarColor, initialOf } from '@/lib/mentor-look';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { contentText, formatDate, formatDateTime, type Text } from '@/lib/i18n';
@@ -11,7 +13,8 @@ import { ContinueLearning, type Resume } from './ContinueLearning';
 import { DailyBoard, type AgendaEntry } from './DailyBoard';
 import { Leaderboard, type Boards, type WindowKey } from './Leaderboard';
 import { Pomodoro } from './Pomodoro';
-import { StudentHero, type ActivityDay } from './StudentHero';
+import { StudentHero, StreakCard, type ActivityDay } from './StudentHero';
+import { ProgressRing } from '../../academy/ProgressRing';
 
 const KIND_LABEL: Record<string, Text> = {
   freelance:  { ar: 'عمل حر',        en: 'Freelance' },
@@ -178,361 +181,322 @@ export async function StudentHome({
     }))
     .filter((row) => row.path !== null);
 
+  const statTiles = [
+    { icon: '📘', value: progress?.courses_completed ?? 0, label: t('دورات مكتملة', 'Courses completed'), href: '/academy' },
+    { icon: '✅', value: progress?.assessments_passed ?? 0, label: t('اختبارات مجتازة', 'Assessments passed'), href: '/academy' },
+    { icon: '🎓', value: progress?.certificates ?? 0, label: t('شهادات موثّقة', 'Verified certificates'), href: '/certificates' },
+    { icon: '🏅', value: progress?.achievements ?? 0, label: t('أوسمة', 'Badges'), href: '/passport' },
+  ];
+
+  const progressItems = [
+    { label: t('دروس أُكملت', 'Lessons completed'), value: progress?.lessons_completed ?? 0 },
+    { label: t('أعمال معتمدة', 'Work approved'), value: progress?.work_approved ?? 0 },
+    { label: t('جلسات حضرتها', 'Sessions attended'), value: progress?.sessions_attended ?? 0 },
+    { label: t('مهام فريق أنجزتها', 'Team tasks closed'), value: progress?.team_tasks_done ?? 0 },
+  ];
+  const skillsTotal = progress?.skills_total ?? 0;
+  const skillsVerified = progress?.skills_verified ?? 0;
+  const topReputation = [...(reputation ?? [])].sort((a, b) => b.value - a.value).slice(0, 4);
+
   return (
     <>
       <StudentHero
         name={displayName}
         avatarUrl={profile.avatar_url}
-        techmoodId={profile.techmood_id}
         primaryField={fieldName}
         currentPath={resume ? { slug: resume.path_slug, title: resume.path_title, percent: resume.path_percent } : null}
         totalXp={xp?.total_xp ?? 0}
         stars={stars?.stars_avg ?? 0}
-        ratedCount={stars?.rated_count ?? 0}
         streak={typeof streak === 'number' ? streak : 0}
-        week={(week ?? []) as ActivityDay[]}
       />
 
-      {/* 2 — continue learning, the board, and the timer */}
-      <section className="section-block">
-        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>{t('أكمل تعلّمك', 'Carry on learning')}</h2>
-        <div className="learning-row">
-          <ContinueLearning resume={resume} />
-          <Pomodoro suggestion={resume?.lesson_title ?? null} />
-        </div>
-      </section>
+      <div className="hm-layout">
+        <div className="hm-main">
+          <section className="section-block">
+            <ContinueLearning resume={resume} />
+          </section>
 
-      <DailyBoard entries={entries} />
+          <DailyBoard entries={entries} />
 
-      {/* 3 — my paths */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('مساراتي', 'My paths')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/academy">{t('كل المسارات', 'All paths')}</Link>
-        </div>
-
-        {pathRows.length === 0 ? (
-          <p className="panel muted">
-            {t('لم تنضم إلى مسار بعد. المسارات مفتوحة دائماً — ',
-               'You have not joined a path yet. Paths are always open — ')}
-            <Link href="/academy">{t('ابدأ من هنا', 'start here')}</Link>.
-          </p>
-        ) : (
-          <div className="card-grid">
-            {pathRows.map((row) => (
-              <article className="card" key={row.path!.id}>
-                <div className="row-between">
-                  <h3>{contentText(t.locale, row.path!.title_ar, row.path!.title_en)}</h3>
-                  <span className={`pill pill-${row.completedAt ? 'ok' : 'ask'}`}>
-                    {row.completedAt ? t('مكتمل', 'Completed') : t('نشِط', 'Active')}
-                  </span>
-                </div>
-                <div className="tags-row">
-                  {row.path!.tags?.map((tag) => <span className="tag eng" key={tag}>{tag}</span>)}
-                </div>
-                <p className="muted" dir="rtl">{row.path!.description_ar}</p>
-                <p className="muted" style={{ fontSize: '0.76rem' }}>
-                  {t('انضممت في ', 'Joined ')}{formatDate(t.locale, row.enrolledAt)}
-                </p>
-                <Link className="btn btn-ghost btn-sm" href={`/academy/${row.path!.slug}`}>
-                  {row.completedAt ? t('عرض المسار', 'View path') : t('تابع', 'Continue')}
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 4 — upcoming mentor sessions */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('جلسات الإرشاد القادمة', 'Upcoming mentor sessions')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/bookings">{t('كل حجوزاتي', 'All my bookings')}</Link>
-        </div>
-
-        {(sessions ?? []).length === 0 ? (
-          <div className="panel empty-state">
-            <p className="muted">{t('لا جلسات قادمة.', 'No sessions coming up.')}</p>
-            <Link className="btn btn-primary btn-sm" href="/mentors">{t('ابحث عن منتور', 'Find a mentor')}</Link>
-          </div>
-        ) : (
-          <div className="stack">
-            {(sessions ?? []).map((session) => (
-              <article className="panel session-row" key={session.id}>
+          {/* upcoming mentor sessions */}
+          <section className="section-block">
+            <div className="hm-head">
+              <h2>{t('جلساتي القادمة', 'My next sessions')}</h2>
+              <Link href="/bookings">{t('كل حجوزاتي', 'All my bookings')}</Link>
+            </div>
+            {(sessions ?? []).length === 0 ? (
+              <div className="hm-card hm-empty">
+                <span className="hm-empty-icon" aria-hidden="true"><Icon name="mentor" size={22} /></span>
                 <div>
-                  <strong>{nameOf.get(session.mentor_id) ?? t('منتور', 'Mentor')}</strong>
-                  <p className="muted">{session.topic_ar ?? t('جلسة إرشاد', 'Mentoring session')}</p>
-                  <p className="muted" style={{ fontSize: '0.8rem' }}>
-                    {formatDateTime(t.locale, session.scheduled_start)} ·{' '}
-                    {t(`${Math.round((new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime()) / 60000)} دقيقة`,
-                       `${Math.round((new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime()) / 60000)} min`)}
-                  </p>
+                  <strong>{t('لا جلسات قادمة', 'No sessions coming up')}</strong>
+                  <p className="muted">{t('جلسة واحدة مع منتور قد توفّر عليك أسابيع.', 'One session with a mentor can save you weeks.')}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span className={`pill pill-${session.status === 'confirmed' ? 'ok' : 'wait'}`}>
-                    {session.status === 'confirmed'
-                      ? t('مؤكّدة', 'Confirmed')
-                      : t('بانتظار التأكيد', 'Awaiting confirmation')}
-                  </span>
-                  {!IS_MVP && roomOf.get(session.id) && (
-                    <Link className="btn btn-primary btn-sm" href={`/sessions/${roomOf.get(session.id)}`}>
-                      {t('ادخل الجلسة', 'Enter the session')}
-                    </Link>
-                  )}
-                  <Link className="btn btn-ghost btn-sm" href={`/bookings/${session.id}`}>{t('التفاصيل', 'Details')}</Link>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+                <Link className="btn btn-primary btn-sm" href="/mentors">{t('ابحث عن منتور', 'Find a mentor')}</Link>
+              </div>
+            ) : (
+              <ul className="hm-card hm-list">
+                {(sessions ?? []).map((session) => {
+                  const mentorName = nameOf.get(session.mentor_id) ?? t('منتور', 'Mentor');
+                  const minutes = Math.round((new Date(session.scheduled_end).getTime() - new Date(session.scheduled_start).getTime()) / 60000);
+                  const room = !IS_MVP ? roomOf.get(session.id) : undefined;
+                  return (
+                    <li key={session.id}>
+                      <Link className="hm-row" href={room ? `/sessions/${room}` : `/bookings/${session.id}`}>
+                        <span className="hm-row-avatar" style={{ background: avatarColor(session.mentor_id) }} aria-hidden="true">
+                          {initialOf(mentorName)}
+                        </span>
+                        <span className="hm-row-main">
+                          <strong>{session.topic_ar ?? t('جلسة إرشاد', 'Mentoring session')}</strong>
+                          <span className="muted">
+                            {mentorName} · <span className="date">{formatDateTime(t.locale, session.scheduled_start)}</span>
+                            {' · '}{t(`${minutes} دقيقة`, `${minutes} min`)}
+                          </span>
+                        </span>
+                        <span className={`pill pill-${session.status === 'confirmed' ? 'ok' : 'wait'}`}>
+                          {session.status === 'confirmed' ? t('مؤكّدة', 'Confirmed') : t('بانتظار التأكيد', 'Awaiting confirmation')}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-      {/* 5 — my team */}
-      <section className="section-block">
-        <h2 style={{ fontSize: '1.05rem', marginBottom: 10 }}>{t('فريقي', 'My team')}</h2>
-        {team ? (
-          <article className="panel team-row">
-            <Avatar name={team.title_ar} url={team.avatar_url} size={48} />
-            <div style={{ flex: 1 }}>
-              <strong>{team.title_ar}</strong>
-              <p className="muted" style={{ fontSize: '0.84rem' }}>
-                {t('يقوده ', 'Led by ')}{team.leaderName}
-                {t(' · دورك: ', ' · your role: ')}
-                {membership?.[0]?.title_ar
-                  ?? (membership?.[0]?.role === 'leader' ? t('قائد', 'Leader') : t('عضو', 'Member'))}
-              </p>
-              <div className="tags-row" style={{ marginTop: 6 }}>
-                <span className="tag">
-                  {t(`${team.openTasks} مهمة مفتوحة`,
-                     `${team.openTasks} open ${team.openTasks === 1 ? 'task' : 'tasks'}`)}
+          {/* my paths */}
+          <section className="section-block">
+            <div className="hm-head">
+              <h2>{t('مساراتي', 'My paths')}</h2>
+              <Link href="/academy">{t('كل المسارات', 'All paths')}</Link>
+            </div>
+            {pathRows.length === 0 ? (
+              <div className="hm-card hm-empty">
+                <span className="hm-empty-icon" aria-hidden="true"><Icon name="academy" size={22} /></span>
+                <div>
+                  <strong>{t('لم تنضم إلى مسار بعد', 'No path yet')}</strong>
+                  <p className="muted">{t('المسارات مفتوحة دائماً.', 'Paths are always open.')}</p>
+                </div>
+                <Link className="btn btn-primary btn-sm" href="/academy">{t('ابدأ', 'Start')}</Link>
+              </div>
+            ) : (
+              <ul className="hm-card hm-list">
+                {pathRows.map((row) => {
+                  const percent = row.completedAt ? 100 : resume?.path_slug === row.path!.slug ? resume.path_percent : null;
+                  return (
+                    <li key={row.path!.id}>
+                      <Link className="hm-row" href={`/academy/${row.path!.slug}`}>
+                        {percent !== null
+                          ? <ProgressRing percent={percent} size={44} stroke={4} label={t('تقدّم المسار', 'Path progress')} />
+                          : <span className="hm-row-icon" style={{ background: 'var(--royal)' }}><Icon name="academy" size={16} /></span>}
+                        <span className="hm-row-main">
+                          <strong>{contentText(t.locale, row.path!.title_ar, row.path!.title_en)}</strong>
+                          <span className="muted">
+                            {(row.path!.tags ?? []).slice(0, 3).join(' · ')}
+                            {(row.path!.tags ?? []).length > 0 && ' · '}
+                            {t('انضممت ', 'Joined ')}<span className="date">{formatDate(t.locale, row.enrolledAt)}</span>
+                          </span>
+                        </span>
+                        <span className={`pill pill-${row.completedAt ? 'ok' : 'ask'}`}>
+                          {row.completedAt ? t('مكتمل', 'Completed') : t('نشِط', 'Active')}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {/* my team */}
+          <section className="section-block">
+            <div className="hm-head">
+              <h2>{t('فريقي', 'My team')}</h2>
+              <Link href="/teams">{t('الفرق', 'Teams')}</Link>
+            </div>
+            {team ? (
+              <Link className="hm-card hm-team" href={`/teams/${team.id}`}>
+                <Avatar name={team.title_ar} url={team.avatar_url} size={48} />
+                <span className="hm-row-main">
+                  <strong>{team.title_ar}</strong>
+                  <span className="muted">
+                    {t('يقوده ', 'Led by ')}{team.leaderName}
+                    {t(' · دورك: ', ' · your role: ')}
+                    {membership?.[0]?.title_ar
+                      ?? (membership?.[0]?.role === 'leader' ? t('قائد', 'Leader') : t('عضو', 'Member'))}
+                  </span>
                 </span>
-                {team.stars > 0 && <span className="tag"><Stars value={team.stars} /></span>}
+                <span className="hm-team-stats">
+                  <span className="hm-count">{t(`${team.openTasks} مهمة مفتوحة`, `${team.openTasks} open`)}</span>
+                  {team.stars > 0 && <Stars value={team.stars} />}
+                </span>
+              </Link>
+            ) : (
+              <div className="hm-card hm-empty">
+                <span className="hm-empty-icon" aria-hidden="true"><Icon name="team" size={22} /></span>
+                <div>
+                  <strong>{t('لست في فريق بعد', 'Not in a team yet')}</strong>
+                  <p className="muted">{t('أغلب العمل الحقيقي يحدث ضمن فريق.', 'Most real work happens in a team.')}</p>
+                </div>
+                <Link className="btn btn-primary btn-sm" href="/teams">{t('انضم أو أنشئ', 'Join or start one')}</Link>
+              </div>
+            )}
+          </section>
+
+          {/* openings that fit */}
+          <section className="section-block">
+            <div className="hm-head">
+              <h2>{t('فرص تناسبك', 'Openings that fit you')}</h2>
+              <Link href="/marketplace">{t('كل الفرص', 'All openings')}</Link>
+            </div>
+            {(suggestions ?? []).length === 0 ? (
+              <p className="hm-card muted" style={{ fontSize: '0.88rem' }}>
+                {t('لا فرص مفتوحة تطابق مجالاتك الآن.', 'No open postings match your fields right now.')}
+              </p>
+            ) : (
+              <div className="hm-opps">
+                {(suggestions ?? []).map((item) => {
+                  const need = item.required_skills?.length ?? 0;
+                  const have = item.matched_skills?.length ?? 0;
+                  return (
+                    <Link className="hm-card hm-opp" href={`/marketplace/${item.id}`} key={item.id}>
+                      <span className="hm-opp-top">
+                        <span className="tag">{KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]) : item.kind}</span>
+                        {!item.is_eligible && <span className="pill pill-wait">{t('لم تستوفِ الشروط', 'Not eligible yet')}</span>}
+                      </span>
+                      <strong>{item.title_ar}</strong>
+                      {item.organization_ar && <span className="muted">{item.organization_ar}</span>}
+                      {need > 0 && (
+                        <span className="hm-opp-match">
+                          <span className="hm-resume-track is-soft"><span style={{ width: `${Math.round((have / need) * 100)}%` }} /></span>
+                          <span className="muted">{t(`${have} من ${need} مهارات`, `${have} of ${need} skills`)}</span>
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className="hm-rail" aria-label={t('إحصائياتي', 'My stats')}>
+          <StreakCard
+            streak={typeof streak === 'number' ? streak : 0}
+            week={(week ?? []) as ActivityDay[]}
+            totalXp={xp?.total_xp ?? 0}
+          />
+
+          <Pomodoro suggestion={resume?.lesson_title ?? null} />
+
+          <Leaderboard boards={boards} myRank={typeof myRank === 'number' ? myRank : null} windowKey={windowKey} />
+
+          {/* achievements */}
+          <article className="hm-card">
+            <div className="hm-card-head">
+              <h3>{t('إنجازاتي', 'My achievements')}</h3>
+              <Link href="/passport">{t('الجواز', 'Passport')}</Link>
+            </div>
+            <div className="hm-tiles">
+              {statTiles.map((tile) => (
+                <Link className="hm-tile" href={tile.href} key={tile.label}>
+                  <span aria-hidden="true">{tile.icon}</span>
+                  <strong>{tile.value}</strong>
+                  <span className="muted">{tile.label}</span>
+                </Link>
+              ))}
+            </div>
+            {(achievements ?? []).length > 0 && (
+              <div className="hm-badges">
+                {(achievements ?? []).map((row) => {
+                  const badge = badgeById.get(row.achievement_id);
+                  return (
+                    <span className="hm-badge" key={row.achievement_id} title={badge?.name_ar}>
+                      <span aria-hidden="true">{badge?.icon ?? '🏅'}</span> {badge?.name_ar}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+
+          {/* progress and reputation */}
+          <article className="hm-card">
+            <div className="hm-card-head">
+              <h3>{t('تقدّمي وسمعتي', 'Progress & reputation')}</h3>
+              <Link href="/passport">{t('التفاصيل', 'Details')}</Link>
+            </div>
+            <ul className="hm-kv">
+              {progressItems.map((row) => (
+                <li key={row.label}><span className="muted">{row.label}</span><strong>{row.value}</strong></li>
+              ))}
+            </ul>
+            <div className="hm-meter">
+              <div className="row-between">
+                <span className="muted">{t('مهارات موثّقة', 'Verified skills')}</span>
+                <strong>{skillsVerified} / {skillsTotal}</strong>
+              </div>
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${skillsTotal ? Math.round((skillsVerified / skillsTotal) * 100) : 0}%` }} />
               </div>
             </div>
-            <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>{t('افتح الفريق', 'Open the team')}</Link>
-          </article>
-        ) : (
-          <div className="panel empty-state">
-            <p className="muted">{t('أغلب العمل الحقيقي يحدث ضمن فريق.', 'Most real work happens in a team.')}</p>
-            <Link className="btn btn-primary btn-sm" href="/teams">{t('انضم إلى فريق أو أنشئ واحداً', 'Join a team, or start one')}</Link>
-          </div>
-        )}
-      </section>
-
-      {/* 6 — opportunities that fit */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('فرص تناسبك', 'Openings that fit you')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('كل الفرص', 'All openings')}</Link>
-        </div>
-        {(suggestions ?? []).length === 0 ? (
-          <p className="panel muted">{t('لا فرص مفتوحة تطابق مجالاتك الآن.', 'No open postings match your fields right now.')}</p>
-        ) : (
-          <div className="card-grid">
-            {(suggestions ?? []).map((item) => (
-              <article className="card" key={item.id}>
-                <div className="row-between">
-                  <span className="tag">{KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]) : item.kind}</span>
-                  {!item.is_eligible && <span className="pill pill-wait">{t('لم تستوفِ الشروط بعد', 'Not eligible yet')}</span>}
+            {topReputation.length === 0 ? (
+              <p className="muted" style={{ fontSize: '0.8rem', marginTop: 10 }}>
+                {t('مقاييس السمعة تُحسب من مراجعات المنتورز وتقييمات الفرق. لم يُسجَّل لك تقييم بعد.',
+                   'Reputation meters come from mentor reviews and team ratings. Nothing has been recorded for you yet.')}
+              </p>
+            ) : (
+              topReputation.map((row) => (
+                <div className="hm-meter" key={row.dimension}>
+                  <div className="row-between">
+                    <span className="muted">{dimensionName.get(row.dimension) ?? row.dimension}</span>
+                    <strong>{Math.round(row.value)}</strong>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill is-green" style={{ width: `${Math.min(100, row.value)}%` }} />
+                  </div>
                 </div>
-                <h3>{item.title_ar}</h3>
-                {item.organization_ar && <p className="muted">{item.organization_ar}</p>}
-                {item.required_skills?.length > 0 && (
-                  <p className="muted" style={{ fontSize: '0.8rem' }}>
-                    {t(`تطابق ${item.matched_skills?.length ?? 0} من ${item.required_skills.length} مهارة مطلوبة`,
-                       `${item.matched_skills?.length ?? 0} of ${item.required_skills.length} required skills matched`)}
-                  </p>
-                )}
-                <Link className="btn btn-ghost btn-sm" href={`/marketplace/${item.id}`}>{t('عرض الفرصة', 'View opening')}</Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 7 — achievements */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('إنجازاتي', 'My achievements')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">{t('الجواز المهني', 'Passport')}</Link>
-        </div>
-        <div className="stat-tiles">
-          <Link className="stat-tile" href="/academy">
-            <div className="val eng">{progress?.courses_completed ?? 0}</div>
-            <div className="lbl">{t('دورات مكتملة', 'Courses completed')}</div>
-          </Link>
-          <Link className="stat-tile" href="/academy">
-            <div className="val eng">{progress?.assessments_passed ?? 0}</div>
-            <div className="lbl">{t('اختبارات مجتازة', 'Assessments passed')}</div>
-          </Link>
-          <Link className="stat-tile" href="/certificates">
-            <div className="val eng">{progress?.certificates ?? 0}</div>
-            <div className="lbl">{t('شهادات موثّقة', 'Verified certificates')}</div>
-          </Link>
-          <Link className="stat-tile" href="/passport">
-            <div className="val eng">{progress?.achievements ?? 0}</div>
-            <div className="lbl">{t('أوسمة', 'Badges')}</div>
-          </Link>
-        </div>
-
-        {(achievements ?? []).length > 0 && (
-          <div className="tags-row" style={{ marginTop: 12 }}>
-            {(achievements ?? []).map((row) => {
-              const badge = badgeById.get(row.achievement_id);
-              return (
-                <span className="tag" key={row.achievement_id}>
-                  {badge?.icon} {badge?.name_ar}
-                </span>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* 8 — progress */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('تقدّمي', 'My progress')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">{t('التفاصيل الكاملة', 'Full detail')}</Link>
-        </div>
-        <div className="panel progress-grid">
-          <ProgressBar label={t('دروس أُكملت', 'Lessons completed')} value={progress?.lessons_completed ?? 0} />
-          <ProgressBar label={t('أعمال معتمدة', 'Work approved')} value={progress?.work_approved ?? 0} />
-          <ProgressBar label={t('اختبارات مجتازة', 'Assessments passed')} value={progress?.assessments_passed ?? 0} />
-          <ProgressBar label={t('جلسات حضرتها', 'Sessions attended')} value={progress?.sessions_attended ?? 0} />
-          <ProgressBar label={t('مهام فريق أنجزتها', 'Team tasks closed')} value={progress?.team_tasks_done ?? 0} />
-          <ProgressBar
-            label={t('مهارات موثّقة', 'Verified skills')}
-            value={progress?.skills_verified ?? 0}
-            outOf={progress?.skills_total ?? 0}
-          />
-        </div>
-      </section>
-
-      {/* 9 — reputation */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('سمعتي', 'My reputation')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/passport">{t('عرض السمعة', 'View reputation')}</Link>
-        </div>
-        <div className="panel">
-          <div className="reputation-head">
-            <div>
-              <span className="muted">{t('التقييم العام', 'Overall rating')}</span>
-              <Stars value={stars?.stars_avg ?? 0} />
-              <span className="muted" style={{ fontSize: '0.8rem' }}>
-                {t(`من ${stars?.rated_count ?? 0} عمل مُقيَّم`,
-                   `from ${stars?.rated_count ?? 0} rated ${(stars?.rated_count ?? 0) === 1 ? 'piece' : 'pieces'}`)}
-              </span>
-            </div>
-            <div>
-              <span className="muted">{t('نقاط TechMood', 'TechMood points')}</span>
-              <div className="xp-badge eng">{xp?.total_xp ?? 0} XP</div>
-            </div>
-          </div>
-
-          {(reputation ?? []).length === 0 ? (
-            <p className="muted" style={{ marginTop: 12, fontSize: '0.84rem' }}>
-              {t('مقاييس السمعة تُحسب من مراجعات المنتورز وتقييمات الفرق. لم يُسجَّل لك تقييم بعد.',
-                 'Reputation meters are computed from mentor reviews and team ratings. Nothing has been recorded for you yet.')}
+              ))
+            )}
+            <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
+              {t('النجوم جودة، والنقاط كمّية. لا يُجمعان في رقم واحد.', 'Stars are quality, points are quantity. They are never added into one figure.')}
             </p>
-          ) : (
-            <div className="reputation-bars">
-              {(reputation ?? []).map((row) => {
-                return (
-                  <div key={row.dimension}>
-                    <div className="row-between">
-                      <span className="muted">{dimensionName.get(row.dimension) ?? row.dimension}</span>
-                      <span className="eng">{row.value}</span>
-                    </div>
-                    <div className="progress-track">
-                      <div className="progress-fill" style={{ width: `${row.value}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+          </article>
+
+          {/* mentors who might suit you */}
+          <article className="hm-card">
+            <div className="hm-card-head">
+              <h3>{t('منتورز قد يناسبونك', 'Mentors for you')}</h3>
+              <Link href="/mentors">{t('الكل', 'All')}</Link>
             </div>
-          )}
-
-          <p className="muted" style={{ fontSize: '0.78rem', marginTop: 12 }}>
-            {t('النجوم جودة، والنقاط كمّية. لا يُجمعان في رقم واحد، ولا يُشترى أحدهما بالآخر.',
-               'Stars are quality, points are quantity. They are never added into one figure, and neither buys the other.')}
-          </p>
-        </div>
-      </section>
-
-      {/* 10 — leaderboard */}
-      <Leaderboard boards={boards} myRank={typeof myRank === 'number' ? myRank : null} windowKey={windowKey} />
-
-      {/* 11 — find a mentor */}
-      <section className="section-block">
-        <div className="row-between" style={{ marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1.05rem' }}>{t('منتورز قد يناسبونك', 'Mentors who might suit you')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/mentors">{t('تصفّح المنتورز', 'Browse mentors')}</Link>
-        </div>
-        {(mentors ?? []).length === 0 ? (
-          <p className="panel muted">{t('لا منتورز متاحين في مجالاتك الآن.', 'No mentors available in your fields right now.')}</p>
-        ) : (
-          <div className="card-grid">
-            {(mentors ?? []).map((mentor) => (
-              <article className="card mentor-card" key={mentor.profile_id}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <Avatar name={mentor.display_name ?? mentor.full_name} url={mentor.avatar_url} size={44} />
-                  <div>
-                    <h3 style={{ fontSize: '0.95rem' }}>{mentor.display_name ?? mentor.full_name}</h3>
-                    <p className="muted" style={{ fontSize: '0.82rem' }}>{mentor.headline_ar}</p>
-                  </div>
-                </div>
-                <div className="row-between">
-                  <Stars value={mentor.rating_avg} />
-                  <span className="tag eng">{mentor.level}</span>
-                </div>
-                <div className="row-between">
-                  <span className="muted" style={{ fontSize: '0.8rem' }}>
-                    {t(`${mentor.sessions_count} جلسة`,
-                       `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}
-                  </span>
-                  <span className="xp-badge eng">${mentor.price_usd}</span>
-                </div>
-                <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentor.profile_id}`}>
-                  {t('عرض الملف', 'View profile')}
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 12 — explore */}
-      <section className="section-block">
-        <h2 style={{ fontSize: '0.95rem', marginBottom: 10 }}>{t('استكشف TechMood', 'Explore TechMood')}</h2>
-        <div className="explore-row">
-          <Link className="explore-chip" href="/academy">{t('الأكاديمية', 'Academy')}</Link>
-          <Link className="explore-chip" href="/mentors">{t('المنتورز', 'Mentors')}</Link>
-          <Link className="explore-chip" href="/teams">{t('الفرق', 'Teams')}</Link>
-          <Link className="explore-chip" href="/exhibition">{t('المعرض', 'Gallery')}</Link>
-          <Link className="explore-chip" href="/marketplace">{t('سوق الطلاب', 'Student market')}</Link>
-          <Link className="explore-chip" href="/bookings">{t('الحجوزات والتقويم', 'Bookings & calendar')}</Link>
-        </div>
-      </section>
-    </>
-  );
-}
-
-function ProgressBar({ label, value, outOf }: { label: string; value: number; outOf?: number }) {
-  const percent = outOf && outOf > 0 ? Math.round((value / outOf) * 100) : null;
-  return (
-    <div>
-      <div className="row-between">
-        <span className="muted">{label}</span>
-        <span className="eng">{outOf !== undefined ? `${value} / ${outOf}` : value}</span>
+            {(mentors ?? []).length === 0 ? (
+              <p className="muted" style={{ fontSize: '0.84rem' }}>
+                {t('لا منتورز متاحين في مجالاتك الآن.', 'No mentors available in your fields right now.')}
+              </p>
+            ) : (
+              <ul className="hm-list is-flush">
+                {(mentors ?? []).map((mentor) => {
+                  const name = mentor.display_name ?? mentor.full_name;
+                  return (
+                    <li key={mentor.profile_id}>
+                      <Link className="hm-row" href={`/mentors/${mentor.profile_id}`}>
+                        <span className="hm-row-avatar" style={{ background: avatarColor(mentor.profile_id) }} aria-hidden="true">
+                          {initialOf(name)}
+                        </span>
+                        <span className="hm-row-main">
+                          <strong>{name}</strong>
+                          <span className="muted">{mentor.headline_ar}</span>
+                        </span>
+                        <span className="hm-price">${mentor.price_usd}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </article>
+        </aside>
       </div>
-      {percent !== null && (
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${percent}%` }} />
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 

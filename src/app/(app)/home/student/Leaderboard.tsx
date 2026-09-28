@@ -7,6 +7,9 @@ import { Stars } from '@/components/Stars';
 import { useT } from '@/lib/i18n.client';
 import type { T, Text } from '@/lib/i18n';
 import { IS_MVP } from '@/lib/scope';
+import { avatarColor, initialOf } from '@/lib/mentor-look';
+
+const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export type BoardRow = {
   rank: number;
@@ -58,85 +61,73 @@ export function Leaderboard({
   const rows = boards[tab];
 
   return (
-    <section className="section-block" id="leaderboard">
-      <div className="row-between" style={{ marginBottom: 10 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>{t('جدول الترتيب', 'Leaderboard')}</h2>
-        <div className="tags-row">
-          {WINDOWS.map((entry) => (
-            <Link
-              key={entry.key}
-              className={`tag${windowKey === entry.key ? ' is-on' : ''}`}
-              href={`/home?lb=${entry.key}#leaderboard`}
-              scroll={false}
-            >
-              {t(entry.label)}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="tabs" role="tablist">
-          {TABS.map((entry) => (
-            <button
-              key={entry.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === entry.key}
-              className={`tab${tab === entry.key ? ' is-on' : ''}`}
-              onClick={() => setTab(entry.key)}
-            >
-              {t(entry.label)}
-            </button>
-          ))}
-        </div>
-
-        {rows.length === 0 ? (
-          <p className="muted" style={{ padding: '14px 2px' }}>{t('لا بيانات في هذه النافذة بعد.', 'No data in this window yet.')}</p>
-        ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th style={{ width: 52 }}>#</th>
-                <th>{t('الاسم', 'Name')}</th>
-                {active.showStars && <th>{t('التقييم', 'Rating')}</th>}
-                {active.showPoints && <th>{t('النقاط', 'Points')}</th>}
-                <th>{t(active.extraLabel)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td className="eng">{row.rank}</td>
-                  <td>{row.name}</td>
-                  {active.showStars && (
-                    <td>
-                      {row.stars === null || row.stars === 0
-                        ? <span className="muted">—</span>
-                        : <Stars value={row.stars} />}
-                    </td>
-                  )}
-                  {active.showPoints && <td className="eng">{row.points ?? 0}</td>}
-                  <td className="eng">{row.extra}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {tab === 'companies' && (
-          <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-            {t('المؤسسات تُرتَّب بما سجّلته المنصة فعلاً: الفرص المنشورة ومن جرى تعيينهم. لا يوجد تقييم للمؤسسات بعد، لأن لا شيء في TechMood يقيّم جهة عمل حتى الآن.',
-               'Organisations are ranked on what the platform actually recorded: the openings they published and the people they took on. There is no rating for an organisation yet, because nothing on TechMood rates an employer so far.')}
-          </p>
-        )}
-
+    <article className="hm-card hm-league" id="leaderboard">
+      <div className="hm-card-head">
+        <h3>🏆 {t('الدوري', 'League')}</h3>
         {tab === 'students' && myRank !== null && (
-          <p className="my-rank">
-            {t('ترتيبك: ', 'Your rank: ')}<strong className="eng">#{myRank}</strong>
-          </p>
+          <span className="hm-myrank">{t('ترتيبك ', 'You are ')}<strong>#{myRank}</strong></span>
         )}
       </div>
-    </section>
+
+      <div className="hm-seg" role="tablist" aria-label={t('من تُرتِّب', 'Who is ranked')}>
+        {TABS.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === entry.key}
+            className={tab === entry.key ? 'is-on' : ''}
+            onClick={() => setTab(entry.key)}
+          >
+            {t(entry.label)}
+          </button>
+        ))}
+      </div>
+
+      <div className="hm-windows">
+        {WINDOWS.map((entry) => (
+          <Link
+            key={entry.key}
+            className={windowKey === entry.key ? 'is-on' : ''}
+            href={`/home?lb=${entry.key}#leaderboard`}
+            scroll={false}
+          >
+            {t(entry.label)}
+          </Link>
+        ))}
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="muted" style={{ padding: '10px 2px', fontSize: '0.85rem' }}>
+          {t('لا بيانات في هذه النافذة بعد.', 'No data in this window yet.')}
+        </p>
+      ) : (
+        <ol className="hm-ranks">
+          {rows.map((row) => (
+            <li key={row.id} className={row.rank <= 3 ? `is-top is-${row.rank}` : undefined}>
+              <span className="hm-rank">{MEDAL[row.rank] ?? row.rank}</span>
+              <span className="hm-rank-avatar" style={{ background: avatarColor(row.id) }} aria-hidden="true">
+                {initialOf(row.name)}
+              </span>
+              <span className="hm-rank-name">
+                <strong>{row.name}</strong>
+                <span className="muted">
+                  {row.extra} {t(active.extraLabel)}
+                  {active.showStars && row.stars ? <> · <Stars value={row.stars} /></> : null}
+                </span>
+              </span>
+              {active.showPoints && <span className="hm-rank-xp" dir="ltr">{row.points ?? 0} XP</span>}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {tab === 'companies' && (
+        <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
+          {t('المؤسسات تُرتَّب بما سجّلته المنصة فعلاً: الفرص المنشورة ومن جرى تعيينهم. لا يوجد تقييم للمؤسسات بعد، لأن لا شيء في TechMood يقيّم جهة عمل حتى الآن.',
+             'Organisations are ranked on what the platform actually recorded: the openings they published and the people they took on. There is no rating for an organisation yet, because nothing on TechMood rates an employer so far.')}
+        </p>
+      )}
+    </article>
   );
 }

@@ -1,8 +1,10 @@
 import Link from 'next/link';
 
+import { Icon } from '@/components/Icon';
 import { getT } from '@/lib/i18n.server';
-import { formatDate, type Text } from '@/lib/i18n';
+import { formatDate, type T, type Text } from '@/lib/i18n';
 import type { AgendaColumn } from '@/lib/database.types';
+import type { IconName } from '@/lib/roles';
 
 export type AgendaEntry = {
   entry_kind: string;
@@ -14,69 +16,89 @@ export type AgendaEntry = {
   link: string;
 };
 
-const COLUMNS: { key: AgendaColumn; label: Text }[] = [
-  { key: 'today',       label: { ar: 'اليوم',        en: 'Today' } },
-  { key: 'in_progress', label: { ar: 'قيد التنفيذ',  en: 'In progress' } },
-  { key: 'upcoming',    label: { ar: 'قادم',         en: 'Upcoming' } },
-  { key: 'completed',   label: { ar: 'منجز',         en: 'Done' } },
-];
-
-const KIND_LABEL: Record<string, Text> = {
-  lesson:    { ar: 'درس',        en: 'Lesson' },
-  work:      { ar: 'تسليم',      en: 'Submission' },
-  assessment:{ ar: 'اختبار',     en: 'Assessment' },
-  session:   { ar: 'جلسة',       en: 'Session' },
-  team_task: { ar: 'مهمة فريق',  en: 'Team task' },
+const KIND: Record<string, { label: Text; icon: IconName; color: string }> = {
+  lesson:     { label: { ar: 'درس',        en: 'Lesson' },     icon: 'academy',  color: '#2F6BFF' },
+  work:       { label: { ar: 'تسليم',      en: 'Submission' }, icon: 'work',     color: '#E8590C' },
+  assessment: { label: { ar: 'اختبار',     en: 'Assessment' }, icon: 'check',    color: '#0E9F6E' },
+  session:    { label: { ar: 'جلسة',       en: 'Session' },    icon: 'calendar', color: '#7C5CFF' },
+  team_task:  { label: { ar: 'مهمة فريق',  en: 'Team task' },  icon: 'team',     color: '#0B8FB3' },
 };
 
+const FALLBACK = { label: { ar: 'عنصر', en: 'Item' }, icon: 'layers' as IconName, color: '#5B6B7C' };
+
 /**
- * One board, five sources. Nothing here is stored twice: a lesson stays a
+ * One list, five sources. Nothing here is stored twice: a lesson stays a
  * lesson, a team task stays on its team's board, and this only says where each
- * of them stands today. Dragging a card is therefore not offered — the card
- * would have to lie about where the truth lives.
+ * of them stands today. What is due now is open; what is ahead and what is
+ * done fold away so the list stays short.
  */
 export async function DailyBoard({ entries }: { entries: AgendaEntry[] }) {
   const t = await getT();
+  const now = entries.filter((entry) => entry.bucket === 'today' || entry.bucket === 'in_progress');
+  const upcoming = entries.filter((entry) => entry.bucket === 'upcoming');
+  const done = entries.filter((entry) => entry.bucket === 'completed');
 
   return (
     <section className="section-block">
-      <div className="row-between" style={{ marginBottom: 10 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>{t('لوحة اليوم', 'Today’s board')}</h2>
-        <span className="muted" style={{ fontSize: '0.8rem' }}>
-          {t('تُجمع تلقائياً من دروسك وتسليماتك وجلساتك ومهام فريقك', 'Gathered from your lessons, submissions, sessions and team tasks')}
-        </span>
+      <div className="hm-head">
+        <h2>{t('مهام اليوم', 'Today')}</h2>
+        <Link href="/bookings?tab=calendar">{t('التقويم', 'Calendar')}</Link>
       </div>
 
-      <div className="kanban">
-        {COLUMNS.map((column) => {
-          const cards = entries.filter((entry) => entry.bucket === column.key);
-          return (
-            <div className="kanban-column" key={column.key}>
-              <div className="kanban-head">
-                <span>{t(column.label)}</span>
-                <span className="kanban-count eng">{cards.length}</span>
-              </div>
+      <div className="hm-card hm-today">
+        {now.length === 0 ? (
+          <p className="hm-today-empty">
+            <span aria-hidden="true">🎉</span>
+            {t('لا شيء مستحق اليوم. خذ درساً إضافياً أو ارتح.', 'Nothing due today. Take an extra lesson, or rest.')}
+          </p>
+        ) : (
+          <ul className="hm-list">
+            {now.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
+          </ul>
+        )}
 
-              {cards.length === 0 && <p className="kanban-empty">{t('لا شيء هنا.', 'Nothing here.')}</p>}
+        {upcoming.length > 0 && (
+          <details className="hm-fold">
+            <summary>{t('قادم', 'Coming up')} <span className="hm-count">{upcoming.length}</span></summary>
+            <ul className="hm-list">
+              {upcoming.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
+            </ul>
+          </details>
+        )}
 
-              {cards.map((card) => (
-                <Link className="kanban-card" href={card.link} key={`${card.entry_kind}-${card.entry_id}`}>
-                  <span className="kanban-kind">
-                    {KIND_LABEL[card.entry_kind] ? t(KIND_LABEL[card.entry_kind]) : card.entry_kind}
-                  </span>
-                  <strong>{card.title_ar}</strong>
-                  {card.detail_ar && <span className="muted">{card.detail_ar}</span>}
-                  {card.due_on && (
-                    <time dateTime={card.due_on}>
-                      {formatDate(t.locale, `${card.due_on}T00:00:00`)}
-                    </time>
-                  )}
-                </Link>
-              ))}
-            </div>
-          );
-        })}
+        {done.length > 0 && (
+          <details className="hm-fold">
+            <summary>{t('منجز', 'Done')} <span className="hm-count is-ok">{done.length}</span></summary>
+            <ul className="hm-list is-done">
+              {done.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
+            </ul>
+          </details>
+        )}
       </div>
     </section>
+  );
+}
+
+function Row({ entry, t }: { entry: AgendaEntry; t: T }) {
+  const kind = KIND[entry.entry_kind] ?? FALLBACK;
+  return (
+    <li>
+      <Link className="hm-row" href={entry.link}>
+        <span className="hm-row-icon" style={{ background: kind.color }}><Icon name={kind.icon} size={16} /></span>
+        <span className="hm-row-main">
+          <strong>{entry.title_ar}</strong>
+          <span className="muted">
+            {t(kind.label)}{entry.detail_ar && <> · {entry.detail_ar}</>}
+          </span>
+        </span>
+        {entry.bucket === 'completed'
+          ? <span className="hm-row-check" aria-label={t('منجز', 'Done')}><Icon name="check" size={14} /></span>
+          : entry.due_on && (
+            <time className="hm-row-when date" dateTime={entry.due_on}>
+              {formatDate(t.locale, `${entry.due_on}T00:00:00`)}
+            </time>
+          )}
+      </Link>
+    </li>
   );
 }

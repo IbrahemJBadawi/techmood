@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { Stars } from '@/components/Stars';
 import { Avatar } from '../../shell/ProfileMenu';
 import { levelInfo } from '@/lib/xp';
 import { getT } from '@/lib/i18n.server';
@@ -28,116 +27,66 @@ const SOURCE_LABEL: Record<string, Text> = {
 };
 
 /**
- * The strip is filled by what happened, not by opening the app. A day turns
- * solid when something was finished on it — a lesson, a submission, an
- * assessment, an attended session, a closed team task. Logging in is not work,
- * and neither is a timer.
+ * The top of the home page: who you are, and the three numbers a learner
+ * checks first — the streak, the points, the stars. They sit here rather than
+ * in the side column so a phone shows them before anything else.
  */
 export async function StudentHero({
   name,
   avatarUrl,
-  techmoodId,
   primaryField,
   currentPath,
   totalXp,
   stars,
-  ratedCount,
   streak,
-  week,
 }: {
   name: string;
   avatarUrl: string | null;
-  techmoodId: string;
   primaryField: string | null;
   currentPath: { slug: string; title: string; percent: number } | null;
   totalXp: number;
   stars: number;
-  ratedCount: number;
   streak: number;
-  week: ActivityDay[];
 }) {
   const t: T = await getT();
   const level = levelInfo(totalXp);
+  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : t('مساء الخير', hour < 18 ? 'Good afternoon' : 'Good evening');
+  const firstName = name.trim().split(/\s+/)[0];
 
   return (
-    <section className="panel section-block student-hero">
-      <div className="student-hero-main">
-        <Avatar name={name} url={avatarUrl} size={64} />
-
-        <div className="student-hero-id">
-          <p className="kicker">{t('أهلاً بعودتك', 'Welcome back')}</p>
-          <h2>{name}</h2>
+    <section className="hm-hello section-block">
+      <div className="hm-hello-id">
+        <Avatar name={name} url={avatarUrl} size={56} />
+        <div style={{ minWidth: 0 }}>
+          <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
           <p className="muted">
             {primaryField ?? t('لم تحدّد مجالك الرئيسي بعد', 'No primary field chosen yet')}
             {currentPath && <> · {currentPath.title}</>}
           </p>
-          <div className="tags-row" style={{ marginTop: 8 }}>
-            <span className="badge-pill">{t(level.current.title)}</span>
-            <span className="id-chip">{techmoodId}</span>
-          </div>
-        </div>
-
-        <div className="student-hero-meters">
-          <div className="meter">
-            <span className="meter-label">{t('التقييم', 'Rating')}</span>
-            <Stars value={stars} />
-            <span className="meter-note">
-              {t(`${ratedCount} عمل مُقيَّم`, `${ratedCount} rated ${ratedCount === 1 ? 'piece' : 'pieces'}`)}
-            </span>
-          </div>
-          <div className="meter">
-            <span className="meter-label">{t('نقاط TechMood', 'TechMood points')}</span>
-            <span className="xp-badge eng">{totalXp} XP</span>
-            <span className="meter-note">{t('كمّية ما أنجزت', 'how much you have done')}</span>
-          </div>
-          <div className="meter">
-            <span className="meter-label">{t('التتابع', 'Streak')}</span>
-            <span className="streak-badge">🔥 {streak}</span>
-            <span className="meter-note">
-              {t(streak === 1 ? 'يوم متتالٍ' : 'أيام متتالية',
-                 streak === 1 ? 'day in a row' : 'days in a row')}
-            </span>
-          </div>
         </div>
       </div>
 
-      {level.next && (
-        <div className="student-hero-progress">
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${level.percent}%` }} />
-          </div>
-          <p className="muted">
-            {t(`${level.percent}% نحو رتبة «${t(level.next.title)}»`,
-               `${level.percent}% towards “${t(level.next.title)}”`)}
-          </p>
-        </div>
-      )}
-
-      <div className="week-strip" aria-label={t('نشاط الأسبوع', 'This week’s activity')}>
-        {week.map((day) => {
-          const date = new Date(`${day.on_date}T00:00:00`);
-          const active = day.sources.length > 0;
-          const what = day.sources
-            .map((source) => (SOURCE_LABEL[source] ? t(SOURCE_LABEL[source]) : source))
-            .join(t('، ', ', '));
-          return (
-            <div className={`week-day${active ? ' is-active' : ''}`} key={day.on_date}>
-              <span className="week-dot"
-                    title={active ? what : t('لا نشاط', 'nothing finished')}
-                    aria-hidden="true" />
-              <span className="week-label">{t(WEEKDAY[date.getDay()])}</span>
-              <span className="sr-only">
-                {active
-                  ? `${t(WEEKDAY[date.getDay()])}: ${what}`
-                  : `${t(WEEKDAY[date.getDay()])}: ${t('لا نشاط', 'nothing finished')}`}
-              </span>
-            </div>
-          );
-        })}
+      <div className="hm-pills">
+        <span className={`hm-pill is-streak${streak > 0 ? ' is-on' : ''}`} title={t('أيام متتالية من الإنجاز', 'Days in a row with something finished')}>
+          <span aria-hidden="true">🔥</span>
+          <strong>{streak}</strong>
+          <span className="hm-pill-label">{t(streak === 1 ? 'يوم' : 'أيام', streak === 1 ? 'day' : 'days')}</span>
+        </span>
+        <span className="hm-pill is-xp" title={t('نقاط TechMood', 'TechMood points')}>
+          <span aria-hidden="true">⚡</span>
+          <strong>{totalXp}</strong>
+          <span className="hm-pill-label">XP</span>
+        </span>
+        <span className="hm-pill is-stars" title={t('متوسط تقييم أعمالك', 'Average rating of your work')}>
+          <span aria-hidden="true">⭐</span>
+          <strong>{stars > 0 ? stars.toFixed(1) : '—'}</strong>
+        </span>
+        <span className="hm-pill is-level">{t(level.current.title)}</span>
       </div>
 
       {!primaryField && (
-        <p className="notice">
+        <p className="notice hm-hello-note">
           {t('حدّد مجالك الرئيسي من ', 'Choose your primary field in ')}
           <Link href="/settings/fields">{t('مجالاتي', 'My fields')}</Link>
           {t(' — عليه تُبنى مطابقة المنتورز والفرق والفرص.',
@@ -145,5 +94,79 @@ export async function StudentHero({
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * The week, day by day. A day turns solid when something was finished on it —
+ * a lesson, a submission, an assessment, an attended session, a closed team
+ * task. Logging in is not work, and neither is a timer.
+ */
+export async function StreakCard({
+  streak,
+  week,
+  totalXp,
+}: {
+  streak: number;
+  week: ActivityDay[];
+  totalXp: number;
+}) {
+  const t: T = await getT();
+  const level = levelInfo(totalXp);
+  const todayKey = week.length ? week[week.length - 1].on_date : '';
+  const doneToday = week.some((day) => day.on_date === todayKey && day.sources.length > 0);
+
+  return (
+    <article className="hm-card hm-streak">
+      <div className="hm-streak-head">
+        <span className={`hm-flame${streak > 0 ? ' is-on' : ''}`} aria-hidden="true">🔥</span>
+        <div>
+          <strong className="hm-streak-num">
+            {t(`${streak} ${streak === 1 ? 'يوم' : 'أيام'} متتالية`, `${streak}-day streak`)}
+          </strong>
+          <p className="muted">
+            {doneToday
+              ? t('أنجزت شيئاً اليوم — أحسنت.', 'You finished something today — nice.')
+              : t('أنهِ درساً أو مهمة اليوم لتحافظ على التتابع.', 'Finish a lesson or a task today to keep it going.')}
+          </p>
+        </div>
+      </div>
+
+      <ol className="hm-week" aria-label={t('نشاط الأسبوع', 'This week’s activity')}>
+        {week.map((day) => {
+          const date = new Date(`${day.on_date}T00:00:00`);
+          const active = day.sources.length > 0;
+          const what = day.sources
+            .map((source) => (SOURCE_LABEL[source] ? t(SOURCE_LABEL[source]) : source))
+            .join(t('، ', ', '));
+          return (
+            <li className={`${active ? 'is-active' : ''}${day.on_date === todayKey ? ' is-today' : ''}`}
+                key={day.on_date}
+                title={active ? what : t('لا نشاط', 'nothing finished')}>
+              <span className="hm-week-dot" aria-hidden="true">{active ? '✓' : ''}</span>
+              <span className="hm-week-label">{t(WEEKDAY[date.getDay()])}</span>
+              <span className="sr-only">{active ? what : t('لا نشاط', 'nothing finished')}</span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="hm-level">
+        <div className="row-between">
+          <strong>{t(level.current.title)}</strong>
+          {level.next && (
+            <span className="muted">{t(`التالي: ${t(level.next.title)}`, `Next: ${t(level.next.title)}`)}</span>
+          )}
+        </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${level.percent}%` }} />
+        </div>
+        <p className="muted">
+          {level.next
+            ? t(`${level.next.minXp - totalXp} نقطة للرتبة التالية`, `${level.next.minXp - totalXp} XP to the next rank`)
+            : t('وصلت أعلى رتبة.', 'You reached the top rank.')}
+        </p>
+      </div>
+    </article>
   );
 }

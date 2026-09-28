@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { ROLE_BY_VALUE, roleLabel } from '@/lib/roles';
 import { getT } from '@/lib/i18n.server';
@@ -13,7 +14,7 @@ type Tile = { value: number | string; label: string; href: string };
  * real count from a real table — an empty workspace shows a zero and says what
  * to do about it, rather than a decorative figure.
  */
-export async function RoleDashboard({ role, userId }: { role: UserRole; userId: string }) {
+export async function RoleDashboard({ role, userId, name }: { role: UserRole; userId: string; name: string }) {
   const t = await getT();
   const supabase = await createClient();
 
@@ -172,26 +173,36 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
     cta = { href: '/admin/role-requests', label: t('ابدأ بالطلبات', 'Start with the requests') };
   }
 
-  return (
-    <section className="section-block">
-      <div className="row-between" style={{ marginBottom: 6 }}>
-        <h2 style={{ fontSize: '1.05rem' }}>
-          {t(`لوحة ${t(roleLabel(role))}`, `${t(roleLabel(role))} dashboard`)}
-        </h2>
-        {cta && <Link className="btn btn-ghost btn-sm" href={cta.href}>{cta.label}</Link>}
-      </div>
-      <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 14 }}>
-        {lede} {t(ROLE_BY_VALUE[role].blurb)}
-      </p>
+  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : t('مساء الخير', hour < 18 ? 'Good afternoon' : 'Good evening');
+  const firstName = name.trim().split(/\s+/)[0];
+  // The tile that asks something of you comes first and is coloured; a zero stays quiet.
+  const look = ROLE_BY_VALUE[role];
 
-      <div className="stat-tiles">
+  return (
+    <>
+      <section className="hm-hello section-block">
+        <div className="hm-hello-id">
+          <span className="rd-role-icon" aria-hidden="true"><Icon name={look.icon} size={24} /></span>
+          <div style={{ minWidth: 0 }}>
+            <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
+            <p className="muted">{t(`أنت الآن في لوحة ${t(roleLabel(role))}`, `You are in your ${t(roleLabel(role))} dashboard`)}</p>
+          </div>
+        </div>
+        {cta && <Link className="btn btn-primary" href={cta.href}>{cta.label}</Link>}
+      </section>
+
+      <p className="rd-lede section-block">{lede} {t(look.blurb)}</p>
+
+      <div className="rd-tiles section-block">
         {tiles.map((tile) => (
-          <Link className="stat-tile" href={tile.href} key={tile.label}>
-            <div className="val eng">{tile.value}</div>
-            <div className="lbl">{tile.label}</div>
+          <Link className={`hm-card rd-tile${Number(tile.value) > 0 ? ' is-live' : ''}`} href={tile.href} key={tile.label}>
+            <strong>{tile.value}</strong>
+            <span>{tile.label}</span>
+            <span className="rd-go" aria-hidden="true"><Icon name="arrow" size={16} /></span>
           </Link>
         ))}
       </div>
-    </section>
+    </>
   );
 }

@@ -68,7 +68,7 @@ export default async function HomePage({
       */}
       {active === 'student'
         ? <StudentHome userId={user.id} profile={profile} windowKey={windowKey} />
-        : <RoleDashboard role={active} userId={user.id} />}
+        : <RoleDashboard role={active} userId={user.id} name={profile.display_name ?? profile.full_name} />}
     </>
   );
 }
