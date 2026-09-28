@@ -71,8 +71,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ الذكاء الاصطناعي التوليدي',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'genai';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -148,8 +148,8 @@ from public.courses c where c.slug = 'python-for-ai';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: Python للذكاء الاصطناعي',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'python-for-ai';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -225,8 +225,8 @@ from public.courses c where c.slug = 'ml-foundations';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: أساسيات تعلّم الآلة',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'ml-foundations';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -311,8 +311,8 @@ from public.courses c where c.slug = 'generative-ai';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: الذكاء الاصطناعي التوليدي',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'generative-ai';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -334,8 +334,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ تحليل البيانات',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'data';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -411,8 +411,8 @@ from public.courses c where c.slug = 'data-excel';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: أساسيات البيانات وExcel',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'data-excel';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -488,8 +488,8 @@ from public.courses c where c.slug = 'sql-analysis';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: SQL للتحليل',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'sql-analysis';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -565,8 +565,8 @@ from public.courses c where c.slug = 'dashboards';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: لوحات التحكم والتقارير',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'dashboards';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -588,8 +588,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ تطوير الويب',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'web';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -665,8 +665,8 @@ from public.courses c where c.slug = 'html-css';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: أساسيات HTML وCSS',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'html-css';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -742,8 +742,8 @@ from public.courses c where c.slug = 'modern-js';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: JavaScript الحديث',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'modern-js';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -819,8 +819,8 @@ from public.courses c where c.slug = 'react';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: React وبناء الواجهات',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'react';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -842,8 +842,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ إدارة المنتجات',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'product';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -919,8 +919,8 @@ from public.courses c where c.slug = 'user-research';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: فهم المستخدم',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'user-research';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -996,8 +996,8 @@ from public.courses c where c.slug = 'product-design';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: تصميم المنتج',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'product-design';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1073,8 +1073,8 @@ from public.courses c where c.slug = 'launch-measure';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: الإطلاق والقياس',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'launch-measure';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1096,8 +1096,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ الحوسبة السحابية',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'cloud';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1173,8 +1173,8 @@ from public.courses c where c.slug = 'cloud-foundations';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: أساسيات الحوسبة السحابية',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'cloud-foundations';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1250,8 +1250,8 @@ from public.courses c where c.slug = 'containers';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: النشر والحاويات',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'containers';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1327,8 +1327,8 @@ from public.courses c where c.slug = 'observability';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: المراقبة والتشغيل الآلي',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'observability';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1350,8 +1350,8 @@ on conflict (slug) do nothing;
 insert into public.assignments (kind, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work)
 select 'path_project', lp.id,
        'المشروع الجماعي لـ ريادة الأعمال الرقمية',
-       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم بمستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true, true
+       'مشروع تخرّج جماعي يطبّق كل دورات المسار معاً، ويُنفَّذ ضمن فريق. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true, true
 from public.learning_paths lp where lp.slug = 'business';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1427,8 +1427,8 @@ from public.courses c where c.slug = 'idea-to-opportunity';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: من الفكرة إلى الفرصة',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'idea-to-opportunity';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1504,8 +1504,8 @@ from public.courses c where c.slug = 'validation';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: التحقق من الفكرة',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'validation';
 
 insert into public.assignment_skills (assignment_id, skill_id)
@@ -1581,8 +1581,8 @@ from public.courses c where c.slug = 'business-model';
 
 insert into public.assignments (kind, course_id, title_ar, brief_ar, required_evidence, is_required)
 select 'course_project', c.id, 'مشروع الدورة: نموذج العمل',
-       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض: مستودع الكود، منشور توثيق على LinkedIn، وفيديو شرح.',
-       array['github','linkedin','youtube']::public.evidence_kind[], true
+       'مشروع تطبيقي يجمع كل ما تعلمته في هذه الدورة في عمل واحد قابل للعرض. يُسلَّم برابط المشروع (مستودع أو موقع أو ملفات)، ويمكن إضافة فيديو شرح على YouTube ومنشور على LinkedIn.',
+       '{}'::public.evidence_kind[], true
 from public.courses c where c.slug = 'business-model';
 
 insert into public.assignment_skills (assignment_id, skill_id)

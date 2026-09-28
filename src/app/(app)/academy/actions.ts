@@ -47,13 +47,29 @@ export async function submitWork(_prev: ActionState, formData: FormData): Promis
     .split(',')
     .filter(Boolean) as EvidenceKind[];
 
-  const evidence = required
-    .map((kind) => ({ kind, url: String(formData.get(`url_${kind}`) ?? '').trim(), label: kind }))
+  const evidence: { kind: EvidenceKind; url: string; label: string }[] = required
+    .map((kind) => ({ kind, url: String(formData.get(`url_${kind}`) ?? '').trim(), label: kind as string }))
     .filter((item) => item.url.length > 0);
 
   const missing = required.filter((kind) => !evidence.some((item) => item.kind === kind));
   if (missing.length > 0) {
     return { error: t('الرجاء إدخال كل الروابط المطلوبة قبل التسليم.', 'Please fill in every required link before submitting.') };
+  }
+
+  // A project: its own link is required; YouTube and LinkedIn are optional (0096).
+  if (formData.get('is_project')) {
+    const projectKinds: EvidenceKind[] = ['github', 'website', 'portfolio', 'drive'];
+    const projectKind = String(formData.get('project_kind') ?? 'github') as EvidenceKind;
+    const projectUrl = String(formData.get('url_project') ?? '').trim();
+    if (!projectUrl) {
+      return { error: t('رابط المشروع مطلوب.', 'The project link is required.') };
+    }
+    evidence.push({ kind: projectKinds.includes(projectKind) ? projectKind : 'github', url: projectUrl, label: 'project' });
+
+    for (const kind of ['youtube', 'linkedin'] as EvidenceKind[]) {
+      const url = String(formData.get(`url_${kind}`) ?? '').trim();
+      if (url && !required.includes(kind)) evidence.push({ kind, url, label: kind });
+    }
   }
 
   if (evidence.some((item) => !/^https?:\/\//i.test(item.url))) {
@@ -67,6 +83,12 @@ export async function submitWork(_prev: ActionState, formData: FormData): Promis
   });
 
   if (error) {
+    if (error.message.includes('YouTube')) {
+      return { error: t('رابط الشرح يجب أن يكون من YouTube.', 'The walkthrough link must be a YouTube link.') };
+    }
+    if (error.message.includes('رابط المشروع')) {
+      return { error: t('رابط المشروع مطلوب.', 'The project link is required.') };
+    }
     return { error: t('تعذّر إرسال التسليم — حاول مرة أخرى.', 'The submission could not be sent — try again.') };
   }
 

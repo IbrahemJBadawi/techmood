@@ -38,6 +38,7 @@ export function SubmissionPanel({
   evaluations,
   revalidatePath,
   hasOpenReevaluation = false,
+  isProject = false,
 }: {
   assignmentId: string;
   title: string;
@@ -47,6 +48,8 @@ export function SubmissionPanel({
   evaluations: Evaluation[];
   revalidatePath: string;
   hasOpenReevaluation?: boolean;
+  /** A course or path project: a project link is required, YouTube and LinkedIn optional (0096). */
+  isProject?: boolean;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(submitWork, undefined as ActionState);
@@ -106,7 +109,11 @@ export function SubmissionPanel({
           <input type="hidden" name="required_evidence" value={requiredEvidence.join(',')} />
           <input type="hidden" name="revalidate" value={revalidatePath} />
 
-          {requiredEvidence.length === 0 && (
+          {isProject && (
+            <input type="hidden" name="is_project" value="1" />
+          )}
+
+          {requiredEvidence.length === 0 && !isProject && (
             <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 12 }}>
               {t('هذه المهمة لا تتطلب روابط — أرفق ملاحظة توضح ما نفّذته.', 'This task needs no links — leave a note explaining what you did.')}
             </p>
@@ -125,6 +132,38 @@ export function SubmissionPanel({
               />
             </div>
           ))}
+
+          {isProject && (
+            <>
+              <div className="field-row">
+                <div className="field" style={{ maxWidth: 200 }}>
+                  <label htmlFor={`project_kind_${assignmentId}`}>{t('نوع رابط المشروع', 'Project link type')}</label>
+                  <select id={`project_kind_${assignmentId}`} name="project_kind" defaultValue="github">
+                    <option value="github">{t('مستودع (GitHub)', 'Repository (GitHub)')}</option>
+                    <option value="website">{t('موقع منشور', 'Live website')}</option>
+                    <option value="portfolio">{t('معرض أعمال', 'Portfolio page')}</option>
+                    <option value="drive">{t('ملفات (Drive)', 'Files (Drive)')}</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor={`url_project_${assignmentId}`}>{t('رابط المشروع *', 'Project link *')}</label>
+                  <input id={`url_project_${assignmentId}`} name="url_project" type="url" required dir="ltr" placeholder="https://" />
+                </div>
+              </div>
+              {!requiredEvidence.includes('youtube') && (
+                <div className="field">
+                  <label htmlFor={`url_youtube_${assignmentId}`}>{t('فيديو شرح على YouTube (اختياري)', 'YouTube walkthrough (optional)')}</label>
+                  <input id={`url_youtube_${assignmentId}`} name="url_youtube" type="url" dir="ltr" placeholder="https://youtube.com/…" />
+                </div>
+              )}
+              {!requiredEvidence.includes('linkedin') && (
+                <div className="field">
+                  <label htmlFor={`url_linkedin_${assignmentId}`}>{t('منشور على LinkedIn (اختياري)', 'LinkedIn post (optional)')}</label>
+                  <input id={`url_linkedin_${assignmentId}`} name="url_linkedin" type="url" dir="ltr" placeholder="https://" />
+                </div>
+              )}
+            </>
+          )}
 
           <div className="field">
             <label htmlFor={`note_${assignmentId}`}>{t('ملاحظة للمراجع (اختياري)', 'A note for the reviewer (optional)')}</label>

@@ -1813,3 +1813,12 @@ tells the mentor and the admins once. A confirmed booking earns the learner
 3 XP (`mentor_session_booked`), taken back if it is cancelled or refunded;
 attending still earns 5.
 
+## Handing in a project (0096)
+
+A course or path project is handed in with a link to the project itself — a
+repository, a live site, a portfolio page, a Drive folder or a file; at least
+one is required by `submit_work()`. A YouTube walkthrough and a LinkedIn post
+are optional; a walkthrough, when given, must be a YouTube link, and every link
+must be a web address. Empty optional fields are not stored. The path project,
+which had no hand-in form, is now handed in on its path's page.
+

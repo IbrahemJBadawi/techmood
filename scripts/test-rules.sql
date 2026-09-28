@@ -7951,6 +7951,44 @@ select public.assert(
   not exists (select 1 from public.xp_events where source = 'mentor_session_booked' and ref_id = :'bk67c'),
   '67.11 a confirmed booking that is called off takes its booking XP back');
 
+-- ===========================================================================
+-- 68. A project is handed in with its link; the video is welcome, not required
+-- ===========================================================================
+select public.assert(
+  not exists (select 1 from public.assignments
+               where kind in ('course_project', 'path_project')
+                 and required_evidence && array['linkedin', 'youtube']::public.evidence_kind[]),
+  '68.1 no course or path project requires a LinkedIn post or a YouTube video any more');
+
+select a.id as proj68 from public.assignments a
+ where a.kind = 'course_project' and a.status = 'published'
+ order by a.created_at limit 1 \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.submit_work(%L, '[{"kind":"youtube","url":"https://youtu.be/abc"}]'::jsonb)$$, :'proj68'),
+  '68.2 a walkthrough alone is not a project: its link is required',
+  'رابط المشروع مطلوب');
+select public.assert_rejects(
+  format($$select public.submit_work(%L, '[{"kind":"github","url":"https://github.com/x/y"},{"kind":"youtube","url":"https://vimeo.com/1"}]'::jsonb)$$, :'proj68'),
+  '68.3 a walkthrough, when given, is a YouTube link',
+  'YouTube');
+select public.assert_rejects(
+  format($$select public.submit_work(%L, '[{"kind":"website","url":"javascript:alert(1)"}]'::jsonb)$$, :'proj68'),
+  '68.4 and every link is a web address',
+  'http');
+select public.submit_work(:'proj68',
+  '[{"kind":"website","url":"https://sara-project.example"},{"kind":"youtube","url":""}]'::jsonb) as sub68 \gset
+select public.assert(
+  (select status from public.submissions where id = :'sub68') = 'submitted'
+  and (select count(*) from public.submission_evidence se
+         join public.submission_versions sv on sv.id = se.version_id
+        where sv.submission_id = :'sub68') = 1,
+  '68.5 a project link with no video is a complete hand-in; empty optional fields are not stored');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

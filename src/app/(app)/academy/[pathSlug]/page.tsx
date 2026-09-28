@@ -4,7 +4,10 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
+import type { Evaluation, Submission } from '@/lib/database.types';
+
 import { enrolInPath } from '../actions';
+import { SubmissionPanel } from '../SubmissionPanel';
 
 export default async function PathPage({ params }: { params: Promise<{ pathSlug: string }> }) {
   const { pathSlug } = await params;
@@ -68,10 +71,32 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const { data: groupProject } = await supabase
     .from('assignments')
-    .select('id, title_ar, brief_ar, required_evidence')
+    .select('id, title_ar, brief_ar, required_evidence, status')
     .eq('path_id', path.id)
     .eq('kind', 'path_project')
     .maybeSingle();
+
+  // The path project is handed in here, like a course project on its course's
+  // page: a project link, with a YouTube walkthrough if the team made one.
+  const { data: projectSubmission } = groupProject && enrolment
+    ? await supabase
+        .from('submissions')
+        .select('id, assignment_id, profile_id, team_id, status, current_version, created_at, updated_at')
+        .eq('assignment_id', groupProject.id)
+        .eq('profile_id', user.id)
+        .maybeSingle()
+    : { data: null };
+  const [{ data: projectEvaluations }, { data: projectReevaluation }] = projectSubmission
+    ? await Promise.all([
+        supabase
+          .from('evaluations')
+          .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
+          .eq('submission_id', projectSubmission.id)
+          .order('created_at', { ascending: true }),
+        supabase.from('reevaluation_requests').select('submission_id')
+          .eq('status', 'open').eq('submission_id', projectSubmission.id).maybeSingle(),
+      ])
+    : [{ data: [] }, { data: null }];
 
   const doneCount = completion.filter((item) => item.complete).length;
   const percent = courses.length ? Math.round((doneCount / courses.length) * 100) : 0;
@@ -171,7 +196,24 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
               <h3 style={{ fontSize: '0.98rem' }}>🏆 {groupProject.title_ar}</h3>
               <span className="badge-pill" style={{ marginTop: 8 }}>{t('مشروع جماعي', 'Group project')}</span>
               <p className="muted" style={{ fontSize: '0.85rem', marginTop: 10 }}>{groupProject.brief_ar}</p>
+              {groupProject.status === 'planned' && (
+                <p className="notice" style={{ marginTop: 10 }}>{t('يُفتح التسليم قريباً.', 'Hand-in opens soon.')}</p>
+              )}
             </div>
+          )}
+
+          {groupProject && enrolment && groupProject.status === 'published' && (
+            <SubmissionPanel
+              assignmentId={groupProject.id}
+              title={t('سلّم مشروع المسار', 'Hand in the path project')}
+              brief={null}
+              requiredEvidence={groupProject.required_evidence}
+              submission={(projectSubmission ?? null) as Submission | null}
+              evaluations={(projectEvaluations ?? []) as Evaluation[]}
+              revalidatePath={`/academy/${path.slug}`}
+              hasOpenReevaluation={Boolean(projectReevaluation)}
+              isProject
+            />
           )}
 
           <div className="panel">

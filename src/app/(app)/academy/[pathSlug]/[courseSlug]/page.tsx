@@ -279,6 +279,7 @@ export default async function CoursePage({
               title={courseProject.title_ar}
               brief={courseProject.brief_ar}
               requiredEvidence={courseProject.required_evidence}
+              isProject
               submission={submissionFor(courseProject.id)}
               evaluations={evaluationsFor(submissionFor(courseProject.id)?.id)}
               hasOpenReevaluation={hasOpenReevaluation(submissionFor(courseProject.id)?.id)}
