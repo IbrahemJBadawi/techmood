@@ -166,7 +166,7 @@ export default async function MentorRequestsPage() {
                     <span className="eng">{type?.duration_minutes ?? 60} min</span>
                   </p>
                   {request.mentor_respond_by && (
-                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4, color: 'var(--warn)' }}>
+                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4, color: 'var(--warn-ink)' }}>
                       {t('ردّ قبل ', 'Answer before ')}
                       {formatSlot(request.mentor_respond_by).date} · <span className="eng">{formatSlot(request.mentor_respond_by).time}</span>
                       {t(' — وإلا يُعتذر عنه تلقائياً ويُعاد المبلغ للطالب.', ' — or it is declined for you and the learner refunded.')}

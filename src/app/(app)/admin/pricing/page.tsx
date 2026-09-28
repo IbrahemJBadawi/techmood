@@ -199,8 +199,8 @@ export default async function AdminPricingPage() {
                   <input type="hidden" name="kind" value={kind} />
                   <input type="hidden" name="min_amount" value={tier.min_amount_usd} />
                   <span className="eng" style={{ minWidth: 90 }}>{t('من ', 'From ')}{money(tier.min_amount_usd)}</span>
-                  <input name="rate" type="number" step="0.01" min={0} max={50} defaultValue={tier.rate_percent} style={{ width: 80 }} aria-label="%" />
-                  <input name="note" defaultValue={tier.note_ar ?? ''} placeholder={t('ملاحظة', 'Note')} />
+                  <input name="rate" type="number" step="0.01" min={0} max={50} defaultValue={tier.rate_percent} style={{ width: 80 }} aria-label={t('النسبة %', 'Rate %')} />
+                  <input name="note" defaultValue={tier.note_ar ?? ''} placeholder={t('ملاحظة', 'Note')} aria-label={t('ملاحظة', 'Note')} />
                 </ActionForm>
                 {Number(tier.min_amount_usd) > 0 && (
                   <ActionForm action={saveTier} variant="ghost" submitLabel={t('احذف', 'Remove')}>
@@ -214,8 +214,8 @@ export default async function AdminPricingPage() {
             ))}
             <ActionForm action={saveTier} className="admin-inline-form" variant="ghost" submitLabel={t('أضف شريحة', 'Add a bracket')}>
               <input type="hidden" name="kind" value={kind} />
-              <input name="min_amount" type="number" step="1" min={1} required placeholder={t('من مبلغ ($)', 'From amount ($)')} />
-              <input name="rate" type="number" step="0.01" min={0} max={50} required placeholder="%" style={{ width: 80 }} />
+              <input name="min_amount" type="number" step="1" min={1} required placeholder={t('من مبلغ ($)', 'From amount ($)')} aria-label={t('من مبلغ ($)', 'From amount ($)')} />
+              <input name="rate" type="number" step="0.01" min={0} max={50} required placeholder="%" style={{ width: 80 }} aria-label={t('النسبة %', 'Rate %')} />
             </ActionForm>
           </div>
         ))}
@@ -228,7 +228,8 @@ export default async function AdminPricingPage() {
             <ActionForm action={saveSetting} className="admin-inline-form panel" key={setting.key} submitLabel={t('احفظ', 'Save')}>
               <input type="hidden" name="key" value={setting.key} />
               <span style={{ minWidth: 260 }}>{t(setting.label)}</span>
-              <input name="value" type="number" min={0} defaultValue={settingOf.get(setting.key) ?? ''} style={{ width: 100 }} />
+              <input name="value" type="number" min={0} defaultValue={settingOf.get(setting.key) ?? ''} style={{ width: 100 }}
+                     aria-label={t(setting.label)} />
               <span className="muted" style={{ fontSize: '0.8rem' }}>{t(setting.unit)}</span>
             </ActionForm>
           ))}
@@ -248,7 +249,8 @@ export default async function AdminPricingPage() {
             <ActionForm action={saveSetting} className="admin-inline-form panel" key={setting.key} submitLabel={t('احفظ', 'Save')}>
               <input type="hidden" name="key" value={setting.key} />
               <span style={{ minWidth: 220 }}>{setting.label}</span>
-              <input name="value" maxLength={240} defaultValue={settingOf.get(setting.key) ?? ''} style={{ flex: 1 }} />
+              <input name="value" maxLength={240} defaultValue={settingOf.get(setting.key) ?? ''} style={{ flex: 1 }}
+                     aria-label={setting.label} />
             </ActionForm>
           ))}
         </div>

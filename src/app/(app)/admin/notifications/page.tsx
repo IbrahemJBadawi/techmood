@@ -155,7 +155,7 @@ export default async function AdminNotificationsPage() {
                   <td data-label={t('قُرئ', 'Read')} className="eng">{row.read_count}</td>
                   <td data-label={t('بريد', 'Mail')} className="eng">
                     {row.emails_sent}/{row.emails}
-                    {row.emails_failed > 0 && <span style={{ color: 'var(--danger)' }}> · {row.emails_failed}</span>}
+                    {row.emails_failed > 0 && <span style={{ color: 'var(--danger-ink)' }}> · {row.emails_failed}</span>}
                   </td>
                   <td data-label={t('التاريخ', 'Sent')} className="muted">
                     {row.sent_at ? formatDateTime(locale, row.sent_at) : '—'}

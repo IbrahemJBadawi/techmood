@@ -102,7 +102,7 @@ export function Leaderboard({
           {t('لا بيانات في هذه النافذة بعد.', 'No data in this window yet.')}
         </p>
       ) : (
-        <ol className="hm-ranks">
+        <ol className="hm-ranks" tabIndex={0} aria-label={t('الترتيب', 'Ranking')}>
           {rows.map((row) => (
             <li key={row.id} className={row.rank <= 3 ? `is-top is-${row.rank}` : undefined}>
               <span className="hm-rank">{MEDAL[row.rank] ?? row.rank}</span>

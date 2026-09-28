@@ -102,6 +102,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main">{t('تخطَّ إلى المحتوى', 'Skip to content')}</a>
       <aside className="sidebar" aria-label={t('التنقّل', 'Navigation')}>
         <div className="sidebar-logo">
           <LogoMark />
@@ -166,7 +167,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
 
         <AssistantProvider>
-          <div className="content" data-active-role={ROLE_BY_VALUE[active].value}>
+          <main className="content" id="main" tabIndex={-1} data-active-role={ROLE_BY_VALUE[active].value}>
             {(restrictions ?? []).length > 0 && (
               <p className="notice notice-danger" style={{ marginBottom: 16 }}>
                 {(restrictions ?? []).some((row) => row.feature === 'everything')
@@ -194,7 +195,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </p>
             )}
             {children}
-          </div>
+          </main>
 
           {/* A layer over every page, not a page of its own. */}
           <Assistant />

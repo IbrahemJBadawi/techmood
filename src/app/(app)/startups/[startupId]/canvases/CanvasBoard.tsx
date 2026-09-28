@@ -209,7 +209,7 @@ export function CanvasBoard({
                     <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>{t('إلغاء', 'Cancel')}</button>
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--danger)', marginInlineStart: 'auto' }}
+                      style={{ color: 'var(--danger-ink)', marginInlineStart: 'auto' }}
                       onClick={() => void removeCard(card.id)}
                     >
                       {t('حذف', 'Delete')}

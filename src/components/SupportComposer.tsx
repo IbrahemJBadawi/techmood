@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState, useTransition, type ReactNode } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
 
 type State = { error?: string; ok?: string } | undefined;
@@ -42,7 +42,7 @@ export function SupportComposer({
       }
       const safe = file.name.replace(/[^\w.\-]+/g, '-').slice(-60);
       const path = `${userId}/${Date.now()}-${safe}`;
-      const { error } = await createClient().storage.from('support-files').upload(path, file, {
+      const { error } = await (await browserClient()).storage.from('support-files').upload(path, file, {
         contentType: file.type || 'application/octet-stream',
         upsert: false,
       });

@@ -73,7 +73,7 @@ export default async function TaskDetailPage({
             {task.assignee_id ? nameById.get(task.assignee_id) ?? '—' : t('بلا مسؤول', 'Unassigned')}
           </span>
           {task.due_on && (
-            <span className="badge-pill eng" style={isOverdue(task.due_on, task.column_key) ? { color: 'var(--danger)' } : undefined}>
+            <span className="badge-pill eng" style={isOverdue(task.due_on, task.column_key) ? { color: 'var(--danger-ink)' } : undefined}>
               {task.due_on}
             </span>
           )}

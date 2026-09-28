@@ -287,7 +287,7 @@ export async function StudentHome({
                       <Link className="hm-row" href={`/academy/${row.path!.slug}`}>
                         {percent !== null
                           ? <ProgressRing percent={percent} size={44} stroke={4} label={t('تقدّم المسار', 'Path progress')} />
-                          : <span className="hm-row-icon" style={{ background: 'var(--royal)' }}><Icon name="academy" size={16} /></span>}
+                          : <span className="hm-row-icon" style={{ background: 'var(--royal-fill)' }}><Icon name="academy" size={16} /></span>}
                         <span className="hm-row-main">
                           <strong>{contentText(t.locale, row.path!.title_ar, row.path!.title_en)}</strong>
                           <span className="muted">

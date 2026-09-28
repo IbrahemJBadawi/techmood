@@ -161,7 +161,7 @@ export default async function NotificationsPage({
                       {item.body_ar && <span className="nt-body">{item.body_ar}</span>}
                       <span className="nt-meta">{t(look.label)} · {timeOf(item.created_at)}</span>
                     </span>
-                    {!item.is_read && <span className="nt-dot" aria-label={t('غير مقروء', 'Unread')} />}
+                    {!item.is_read && <span className="nt-dot" role="img" aria-label={t('غير مقروء', 'Unread')} />}
                   </>
                 );
                 return (

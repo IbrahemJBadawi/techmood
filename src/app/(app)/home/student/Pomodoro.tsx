@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
 
 type Phase = 'idle' | 'running' | 'paused' | 'done';
@@ -41,7 +41,7 @@ export function Pomodoro({
     startedAt.current = null;
     if (!started) return;
 
-    const supabase = createClient();
+    const supabase = await browserClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 

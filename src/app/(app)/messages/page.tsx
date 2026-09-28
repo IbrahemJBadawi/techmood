@@ -23,7 +23,7 @@ const KIND_ICON: Record<ConversationKind, string> = {
 
 /** Each kind of conversation has its own colour in the list, as Telegram gives each chat one. */
 const KIND_COLOR: Record<ConversationKind, string> = {
-  channel: '#007BFF',
+  channel: '#006BE0',
   admin: '#0E9F6E',
   team: '#7C5CFF',
   mentor_booking: '#E8590C',
@@ -295,7 +295,7 @@ export default async function MessagesPage({
                             <span className="b-reply">{bodyById.get(message.reply_to_id)}</span>
                           )}
                           {!mine && (
-                            <span className="b-author" style={{ color: KIND_COLOR[active.kind] }}>
+                            <span className="b-author" style={{ color: `color-mix(in srgb, ${KIND_COLOR[active.kind]} 70%, var(--ink))` }}>
                               {isChannel ? 'TechMood' : nameById.get(message.sender_id ?? '') ?? t('عضو', 'A member')}
                             </span>
                           )}

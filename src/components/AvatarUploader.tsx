@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
 import { avatarColor, initialOf } from '@/lib/mentor-look';
 
@@ -56,7 +56,7 @@ export function AvatarUploader({
     setBusy(true);
     try {
       const blob = await squareJpeg(file);
-      const supabase = createClient();
+      const supabase = await browserClient();
       const path = `${userId}/${crypto.randomUUID()}.jpg`;
       const { error: upload } = await supabase.storage.from('avatars').upload(path, blob, {
         contentType: 'image/jpeg',
@@ -82,7 +82,7 @@ export function AvatarUploader({
     const previous = cleanup ? ownPath(value, userId) : null;
     try {
       await onChange(null);
-      if (previous) await createClient().storage.from('avatars').remove([previous]);
+      if (previous) await (await browserClient()).storage.from('avatars').remove([previous]);
     } catch {
       setError(t('تعذّرت إزالة الصورة — حاول مرة أخرى.', 'The photo could not be removed — please try again.'));
     } finally {

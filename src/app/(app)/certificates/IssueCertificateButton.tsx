@@ -21,7 +21,7 @@ export function IssueCertificateButton({
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="target_id" value={targetId} />
       <input type="hidden" name="revalidate" value="/certificates" />
-      {state?.error && <span className="muted" style={{ fontSize: '0.78rem', color: 'var(--danger)' }}>{state.error}</span>}
+      {state?.error && <span className="muted" style={{ fontSize: '0.78rem', color: 'var(--danger-ink)' }}>{state.error}</span>}
       <button className="btn btn-sky btn-sm" disabled={pending}>
         {pending ? t('جارٍ الإصدار…', 'Issuing…') : t('إصدار الشهادة', 'Issue certificate')}
       </button>

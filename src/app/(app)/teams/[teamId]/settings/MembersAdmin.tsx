@@ -72,7 +72,7 @@ export function MembersAdmin({
                     <form action={removeMember}>
                       <input type="hidden" name="team_id" value={teamId} />
                       <input type="hidden" name="profile_id" value={member.profileId} />
-                      <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.74rem', color: 'var(--danger)' }}>
+                      <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.74rem', color: 'var(--danger-ink)' }}>
                         {t('إزالة', 'Remove')}
                       </button>
                     </form>

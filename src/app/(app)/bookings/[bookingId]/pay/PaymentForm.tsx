@@ -133,7 +133,7 @@ export function PaymentForm({
                 )}
                 <div className="row-between">
                   <span style={{ fontSize: '0.84rem' }}>
-                    {fileName} <span style={{ color: 'var(--ok)' }}>{t('✓ جاهز', '✓ ready')}</span>
+                    {fileName} <span style={{ color: 'var(--ok-ink)' }}>{t('✓ جاهز', '✓ ready')}</span>
                   </span>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={removeFile}>{t('إزالة', 'Remove')}</button>
                 </div>

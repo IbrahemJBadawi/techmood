@@ -96,7 +96,7 @@ export function CaseActionForm({
       <label className="switch-row"><input type="checkbox" name="notify" defaultChecked />{t('أبلغ الشخص المعني', 'Notify the person')}</label>
 
       {spec.sensitive && (
-        <label className="switch-row" style={{ color: 'var(--danger)' }}>
+        <label className="switch-row" style={{ color: 'var(--danger-ink)' }}>
           <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
           {t('⚠️ أؤكد هذا الإجراء: راجعت الأدلة والسبب والمدة.', '⚠️ I confirm this action: I checked the evidence, the reason and the duration.')}
         </label>

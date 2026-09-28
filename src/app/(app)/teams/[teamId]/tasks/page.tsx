@@ -104,7 +104,7 @@ export default async function TeamTasksPage({
                         <span className="badge-pill" style={{ opacity: 0.6 }}>{t('بلا مسؤول', 'Unassigned')}</span>
                       )}
                       {task.due_on && (
-                        <span className="badge-pill eng" style={late ? { color: 'var(--danger)' } : undefined}>
+                        <span className="badge-pill eng" style={late ? { color: 'var(--danger-ink)' } : undefined}>
                           {task.due_on}
                         </span>
                       )}

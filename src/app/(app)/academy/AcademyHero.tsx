@@ -69,15 +69,15 @@ export async function AcademyHero({
         </Link>
       </div>
 
-      <dl className="ac-stats">
+      <ul className="ac-stats">
         {stats.map((stat) => (
-          <div className={`ac-stat tone-${stat.tone}`} key={stat.label}>
-            <span className="ac-stat-icon"><Icon name={stat.icon} size={18} /></span>
-            <dd className="eng">{stat.value}</dd>
-            <dt>{stat.label}</dt>
-          </div>
+          <li className={`ac-stat tone-${stat.tone}`} key={stat.label}>
+            <span className="ac-stat-icon" aria-hidden="true"><Icon name={stat.icon} size={18} /></span>
+            <strong className="ac-stat-val eng">{stat.value}</strong>
+            <span className="ac-stat-lbl">{stat.label}</span>
+          </li>
         ))}
-      </dl>
+      </ul>
     </section>
   );
 }

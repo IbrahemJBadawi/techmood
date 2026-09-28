@@ -40,7 +40,7 @@ export async function AuthShell({
 
   return (
     <div className="au-page">
-      <aside className="au-brand" aria-hidden="true">
+      <aside className="au-brand" aria-label={t('عن TechMood', 'About TechMood')}>
         <Link href="/" className="au-brand-logo"><LogoMark /> TechMood</Link>
         <div className="au-brand-body">
           <h2>{t('من أول درس', 'From your first lesson')}<br /><span>{t('إلى أول عمل حقيقي', 'to your first real work')}</span></h2>
@@ -58,7 +58,7 @@ export async function AuthShell({
             </ul>
           )}
         </div>
-        <div className="au-brand-card">
+        <div className="au-brand-card" aria-hidden="true">
           <span className="au-brand-pill">🔥 7</span>
           <span className="au-brand-pill is-xp">+40 XP</span>
           <strong>{t('تطوير الويب — الوحدة 3', 'Web development — unit 3')}</strong>

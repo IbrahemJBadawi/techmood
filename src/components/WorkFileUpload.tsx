@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
 
 /** 20 MB, and the bucket's own limit is the one that actually decides. */
@@ -48,7 +48,7 @@ export function WorkFileUpload({
     const safe = file.name.replace(/[^\w.\-]+/g, '-').slice(-60);
     const path = `${folder}/${Date.now()}-${safe}`;
 
-    const supabase = createClient();
+    const supabase = await browserClient();
     const { error: uploadError } = await supabase.storage.from(bucket).upload(path, file, {
       contentType: file.type || 'application/octet-stream',
       upsert: false,
