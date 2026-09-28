@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { Text } from '@/lib/i18n';
+import { IS_MVP } from '@/lib/scope';
 
 import { RoleReviewForm } from './RoleReviewForm';
 
-const ITEM_LABELS: Record<string, Text> = {
+const ALL_ITEM_LABELS: Record<string, Text> = {
   role_application:     { ar: 'طلب دور',                  en: 'Role request' },
   submission:           { ar: 'تسليم بانتظار التقييم',    en: 'Submission awaiting evaluation' },
   payment:              { ar: 'دفعة بانتظار التحقق',      en: 'Payment awaiting verification' },
@@ -17,6 +18,11 @@ const ITEM_LABELS: Record<string, Text> = {
   payout_request:       { ar: 'طلب سحب',                  en: 'Payout request' },
   reevaluation_request: { ar: 'طلب إعادة تقييم',          en: 'Re-evaluation request' },
 };
+
+// The incubator is outside the MVP (src/lib/scope.ts).
+const ITEM_LABELS = Object.fromEntries(
+  Object.entries(ALL_ITEM_LABELS).filter(([kind]) => !IS_MVP || kind !== 'incubator_application'),
+);
 
 export default async function AdminPage() {
   const t = await getT();
@@ -33,11 +39,13 @@ export default async function AdminPage() {
     );
   }
 
-  const [{ data: queue }, { data: overviewRows }, { data: feed }, { data: me }] = await Promise.all([
+  const [{ data: queue }, { data: overviewRows }, { data: feed }, { data: me }, { data: disputes }, { data: listings }] = await Promise.all([
     supabase.from('admin_review_queue').select('*').order('created_at', { ascending: true }),
     supabase.rpc('admin_overview'),
     supabase.rpc('admin_event_feed', { p_limit: 30 }),
     supabase.from('profiles').select('display_name, full_name').eq('id', user.id).single(),
+    supabase.rpc('admin_attendance_disputes'),
+    supabase.rpc('admin_pending_listings'),
   ]);
   const overview = overviewRows?.[0];
   const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
@@ -52,6 +60,8 @@ export default async function AdminPage() {
     { tone: 'purple', value: overview.pending_withdrawals, label: t('طلبات سحب', 'Withdrawals'), href: '/admin/payouts' },
     { tone: 'red', value: overview.refunds_owed, label: t('مبالغ مستحقة الإرجاع', 'Refunds owed'), href: '/admin/pricing' },
     { tone: 'orange', value: overview.open_cases, label: t('قضايا مفتوحة', 'Open cases'), href: '/admin/cases' },
+    { tone: 'red', value: disputes?.length ?? 0, label: t('بلاغات غياب منتور', 'Mentor absence reports'), href: '/admin/pricing' },
+    { tone: 'yellow', value: listings?.length ?? 0, label: t('مشاريع للبيع بانتظار المراجعة', 'Listings to review'), href: '/admin/market' },
   ].filter((card) => card.value > 0) : [];
 
   const { data: pendingRoles } = await supabase
@@ -143,7 +153,7 @@ export default async function AdminPage() {
               {t('راجع طلبات السحب', 'Review payouts')} ({byKind('payout_request').length})
             </Link>
           )}
-          {byKind('incubator_application').length > 0 && (
+          {!IS_MVP && byKind('incubator_application').length > 0 && (
             <Link className="btn btn-sky btn-sm" href="/admin/incubator">
               {t('راجع طلبات الحاضنة', 'Review incubator')} ({byKind('incubator_application').length})
             </Link>

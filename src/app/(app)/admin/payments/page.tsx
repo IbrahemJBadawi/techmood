@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
 import { BOOKING_STATUS, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
+import { IS_MVP } from '@/lib/scope';
 
 import { ReceiptLink } from './ReceiptLink';
 import { reviewPayment } from './actions';
@@ -72,8 +73,11 @@ export default async function AdminPaymentsPage() {
           <Link className="btn btn-ghost btn-sm" href="/admin">{t('لوحة الإدارة', 'Admin panel')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          {t('التحقق من الدفع لا يؤكد الجلسة — بعده يذهب الطلب إلى المنتور ليوافق. كل قرار هنا يُسجَّل في سجل التدقيق باسمك ووقته.',
-             'Verifying a payment does not confirm the session — the request then goes to the mentor to accept. Every decision here is written to the audit log with your name and the time.')}
+          {IS_MVP
+            ? t('قبول الدفعة يؤكّد الجلسة مباشرة ويُبلغ المنتور ليضع رابط الاجتماع؛ رفضها يحرّر الموعد. كل قرار هنا يُسجَّل في سجل التدقيق باسمك ووقته.',
+                'Accepting a payment confirms the session at once and tells the mentor to add the meeting link; rejecting it frees the slot. Every decision here is written to the audit log with your name and the time.')
+            : t('التحقق من الدفع لا يؤكد الجلسة — بعده يذهب الطلب إلى المنتور ليوافق. كل قرار هنا يُسجَّل في سجل التدقيق باسمك ووقته.',
+                'Verifying a payment does not confirm the session — the request then goes to the mentor to accept. Every decision here is written to the audit log with your name and the time.')}
         </p>
       </section>
 
