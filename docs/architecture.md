@@ -1947,3 +1947,50 @@ drops them from the sidebar, the role pickers, search and the leaderboards, and
 turns the market page into the Student Market. Setting both to 'full' brings
 the whole platform back. Test 74 covers the switch.
 
+## The MVP's booking (0104)
+
+While `in_mvp()`, an admin who accepts a payment confirms the session in the
+same call (`verify_payment`), and a rejected payment rejects the booking and
+frees the slot. The slot is locked from the moment the learner presses "I
+paid" by the same exclusion constraint as before (0016).
+
+The meeting link is the booking's alone: `booking_meeting_links` has RLS and no
+policies, `set_meeting_link()` is the only writer (the mentor or an admin, a
+confirmed booking, https only) and `booking_meeting()` the only reader — the
+url always for the mentor and the admins, and for the learner or a seat holder
+only from `meeting_opens_minutes_before` (10) before the start until the end.
+
+A mentor can decline a confirmed session before it starts
+(`mentor_decline_booking`, a written reason); the booking is cancelled and
+joins `refunds_owed` — cancelled → refunded is now a legal transition.
+
+Attendance is recorded, not inferred (`record_attendance`): from the start the
+mentor records `held` or `learner_absent` (→ completed), the learner or the
+team's leader can only report `mentor_absent` (→ an admin settles it: refund
+or held), the first record stands except for an admin, and
+`attendance_housekeeping()` (cron `techmood-attendance`) flags an unrecorded
+session to the mentor and the admins once, 48 hours after its end. Booked
+sessions open on `/bookings/[id]`; the internal video room is kept for the
+full scope and for team meetings. Test 75.
+
+## Payment and payout rails (0105)
+
+`is_enabled` is "learners may pay with it", `supports_payout` is "members may
+receive on it"; both are the admin's switches, and TechMood's own receiving
+details are rows in `payment_methods`, never in a migration or in the code.
+A payout account must be on a payout rail and carry what the rail needs (a
+wallet number for a wallet rail — one whose `display_fields` hold
+`wallet_number` — an account number or IBAN for a bank); a payout request to a
+rail switched off since is refused; payout-only rails are readable so a member
+can choose them. Test 76.
+
+## Follows and likes (0106)
+
+`follows` and `project_likes` are written only through `toggle_follow` and
+`toggle_project_like`. Rows are switched off, not deleted, so the person
+followed or the project's owner is notified once per person. Nobody follows
+themselves or likes their own or their team's project, or a project they
+cannot see. Counts are public (`follow_stats`, `project_like_stats`, on the
+anon list of test 73.1); the rows themselves are readable by the two people
+involved and the admins. Test 77.
+
