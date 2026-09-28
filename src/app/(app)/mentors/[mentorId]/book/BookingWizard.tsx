@@ -300,6 +300,10 @@ export function BookingWizard({
                     </label>
                   ))}
                 </div>
+                <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+                  {t('إن اخترت شيئاً للمراجعة، يصبح تقييم المنتور المكتوب لعملك إلزامياً خلال أسبوع من الجلسة.',
+                     'If you pick something to review, the mentor’s written evaluation of your work becomes required within a week of the session.')}
+                </p>
               </fieldset>
             )}
           </section>

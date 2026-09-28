@@ -7787,6 +7787,170 @@ select public.assert_rejects(
   '66.7 a signed-out visitor has no application to ask about');
 reset role;
 
+-- ===========================================================================
+-- 67. What a mentor sees and when, a week to evaluate, an evaluation owed
+-- ===========================================================================
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '50 days') + interval '10 hours',
+        date_trunc('day', now() + interval '50 days') + interval '11 hours',
+        15, 5, 10, 'مراجعة مشروع التخرج', 'draft')
+returning id as bk67 \gset
+update public.bookings set status = 'payment_pending' where id = :'bk67';
+insert into public.booking_review_items (booking_id, item_kind, label_ar)
+values (:'bk67', 'project', 'مشروع التخرج');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.bookings where id = :'bk67') = 0
+  and (select count(*) from public.booking_review_items where booking_id = :'bk67') = 0,
+  '67.1 a request nobody has paid for is not the mentor''s to see — nor who is asking');
+select public.assert_rejects(
+  format($$select public.cancel_booking(%L)$$, :'bk67'),
+  '67.2 nor to call off', 'ليس لك');
+reset role;
+reset request.jwt.claim.sub;
+
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'bk67', 'jawwal_pay', 15, 'under_review', 'JP-67', now()) returning id as bk67_pay \gset
+update public.bookings set status = 'payment_submitted' where id = :'bk67';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'bk67_pay', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.bookings where id = :'bk67') = 1
+  and (select count(*) from public.booking_review_items where booking_id = :'bk67') = 1,
+  '67.3 once paid and sent to them, the mentor sees the request and what the learner wants reviewed');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk67', true);
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select xp from public.xp_events
+    where profile_id = '11111111-1111-1111-1111-111111111111'
+      and source = 'mentor_session_booked' and ref_id = :'bk67') = 3,
+  '67.4 the learner earns a little XP the moment the booking is confirmed');
+
+update public.bookings set status = 'completed' where id = :'bk67';
+select public.assert(
+  (select status from public.wallet_entries
+    where ref_table = 'bookings' and ref_id = :'bk67' and kind = 'earning') = 'pending'
+  and (select count(*) from public.bookings where id = :'bk67' and public.booking_requires_evaluation(id)) = 1,
+  '67.5 a review was asked for, so the mentor''s share waits for the evaluation');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.my_owed_evaluations() where booking_id = :'bk67') = 1,
+  '67.6 and the mentor sees it among what they owe, with its deadline');
+select public.assert_rejects(
+  format($$select public.rate_session(%L, '{"commitment":5,"preparation":4}'::jsonb, 'ممتاز')$$, :'bk67'),
+  '67.7 an owed evaluation is words about the work, not only stars',
+  '30 حرفاً');
+select public.rate_session(:'bk67', '{"commitment":5,"preparation":4}'::jsonb,
+  'المشروع منظّم جيداً؛ حسّن اختبارات الوحدة ووثّق واجهة البرمجة قبل العرض.');
+select public.assert(
+  (select status from public.wallet_entries
+    where ref_table = 'bookings' and ref_id = :'bk67' and kind = 'earning') = 'available'
+  and (select count(*) from public.my_owed_evaluations()) = 0,
+  '67.8 written, the share is the mentor''s to use');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A second one the mentor never evaluates, moved into the past.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '51 days') + interval '10 hours',
+        date_trunc('day', now() + interval '51 days') + interval '11 hours',
+        15, 5, 10, 'مراجعة سيرة ذاتية', 'draft')
+returning id as bk67b \gset
+insert into public.booking_review_items (booking_id, item_kind, label_ar) values (:'bk67b', 'career_goal', 'السيرة الذاتية');
+update public.bookings set status = 'payment_pending' where id = :'bk67b';
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'bk67b', 'jawwal_pay', 15, 'under_review', 'JP-67', now()) returning id as bk67b_pay \gset
+update public.bookings set status = 'payment_submitted' where id = :'bk67b';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'bk67b_pay', true);
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk67b', true);
+reset role;
+reset request.jwt.claim.sub;
+update public.bookings set status = 'completed'         where id = :'bk67b';
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = date_trunc('day', now() - interval '9 days') + interval '10 hours',
+       scheduled_end   = date_trunc('day', now() - interval '9 days') + interval '11 hours'
+ where id = :'bk67b';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.rate_session(%L, '{"quality":5}'::jsonb)$$, :'bk67b'),
+  '67.9 a week after the session, evaluating is closed — for both sides',
+  'انتهت مهلة التقييم');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.session_evaluation_housekeeping() as missed_first \gset
+select public.session_evaluation_housekeeping() as missed_again \gset
+select public.assert(
+  :missed_first = 1 and :missed_again = 0
+  and (select evaluation_missed from public.bookings where id = :'bk67b')
+  and (select status from public.wallet_entries
+        where ref_table = 'bookings' and ref_id = :'bk67b' and kind = 'earning') = 'available'
+  and exists (select 1 from public.notifications
+               where profile_id = '33333333-3333-3333-3333-333333333333' and title_ar = 'فاتك تقييم مطلوب')
+  and exists (select 1 from public.notifications
+               where profile_id = '44444444-4444-4444-4444-444444444444' and title_ar = 'تقييم مطلوب لم يُكتب'),
+  '67.10 an owed evaluation never written: the share is released, the miss is on the record, the mentor and the admins are told — once');
+
+-- A confirmed booking that is then cancelled takes its XP back.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '52 days') + interval '10 hours',
+        date_trunc('day', now() + interval '52 days') + interval '11 hours',
+        15, 5, 10, 'استشارة', 'draft')
+returning id as bk67c \gset
+update public.bookings set status = 'payment_pending' where id = :'bk67c';
+insert into public.payments (booking_id, method_key, amount_usd, status, reference, submitted_at)
+values (:'bk67c', 'jawwal_pay', 15, 'under_review', 'JP-67', now()) returning id as bk67c_pay \gset
+update public.bookings set status = 'payment_submitted' where id = :'bk67c';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'bk67c_pay', true);
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.mentor_decide_booking(:'bk67c', true);
+reset role;
+reset request.jwt.claim.sub;
+update public.bookings set status = 'cancelled'         where id = :'bk67c';
+select public.assert(
+  not exists (select 1 from public.xp_events where source = 'mentor_session_booked' and ref_id = :'bk67c'),
+  '67.11 a confirmed booking that is called off takes its booking XP back');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

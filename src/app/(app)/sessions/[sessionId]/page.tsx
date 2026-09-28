@@ -144,15 +144,22 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
   const nobodyCame = session.status === 'no_show';
   const cancelled = session.status === 'cancelled';
 
-  const { data: feedback } = session.booking_id
-    ? await supabase.rpc('session_feedback_for', { p_booking: session.booking_id })
-    : { data: [] };
+  const [{ data: feedback }, { data: requiresEvaluation }] = session.booking_id
+    ? await Promise.all([
+        supabase.rpc('session_feedback_for', { p_booking: session.booking_id }),
+        supabase.rpc('booking_requires_evaluation', { p_booking: session.booking_id }),
+      ])
+    : [{ data: [] }, { data: false }];
 
   const rows = feedback ?? [];
   const mine = rows.find((row) => row.from_profile === user.id);
   const theirs = rows.find((row) => row.to_profile === user.id);
 
-  const canRate = Boolean(session.booking_id) && !cancelled && !nobodyCame && Boolean(me) && !mine;
+  // A week from the session's end to rate in (0095); after that it is closed.
+  const rateBy = new Date(new Date(session.end_at).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const windowOpen = !serverNow || new Date(serverNow) <= rateBy;
+  const canRate = Boolean(session.booking_id) && !cancelled && !nobodyCame && Boolean(me) && !mine && windowOpen;
+  const windowClosed = Boolean(session.booking_id) && !cancelled && !nobodyCame && Boolean(me) && !mine && !windowOpen;
 
   return (
     <>
@@ -205,7 +212,15 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
           bookingId={session.booking_id}
           criteria={me?.role === 'mentor' ? OF_LEARNER : OF_MENTOR}
           revalidate={`/sessions/${session.id}`}
+          reviewOwed={me?.role === 'mentor' && requiresEvaluation === true}
+          dueAt={rateBy.toISOString()}
         />
+      )}
+
+      {windowClosed && (
+        <p className="notice section-block">
+          {t('انتهت مهلة التقييم — أسبوع من نهاية الجلسة.', 'The time to rate has passed — a week from the end of the session.')}
+        </p>
       )}
 
       {mine && (

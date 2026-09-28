@@ -1589,6 +1589,14 @@ export type Database = {
         Returns: string;
       };
       session_feedback_is_open: { Args: { p_booking: string }; Returns: boolean };
+      booking_requires_evaluation: { Args: { p_booking: string }; Returns: boolean };
+      my_owed_evaluations: {
+        Args: Record<string, never>;
+        Returns: {
+          booking_id: string; booking_code: string; student_name: string;
+          ended_at: string; due_at: string; items: number; held_usd: number;
+        }[];
+      };
       session_feedback_for: {
         Args: { p_booking: string };
         Returns: {

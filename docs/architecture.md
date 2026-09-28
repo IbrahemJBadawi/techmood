@@ -1797,3 +1797,19 @@ adding it updates the application in place and, after "needs more information",
 puts it back in the queue. Approval makes a level-1 mentor; rejection leaves a
 learner, which is what they already were.
 
+## Session rules (0094–0095)
+
+A mentor reads a booking once it has reached them — it entered `mentor_pending`
+after its payment was verified (`booking_reached_mentor()`, stamped by 0077's
+`mentor_respond_by`) — and only then can they cancel it or hear it was
+cancelled; an unpaid cart is the learner's alone. Both sides rate within a week
+of the session's end; `rate_session()` refuses after that. When the learner
+named something to review (`booking_review_items`), the mentor's evaluation is
+owed: it must carry at least 30 characters of written feedback, the mentor's
+share stays `pending` until it is written (`my_owed_evaluations()` lists them on
+the requests page), and the hourly `session_evaluation_housekeeping()` job
+releases a share whose week passed without it, marks `evaluation_missed`, and
+tells the mentor and the admins once. A confirmed booking earns the learner
+3 XP (`mentor_session_booked`), taken back if it is cancelled or refunded;
+attending still earns 5.
+

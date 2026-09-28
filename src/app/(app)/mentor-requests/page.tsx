@@ -66,6 +66,14 @@ export default async function MentorRequestsPage() {
   const setting = (key: string, fallback: number) =>
     Number((settings ?? []).find((row) => row.key === key)?.value ?? fallback);
 
+  // Evaluations the learner asked for and the mentor still owes (0095).
+  const { data: owed } = await supabase.rpc('my_owed_evaluations');
+  const owedIds = (owed ?? []).map((row) => row.booking_id);
+  const { data: owedRooms } = owedIds.length
+    ? await supabase.from('video_sessions').select('id, booking_id').in('booking_id', owedIds)
+    : { data: [] as { id: string; booking_id: string | null }[] };
+  const owedRoomOf = new Map((owedRooms ?? []).map((room) => [room.booking_id ?? '', room.id]));
+
   const pending = (requests ?? []).filter((row) => row.status === 'mentor_pending');
   const confirmed = (requests ?? []).filter((row) => row.status === 'confirmed');
 
@@ -108,6 +116,34 @@ export default async function MentorRequestsPage() {
           </div>
         </div>
       </section>
+
+      {(owed ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '1rem' }}>{t('تقييمات مطلوبة منك', 'Evaluations you owe')}</h3>
+          <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
+            {t('طلب الطالب مراجعة لعمله في هذه الجلسات: التقييم المكتوب إلزامي خلال أسبوع من نهاية الجلسة، وحصتك محجوزة حتى تكتبه.',
+               'The learner asked for a review of their work in these sessions: a written evaluation is required within a week of the session’s end, and your share is held until you write it.')}
+          </p>
+          <table className="data" style={{ marginTop: 10 }}>
+            <tbody>
+              {(owed ?? []).map((row) => (
+                <tr key={row.booking_id}>
+                  <td>{row.student_name} <span className="id-chip">{row.booking_code}</span></td>
+                  <td className="muted">{t('حتى', 'By')} <span className="eng">{formatSlot(row.due_at).date}</span></td>
+                  <td className="eng">{money(row.held_usd)}</td>
+                  <td>
+                    {owedRoomOf.get(row.booking_id) && (
+                      <Link className="btn btn-primary btn-sm" href={`/sessions/${owedRoomOf.get(row.booking_id)}`}>
+                        {t('قيّم الآن', 'Evaluate now')}
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {pending.length === 0 ? (
         <p className="notice">{t('لا طلبات بانتظار قرارك.', 'Nothing waiting on you.')}</p>

@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 814 business-rule assertions
+scripts/test.sh                   # 825 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -299,6 +299,7 @@ pushed to Supabase — nothing to run by hand:
 | `techmood-expire-bookings` | 5 min | `expire_stale_bookings()` |
 | `techmood-close-sessions` | 5 min | `close_due_video_sessions()` |
 | `techmood-notify-sessions` | 5 min | `notify_due_sessions()` |
+| `techmood-session-evaluations` | hourly (:17) | `session_evaluation_housekeeping()` — an owed evaluation missed a week after the session: release the held share, mark it, tell the mentor and admins |
 | `techmood-mentor-requests` | 10 min | `mentor_request_housekeeping()` |
 
 Their last run is on Admin → Analytics. A database without pg_cron (or not the
