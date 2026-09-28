@@ -120,7 +120,12 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   const { data, error } = await supabase.auth.signUp({
     email: String(formData.get('email') ?? ''),
     password: String(formData.get('password') ?? ''),
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      // The confirmation email brings the person back here, not to Supabase's
+      // default site URL — the callback exchanges the code for a session.
+      emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent('/onboarding')}`,
+    },
   });
 
   if (error) {
