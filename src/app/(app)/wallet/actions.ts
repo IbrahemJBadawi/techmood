@@ -89,3 +89,50 @@ export async function choosePaymentMethod(
   if (error) return { ok: false, error: dbError(t, error.message) };
   return { ok: true };
 }
+
+/** An account the person pays TechMood from (0097) — for refunds to go back to. */
+export async function addPayerAccount(_prev: WalletState, formData: FormData): Promise<WalletState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const holder = String(formData.get('holder_name') ?? '').trim();
+  const accountRef = String(formData.get('account_ref') ?? '').trim();
+  if (holder.length < 2 || accountRef.length < 3) {
+    return { error: t('اكتب اسم صاحب الحساب ورقم الحساب أو المحفظة أو البريد.', 'Enter the holder’s name and the account, wallet number or email.') };
+  }
+
+  const makeDefault = formData.get('is_default') === 'on';
+  if (makeDefault) {
+    await supabase.from('payer_accounts').update({ is_default: false }).eq('profile_id', user.id).eq('is_default', true);
+  }
+
+  const { error } = await supabase.from('payer_accounts').insert({
+    profile_id: user.id,
+    holder_name: holder,
+    account_ref: accountRef,
+    label: String(formData.get('label') ?? '').trim() || null,
+    method_key: String(formData.get('method_key') ?? '') || null,
+    is_default: makeDefault,
+  });
+  if (error) return { error: dbError(t, error.message) };
+
+  revalidatePath('/wallet');
+  return { ok: t('حُفظ الحساب.', 'The account is saved.') };
+}
+
+export async function payerAccountAction(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const id = String(formData.get('account_id') ?? '');
+  if (formData.get('action') === 'default') {
+    await supabase.from('payer_accounts').update({ is_default: false }).eq('profile_id', user.id).eq('is_default', true);
+    await supabase.from('payer_accounts').update({ is_default: true }).eq('id', id).eq('profile_id', user.id);
+  } else if (formData.get('action') === 'delete') {
+    await supabase.from('payer_accounts').delete().eq('id', id).eq('profile_id', user.id);
+  }
+  revalidatePath('/wallet');
+}

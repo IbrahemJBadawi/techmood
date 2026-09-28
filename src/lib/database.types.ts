@@ -651,6 +651,10 @@ export type Payment = {
   exchange_rate: number;
   /** The admin's question, and the payer's answer, when a receipt raised one. */
   info_request_ar: string | null;
+  /** The account the payer paid from, as given with this payment (0097). */
+  payer_account_id: string | null;
+  payer_holder: string | null;
+  payer_account: string | null;
   payer_note_ar: string | null;
   created_at: string;
 }
@@ -1454,6 +1458,17 @@ export type Database = {
       payment_methods: Table<PaymentMethod>;
       bookings: Table<Booking>;
       payments: Table<Payment>;
+      payer_accounts: Table<{
+        id: string; profile_id: string; method_key: string | null; holder_name: string;
+        account_ref: string; label: string | null; is_default: boolean; created_at: string;
+      }>;
+      invoices: Table<{
+        id: string; invoice_no: string; payment_id: string; profile_id: string | null;
+        payer_name: string; payer_account: string | null; description_ar: string;
+        amount_usd: number; paid_currency: string; paid_amount: number | null;
+        method_label: string | null; reference: string | null; payment_code: string | null;
+        status: 'issued' | 'refunded'; issued_at: string; refunded_at: string | null;
+      }>;
       booking_events: Table<BookingEvent>;
       booking_review_items: Table<BookingReviewItem>;
       mentor_session_types: Table<{
@@ -2601,6 +2616,14 @@ export type Database = {
         }[];
       };
       is_restricted: { Args: { p_profile: string; p_feature: RestrictedFeature }; Returns: boolean };
+      set_payment_payer: {
+        Args: {
+          p_payment: string; p_account?: string | null; p_holder?: string | null;
+          p_account_ref?: string | null; p_method_key?: string | null; p_save?: boolean;
+        };
+        Returns: undefined;
+      };
+      invoice_issuer: { Args: Record<string, never>; Returns: { name: string; details: string }[] };
       my_mentor_application: {
         Args: Record<string, never>;
         Returns: {

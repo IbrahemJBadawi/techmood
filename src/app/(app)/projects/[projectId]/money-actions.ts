@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { applyPayerAccount } from '@/lib/payer';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import { saveRatingDetails } from '@/lib/rating-details';
@@ -44,6 +45,13 @@ export async function submitEscrowProof(_prev: MoneyState, formData: FormData): 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  // Where the money came from goes on the payment first (0097).
+  const paymentId = String(formData.get('payment_id') ?? '');
+  if (paymentId) {
+    const payerError = await applyPayerAccount(supabase, paymentId, formData);
+    if (payerError) return { error: dbError(t, payerError.message) };
+  }
 
   const { error } = await supabase.rpc('submit_escrow_proof', {
     p_escrow: String(formData.get('escrow_id') ?? ''),

@@ -41,6 +41,11 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('22222222-2222-2222-2222-222222222222', 'khaled@example.com','{"full_name":"خالد أبو رجب"}'),
   ('33333333-3333-3333-3333-333333333333', 'lama@example.com',  '{"full_name":"لمى الخطيب"}'),
   ('44444444-4444-4444-4444-444444444444', 'admin@example.com', '{"full_name":"مشرف المنصة"}');
+-- Every fixture account has a default account it pays from (0097): handing
+-- a payment in needs one, and these tests are not about that.
+insert into public.payer_accounts (profile_id, holder_name, account_ref, is_default)
+select p.id, coalesce(p.full_name, 'Test'), 'TEST-0000-0000', true from public.profiles p
+ where not exists (select 1 from public.payer_accounts a where a.profile_id = p.id);
 
 -- ===========================================================================
 -- 1. Identity
@@ -621,6 +626,11 @@ select public.assert(
 -- ===========================================================================
 insert into auth.users (id, email, raw_user_meta_data)
 values ('55555555-5555-5555-5555-555555555555', 'rana@example.com', '{"full_name":"رنا عبد الله"}');
+-- Every fixture account has a default account it pays from (0097): handing
+-- a payment in needs one, and these tests are not about that.
+insert into public.payer_accounts (profile_id, holder_name, account_ref, is_default)
+select p.id, coalesce(p.full_name, 'Test'), 'TEST-0000-0000', true from public.profiles p
+ where not exists (select 1 from public.payer_accounts a where a.profile_id = p.id);
 
 insert into public.profile_roles (profile_id, role, status)
 values ('55555555-5555-5555-5555-555555555555', 'mentor', 'approved');
@@ -2048,6 +2058,11 @@ reset role;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('77777777-7777-7777-7777-777777777777', 'nour@example.com', '{"full_name":"نور حرب"}'),
   ('88888888-8888-8888-8888-888888888888', 'rami@example.com', '{"full_name":"رامي قاسم"}');
+-- Every fixture account has a default account it pays from (0097): handing
+-- a payment in needs one, and these tests are not about that.
+insert into public.payer_accounts (profile_id, holder_name, account_ref, is_default)
+select p.id, coalesce(p.full_name, 'Test'), 'TEST-0000-0000', true from public.profiles p
+ where not exists (select 1 from public.payer_accounts a where a.profile_id = p.id);
 
 -- --- the handle ------------------------------------------------------------
 select public.assert_rejects($$
@@ -2450,6 +2465,11 @@ reset request.jwt.claim.sub;
 insert into auth.users (id, email, raw_user_meta_data) values
   ('99999999-9999-9999-9999-999999999999', 'dana@gmail.com',
    '{"name":"Dana Salem","picture":"https://lh3.googleusercontent.com/a/dana"}');
+-- Every fixture account has a default account it pays from (0097): handing
+-- a payment in needs one, and these tests are not about that.
+insert into public.payer_accounts (profile_id, holder_name, account_ref, is_default)
+select p.id, coalesce(p.full_name, 'Test'), 'TEST-0000-0000', true from public.profiles p
+ where not exists (select 1 from public.payer_accounts a where a.profile_id = p.id);
 
 select public.assert(
   (select full_name from public.profiles
@@ -7988,6 +8008,92 @@ select public.assert(
   '68.5 a project link with no video is a complete hand-in; empty optional fields are not stored');
 reset role;
 reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 69. An invoice for every payment, and the account it was paid from
+-- ===========================================================================
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '53 days') + interval '10 hours',
+        date_trunc('day', now() + interval '53 days') + interval '11 hours',
+        15, 5, 10, 'فاتورة', 'draft')
+returning id as bk69 \gset
+update public.bookings set status = 'payment_pending' where id = :'bk69';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'bk69', 'jawwal_pay', 15, 'pending') returning id as pay69 \gset
+delete from public.payer_accounts where profile_id = '55555555-5555-5555-5555-555555555555';
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.submit_payment_proof(%L, '55555555-5555-5555-5555-555555555555/r.png', 'JP-69')$$, :'bk69'),
+  '69.1 a payment is not handed in without the account it was paid from',
+  'الحساب الذي دفعت منه');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.set_payment_payer(%L, null, 'Someone', '0599000000')$$, :'pay69'),
+  '69.2 nobody else says where somebody''s payment came from',
+  'ليست لك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.set_payment_payer(:'pay69', null, 'Test Payer', 'TEST-WALLET-12345678', null, true);
+select public.submit_payment_proof(:'bk69', '55555555-5555-5555-5555-555555555555/r.png', 'JP-69');
+select public.assert(
+  (select payer_account from public.payments where id = :'pay69') = 'TEST-WALLET-12345678'
+  and (select count(*) from public.payer_accounts where profile_id = '55555555-5555-5555-5555-555555555555' and is_default) = 1,
+  '69.3 typed with the payment, the account is kept on it — and saved as the default when asked');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'pay69', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select invoice_no from public.invoices where payment_id = :'pay69') ~ '^TM-INV-\d{4}-\d{6}$'
+  and (select amount_usd from public.invoices where payment_id = :'pay69') = 15
+  and (select payer_account from public.invoices where payment_id = :'pay69') not like '%12345678%'
+  and (select description_ar from public.invoices where payment_id = :'pay69') like 'جلسة إرشاد%',
+  '69.4 a confirmed payment issues its numbered invoice to the payer, the account masked');
+select public.assert_rejects(
+  format($$select public.set_payment_payer(%L, null, 'Other', 'OTHER-ACCOUNT')$$, :'pay69'),
+  '69.5 once confirmed, where it came from is history',
+  'بعد تأكيد الدفعة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.invoices where payment_id = :'pay69') = 0
+  and (select count(*) from public.payer_accounts where profile_id = '55555555-5555-5555-5555-555555555555') = 0,
+  '69.6 the mentor sees neither the learner''s invoice nor the account they pay from');
+select public.mentor_decide_booking(:'bk69', false, 'لا أستطيع في هذا الموعد');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.refund_booking(:'bk69', 'رفض المنتور');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status from public.invoices where payment_id = :'pay69') = 'refunded'
+  and (select refunded_at from public.invoices where payment_id = :'pay69') is not null,
+  '69.7 a refund marks the invoice refunded; it is never deleted');
 
 \echo ''
 \echo '================================================'

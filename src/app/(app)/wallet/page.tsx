@@ -9,10 +9,11 @@ import { PAYOUT_STATUS, TRANSACTION_FILTERS, signedMoney } from '@/lib/wallet';
 import type { PayoutAccount } from '@/lib/database.types';
 
 import { PayoutPanel } from './PayoutPanel';
+import { PayerAccounts } from './PayerAccounts';
 
 export const metadata = { title: 'Wallet — TechMood' };
 
-const TABS = ['overview', 'transactions', 'payments', 'earnings', 'withdrawals', 'methods'] as const;
+const TABS = ['overview', 'transactions', 'payments', 'invoices', 'earnings', 'withdrawals', 'methods', 'paying'] as const;
 type Tab = (typeof TABS)[number];
 
 /** A status a person can read, for anything the statement lists. */
@@ -89,7 +90,23 @@ export default async function WalletPage({
     earnings: t('الأرباح', 'Earnings'),
     withdrawals: t('السحوبات', 'Withdrawals'),
     methods: t('حسابات الاستلام', 'Payout methods'),
+    invoices: t('الفواتير', 'Invoices'),
+    paying: t('حسابات الدفع', 'Paying accounts'),
   };
+
+  // Invoices (0097) and the accounts this person pays from, read only on their tabs.
+  const { data: invoices } = tab === 'invoices'
+    ? await supabase.from('invoices')
+        .select('id, invoice_no, description_ar, amount_usd, status, issued_at')
+        .eq('profile_id', user.id)
+        .order('issued_at', { ascending: false })
+    : { data: [] };
+  const { data: payerAccounts } = tab === 'paying'
+    ? await supabase.from('payer_accounts')
+        .select('id, label, holder_name, account_ref, is_default')
+        .eq('profile_id', user.id)
+        .order('created_at')
+    : { data: [] };
 
   const statement = (rows: typeof transactions) => (
     (rows ?? []).length === 0 ? (
@@ -281,6 +298,47 @@ export default async function WalletPage({
             />
           </aside>
         </div>
+      )}
+
+      {tab === 'invoices' && (
+        <section className="section-block">
+          <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 12 }}>
+            {t('فاتورة لكل دفعة أكّدت TechMood استلامها. افتحها لطباعتها أو حفظها PDF.',
+               'An invoice for every payment TechMood confirmed receiving. Open one to print it or save it as a PDF.')}
+          </p>
+          {(invoices ?? []).length === 0 ? (
+            <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا فواتير بعد.', 'No invoices yet.')}</p>
+          ) : (
+            <ul className="wallet-statement">
+              {(invoices ?? []).map((invoice) => (
+                <li key={invoice.id} className={invoice.status === 'refunded' ? 'is-cancelled' : ''}>
+                  <span className="eng wallet-amount is-out">{money(invoice.amount_usd)}</span>
+                  <span className="wallet-label">
+                    {invoice.description_ar}
+                    <span className="id-chip" style={{ marginInlineStart: 6 }}>{invoice.invoice_no}</span>
+                    <span className="muted eng" style={{ display: 'block', fontSize: '0.76rem' }}>
+                      {formatDateTime(locale, invoice.issued_at)}
+                    </span>
+                  </span>
+                  <span className={`status-pill ${invoice.status === 'refunded' ? 'status-muted' : 'status-ok'}`}>
+                    {invoice.status === 'refunded' ? t('مُستردّة', 'Refunded') : t('مدفوعة', 'Paid')}
+                  </span>
+                  <Link className="btn btn-ghost btn-sm" href={`/wallet/invoices/${invoice.id}`}>{t('افتح', 'Open')}</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {tab === 'paying' && (
+        <section className="section-block" style={{ maxWidth: 620 }}>
+          <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 12 }}>
+            {t('الحسابات التي تدفع منها لـ TechMood. يُسجَّل الحساب مع كل دفعة لإرجاع المبلغ إليه عند الحاجة. تراه أنت والإدارة فقط.',
+               'The accounts you pay TechMood from. The account is recorded with each payment so a refund can go back to it. Only you and TechMood see it.')}
+          </p>
+          <PayerAccounts accounts={payerAccounts ?? []} />
+        </section>
       )}
 
       {tab === 'methods' && (

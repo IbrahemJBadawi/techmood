@@ -188,6 +188,25 @@ export default async function AdminPricingPage() {
       </section>
 
       <section className="section-block">
+        <h3 className="academy-heading">{t('بيانات الفواتير', 'Invoice details')}</h3>
+        <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 8 }}>
+          {t('ما يظهر كجهة مُصدِرة على كل فاتورة. يُكتب هنا، لا في الكود.', 'What every invoice shows as its issuer. Written here, never in the code.')}
+        </p>
+        <div className="stack">
+          {[
+            { key: 'invoice_issuer_name', label: t('اسم الجهة المُصدِرة', 'Issuer name') },
+            { key: 'invoice_issuer_details', label: t('سطر التفاصيل (عنوان، رقم تسجيل…)', 'Details line (address, registration…)') },
+          ].map((setting) => (
+            <ActionForm action={saveSetting} className="admin-inline-form panel" key={setting.key} submitLabel={t('احفظ', 'Save')}>
+              <input type="hidden" name="key" value={setting.key} />
+              <span style={{ minWidth: 220 }}>{setting.label}</span>
+              <input name="value" maxLength={240} defaultValue={settingOf.get(setting.key) ?? ''} style={{ flex: 1 }} />
+            </ActionForm>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-block">
         <h3 className="academy-heading">{t('استقبال المنتورز للطلبات', 'Mentors taking requests')}</h3>
         <table className="data">
           <thead>

@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { PayTo } from '@/lib/database.types';
 import { PayToDetails } from '@/components/PayToDetails';
+import { PayerAccountFields, type PayerAccountOption } from '@/components/PayerAccountFields';
 
 import { useT } from '@/lib/i18n.client';
 
@@ -15,12 +16,16 @@ const ALLOWED = ['image/png', 'image/jpeg'];
 
 export function PaymentForm({
   bookingId,
+  paymentId,
   payTo,
   userId,
+  payerAccounts,
 }: {
   bookingId: string;
+  paymentId: string;
   payTo: PayTo;
   userId: string;
+  payerAccounts: PayerAccountOption[];
 }) {
   const method = payTo;
   const t = useT();
@@ -81,9 +86,12 @@ export function PaymentForm({
 
       <form action={formAction} className="panel">
         <input type="hidden" name="booking_id" value={bookingId} />
+        <input type="hidden" name="payment_id" value={paymentId} />
         <input type="hidden" name="proof_path" value={proofPath} />
 
         <h3 style={{ fontSize: '0.98rem', marginBottom: 14 }}>{t('إثبات الدفع', 'Proof of payment')}</h3>
+
+        <PayerAccountFields accounts={payerAccounts} />
 
         {method.requires_reference && (
           <div className="field">

@@ -3223,3 +3223,14 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 [dir='rtl'] .bar-list-bar { border-radius: 4px 0 0 4px; }
 .bar-list-value { color: var(--ink); font-weight: 600; }
 .bar-list-note { grid-column: 2; font-size: 0.74rem; }
+
+/* An invoice prints on its own A4 portrait page (0097). */
+.invoice-sheet { page: invoice; max-width: 760px; }
+.invoice-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 18px; }
+.invoice-meta dt { font-size: 0.76rem; color: var(--ink-soft); }
+.invoice-meta dd { margin: 2px 0 0; font-size: 0.9rem; }
+@page invoice { size: A4 portrait; margin: 14mm; }
+@media print {
+  .invoice-sheet { box-shadow: none; border: 0; max-width: none; }
+  .ai-fab, .ai-panel { display: none !important; }
+}

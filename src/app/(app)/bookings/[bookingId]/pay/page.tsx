@@ -54,9 +54,13 @@ export default async function PayBookingPage({
   // The receiving details come only from payment_instructions(): the fields
   // the chosen method shows, to the person who owes this payment, while it is
   // open. The options are the methods they may switch to.
-  const [{ data: instructions }, { data: options }] = await Promise.all([
+  const [{ data: instructions }, { data: options }, { data: payerAccounts }] = await Promise.all([
     supabase.rpc('payment_instructions', { p_payment: payment.id }),
     supabase.rpc('payment_options', { p_payment: payment.id }),
+    supabase.from('payer_accounts')
+      .select('id, label, holder_name, account_ref, is_default')
+      .eq('profile_id', user.id)
+      .order('is_default', { ascending: false }),
   ]);
   const payTo = instructions?.[0] ?? null;
 
@@ -110,7 +114,8 @@ export default async function PayBookingPage({
                           revalidate={`/bookings/${booking.id}/pay`} />
           )}
           {!expired && payment.status !== 'needs_info' && payTo && (
-            <PaymentForm bookingId={booking.id} payTo={payTo} userId={user.id} />
+            <PaymentForm bookingId={booking.id} paymentId={payment.id} payTo={payTo} userId={user.id}
+                         payerAccounts={payerAccounts ?? []} />
           )}
         </section>
 

@@ -22,7 +22,7 @@ export default async function AdminPaymentsPage() {
 
   const { data: payments } = await supabase
     .from('payments')
-    .select('id, payment_code, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason, paid_currency, paid_amount, exchange_rate, info_request_ar, payer_note_ar')
+    .select('id, payment_code, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason, paid_currency, paid_amount, exchange_rate, info_request_ar, payer_note_ar, payer_holder, payer_account')
     .order('submitted_at', { ascending: true, nullsFirst: false });
 
   const bookingIds = [...new Set((payments ?? []).map((row) => row.booking_id).filter(Boolean))] as string[];
@@ -132,6 +132,14 @@ export default async function AdminPaymentsPage() {
                   <div className="summary-row">
                     <span className="muted">{method?.reference_label_ar ?? t('المرجع', 'Reference')}</span>
                     <span className="eng">{payment.reference ?? '—'}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="muted">{t('دُفع من حساب', 'Paid from')}</span>
+                    <span>
+                      {payment.payer_account
+                        ? <>{payment.payer_holder} — <span className="eng">{payment.payer_account}</span></>
+                        : t('لم يُذكر', 'Not given')}
+                    </span>
                   </div>
                   {payment.paid_currency !== 'USD' && payment.paid_amount && (
                     <div className="summary-row">

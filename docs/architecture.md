@@ -1822,3 +1822,20 @@ are optional; a walkthrough, when given, must be a YouTube link, and every link
 must be a web address. Empty optional fields are not stored. The path project,
 which had no hand-in form, is now handed in on its path's page.
 
+## Invoices and the account a payment came from (0097)
+
+Every payment TechMood verifies issues an invoice (`TM-INV-YYYY-NNNNNN`) from a
+trigger on `payments`: the payer, what was paid for, the amount (and what was
+actually sent, in another currency), the method, and the paying account masked.
+A refund marks it refunded; it is never deleted. It lives in the wallet's
+Invoices tab and prints as an A4 page (the browser's "save as PDF" makes the
+file). The issuer's name and details line are platform settings the admin edits
+at Admin → Pricing — never code.
+
+Each payment also records the account it was paid from, so a refund can go
+back to it: the payer picks a saved account or types one with the payment
+(`set_payment_payer()`, optionally saving it as their default under Wallet →
+Paying accounts). Handing a payment in without one uses the default; with
+neither, the database refuses. It is a snapshot on the payment — editing a
+saved account never rewrites history — readable only by the payer and admins.
+

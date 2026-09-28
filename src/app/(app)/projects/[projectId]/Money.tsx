@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { MethodPicker } from '@/components/MethodPicker';
+import { PayerAccountFields, type PayerAccountOption } from '@/components/PayerAccountFields';
 import { PayToDetails } from '@/components/PayToDetails';
 import { RatingExtras } from '@/components/RatingExtras';
 import { CLIENT_CRITERION, WORKER_CRITERION } from '@/lib/criteria';
@@ -115,12 +116,13 @@ export function OpenEscrowForm({
  * payment does, into the payer's own folder of the private proofs bucket.
  */
 export function EscrowProofForm({
-  escrowId, revalidate, userId, payment,
+  escrowId, revalidate, userId, payment, payerAccounts = [],
 }: {
   escrowId: string;
   revalidate: string;
   userId: string;
   payment: EscrowPayTo | null;
+  payerAccounts?: PayerAccountOption[];
 }) {
   const instructions = payment?.payTo ?? null;
   const t = useT();
@@ -158,6 +160,7 @@ export function EscrowProofForm({
       <input type="hidden" name="escrow_id" value={escrowId} />
       <input type="hidden" name="revalidate" value={revalidate} />
       <input type="hidden" name="proof_path" value={proofPath} />
+      {payment && <input type="hidden" name="payment_id" value={payment.paymentId} />}
 
       {payment && (
         <MethodPicker paymentId={payment.paymentId} options={payment.options} revalidate={revalidate} />
@@ -172,6 +175,8 @@ export function EscrowProofForm({
       {payment?.infoRequest && (
         <p className="notice">{t('سؤال من TechMood: ', 'TechMood asks: ')}{payment.infoRequest}</p>
       )}
+
+      {payment && <PayerAccountFields accounts={payerAccounts} />}
 
       <div className="field">
         <label htmlFor={`reference-${escrowId}`}>

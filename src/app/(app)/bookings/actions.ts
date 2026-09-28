@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
+import { applyPayerAccount } from '@/lib/payer';
 
 export type PaymentState = { error?: string; ok?: string } | undefined;
 
@@ -29,6 +30,10 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
     return { error: t('ملف الإيصال غير صالح.', 'That receipt file is not valid.') };
   }
 
+  // Where the money came from goes on the payment first (0097).
+  const payerError = await applyPayerAccount(supabase, String(formData.get('payment_id') ?? ''), formData);
+  if (payerError) return { error: dbError(t, payerError.message) };
+
   const { error } = await supabase.rpc('submit_payment_proof', {
     p_booking_id: bookingId,
     p_proof_path: proofPath,
@@ -41,6 +46,7 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
     if (message.includes('requires')) return { error: t('هذه الطريقة تتطلب إدخال الرقم المرجعي.', 'This method requires a reference number.') };
     if (message.includes('expired')) return { error: t('انتهت مهلة حجز الموعد — اختر موعداً من جديد.', 'The slot hold has expired — pick a new time.') };
     if (message.includes('not waiting')) return { error: t('هذا الحجز ليس في مرحلة الدفع.', 'This booking is not at the payment stage.') };
+    if (message.includes('الحساب الذي دفعت منه')) return { error: t('اكتب الحساب الذي دفعت منه.', 'Tell us the account you paid from.') };
     return { error: t('تعذّر إرسال الدفع — حاول مرة أخرى.', 'The payment could not be sent — try again.') };
   }
 

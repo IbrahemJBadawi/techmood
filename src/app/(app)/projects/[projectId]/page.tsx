@@ -112,6 +112,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     const payTo = await escrowPayTo(supabase, hold.id);
     if (payTo) instructionsFor.set(hold.id, payTo);
   }
+  // The accounts the payer pays from, for "the account you paid from" (0097).
+  const { data: payerAccounts } = instructionsFor.size > 0
+    ? await supabase.from('payer_accounts')
+        .select('id, label, holder_name, account_ref, is_default')
+        .eq('profile_id', user.id)
+        .order('is_default', { ascending: false })
+    : { data: [] };
 
   // The room and the files are between the parties to the work. A public
   // project page shows finished work; it does not open the drafts or the calls.
@@ -304,7 +311,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                     {hold.status === 'awaiting_payment' && hold.payer_id === user.id && (
                       <div style={{ marginTop: 10 }}>
                         <EscrowProofForm escrowId={hold.id} revalidate={`/projects/${projectId}`}
-                                         userId={user.id} payment={instructionsFor.get(hold.id) ?? null} />
+                                         userId={user.id} payment={instructionsFor.get(hold.id) ?? null}
+                                         payerAccounts={payerAccounts ?? []} />
                       </div>
                     )}
 
