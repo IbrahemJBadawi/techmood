@@ -37,6 +37,15 @@ async function landingFor(userId: string): Promise<string> {
   return data?.onboarding_completed_at ? '/home' : '/onboarding';
 }
 
+/**
+ * A path inside TechMood, or nothing. `//evil.example` and `/\evil.example`
+ * start with a slash too, and a browser follows them off the site.
+ */
+function safeNext(value: unknown): string | null {
+  const next = String(value ?? '');
+  return next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null;
+}
+
 async function siteOrigin(): Promise<string> {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicit) return explicit.replace(/\/$/, '');
@@ -60,7 +69,7 @@ async function siteOrigin(): Promise<string> {
 export async function signInWithGoogle(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const t = await getT();
   const supabase = await createClient();
-  const next = String(formData.get('next') ?? '') || '/onboarding';
+  const next = safeNext(formData.get('next')) ?? '/onboarding';
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -85,22 +94,19 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: String(formData.get('email') ?? ''),
+    email: String(formData.get('email') ?? '').trim(),
     password: String(formData.get('password') ?? ''),
   });
 
   if (error || !data.user) {
-    return {
-      error: t('تعذّر تسجيل الدخول — تأكد من البريد وكلمة المرور.',
-               'Could not sign you in — check the email and password.'),
-    };
+    return { error: authError(t, error?.message ?? '', error?.status) };
   }
 
-  const next = String(formData.get('next') ?? '');
+  const next = safeNext(formData.get('next'));
   const landing = await landingFor(data.user.id);
 
   revalidatePath('/', 'layout');
-  redirect(landing === '/onboarding' ? landing : next || '/home');
+  redirect(landing === '/onboarding' ? landing : next ?? '/home');
 }
 
 /**
@@ -113,13 +119,23 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   const supabase = await createClient();
 
   const fullName = String(formData.get('full_name') ?? '').trim();
+  const email = String(formData.get('email') ?? '').trim();
+  const password = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('password_confirm') ?? '');
+
   if (fullName.length < 2) {
     return { error: t('الرجاء إدخال الاسم الكامل.', 'Please enter your full name.') };
   }
+  if (password.length < 8) {
+    return { error: t('كلمة المرور 8 أحرف على الأقل.', 'The password needs at least 8 characters.') };
+  }
+  if (password !== confirm) {
+    return { error: t('كلمتا المرور غير متطابقتين — اكتبها مرة أخرى.', 'The two passwords do not match — type it again.') };
+  }
 
   const { data, error } = await supabase.auth.signUp({
-    email: String(formData.get('email') ?? ''),
-    password: String(formData.get('password') ?? ''),
+    email,
+    password,
     options: {
       data: { full_name: fullName },
       // The confirmation email brings the person back here, not to Supabase's
@@ -129,19 +145,16 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   });
 
   if (error) {
-    return {
-      error: error.message.includes('already')
-        ? t('هذا البريد مسجّل بالفعل.', 'That email is already registered.')
-        : t('تعذّر إنشاء الحساب.', 'Could not create the account.'),
-    };
+    return { error: authError(t, error.message, error.status) };
   }
 
+  // No confirmation email step (0107): when the auth server still holds the
+  // session back, the account is already confirmed, so sign straight in.
   if (!data.session) {
-    // Email confirmation is on; there is nothing to redirect into yet.
-    return {
-      error: t('تم إنشاء الحساب — تحقّق من بريدك لتأكيد التسجيل ثم سجّل الدخول.',
-               'Account created — check your email to confirm it, then sign in.'),
-    };
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      return { error: authError(t, signInError.message, signInError.status) };
+    }
   }
 
   revalidatePath('/', 'layout');
@@ -153,4 +166,31 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath('/', 'layout');
   redirect('/');
+}
+
+/** What the auth server said, in words a person can act on. */
+function authError(t: Awaited<ReturnType<typeof getT>>, message: string, status?: number): string {
+  const m = message.toLowerCase();
+  if (m.includes('invalid login credentials')) {
+    return t('البريد أو كلمة المرور غير صحيحة.', 'The email or the password is wrong.');
+  }
+  if (m.includes('email not confirmed')) {
+    return t('هذا الحساب لم يُفعَّل بعد — تواصل معنا لتفعيله.', 'This account is not active yet — contact us to activate it.');
+  }
+  if (m.includes('already registered') || m.includes('already been registered') || m.includes('already exists')) {
+    return t('هذا البريد مسجّل بالفعل — سجّل الدخول بدلاً من ذلك.', 'That email is already registered — sign in instead.');
+  }
+  if (m.includes('password') && (m.includes('at least') || m.includes('weak') || m.includes('short'))) {
+    return t('كلمة المرور ضعيفة — استخدم 8 أحرف على الأقل مع أرقام وحروف.', 'That password is too weak — use at least 8 characters with letters and numbers.');
+  }
+  if (m.includes('invalid') && m.includes('email')) {
+    return t('صيغة البريد الإلكتروني غير صحيحة.', 'That email address is not valid.');
+  }
+  if (status === 429 || m.includes('rate limit')) {
+    return t('محاولات كثيرة في وقت قصير — انتظر قليلاً ثم حاول مجدداً.', 'Too many attempts in a short time — wait a little and try again.');
+  }
+  if (m.includes('signups not allowed') || m.includes('signup is disabled')) {
+    return t('التسجيل الجديد متوقف مؤقتاً.', 'New sign-ups are paused for now.');
+  }
+  return t('تعذّر إكمال العملية — حاول مرة أخرى.', 'That did not go through — please try again.');
 }

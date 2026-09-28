@@ -46,5 +46,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/onboarding`);
   }
 
-  return NextResponse.redirect(`${origin}${next.startsWith('/') ? next : '/home'}`);
+  const safe = next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : '/home';
+  return NextResponse.redirect(`${origin}${safe}`);
 }
