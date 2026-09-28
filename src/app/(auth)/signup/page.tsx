@@ -4,6 +4,7 @@ import { getT } from '@/lib/i18n.server';
 import { LanguagePicker } from '@/components/LanguagePicker';
 
 import { GoogleButton } from '../GoogleButton';
+import { isGoogleEnabled } from '@/lib/auth-providers';
 import { SignupForm } from './SignupForm';
 import { LogoMark } from '@/components/Logo';
 
@@ -11,6 +12,7 @@ export const metadata = { title: 'Create an account — TechMood' };
 
 export default async function SignupPage() {
   const t = await getT();
+  const google = await isGoogleEnabled();
 
   return (
     <main className="landing auth-page">
@@ -31,11 +33,15 @@ export default async function SignupPage() {
       </p>
 
       <div className="panel">
-        <GoogleButton next="/onboarding" label={t('أنشئ حسابك عبر Google', 'Sign up with Google')} />
+        {google && (
+          <>
+            <GoogleButton next="/onboarding" label={t('أنشئ حسابك عبر Google', 'Sign up with Google')} />
 
-        <div className="auth-divider">
-          <span>{t('أو بالبريد وكلمة المرور', 'or with email and password')}</span>
-        </div>
+            <div className="auth-divider">
+              <span>{t('أو بالبريد وكلمة المرور', 'or with email and password')}</span>
+            </div>
+          </>
+        )}
 
         <SignupForm />
       </div>

@@ -1,8 +1,7 @@
-import Link from 'next/link';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { redirect } from 'next/navigation';
 
 import { getT } from '@/lib/i18n.server';
-import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'Verify a certificate — TechMood' };
 
@@ -16,13 +15,9 @@ export default async function VerifyIndexPage() {
   const t = await getT();
 
   return (
-    <main className="landing" style={{ maxWidth: 520 }}>
-      <nav className="landing-nav">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <LogoMark />
-          TechMood
-        </Link>
-      </nav>
+    <>
+    <SiteNav />
+    <main className="landing" style={{ maxWidth: 560 }}>
 
       <h1 style={{ fontSize: '1.3rem', margin: '32px 0 6px' }}>
         {t('التحقق من شهادة', 'Verify a certificate')}
@@ -40,5 +35,7 @@ export default async function VerifyIndexPage() {
         <button className="btn btn-primary" style={{ width: '100%' }}>{t('تحقّق', 'Verify')}</button>
       </form>
     </main>
+    <SiteFooter />
+    </>
   );
 }

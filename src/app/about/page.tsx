@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { SiteNav } from '@/components/SiteNav';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { getT } from '@/lib/i18n.server';
 
 export const metadata = { title: 'About — TechMood' };
@@ -51,8 +51,9 @@ export default async function AboutPage() {
   ];
 
   return (
+    <>
+    <SiteNav />
     <main className="landing">
-      <SiteNav />
 
       <section className="hero">
         <p className="kicker">One Account · One TechMood ID · Many Journeys</p>
@@ -106,5 +107,7 @@ export default async function AboutPage() {
         </div>
       </section>
     </main>
+    <SiteFooter />
+    </>
   );
 }

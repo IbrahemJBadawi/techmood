@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
-import { ACTIVE_ROLE_COOKIE, defaultRole, navFor, ROLE_BY_VALUE } from '@/lib/roles';
+import { ACTIVE_ROLE_COOKIE, defaultRole, mobileTabsFor, navFor, ROLE_BY_VALUE } from '@/lib/roles';
 import type { UiLanguage, UserRole } from '@/lib/database.types';
 
 import { NavLink } from './NavLink';
@@ -18,6 +18,7 @@ import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
 import { InstallApp } from '@/components/InstallApp';
+import { MobileTabBar } from './shell/MobileNav';
 import { roleInScope } from '@/lib/scope';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const application = (mentorApplication ?? [])[0];
   const unread = inbox.filter((row) => !row.is_read).length;
 
+  // The phone's tabs and its "More" sheet carry the same places as the sidebar.
+  const accountGroup = {
+    label: t('الحساب', 'Account'),
+    items: [
+      { href: '/settings/roles', label: t('أدواري', 'My roles'), icon: 'settings' as const },
+      { href: '/guide', label: t('دليل التقييمات', 'Ratings guide'), icon: 'review' as const },
+    ],
+  };
+  const sheetGroups = [
+    ...groups.map((group) => ({
+      label: t(group.label),
+      items: group.items.map((item) => ({ href: item.href, label: t(item.label), icon: item.icon })),
+    })),
+    accountGroup,
+  ];
+  const tabs = mobileTabsFor(active).map((item) => ({ href: item.href, label: t(item.label), icon: item.icon }));
+
   return (
     <div className="app">
       <aside className="sidebar" aria-label={t('التنقّل', 'Navigation')}>
@@ -103,16 +121,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="main">
         <header className="topbar">
           <div className="topbar-inner">
+            <Link className="topbar-brand" href="/home" aria-label="TechMood">
+              <LogoMark size={28} />
+            </Link>
             <HeaderSearch />
 
             <div className="topbar-actions">
-              <RoleSwitcher roles={held} active={active} />
-              <Link className="icon-button" href="/messages"
+              <Link className="icon-button topbar-search-icon" href="/search"
+                    title={t('بحث', 'Search')} aria-label={t('بحث', 'Search')}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+              </Link>
+              <span className="topbar-wide"><RoleSwitcher roles={held} active={active} /></span>
+              <Link className="icon-button topbar-wide" href="/messages"
                     title={t('الرسائل', 'Messages')} aria-label={t('الرسائل', 'Messages')}>
                 <Icon name="message" />
               </Link>
               <Notifications items={inbox} unread={unread} />
-              <ThemeToggle />
+              <span className="topbar-wide"><ThemeToggle /></span>
               <ProfileMenu
                 name={displayName}
                 techmoodId={profile.techmood_id}
@@ -159,6 +188,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Assistant />
         </AssistantProvider>
       </div>
+
+      <MobileTabBar
+        tabs={tabs}
+        groups={sheetGroups}
+        moreLabel={t('المزيد', 'More')}
+        closeLabel={t('إغلاق', 'Close')}
+        unread={0}
+      >
+        <div className="sheet-role">
+          <span className="muted">{t('تتصفّح بدور', 'Browsing as')}</span>
+          <RoleSwitcher roles={held} active={active} />
+          <ThemeToggle />
+        </div>
+      </MobileTabBar>
     </div>
   );
 }

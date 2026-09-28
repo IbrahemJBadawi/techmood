@@ -1,8 +1,8 @@
 import Link from 'next/link';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { Stars } from '@/components/Stars';
 import QRCode from 'qrcode';
 
-import { LogoMark } from '@/components/Logo';
 import { FollowButton } from '@/components/Social';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -56,16 +56,13 @@ export default async function PublicProfilePage({
   const card = ((cardRows ?? []) as Card[])[0] ?? null;
 
   const shell = (children: React.ReactNode) => (
-    <main className="landing" style={{ maxWidth: 900 }}>
-      <nav className="landing-nav">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <LogoMark />
-          TechMood
-        </Link>
-        <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'The exhibition')}</Link>
-      </nav>
-      {children}
-    </main>
+    <>
+      <SiteNav />
+      <main className="landing" style={{ maxWidth: 900, paddingTop: 24 }}>
+        {children}
+      </main>
+      <SiteFooter />
+    </>
   );
 
   // A private profile and one that does not exist answer the same, so the page

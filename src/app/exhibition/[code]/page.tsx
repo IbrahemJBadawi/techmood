@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import QRCode from 'qrcode';
 
 import { Stars } from '@/components/Stars';
@@ -8,7 +9,6 @@ import { formatDate } from '@/lib/i18n';
 import type { ExhibitionSnapshot, ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL, KIND_LABEL } from '../types';
-import { LogoMark } from '@/components/Logo';
 
 export const metadata = { title: 'A project in the TechMood exhibition' };
 
@@ -47,14 +47,10 @@ export default async function ExhibitionEntryPage({
 
   if (!entry) {
     return (
-      <main className="landing" style={{ maxWidth: 860 }}>
-        <nav className="landing-nav">
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-            <LogoMark />
-            TechMood
-          </Link>
-          <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('كل المعرض', 'All projects')}</Link>
-        </nav>
+      <>
+      <SiteNav />
+      <main className="landing" style={{ maxWidth: 860, paddingTop: 24 }}>
+        <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('→ كل المعرض', '← All projects')}</Link>
         <section className="panel" style={{ marginTop: 32 }}>
           <h1 style={{ fontSize: '1.1rem' }}>{t('لا يوجد مشروع بهذا الرقم', 'No project with that number')}</h1>
           <p className="muted" style={{ fontSize: '0.9rem', marginTop: 8 }}>
@@ -64,6 +60,8 @@ export default async function ExhibitionEntryPage({
           </p>
         </section>
       </main>
+      <SiteFooter />
+      </>
     );
   }
 
@@ -77,14 +75,10 @@ export default async function ExhibitionEntryPage({
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
 
   return (
-    <main className="landing" style={{ maxWidth: 900 }}>
-      <nav className="landing-nav">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <LogoMark />
-          TechMood
-        </Link>
-        <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('كل المعرض', 'All projects')}</Link>
-      </nav>
+    <>
+    <SiteNav />
+    <main className="landing" style={{ maxWidth: 900, paddingTop: 24 }}>
+      <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('→ كل المعرض', '← All projects')}</Link>
 
       {/* ---- the work ---- */}
       <section className="panel" style={{ marginTop: 28 }}>
@@ -332,5 +326,7 @@ export default async function ExhibitionEntryPage({
         <span className="eng">{entry.entry_code}</span>
       </p>
     </main>
+    <SiteFooter />
+    </>
   );
 }

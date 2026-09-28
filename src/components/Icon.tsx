@@ -24,6 +24,15 @@ const PATHS: Record<IconName, string> = {
   shield: 'M12 3l8 3v6c0 4.5-3.2 7.8-8 9-4.8-1.2-8-4.5-8-9V6zM9 12l2 2 4-4',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.5 12a7.5 7.5 0 0 0-.2-1.6l2-1.5-2-3.4-2.3 1a7.5 7.5 0 0 0-2.8-1.6L13.8 2h-3.6l-.4 2.9a7.5 7.5 0 0 0-2.8 1.6l-2.3-1-2 3.4 2 1.5a7.5 7.5 0 0 0 0 3.2l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 0 0 2.8 1.6l.4 2.9h3.6l.4-2.9a7.5 7.5 0 0 0 2.8-1.6l2.3 1 2-3.4-2-1.5c.13-.52.2-1.06.2-1.6z',
   company: 'M4 21V6l7-3v18M11 21V9l9 3v9M4 21h17M7.5 9v.01M7.5 13v.01M7.5 17v.01M15 14v.01M15 17.5v.01',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  close: 'M6 6l12 12M18 6 6 18',
+  more: 'M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z',
+  check: 'M5 12.5l4.5 4.5L19 7.5',
+  // points forward in the reading direction; the stylesheet mirrors it in RTL
+  arrow: 'M5 12h14M13 6l6 6-6 6',
+  globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.5 9h17M3.5 15h17M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z',
+  play: 'M8 5.5v13l10.5-6.5z',
+  star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
 };
 
 export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {

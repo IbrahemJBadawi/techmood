@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
@@ -6,7 +7,6 @@ import { getT } from '@/lib/i18n.server';
 
 import { ExhibitionExplorer } from './ExhibitionExplorer';
 import type { GalleryEntry } from './types';
-import { LogoMark } from '@/components/Logo';
 
 export const metadata = {
   title: 'TechMood Exhibition',
@@ -48,14 +48,9 @@ export default async function ExhibitionPage() {
   }
 
   return (
+    <>
+    <SiteNav />
     <main className="landing">
-      <nav className="landing-nav">
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700, textDecoration: 'none' }}>
-          <LogoMark />
-          TechMood
-        </Link>
-        <Link className="btn btn-primary btn-sm" href="/signup">{t('ابدأ رحلتك', 'Start your journey')}</Link>
-      </nav>
 
       <section style={{ padding: '48px 0 24px', textAlign: 'center' }}>
         <p className="kicker">Exhibition</p>
@@ -127,5 +122,7 @@ export default async function ExhibitionPage() {
         <ExhibitionExplorer entries={entries} />
       )}
     </main>
+    <SiteFooter />
+    </>
   );
 }

@@ -43,7 +43,7 @@ export type IconName =
   | 'home' | 'passport' | 'academy' | 'certificate' | 'gallery' | 'team'
   | 'message' | 'mentor' | 'calendar' | 'wallet' | 'work' | 'application'
   | 'startup' | 'incubator' | 'review' | 'shield' | 'settings' | 'company'
-  | 'assistant';
+  | 'assistant' | 'menu' | 'close' | 'more' | 'check' | 'arrow' | 'globe' | 'play' | 'star';
 
 export const ROLES: RoleDefinition[] = [
   {
@@ -455,6 +455,45 @@ export function navFor(role: UserRole): NavGroup[] {
       : [...(MVP_ROLE_NAV[role] ?? []), ...MVP_MAIN, MVP_ACCOUNT];
   }
   return [COMMON, ...(ROLE_NAV[role] ?? [])];
+}
+
+/**
+ * The four tabs a phone keeps at the bottom of the screen, by role — the
+ * places a person in that role goes to most. Everything else is one tap away
+ * under "More", which holds the whole of navFor().
+ */
+export function mobileTabsFor(role: UserRole): NavItem[] {
+  const messages: NavItem = { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' };
+  switch (role) {
+    case 'admin':
+      return [
+        { href: '/admin', label: { ar: 'الإدارة', en: 'Admin' }, icon: 'shield' },
+        { href: '/admin/payments', label: { ar: 'المدفوعات', en: 'Payments' }, icon: 'wallet' },
+        { href: '/admin/support', label: { ar: 'الدعم', en: 'Support' }, icon: 'review' },
+        messages,
+      ];
+    case 'mentor':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/bookings', label: { ar: 'جلساتي', en: 'Sessions' }, icon: 'calendar' },
+        { href: '/mentor-requests', label: { ar: 'الطلبات', en: 'Requests' }, icon: 'review' },
+        messages,
+      ];
+    case 'mentee':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/mentorship', label: { ar: 'أهدافي', en: 'Goals' }, icon: 'passport' },
+        { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
+        messages,
+      ];
+    default:
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/academy', label: { ar: 'تعلّم', en: 'Learn' }, icon: 'academy' },
+        { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
+        messages,
+      ];
+  }
 }
 
 /**

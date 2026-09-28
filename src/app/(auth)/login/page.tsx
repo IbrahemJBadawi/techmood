@@ -4,6 +4,7 @@ import { getT } from '@/lib/i18n.server';
 import { LanguagePicker } from '@/components/LanguagePicker';
 
 import { GoogleButton } from '../GoogleButton';
+import { isGoogleEnabled } from '@/lib/auth-providers';
 import { LoginForm } from './LoginForm';
 import { LogoMark } from '@/components/Logo';
 
@@ -15,6 +16,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const t = await getT();
+  const google = await isGoogleEnabled();
   const params = await searchParams;
   const next = params.next && params.next.startsWith('/') ? params.next : undefined;
 
@@ -42,11 +44,15 @@ export default async function LoginPage({
       )}
 
       <div className="panel">
-        <GoogleButton next={next ?? '/home'} label={t('تابع عبر Google', 'Continue with Google')} />
+        {google && (
+          <>
+            <GoogleButton next={next ?? '/home'} label={t('تابع عبر Google', 'Continue with Google')} />
 
-        <div className="auth-divider">
-          <span>{t('أو بالبريد وكلمة المرور', 'or with email and password')}</span>
-        </div>
+            <div className="auth-divider">
+              <span>{t('أو بالبريد وكلمة المرور', 'or with email and password')}</span>
+            </div>
+          </>
+        )}
 
         <LoginForm next={next} />
       </div>
