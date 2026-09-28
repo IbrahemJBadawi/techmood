@@ -11,20 +11,25 @@ import type { IconName } from '@/lib/roles';
  * hides it visually — a nav that is only icons must still be readable by a
  * screen reader.
  */
+const matches = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
 export function NavLink({
   href,
   icon,
+  siblings = [],
   children,
 }: {
   href: string;
   icon?: IconName;
+  /** Every link in the same navigation: a deeper one that also matches wins. */
+  siblings?: string[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  // A section's front page (the admin overview) lights up on itself only; its
-  // sub-pages have links of their own.
-  const exact = href === '/admin';
-  const isActive = pathname === href || (!exact && pathname.startsWith(`${href}/`));
+  // "Session requests" and "My prices" (/mentor-requests/pricing) both match
+  // the prices page; only the closest one lights up.
+  const isActive = matches(pathname, href)
+    && !siblings.some((other) => other !== href && other.startsWith(`${href}/`) && matches(pathname, other));
 
   return (
     <Link

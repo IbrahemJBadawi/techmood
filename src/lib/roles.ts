@@ -423,24 +423,31 @@ const MVP_ACCOUNT: NavGroup = {
 };
 
 const MVP_ROLE_NAV: Partial<Record<UserRole, NavGroup[]>> = {
+  // A mentor's day, in order: the calendar, who is asking, what waits for a
+  // verdict, then the money and the settings of the practice.
   mentor: [
     {
       label: { ar: 'عملي كمنتور', en: 'My mentoring' },
       items: [
-        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
-        { href: '/mentor-requests/pricing', label: { ar: 'أسعاري', en: 'My prices' }, icon: 'wallet' },
-        { href: '/mentor-requests/level', label: { ar: 'مستواي', en: 'My level' }, icon: 'certificate' },
+        { href: '/bookings', label: { ar: 'جلساتي والتقويم', en: 'Sessions & calendar' }, icon: 'calendar' },
+        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'application' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
+        { href: '/wallet', label: { ar: 'أرباحي', en: 'My earnings' }, icon: 'wallet' },
+        { href: '/mentor-requests/pricing', label: { ar: 'أسعاري', en: 'My prices' }, icon: 'chart' },
+        { href: '/mentor-requests/level', label: { ar: 'مستواي', en: 'My level' }, icon: 'star' },
       ],
     },
   ],
+  // A mentee comes for guidance: the goals, the people, the booked time.
   mentee: [
     {
       label: { ar: 'رحلتي', en: 'My journey' },
       items: [
-        { href: '/mentorship', label: { ar: 'أهدافي مع المنتورز', en: 'My mentoring goals' }, icon: 'mentor' },
+        { href: '/mentorship', label: { ar: 'أهدافي مع المنتورز', en: 'My mentoring goals' }, icon: 'passport' },
+        { href: '/mentors', label: { ar: 'اختر منتوراً', en: 'Find a mentor' }, icon: 'mentor' },
+        { href: '/bookings', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
       ],
     },
   ],
@@ -451,9 +458,14 @@ const MVP_ROLE_NAV: Partial<Record<UserRole, NavGroup[]>> = {
 
 export function navFor(role: UserRole): NavGroup[] {
   if (IS_MVP) {
-    return role === 'admin'
-      ? [...(MVP_ROLE_NAV.admin ?? []), ...MVP_MAIN, MVP_ACCOUNT]
-      : [...(MVP_ROLE_NAV[role] ?? []), ...MVP_MAIN, MVP_ACCOUNT];
+    // The role's own group comes first; a place it already lists is not
+    // repeated further down, so every link appears once.
+    const own = MVP_ROLE_NAV[role] ?? [];
+    const taken = new Set(own.flatMap((group) => group.items.map((item) => item.href)));
+    const rest = [...MVP_MAIN, MVP_ACCOUNT]
+      .map((group) => ({ ...group, items: group.items.filter((item) => !taken.has(item.href)) }))
+      .filter((group) => group.items.length > 0);
+    return [...own, ...rest];
   }
   return [COMMON, ...(ROLE_NAV[role] ?? [])];
 }

@@ -78,6 +78,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : defaultRole(approved, profile.primary_role);
 
   const groups = navFor(active);
+  const navHrefs = groups.flatMap((group) => group.items.map((item) => item.href));
   const displayName = profile.display_name ?? profile.full_name;
   const inbox = notifications ?? [];
   const application = (mentorApplication ?? [])[0];
@@ -117,7 +118,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="nav-group" key={group.label.en}>
             <div className="nav-group-label">{t(group.label)}</div>
             {group.items.map((item) => (
-              <NavLink href={item.href} icon={item.icon} key={item.href}>
+              <NavLink href={item.href} icon={item.icon} key={item.href} siblings={navHrefs}>
                 {t(item.label)}
               </NavLink>
             ))}
