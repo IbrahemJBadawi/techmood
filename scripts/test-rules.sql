@@ -8376,6 +8376,35 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ===========================================================================
+-- 73. What a signed-out visitor may call is a list, not an accident
+-- ===========================================================================
+-- On Supabase every new function is granted to anon by name; this list is the
+-- set 0088 kept plus the market's two (0099). A new function a visitor may
+-- call has to be added here on purpose.
+select public.assert(
+  not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public'
+       and has_function_privilege('anon', p.oid, 'EXECUTE')
+       and p.proname not like 'assert%'   -- this file's own helpers
+       and p.proname not in (
+         'academy_roadmap', 'booking_holds_time', 'can_see_private_brief', 'can_see_profile_section',
+         'can_view_startup_workspace', 'canvas_board', 'client_profile', 'client_reviews_for',
+         'compute_commission', 'course_counts_in_path', 'course_rating', 'course_skills',
+         'exhibition_entry_history', 'exhibition_featured', 'feedback_digest', 'has_role', 'is_admin',
+         'is_credential_lesson', 'is_startup_mentor', 'is_team_member', 'is_username_available',
+         'leaderboard_companies_ranked', 'leaderboard_mentors_ranked', 'leaderboard_students_ranked',
+         'leaderboard_teams_ranked', 'lesson_skills_all', 'listing_price', 'market_listings',
+         'market_overview', 'mask_account', 'mentor_available_slots', 'mentor_performance',
+         'mentor_price_list', 'path_skills', 'profile_card', 'profile_credentials',
+         'profile_exhibition_entries', 'profile_focus', 'profile_learning', 'profile_reputation',
+         'profile_skill_evidence', 'profile_verified_skills', 'record_share_view', 'roadmap',
+         'session_quote', 'shared_view', 'trust_signals', 'verify_certificate', 'verify_exhibition_entry',
+         'academy_courses', 'is_course_published', 'is_path_open')
+  ),
+  '73.1 a signed-out visitor can call only the functions on the public list');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

@@ -1920,3 +1920,12 @@ current numbers at Admin → Mentor upgrades and approves — `set_mentor_level(
 (0006's never-above-earned guard still applies), so the price band moves too —
 or declines with a reason; both reach the mentor and the audit log.
 
+## Function privileges, again (0102)
+
+On Supabase a new function is granted to `anon` and `authenticated` by name
+when it is created, whatever the migration's default privileges say, so every
+migration must revoke what it does not mean to give. 0102 closed the ten from
+0092–0101 the security advisor found (trigger functions and two booking checks),
+and test 73.1 now fails if any function outside the public list is callable by a
+signed-out visitor.
+
