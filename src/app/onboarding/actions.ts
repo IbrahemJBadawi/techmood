@@ -69,7 +69,9 @@ export async function saveBasics(_prev: StepState, formData: FormData): Promise<
     return {
       error: error.message.includes('username')
         ? t('اسم المستخدم غير صالح أو محجوز.', 'That username is invalid or taken.')
-        : t('تعذّر الحفظ.', 'Could not save.'),
+        : error.message.includes('الصورة')
+          ? t('ارفع الصورة من زر «أضف صورة».', 'Upload the photo with the “Add a photo” button.')
+          : t('تعذّر الحفظ.', 'Could not save.'),
     };
   }
 

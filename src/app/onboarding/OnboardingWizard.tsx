@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
+import { AvatarUploader } from '@/components/AvatarUploader';
 import { SELECTABLE_ROLES, ROLE_STATUS_LABEL, roleLabel } from '@/lib/roles';
 import { useT } from '@/lib/i18n.client';
 import type { T } from '@/lib/i18n';
@@ -10,6 +10,7 @@ import type { RoleStatus, TaxonomyKind, UiLanguage, UserRole } from '@/lib/datab
 
 import { finishOnboarding, requestRoles, saveBasics, saveTerms, suggestTerm } from './actions';
 import { LogoMark } from '@/components/Logo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Term = { id: string; slug: string; name_ar: string; name_en: string; status: string };
 type RoleRow = { id: string; role: UserRole; status: RoleStatus; application_note: string | null };
@@ -33,7 +34,7 @@ type Props = {
 };
 
 const steps = (t: T) => [
-  t('المعلومات الأساسية', 'Basics'),
+  t('أنت وصورتك', 'You and your photo'),
   t('الأدوار', 'Roles'),
   t('المجالات', 'Fields'),
   t('الاهتمامات', 'Interests'),
@@ -59,16 +60,27 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
             <LogoMark />
             TechMood
           </div>
-          <span className="id-chip">{profile.techmood_id}</span>
+          <div className="ob-tools">
+            <span className="id-chip">{profile.techmood_id}</span>
+            <ThemeToggle />
+          </div>
         </div>
         <h1>{t('لنُعِدّ حسابك', 'Let\u2019s set up your account')}</h1>
         <p className="muted">
           {t('هذه المعلومات تبني هويتك المهنية الواحدة. رقمك ',
              'This is what your one professional identity is built from. Your ID ')}
-          <strong>{profile.techmood_id}</strong>
+          <strong style={{ whiteSpace: 'nowrap' }}><bdi>{profile.techmood_id}</bdi></strong>
           {t(' صدر بالفعل ولا يتغيّر مهما غيّرت اسمك أو أدوارك.',
              ' has already been issued and never changes, whatever you call yourself or which roles you take on.')}
         </p>
+
+        <div className="ob-progress" aria-hidden="true">
+          <div className="row-between">
+            <strong>{steps(t)[step]}</strong>
+            <span className="muted">{t(`الخطوة ${step + 1} من ${steps(t).length}`, `Step ${step + 1} of ${steps(t).length}`)}</span>
+          </div>
+          <div className="ob-bar"><span style={{ width: `${((step + 1) / steps(t).length) * 100}%` }} /></div>
+        </div>
 
         <ol className="stepper">
           {steps(t).map((label, index) => (
@@ -170,59 +182,22 @@ function BasicsStep({
   const t = useT();
   const [state, formAction, pending] = useActionState(saveBasics, undefined);
   const [avatar, setAvatar] = useState(profile.avatar_url ?? '');
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
 
   // Advancing is a side effect of the action succeeding, never something done
   // while rendering.
   useEffect(() => { if (state?.ok) onDone(); }, [state, onDone]);
 
-  async function uploadAvatar(file: File) {
-    setUploading(true);
-    setUploadError('');
-    const supabase = createClient();
-    const path = `${userId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '_')}`;
-    const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
-    if (error) {
-      setUploadError(t('تعذّر رفع الصورة.', 'The image could not be uploaded.'));
-    } else {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      setAvatar(data.publicUrl);
-    }
-    setUploading(false);
-  }
-
   return (
-    <form action={formAction} className="panel onboarding-card">
+    <form action={formAction} className="hm-card onboarding-card">
       <h2>{t('من أنت؟', 'Who are you?')}</h2>
 
-      <div className="avatar-picker">
-        <span className="avatar-preview" aria-hidden="true">
-          {avatar
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={avatar} alt="" width={72} height={72} />
-            : (profile.display_name ?? profile.full_name).slice(0, 1)}
-        </span>
-        <div>
-          <label className="btn btn-ghost btn-sm" htmlFor="avatar">
-            {uploading ? t('جارٍ الرفع…', 'Uploading…') : t('اختر صورة', 'Choose a photo')}
-          </label>
-          <input
-            id="avatar"
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void uploadAvatar(file);
-            }}
-          />
-          <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-            {t('اختيارية. تظهر في ملفك العام وفي الفرق التي تنضم إليها.', 'Optional. It appears on your public profile and in the teams you join.')}
-          </p>
-          {uploadError && <p className="notice notice-danger">{uploadError}</p>}
-        </div>
-      </div>
+      <AvatarUploader
+        userId={userId}
+        name={profile.display_name ?? profile.full_name}
+        value={avatar || null}
+        onChange={(url) => setAvatar(url ?? '')}
+        cleanup={false}
+      />
       <input type="hidden" name="avatar_url" value={avatar} />
 
       <div className="field-row">
@@ -284,7 +259,7 @@ function BasicsStep({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
 
       <div className="onboarding-actions">
-        <button className="btn btn-primary" disabled={pending || uploading}>
+        <button className="btn btn-primary" disabled={pending}>
           {pending ? t('جارٍ الحفظ…', 'Saving…') : t('التالي', 'Next')}
         </button>
       </div>
@@ -314,7 +289,7 @@ function RolesStep({
   useEffect(() => { if (state?.ok) onDone(); }, [state, onDone]);
 
   return (
-    <form action={formAction} className="panel onboarding-card">
+    <form action={formAction} className="hm-card onboarding-card">
       <h2>{t('ماذا تريد أن تفعل هنا؟', 'What do you want to do here?')}</h2>
       <p className="muted">
         {t('الأدوار ليست ترتيباً اجتماعياً — لا يوجد دور «أعلى» من آخر. كل دور يفتح مساحة عمل مختلفة، ويمكنك حمل أكثر من دور في الوقت نفسه.',
@@ -441,7 +416,7 @@ function TermStep({
   }
 
   return (
-    <div className="panel onboarding-card">
+    <div className="hm-card onboarding-card">
       <h2>{title}</h2>
       <p className="muted">{lede}</p>
 
@@ -573,8 +548,23 @@ function SummaryStep({
   const pending_roles = roles.filter((row) => row.status !== 'approved');
 
   return (
-    <form action={formAction} className="panel onboarding-card">
-      <h2>{t('حسابك جاهز', 'Your account is ready')}</h2>
+    <form action={formAction} className="hm-card onboarding-card">
+      <div className="ob-ready">
+        <span className="ob-ready-face">
+          {profile.avatar_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={profile.avatar_url} alt="" width={72} height={72} />
+            : (profile.display_name ?? profile.full_name).slice(0, 1)}
+        </span>
+        <div>
+          <h2>{t('حسابك جاهز 🎉', 'Your account is ready 🎉')}</h2>
+          {!profile.avatar_url && (
+            <p className="muted" style={{ fontSize: '0.84rem' }}>
+              {t('بدون صورة؟ لا بأس — تضيفها متى شئت من الإعدادات.', 'No photo? That is fine — add one any time from Settings.')}
+            </p>
+          )}
+        </div>
+      </div>
 
       <dl className="summary-list">
         <div>

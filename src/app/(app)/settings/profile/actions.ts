@@ -136,3 +136,17 @@ export async function removeRow(formData: FormData) {
 
   revalidatePath(HERE);
 }
+
+/**
+ * The profile photo, saved the moment it is chosen or removed. Which addresses
+ * are allowed is the database's rule (0108): the member's own folder in the
+ * avatars bucket, or the photo their Google account brought.
+ */
+export async function setAvatar(url: string | null): Promise<ProfileState> {
+  const t = await getT();
+  const { supabase, user } = await me();
+  const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
+  if (error) return { error: t('تعذّر حفظ الصورة.', 'The photo could not be saved.') };
+  revalidatePath('/', 'layout');
+  return { ok: 'saved' };
+}

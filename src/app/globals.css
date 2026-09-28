@@ -5400,3 +5400,95 @@ input[type="file"]::file-selector-button {
   font: inherit; font-weight: 600; cursor: pointer;
 }
 input[type="file"]::file-selector-button:hover { border-color: var(--royal); color: var(--royal); }
+
+/* ---------- sign in / sign up ---------- */
+.au-page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); background: var(--bg); }
+.au-brand {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 24px;
+  padding: 36px 44px; color: #fff; overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgba(255, 255, 255, 0.16), transparent 60%),
+    radial-gradient(70% 60% at 0% 100%, rgba(124, 92, 255, 0.55), transparent 65%),
+    linear-gradient(150deg, #1F5FFF, #0B8FB3);
+}
+.au-brand-logo { display: inline-flex; align-items: center; gap: 10px; color: #fff; font-weight: 800; font-size: 1.1rem; text-decoration: none; }
+.au-brand-body h2 { font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.25; margin: 0 0 28px; color: #fff; }
+.au-brand-body h2 span { color: #BFE3FF; }
+.au-points, .au-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.au-points li, .au-steps li { display: flex; align-items: center; gap: 12px; font-size: 1rem; }
+.au-points li > span, .au-steps li > span {
+  flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16); font-weight: 800;
+}
+.au-brand-card {
+  align-self: flex-start; display: grid; grid-template-columns: auto auto 1fr; gap: 8px 10px; align-items: center;
+  width: min(340px, 100%); padding: 16px; border-radius: 20px;
+  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(6px);
+}
+.au-brand-card strong { grid-column: 1 / -1; font-size: 0.95rem; }
+.au-brand-pill { padding: 3px 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.18); font-size: 0.8rem; font-weight: 700; }
+.au-brand-pill.is-xp { background: rgba(52, 211, 153, 0.3); }
+.au-brand-track { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.22); overflow: hidden; }
+.au-brand-track > span { display: block; width: 62%; height: 100%; border-radius: inherit; background: #fff; }
+
+.au-main { display: flex; flex-direction: column; min-width: 0; padding: 20px clamp(16px, 5vw, 56px) 40px; }
+.au-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.au-head-logo { display: none; align-items: center; gap: 10px; color: var(--ink); font-weight: 800; text-decoration: none; }
+.au-head-tools { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.au-body { width: 100%; max-width: 440px; margin: auto; padding-top: 28px; }
+.au-body h1 { font-size: 1.7rem; margin: 0 0 6px; }
+.au-lede { color: var(--ink-soft); font-size: 0.92rem; margin: 0 0 22px; }
+.au-card { padding: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l); box-shadow: var(--shadow-2); }
+.au-card .btn-primary { min-height: 46px; }
+.au-foot { text-align: center; color: var(--ink-soft); font-size: 0.88rem; margin-top: 18px; }
+.au-foot a { color: var(--royal); font-weight: 600; }
+@media (max-width: 900px) {
+  .au-page { grid-template-columns: minmax(0, 1fr); }
+  .au-brand { display: none; }
+  .au-head-logo { display: inline-flex; }
+  .au-body { margin: 0 auto; }
+}
+
+/* ---------- onboarding ---------- */
+.ob-tools { display: flex; align-items: center; gap: 8px; }
+.ob-progress { display: grid; gap: 8px; margin-top: 22px; font-size: 0.86rem; }
+.ob-bar { height: 10px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.ob-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--royal), var(--xp)); transition: width 0.4s ease; }
+.onboarding .stepper { margin-top: 12px; }
+.onboarding-card { padding: 22px; box-shadow: var(--shadow-2); }
+.onboarding-card h2 { font-size: 1.2rem; }
+.term-tag { padding: 8px 14px; border-radius: 99px; font-size: 0.86rem; transition: background 0.15s, border-color 0.15s; }
+.term-tag.is-on { background: var(--royal); border-color: var(--royal); color: #fff; }
+.term-tag.is-on .term-en { color: rgba(255, 255, 255, 0.8); }
+.term-tag.is-on::before { content: '✓'; margin-inline-end: 6px; font-weight: 800; }
+.ob-ready { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.ob-ready-face {
+  flex: none; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; overflow: hidden;
+  background: var(--sky-tint); color: var(--royal-dark); font-size: 1.6rem; font-weight: 800;
+  box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--xp);
+}
+.ob-ready-face img { width: 100%; height: 100%; object-fit: cover; }
+.ob-ready h2 { margin: 0 0 4px; }
+
+/* ---------- profile photo uploader ---------- */
+.av-up { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; }
+.av-up-face {
+  position: relative; flex: none; display: grid; place-items: center;
+  border-radius: 50%; border: 0; padding: 0; cursor: pointer; color: #fff; font-weight: 800;
+  box-shadow: 0 0 0 4px var(--panel), 0 0 0 5px var(--line-strong);
+}
+.av-up-face img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.av-up-face:hover { box-shadow: 0 0 0 4px var(--panel), 0 0 0 6px var(--royal); }
+.av-up-face:disabled { cursor: progress; }
+.av-up-cam {
+  position: absolute; inset-block-end: -2px; inset-inline-end: -2px;
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--royal); color: #fff; box-shadow: 0 0 0 3px var(--panel);
+}
+.av-up-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff; animation: av-spin 0.8s linear infinite; }
+@keyframes av-spin { to { transform: rotate(360deg); } }
+.av-up-side { flex: 1; min-width: 200px; display: grid; gap: 6px; }
+.av-up-actions { display: flex; align-items: center; gap: 12px; }
+.av-up-side .muted { font-size: 0.8rem; margin: 0; }
+.site-theme { display: inline-flex; }

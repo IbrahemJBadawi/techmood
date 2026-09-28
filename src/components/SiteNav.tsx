@@ -6,6 +6,7 @@ import { LanguagePicker } from '@/components/LanguagePicker';
 import { LogoMark } from '@/components/Logo';
 import type { IconName } from '@/lib/roles';
 
+import { ThemeToggle } from './ThemeToggle';
 import { SiteMenu } from './SiteMenu';
 
 /**
@@ -44,6 +45,7 @@ export async function SiteNav() {
         </ul>
 
         <div className="site-actions">
+          <span className="site-theme"><ThemeToggle /></span>
           <span className="site-lang"><LanguagePicker current={t.locale} /></span>
           <Link className="btn btn-ghost btn-sm site-login" href="/login">{t('تسجيل الدخول', 'Sign in')}</Link>
           <Link className="btn btn-primary btn-sm" href="/signup">{t('ابدأ مجاناً', 'Start free')}</Link>

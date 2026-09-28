@@ -13,7 +13,7 @@ import { RoleSwitcher } from './RoleSwitcher';
 import { HeaderSearch } from './shell/HeaderSearch';
 import { Notifications } from './shell/Notifications';
 import { ProfileMenu } from './shell/ProfileMenu';
-import { ThemeToggle } from './shell/ThemeToggle';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';

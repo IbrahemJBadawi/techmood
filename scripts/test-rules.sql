@@ -8846,6 +8846,74 @@ select public.assert(
     where profile_id = '33333333-3333-3333-3333-333333333333' and title_ar = 'أُعجب أحدهم بمشروعك') = 1,
   '77.14 the owner is told once per person');
 
+-- ---------------------------------------------------------------------------
+-- 78. Profile photos (0108)
+-- ---------------------------------------------------------------------------
+\echo '78. profile photos'
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+insert into storage.objects (bucket_id, name, owner)
+values ('avatars', '11111111-1111-1111-1111-111111111111/me.jpg', '11111111-1111-1111-1111-111111111111');
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'avatars') = 1,
+  '78.1 a member uploads a photo into their own folder, and sees it');
+
+select public.assert_rejects(
+  $$insert into storage.objects (bucket_id, name) values ('avatars', '33333333-3333-3333-3333-333333333333/me.jpg')$$,
+  '78.2 but never into somebody else''s', 'row-level security');
+
+update public.profiles
+   set avatar_url = 'https://project.supabase.co/storage/v1/object/public/avatars/11111111-1111-1111-1111-111111111111/me.jpg'
+ where id = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select avatar_url like '%/avatars/11111111-1111-1111-1111-111111111111/me.jpg'
+     from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  '78.3 the profile may point at a photo in its own folder');
+
+select public.assert_rejects(
+  $$update public.profiles
+       set avatar_url = 'https://project.supabase.co/storage/v1/object/public/avatars/33333333-3333-3333-3333-333333333333/me.jpg'
+     where id = '11111111-1111-1111-1111-111111111111'$$,
+  '78.4 not at somebody else''s photo', 'تُرفع من المنصة');
+
+select public.assert_rejects(
+  $$update public.profiles set avatar_url = 'https://tracker.example/pixel.gif'
+     where id = '11111111-1111-1111-1111-111111111111'$$,
+  '78.5 and not at an address anywhere else', 'تُرفع من المنصة');
+
+update public.profiles set avatar_url = 'https://lh3.googleusercontent.com/a/abc123=s96-c'
+ where id = '11111111-1111-1111-1111-111111111111';
+update public.profiles set avatar_url = '  '
+ where id = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select avatar_url is null from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  '78.6 the Google photo is accepted, and clearing the photo leaves none');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'avatars') = 0,
+  '78.7 nobody can list another member''s photos');
+delete from storage.objects where bucket_id = 'avatars';
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'avatars') = 1,
+  '78.8 or delete them');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+delete from storage.objects where bucket_id = 'avatars';
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) from storage.objects where bucket_id = 'avatars') = 0,
+  '78.9 the owner can remove their own photo');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

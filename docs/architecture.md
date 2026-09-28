@@ -1994,3 +1994,15 @@ cannot see. Counts are public (`follow_stats`, `project_like_stats`, on the
 anon list of test 73.1); the rows themselves are readable by the two people
 involved and the admins. Test 77.
 
+
+## Profile photos (0108)
+
+A photo is optional: it is offered on the first onboarding step and in
+Settings → Professional profile (`AvatarUploader`). The browser crops it to a
+centred square and re-encodes it as a 512px JPEG before upload. The `avatars`
+bucket accepts JPEG, PNG and WebP up to 2 MB; a member uploads, replaces,
+lists and deletes only inside their own folder (`<uid>/…`), and the photo is
+reached by its public link. `profiles.avatar_url` is checked by
+`check_avatar_url()`: it is empty, a file in the member's own folder, or the
+Google photo the account was created with — never an arbitrary address. Where
+the choice is saved at once (Settings), the replaced file is removed. Test 78.
