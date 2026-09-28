@@ -167,34 +167,37 @@ export default async function LessonPage({
         <Link href={`/academy/${pathSlug}/${courseSlug}`}>{contentText(locale, course.title_ar, course.title_en)}</Link>
       </nav>
 
-      <section className="panel section-block">
-        <div className="row-between">
-          <div>
-            <p className="kicker eng">{code}</p>
-            <h2 style={{ fontSize: '1.2rem', margin: '4px 0' }}>{title}</h2>
-            <div className="lesson-meta">
-              <span className="tag">{KIND_LABEL[lesson.kind] ? t(KIND_LABEL[lesson.kind]) : lesson.kind}</span>
-              {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
-              <span className="eng muted">{t(`الدرس ${position} من ${lessons.length}`, `Lesson ${position} of ${lessons.length}`)}</span>
-              <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
-            </div>
-          </div>
-          {canTick && (
-            <form action={toggleLesson}>
-              <input type="hidden" name="lesson_id" value={lesson.id} />
-              <input type="hidden" name="completed" value={String(done)} />
-              <input type="hidden" name="revalidate" value={here} />
-              <button className={`btn btn-sm ${done ? 'btn-ghost' : 'btn-primary'}`} type="submit">
-                {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم كمكتمل', 'Mark as done')}
-              </button>
-            </form>
-          )}
+      <section className="panel section-block lesson-head">
+        <div className="lesson-steps-bar" aria-label={t(`الدرس ${position} من ${lessons.length}`, `Lesson ${position} of ${lessons.length}`)}>
+          {lessons.map((item, index) => (
+            <span key={item.id} className={index + 1 < position ? 'is-past' : index + 1 === position ? 'is-now' : ''} />
+          ))}
         </div>
-        {lesson.summary_ar && <p className="muted" style={{ fontSize: '0.9rem', marginTop: 10 }}>{lesson.summary_ar}</p>}
+        <p className="lesson-position">
+          {t(`الدرس ${position} من ${lessons.length}`, `Lesson ${position} of ${lessons.length}`)}
+        </p>
+        <h2 className="lesson-title">{title}</h2>
+        <div className="lesson-meta">
+          <span className="tag">{KIND_LABEL[lesson.kind] ? t(KIND_LABEL[lesson.kind]) : lesson.kind}</span>
+          {lesson.duration_minutes && <span>{t(`${lesson.duration_minutes} دقيقة`, `${lesson.duration_minutes} min`)}</span>}
+          <span className="id-chip">{code}</span>
+          <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
+        </div>
+        {lesson.summary_ar && <p className="muted lesson-summary">{lesson.summary_ar}</p>}
         {soon && (
           <p className="notice" style={{ marginTop: 10 }}>
             {t('هذا الدرس «قريباً» — يُفتح للإكمال حين يُنشر.', 'This lesson is «coming soon» — it can be completed once it is published.')}
           </p>
+        )}
+        {canTick && (
+          <form action={toggleLesson} className="lesson-done-form">
+            <input type="hidden" name="lesson_id" value={lesson.id} />
+            <input type="hidden" name="completed" value={String(done)} />
+            <input type="hidden" name="revalidate" value={here} />
+            <button className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} type="submit">
+              {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
+            </button>
+          </form>
         )}
       </section>
 

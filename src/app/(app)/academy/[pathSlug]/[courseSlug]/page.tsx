@@ -6,7 +6,11 @@ import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { Assignment, Evaluation, Submission } from '@/lib/database.types';
 
+import { Icon } from '@/components/Icon';
+
 import { toggleLesson } from '../../actions';
+import { ProgressRing } from '../../ProgressRing';
+import { schoolLook } from '../../schools';
 import { SubmissionPanel } from '../../SubmissionPanel';
 import { CourseRatingForm } from '../../CourseRatingForm';
 
@@ -112,6 +116,18 @@ export default async function CoursePage({
   );
 
   const revalidate = `/academy/${pathSlug}/${courseSlug}`;
+
+  // The course takes the colour of the path it was opened from.
+  const { data: pathRow } = await supabase
+    .from('learning_paths')
+    .select('title_ar, schools(slug)')
+    .eq('slug', pathSlug)
+    .maybeSingle();
+  const look = schoolLook((pathRow?.schools as unknown as { slug: string } | null)?.slug);
+  const openLessons = lessons.filter((lesson) => lesson.status === 'published');
+  const lessonsDone = openLessons.filter((lesson) => completedLessons.has(lesson.id)).length;
+  const lessonPercent = openLessons.length ? Math.round((lessonsDone / openLessons.length) * 100) : 0;
+  const nextLesson = openLessons.find((lesson) => !completedLessons.has(lesson.id)) ?? null;
   const typedAssignments = (assignments ?? []) as Assignment[];
   const courseProject = typedAssignments.find((assignment) => assignment.kind === 'course_project');
   const courseTask = typedAssignments.find((assignment) => assignment.kind === 'course_task');
@@ -131,28 +147,49 @@ export default async function CoursePage({
     <>
       <Link className="btn btn-ghost btn-sm" href={`/academy/${pathSlug}`}>{t('→ رجوع للمسار', '← Back to the path')}</Link>
 
-      <section className="panel section-block" style={{ marginTop: 16 }}>
-        <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>{course.title_ar}</h2>
-          <span className={`status-pill ${isComplete ? 'status-ok' : 'status-muted'}`}>
-            {isComplete ? t('مكتملة', 'Completed') : t('قيد التقدّم', 'In progress')}
-          </span>
+      <section className="section-block ac-cover" style={{ marginTop: 16, '--hue': look.color } as React.CSSProperties}>
+        <div className="ac-cover-top">
+          <span className="ac-cover-icon"><Icon name={look.icon} size={26} /></span>
+          <div className="ac-cover-titles">
+            {pathRow?.title_ar && <p className="ac-cover-school">{pathRow.title_ar}</p>}
+            <h2>{course.title_ar}</h2>
+          </div>
+          <ProgressRing percent={isComplete ? 100 : lessonPercent} size={64} stroke={6} label={t('تقدّم الدورة', 'Course progress')} />
         </div>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{course.description_ar}</p>
-        {rating && rating.rated_count > 0 && (
-          <p className="muted" style={{ fontSize: '0.82rem', marginTop: 8 }}>
-            <span className="eng">{rating.stars_avg}★</span>
-            {t(` من ${rating.rated_count} تقييم`, ` from ${rating.rated_count} ratings`)}
-            {rating.recommend_pct !== null && t(` · ${rating.recommend_pct}% يوصون بها`, ` · ${rating.recommend_pct}% recommend it`)}
-          </p>
+        <p className="ac-cover-desc">{course.description_ar}</p>
+
+        <ul className="ac-cover-meta">
+          <li><Icon name="play" size={15} />{t(`${lessonsDone} من ${openLessons.length} دروس`, `${lessonsDone} of ${openLessons.length} lessons`)}</li>
+          {course.estimated_hours && <li><Icon name="clock" size={15} /><span className="eng">~{course.estimated_hours}h</span></li>}
+          {rating && rating.rated_count > 0 && (
+            <li>
+              <Icon name="star" size={15} /><span className="eng">{rating.stars_avg}</span>
+              {t(` · ${rating.rated_count} تقييم`, ` · ${rating.rated_count} ratings`)}
+              {rating.recommend_pct !== null && t(` · ${rating.recommend_pct}% يوصون بها`, ` · ${rating.recommend_pct}% recommend`)}
+            </li>
+          )}
+          <li>{isComplete ? t('✓ مكتملة', '✓ Completed') : t('قيد التقدّم', 'In progress')}</li>
+        </ul>
+
+        {nextLesson && course.status !== 'planned' && (
+          <div className="ac-cover-actions">
+            <Link className="btn ac-cover-cta" href={`/academy/${pathSlug}/${courseSlug}/${nextLesson.slug}`}>
+              {lessonsDone === 0 ? t('ابدأ الدرس الأول', 'Start the first lesson') : t('تابع: ', 'Continue: ')}
+              {lessonsDone > 0 && nextLesson.title_ar}
+            </Link>
+          </div>
         )}
-        {course.status === 'planned' && (
-          <p className="notice" style={{ marginTop: 10 }}>
-            {t('هذه الدورة «قريباً» — تظهر هنا لتعرف ما سيأتي، وتُفتح دروسها حين تُنشر.',
-               'This course is «coming soon» — shown so you know what is coming; its lessons open when it is published.')}
-          </p>
-        )}
-        <p className="muted" style={{ fontSize: '0.8rem', marginTop: 10 }}>
+      </section>
+
+      {course.status === 'planned' && (
+        <p className="notice section-block">
+          {t('هذه الدورة «قريباً» — تظهر هنا لتعرف ما سيأتي، وتُفتح دروسها حين تُنشر.',
+             'This course is «coming soon» — shown so you know what is coming; its lessons open when it is published.')}
+        </p>
+      )}
+
+      <section className="section-block">
+        <p className="muted" style={{ fontSize: '0.84rem' }}>
           {t('الشهادة تتطلب إكمال كل الدروس ', 'The certificate needs every lesson finished ')}
           <strong>{t('واعتماد', 'and')}</strong>
           {t(' كل الأعمال المطلوبة أدناه.', ' every required piece of work below approved.')}
@@ -195,15 +232,15 @@ export default async function CoursePage({
 
       <div className="detail-grid">
         <section>
-          <div className="panel section-block">
+          <div className="panel section-block ac-lessons" style={{ '--hue': look.color } as React.CSSProperties}>
             <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('دروس الدورة', 'Course lessons')}</h3>
             {lessons.map((lesson) => {
               const done = completedLessons.has(lesson.id);
               const soon = lesson.status !== 'published';
               return (
-                <div className="lesson-row" key={lesson.id}>
+                <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}`} key={lesson.id}>
                   {soon ? (
-                    <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}>…</span>
+                    <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}><Icon name="lock" size={14} /></span>
                   ) : (
                   <form action={toggleLesson}>
                     <input type="hidden" name="lesson_id" value={lesson.id} />

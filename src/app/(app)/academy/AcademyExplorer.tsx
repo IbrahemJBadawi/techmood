@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CourseLevel, LearningStatus } from '@/lib/database.types';
+import { Icon } from '@/components/Icon';
 import { useT } from '@/lib/i18n.client';
 
 import { CourseCard } from './CourseCard';
 import { PathCard } from './PathCard';
 import { RoadmapCard } from './RoadmapCard';
+import { schoolLook } from './schools';
 import {
   courseCount, courseHaystack, LEVEL_LABEL, LEVEL_ORDER, pathCount, pathHaystack,
   resultCount, roadmapHaystack, STATUS_LABEL,
@@ -145,9 +147,10 @@ export function AcademyExplorer({
       {/* ---- search ---- */}
       <section className="section-block" aria-labelledby="academy-search-label">
         <form className="academy-search" role="search" onSubmit={(event) => event.preventDefault()}>
-          <label htmlFor="academy-search" id="academy-search-label">
+          <label htmlFor="academy-search" id="academy-search-label" className="sr-only">
             {t('ابحث في الأكاديمية', 'Search the academy')}
           </label>
+          <Icon name="search" size={18} />
           <input
             id="academy-search"
             type="search"
@@ -165,7 +168,7 @@ export function AcademyExplorer({
           <h2 id="academy-categories" className="academy-heading">
             {t('مجالات التعلّم', 'Learning categories')}
           </h2>
-          <div className="explore-row" role="group" aria-label={t('مجالات التعلّم', 'Learning categories')}>
+          <div className="explore-row ac-chips" role="group" aria-label={t('مجالات التعلّم', 'Learning categories')}>
             <button
               type="button"
               className={`explore-chip ${domain === null ? 'is-on' : ''}`}
@@ -181,7 +184,9 @@ export function AcademyExplorer({
                 className={`explore-chip ${domain === category.slug ? 'is-on' : ''}`}
                 aria-pressed={domain === category.slug}
                 onClick={() => setDomain(domain === category.slug ? null : category.slug)}
+                style={{ '--hue': schoolLook(category.slug).color } as React.CSSProperties}
               >
+                <Icon name={schoolLook(category.slug).icon} size={15} />
                 {t.locale === 'ar' ? category.ar : (category.en ?? category.ar)}
                 <span className="muted eng"> {category.count}</span>
               </button>

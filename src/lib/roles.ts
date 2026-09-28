@@ -43,7 +43,8 @@ export type IconName =
   | 'home' | 'passport' | 'academy' | 'certificate' | 'gallery' | 'team'
   | 'message' | 'mentor' | 'calendar' | 'wallet' | 'work' | 'application'
   | 'startup' | 'incubator' | 'review' | 'shield' | 'settings' | 'company'
-  | 'assistant' | 'menu' | 'close' | 'more' | 'check' | 'arrow' | 'globe' | 'play' | 'star';
+  | 'assistant' | 'menu' | 'close' | 'more' | 'check' | 'arrow' | 'globe' | 'play' | 'star'
+  | 'code' | 'chart' | 'brush' | 'search' | 'clock' | 'layers' | 'lock';
 
 export const ROLES: RoleDefinition[] = [
   {

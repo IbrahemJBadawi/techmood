@@ -2,7 +2,7 @@ import type { Database } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 
-import { ContinueLearning, type Resume } from '../home/student/ContinueLearning';
+import type { Resume } from '../home/student/ContinueLearning';
 import { AcademyExplorer } from './AcademyExplorer';
 import { AcademyHero } from './AcademyHero';
 import { AcademyMap } from './AcademyMap';
@@ -124,6 +124,7 @@ export default async function AcademyPage() {
   return (
     <>
       <AcademyHero
+        resume={resume}
         pathsInProgress={pathsInProgress}
         pathsCompleted={pathsCompleted}
         coursesCompleted={coursesCompleted}
@@ -146,19 +147,11 @@ export default async function AcademyPage() {
               actionHref="#academy-explore"
             />
           ) : (
-            <div className="card-grid">
+            <div className="ac-rail">
               {myPaths.map((path) => <PathCard path={path} key={path.id} />)}
             </div>
           )}
         </section>
-
-        {/* ---- continue learning ---- */}
-        {resume && (
-          <section className="section-block" aria-labelledby="academy-continue">
-            <h2 id="academy-continue" className="academy-heading">{t('أكمل من حيث توقّفت', 'Pick up where you left off')}</h2>
-            <ContinueLearning resume={resume} />
-          </section>
-        )}
 
         {/* ---- suggested paths ---- */}
         {suggestedPaths.length > 0 && (
@@ -169,7 +162,7 @@ export default async function AcademyPage() {
                 ? t('من المدارس نفسها التي بدأت منها.', 'From the same schools you already started in.')
                 : t('نقاط بداية جيدة، كلها من الصفر.', 'Good places to start, all of them from zero.')}
             </p>
-            <div className="card-grid">
+            <div className="ac-rail">
               {suggestedPaths.map((path) => <PathCard path={path} key={path.id} />)}
             </div>
           </section>
@@ -179,7 +172,7 @@ export default async function AcademyPage() {
         {myCourses.length > 0 && (
           <section className="section-block" aria-labelledby="academy-my-courses">
             <h2 id="academy-my-courses" className="academy-heading">{t('دورات مساراتي', 'Courses in my paths')}</h2>
-            <div className="card-grid">
+            <div className="ac-rail">
               {myCourses.slice(0, MY_COURSES_LIMIT).map((course) => <CourseCard course={course} key={course.id} />)}
             </div>
           </section>
@@ -189,7 +182,7 @@ export default async function AcademyPage() {
         {suggestedCourses.length > 0 && (
           <section className="section-block" aria-labelledby="academy-suggested-courses">
             <h2 id="academy-suggested-courses" className="academy-heading">{t('دورات مقترحة لك', 'Courses suggested for you')}</h2>
-            <div className="card-grid">
+            <div className="ac-rail">
               {suggestedCourses.map((course) => <CourseCard course={course} key={course.id} />)}
             </div>
           </section>

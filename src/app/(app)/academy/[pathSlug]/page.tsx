@@ -6,7 +6,11 @@ import { getT } from '@/lib/i18n.server';
 
 import type { Evaluation, Submission } from '@/lib/database.types';
 
+import { Icon } from '@/components/Icon';
+
 import { enrolInPath } from '../actions';
+import { ProgressRing } from '../ProgressRing';
+import { schoolLook } from '../schools';
 import { SubmissionPanel } from '../SubmissionPanel';
 
 export default async function PathPage({ params }: { params: Promise<{ pathSlug: string }> }) {
@@ -19,7 +23,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const { data: path } = await supabase
     .from('learning_paths')
-    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours, status')
+    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours, status, schools(slug, name_ar, name_en)')
     .eq('slug', pathSlug)
     .single();
 
@@ -100,40 +104,44 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const doneCount = completion.filter((item) => item.complete).length;
   const percent = courses.length ? Math.round((doneCount / courses.length) * 100) : 0;
+  const school = path.schools as unknown as { slug: string; name_ar: string; name_en: string | null } | null;
+  const look = schoolLook(school?.slug);
+  // The first course not yet complete is where the learner is now.
+  const currentIndex = courses.findIndex(
+    (course) => course.status === 'published' && !completion.find((item) => item.courseId === course.id)?.complete,
+  );
 
   return (
     <>
       <Link className="btn btn-ghost btn-sm" href="/academy">{t('→ رجوع للأكاديمية', '← Back to the academy')}</Link>
 
-      <section className="panel section-block" style={{ marginTop: 16 }}>
-        <div className="tags-row">
-          {path.tags?.map((tag) => <span className="tag eng" key={tag}>{tag}</span>)}
+      <section className="section-block ac-cover" style={{ marginTop: 16, '--hue': look.color } as React.CSSProperties}>
+        <div className="ac-cover-top">
+          <span className="ac-cover-icon"><Icon name={look.icon} size={26} /></span>
+          <div className="ac-cover-titles">
+            {school && <p className="ac-cover-school">{t.locale === 'ar' ? school.name_ar : (school.name_en ?? school.name_ar)}</p>}
+            <h2>{path.title_ar}</h2>
+          </div>
+          <ProgressRing percent={percent} size={64} stroke={6} label={t('تقدّم المسار', 'Path progress')} />
         </div>
-        <h2 style={{ fontSize: '1.25rem', marginTop: 10 }}>{path.title_ar}</h2>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{path.description_ar}</p>
-        {path.tagline_ar && (
-          <p className="muted" style={{ fontSize: '0.84rem', marginTop: 8 }}>{path.tagline_ar}</p>
-        )}
+        <p className="ac-cover-desc">{path.description_ar}</p>
+        {path.tagline_ar && <p className="ac-cover-tagline">{path.tagline_ar}</p>}
 
-        <div className="row-between" style={{ marginTop: 18 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('الدورات المكتملة', 'Courses completed')}</span>
-          <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>
-            {doneCount}/{courses.length} · {percent}%
-          </span>
-        </div>
-        <div className="progress-track" style={{ marginTop: 6 }}>
-          <div className="progress-fill" style={{ width: `${percent}%` }} />
-        </div>
+        <ul className="ac-cover-meta">
+          <li><Icon name="layers" size={15} />{t(`${doneCount} من ${courses.length} دورات مكتملة`, `${doneCount} of ${courses.length} courses done`)}</li>
+          {path.estimated_hours && <li><Icon name="clock" size={15} /><span className="eng">~{path.estimated_hours}h</span></li>}
+          {path.tags?.slice(0, 4).map((tag) => <li className="eng" key={tag}>{tag}</li>)}
+        </ul>
 
         {/* A path never closes, so enrolling is simply joining — and it is what
             gives you the path's conversation with everyone else on it. */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+        <div className="ac-cover-actions">
           {enrolment ? (
             <>
-              <span className="status-pill status-ok">{t('أنت ملتحق بهذا المسار', 'You are on this path')}</span>
+              <span className="ac-cover-joined"><Icon name="check" size={16} />{t('أنت ملتحق بهذا المسار', 'You are on this path')}</span>
               {pathConversation && (
-                <Link className="btn btn-ghost btn-sm" href={`/messages?c=${pathConversation.id}`}>
-                  {t('محادثة المسار', 'Path conversation')}
+                <Link className="btn btn-sm ac-cover-ghost" href={`/messages?c=${pathConversation.id}`}>
+                  <Icon name="message" size={16} />{t('محادثة المسار', 'Path conversation')}
                 </Link>
               )}
             </>
@@ -141,7 +149,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
             <form action={enrolInPath}>
               <input type="hidden" name="path_id" value={path.id} />
               <input type="hidden" name="revalidate" value={`/academy/${path.slug}`} />
-              <button className="btn btn-primary btn-sm">{t('التحق بالمسار', 'Join the path')}</button>
+              <button className="btn ac-cover-cta">{t('التحق بالمسار', 'Join the path')}</button>
             </form>
           )}
         </div>
@@ -164,30 +172,39 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
       <div className="detail-grid">
         <section>
-          {courses.map((course, index) => {
-            const complete = completion.find((item) => item.courseId === course.id)?.complete;
-            return (
-              <article className="card section-block" key={course.id}>
-                <div className="row-between">
-                  <span className="muted eng" style={{ fontSize: '0.76rem' }}>
-                    Course {index + 1} / {courses.length}
+          <h3 className="academy-heading">{t('خط سير المسار', 'The path, step by step')}</h3>
+          <ol className="ac-trail" style={{ '--hue': look.color } as React.CSSProperties}>
+            {courses.map((course, index) => {
+              const complete = completion.find((item) => item.courseId === course.id)?.complete;
+              const planned = course.status === 'planned';
+              const state = complete ? 'is-done' : index === currentIndex ? 'is-now' : planned ? 'is-soon' : '';
+              return (
+                <li className={`ac-stop ${state}`} key={course.id}>
+                  <span className="ac-stop-node" aria-hidden="true">
+                    {complete ? <Icon name="check" size={20} /> : planned ? <Icon name="lock" size={18} /> : <span className="eng">{index + 1}</span>}
                   </span>
-                  {course.status === 'planned' ? (
-                    <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>
-                  ) : (
-                    <span className={`status-pill ${complete ? 'status-ok' : 'status-muted'}`}>
-                      {complete ? t('مكتملة', 'Completed') : course.isRequired ? t('مطلوبة', 'Required') : t('اختيارية', 'Elective')}
+                  <Link className="ac-stop-card" href={`/academy/${path.slug}/${course.slug}`}>
+                    <span className="ac-stop-head">
+                      <span className="ac-stop-no">{t(`الدورة ${index + 1} من ${courses.length}`, `Course ${index + 1} of ${courses.length}`)}</span>
+                      {planned ? (
+                        <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>
+                      ) : (
+                        <span className={`status-pill ${complete ? 'status-ok' : index === currentIndex ? 'status-pending' : 'status-muted'}`}>
+                          {complete ? t('مكتملة', 'Completed') : index === currentIndex ? t('أنت هنا', 'You are here') : course.isRequired ? t('مطلوبة', 'Required') : t('اختيارية', 'Elective')}
+                        </span>
+                      )}
                     </span>
-                  )}
-                </div>
-                <h3>{course.title_ar}</h3>
-                <p>{course.description_ar}</p>
-                <Link className="btn btn-ghost btn-sm" href={`/academy/${path.slug}/${course.slug}`}>
-                  {course.status === 'planned' ? t('ما ستتعلمه', 'What it will teach') : t('افتح الدورة', 'Open the course')}
-                </Link>
-              </article>
-            );
-          })}
+                    <strong>{course.title_ar}</strong>
+                    {course.description_ar && <span className="ac-stop-desc">{course.description_ar}</span>}
+                    <span className="ac-stop-go">
+                      {planned ? t('ما ستتعلمه', 'What it will teach') : complete ? t('راجع الدورة', 'Review') : t('افتح الدورة', 'Open the course')}
+                      <Icon name="arrow" size={15} />
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
         </section>
 
         <aside>
