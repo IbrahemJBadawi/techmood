@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
@@ -20,6 +21,16 @@ const KIND_ICON: Record<ConversationKind, string> = {
   learning_path: '📚',
 };
 
+/** Each kind of conversation has its own colour in the list, as Telegram gives each chat one. */
+const KIND_COLOR: Record<ConversationKind, string> = {
+  channel: '#007BFF',
+  admin: '#0E9F6E',
+  team: '#7C5CFF',
+  mentor_booking: '#E8590C',
+  market: '#C77700',
+  learning_path: '#0B8FB3',
+};
+
 const KIND_LABEL: Record<ConversationKind, Text> = {
   channel:        { ar: 'قناة TechMood',  en: 'TechMood channel' },
   admin:          { ar: 'إدارة TechMood', en: 'TechMood team' },
@@ -28,6 +39,22 @@ const KIND_LABEL: Record<ConversationKind, Text> = {
   market:         { ar: 'سوق (مغلقة)',    en: 'Market (closed)' },
   learning_path:  { ar: 'مسار تعلّم',     en: 'Learning path' },
 };
+
+/** "Today", "Yesterday", or the date — the separators between days in a thread. */
+function dayLabel(iso: string, locale: 'ar' | 'en') {
+  const day = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  if (same(day, today)) return locale === 'ar' ? 'اليوم' : 'Today';
+  if (same(day, yesterday)) return locale === 'ar' ? 'أمس' : 'Yesterday';
+  return day.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long' });
+}
+
+function timeLabel(iso: string, locale: 'ar' | 'en') {
+  return new Date(iso).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+}
 
 /** Channel posts are TechMood's own, so their links open; nobody else's do. */
 function withLinks(text: string) {
@@ -158,11 +185,11 @@ export default async function MessagesPage({
 
   return (
     <>
-      <section className="section-block">
+      <section className={`section-block chat-intro${c ? ' has-active' : ''}`}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('الرسائل', 'Messages')}</h2>
-        <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          {t('قناة TechMood، ومحادثتك مع الإدارة، وفرقك، والمسارات التي التحقت بها. لا محادثات خاصة بين طرفين بينهما دفع — الجلسات والأعمال لها صفحاتها وسجلها. بلا روابط ولا ملفات.',
-             'The TechMood channel, your thread with the team, your teams and the paths you joined. No private chats between two parties money passes between — sessions and work have their own pages and record. No links, no files.')}
+        <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
+          {t('قناة TechMood، والإدارة، وفرقك، ومساراتك. لا محادثات خاصة بين طرفين بينهما دفع.',
+             'The TechMood channel, the team, your teams and your paths. No private chats between two parties money passes between.')}
         </p>
       </section>
 
@@ -171,7 +198,7 @@ export default async function MessagesPage({
           {t('لا محادثات بعد. تُفتح المحادثة تلقائياً عند انضمامك لفريق أو التحاقك بمسار.', 'No conversations yet. One opens by itself when you join a team or a path.')}
         </p>
       ) : (
-        <div className="chat-shell">
+        <div className={`chat-shell${c ? ' has-active' : ''}`}>
           <nav className="chat-list">
             {ordered.map((conversation) => {
               const last = lastByConversation.get(conversation.id);
@@ -183,15 +210,21 @@ export default async function MessagesPage({
                   href={`/messages?c=${conversation.id}`}
                   className={`chat-item${conversation.id === activeId ? ' active' : ''}`}
                 >
-                  <div className="ci-top">
-                    <span className="ci-name">
-                      {KIND_ICON[conversation.kind]} {conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}
+                  <span className="ci-avatar" style={{ background: KIND_COLOR[conversation.kind] }} aria-hidden="true">
+                    {KIND_ICON[conversation.kind]}
+                  </span>
+                  <span className="ci-body">
+                    <span className="ci-top">
+                      <span className="ci-name">{conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}</span>
+                      {last && <time className="ci-time">{timeLabel(last.created_at, t.locale)}</time>}
                     </span>
-                    {count > 0 && conversation.id !== activeId && (
-                      <span className="unread-dot eng">{count}</span>
-                    )}
-                  </div>
-                  <span className="ci-last">{last?.body_ar ?? t('لا رسائل بعد', 'No messages yet')}</span>
+                    <span className="ci-bottom">
+                      <span className="ci-last">{last?.body_ar ?? t('لا رسائل بعد', 'No messages yet')}</span>
+                      {count > 0 && conversation.id !== activeId && (
+                        <span className="unread-dot eng">{count}</span>
+                      )}
+                    </span>
+                  </span>
                 </Link>
               );
             })}
@@ -201,39 +234,27 @@ export default async function MessagesPage({
             {active && (
               <>
                 <header className="chat-head">
-                  <div className="row-between">
-                    <strong style={{ fontSize: '0.95rem' }}>
-                      {KIND_ICON[active.kind]} {active.title_ar ?? t(KIND_LABEL[active.kind])}
-                    </strong>
-                    <span className="badge-pill">{t(KIND_LABEL[active.kind])}</span>
-                  </div>
-                  {active.team_id && (
-                    <Link
-                      className="muted"
-                      style={{ fontSize: '0.78rem' }}
-                      href={`/teams/${active.team_id}`}
-                    >
-                      {t('افتح مساحة عمل الفريق ↗', 'Open the team workspace ↗')}
-                    </Link>
-                  )}
-                  {active.booking_id && (
-                    <Link
-                      className="muted"
-                      style={{ fontSize: '0.78rem' }}
-                      href={`/bookings/${active.booking_id}`}
-                    >
-                      {t('تفاصيل الجلسة ↗', 'Session details ↗')}
-                    </Link>
-                  )}
-                  {!IS_MVP && room && (
-                    <Link
-                      className="muted"
-                      style={{ fontSize: '0.78rem' }}
-                      href={`/sessions/${room}`}
-                    >
-                      {t('غرفة الجلسة ↗', 'The session room ↗')}
-                    </Link>
-                  )}
+                  <Link className="icon-button chat-back" href="/messages" aria-label={t('كل المحادثات', 'All conversations')}>
+                    <Icon name="arrow" size={20} />
+                  </Link>
+                  <span className="ci-avatar" style={{ background: KIND_COLOR[active.kind] }} aria-hidden="true">
+                    {KIND_ICON[active.kind]}
+                  </span>
+                  <span className="chat-head-text">
+                    <strong>{active.title_ar ?? t(KIND_LABEL[active.kind])}</strong>
+                    <span className="muted">{t(KIND_LABEL[active.kind])}</span>
+                  </span>
+                  <span className="chat-head-links">
+                    {active.team_id && (
+                      <Link className="btn btn-ghost btn-sm" href={`/teams/${active.team_id}`}>{t('مساحة الفريق', 'Team space')}</Link>
+                    )}
+                    {active.booking_id && (
+                      <Link className="btn btn-ghost btn-sm" href={`/bookings/${active.booking_id}`}>{t('الجلسة', 'Session')}</Link>
+                    )}
+                    {!IS_MVP && room && (
+                      <Link className="btn btn-ghost btn-sm" href={`/sessions/${room}`}>{t('الغرفة', 'Room')}</Link>
+                    )}
+                  </span>
                 </header>
 
                 <div className="chat-thread">
@@ -243,11 +264,15 @@ export default async function MessagesPage({
                     </p>
                   )}
 
-                  {messages.map((message) => {
+                  {messages.map((message, index) => {
+                    const day = dayLabel(message.created_at, t.locale);
+                    const newDay = index === 0 || dayLabel(messages[index - 1].created_at, t.locale) !== day;
+                    const separator = newDay ? <div className="chat-day" key={`d-${message.id}`}><span>{day}</span></div> : null;
                     if (message.is_system) {
                       return (
-                        <div className="bubble system" key={message.id}>
-                          {message.body_ar}
+                        <div key={message.id} style={{ display: 'contents' }}>
+                          {separator}
+                          <div className="bubble system">{message.body_ar}</div>
                         </div>
                       );
                     }
@@ -262,26 +287,24 @@ export default async function MessagesPage({
                       messageReactions.find((row) => row.profile_id === user.id)?.reaction ?? null;
 
                     return (
-                      <div className="bubble-row" key={message.id} style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                      <div key={message.id} style={{ display: 'contents' }}>
+                      {separator}
+                      <div className="bubble-row" style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
                         <div className={`bubble ${mine ? 'me' : 'them'}`}>
                           {message.reply_to_id && bodyById.has(message.reply_to_id) && (
                             <span className="b-reply">{bodyById.get(message.reply_to_id)}</span>
                           )}
                           {!mine && (
-                            <span className="b-meta" style={{ marginTop: 0, marginBottom: 4 }}>
+                            <span className="b-author" style={{ color: KIND_COLOR[active.kind] }}>
                               {isChannel ? 'TechMood' : nameById.get(message.sender_id ?? '') ?? t('عضو', 'A member')}
                             </span>
                           )}
                           {isChannel ? withLinks(message.body_ar) : message.body_ar}
-                          <span className="b-meta eng">
-                            {new Date(message.created_at).toLocaleTimeString('ar-EG', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                          <span className="b-meta">{timeLabel(message.created_at, t.locale)}</span>
                         </div>
 
                         <Reactions messageId={message.id} counts={counts} mine={myReaction} />
+                      </div>
                       </div>
                     );
                   })}
