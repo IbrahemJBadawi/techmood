@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [
     { data: profile }, { data: roles }, { data: notifications }, { data: restrictions }, { data: mentorApplication },
+    { count: unreadCount },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -47,6 +48,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // An open mentor application is shown on every page too, so the applicant
     // always knows where they stand while using TechMood as a learner (0093).
     supabase.rpc('my_mentor_application'),
+    // The badge counts every unread notification, not only the dozen in the menu.
+    supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', user.id)
+      .eq('is_read', false),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -69,7 +76,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const displayName = profile.display_name ?? profile.full_name;
   const inbox = notifications ?? [];
   const application = (mentorApplication ?? [])[0];
-  const unread = inbox.filter((row) => !row.is_read).length;
+  const unread = unreadCount ?? inbox.filter((row) => !row.is_read).length;
 
   // The phone's tabs and its "More" sheet carry the same places as the sidebar.
   const accountGroup = {
