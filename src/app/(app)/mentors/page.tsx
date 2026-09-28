@@ -4,6 +4,7 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
+import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
 
 export default async function MentorsPage() {
   const t = await getT();
@@ -32,55 +33,72 @@ export default async function MentorsPage() {
 
   const profileById = new Map((profiles ?? []).map((row) => [row.id, row]));
 
+  const available = (mentors ?? []).filter((mentor) => mentor.is_accepting).length;
+
   return (
     <>
-      <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>{t('المنتورز', 'Mentors')}</h2>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-          {t('إرشاد بشري بجلسات محجوزة. كل منتور يسعّر جلساته ضمن حدود مستواه، والحجز يحتاج 72 ساعة مسبقاً لإتاحة وقت لمراجعة الدفع.',
-             'Human mentoring in booked sessions. Each mentor prices their sessions within their level\u2019s range, and a booking needs 72 hours\u2019 notice so there is time to check the payment.')}
-        </p>
+      <section className="section-block mn-head">
+        <div>
+          <h2>{t('المنتورز', 'Mentors')}</h2>
+          <p className="muted">
+            {t('خبراء يراجعون عملك في جلسة واحد لواحد. كل منتور يسعّر جلساته ضمن حدود مستواه.',
+               'Experts who review your work one to one. Each mentor prices their sessions within their level’s range.')}
+          </p>
+        </div>
+        <span className="mn-count">
+          <span className="mn-dot" />{t(`${available} متاح للحجز الآن`, `${available} taking bookings now`)}
+        </span>
       </section>
 
       {(mentors?.length ?? 0) === 0 ? (
         <p className="notice">{t('لا يوجد منتورز معتمدون بعد.', 'No approved mentors yet.')}</p>
       ) : (
-        <div className="card-grid">
+        <div className="mn-grid">
           {mentors!.map((mentor) => {
             const profile = profileById.get(mentor.profile_id);
             const price = fromPrice.get(mentor.profile_id);
+            const name = profile?.full_name ?? '—';
 
             return (
-              <article className="card" key={mentor.profile_id}>
-                <div className="row-between">
-                  <h3>{profile?.full_name ?? '—'}</h3>
-                  <span className="badge-pill eng">{mentor.level}</span>
-                </div>
-
-                {mentor.headline_ar && <p>{mentor.headline_ar}</p>}
-
-                <div className="tags-row">
-                  {(mentor.domains ?? []).map((domain) => (
-                    <span className="tag eng" key={domain}>{domain}</span>
-                  ))}
-                </div>
-
-                <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)' }}>
-                  <span>
-                    <Stars value={mentor.rating_avg ?? 0} /> ·{' '}
-                    {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}
+              <Link className={`mn-card${mentor.is_accepting ? '' : ' is-paused'}`} key={mentor.profile_id}
+                    href={`/mentors/${mentor.profile_id}`}>
+                <span className="mn-card-top">
+                  <span className="mn-avatar" style={{ background: avatarColor(mentor.profile_id) }}>
+                    {initialOf(name)}
+                    {mentor.is_accepting && <span className="mn-online" aria-hidden="true" />}
                   </span>
-                  {price !== undefined && <span className="eng">{t('من ', 'From ')}{money(price)}{t(' / جلسة', ' / session')}</span>}
-                </div>
+                  <span className="mn-card-id">
+                    <strong>{name}</strong>
+                    <span className="mn-headline">{mentor.headline_ar ?? profile?.headline ?? t('منتور', 'Mentor')}</span>
+                  </span>
+                  <span className="mn-level eng">{mentor.level}</span>
+                </span>
 
-                {mentor.is_accepting ? (
-                  <Link className="btn btn-primary btn-sm" href={`/mentors/${mentor.profile_id}`}>
-                    {t('عرض الملف والحجز', 'View profile and book')}
-                  </Link>
-                ) : (
-                  <span className="status-pill status-muted">{t('لا يستقبل حجوزات حالياً', 'Not taking bookings right now')}</span>
+                <span className="mn-rating">
+                  <Stars value={mentor.rating_avg ?? 0} />
+                  <span className="eng">{mentor.rating_avg ? Number(mentor.rating_avg).toFixed(1) : '—'}</span>
+                  <span className="muted">· {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}</span>
+                </span>
+
+                {(mentor.domains ?? []).length > 0 && (
+                  <span className="mn-domains">
+                    {(mentor.domains ?? []).slice(0, 3).map((domain) => (
+                      <span className="mn-domain" key={domain}>{domainLabel(domain)}</span>
+                    ))}
+                  </span>
                 )}
-              </article>
+
+                <span className="mn-card-foot">
+                  <span className="mn-price">
+                    {price !== undefined
+                      ? <>{t('من ', 'From ')}<strong className="eng">{money(price)}</strong>{t(' / جلسة', ' / session')}</>
+                      : <span className="muted">{t('لم يُسعّر بعد', 'Not priced yet')}</span>}
+                  </span>
+                  <span className={`mn-cta${mentor.is_accepting ? '' : ' is-off'}`}>
+                    {mentor.is_accepting ? t('احجز', 'Book') : t('غير متاح', 'Unavailable')}
+                  </span>
+                </span>
+              </Link>
             );
           })}
         </div>

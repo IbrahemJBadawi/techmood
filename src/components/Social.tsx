@@ -34,7 +34,7 @@ export function FollowButton({
   if (!signedIn) {
     return (
       <Link className="btn btn-ghost btn-sm" href={`/login?next=${encodeURIComponent(path)}`}>
-        {t('تابِع', 'Follow')} · <span className="eng">{label}</span>
+        {t("تابِع", "Follow")} · <span>{label}</span>
       </Link>
     );
   }
@@ -65,7 +65,7 @@ export function FollowButton({
         disabled={pending}
         aria-pressed={on}
       >
-        {on ? t('تتابعه', 'Following') : t('تابِع', 'Follow')} · <span className="eng">{label}</span>
+        {on ? t("تتابعه", "Following") : t("تابِع", "Follow")} · <span>{label}</span>
       </button>
       {error && <span className="muted" style={{ fontSize: '0.76rem' }}>{error}</span>}
     </span>
@@ -97,13 +97,13 @@ export function LikeButton({
   const label = t(`${count} إعجاب`, `${count} ${count === 1 ? 'like' : 'likes'}`);
 
   if (!canLike) {
-    return <span className="badge-pill">♥ <span className="eng">{label}</span></span>;
+    return <span className="badge-pill">♥ <span>{label}</span></span>;
   }
 
   if (!signedIn) {
     return (
       <Link className="btn btn-ghost btn-sm" href={`/login?next=${encodeURIComponent(path)}`}>
-        ♡ <span className="eng">{label}</span>
+        ♡ <span>{label}</span>
       </Link>
     );
   }
@@ -135,7 +135,7 @@ export function LikeButton({
         aria-pressed={on}
         aria-label={on ? t('إلغاء الإعجاب', 'Unlike') : t('أعجبني', 'Like')}
       >
-        {on ? '♥' : '♡'} <span className="eng">{label}</span>
+        {on ? "♥" : "♡"} <span>{label}</span>
       </button>
       {error && <span className="muted" style={{ fontSize: '0.76rem' }}>{error}</span>}
     </span>

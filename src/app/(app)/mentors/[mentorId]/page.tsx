@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
+import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
 import { FollowButton } from '@/components/Social';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
@@ -68,44 +70,52 @@ export default async function MentorProfilePage({
       <Link className="btn btn-ghost btn-sm" href="/mentors">{t('→ رجوع للمنتورز', '← Back to mentors')}</Link>
       <AskAI prompt="جهّز لي خمسة أسئلة محدّدة أطرحها على هذا المنتور في الجلسة القادمة." />
 
-      <section className="panel section-block" style={{ marginTop: 16 }}>
-        <div className="row-between" style={{ alignItems: 'flex-start' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem' }}>{profile?.full_name}</h2>
-            {mentor.headline_ar && (
-              <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>{mentor.headline_ar}</p>
+      <section className="section-block pp-card mn-profile" style={{ marginTop: 16 }}>
+        <div className="pp-cover mn-cover" aria-hidden="true" style={{ '--hue': avatarColor(mentorId) } as React.CSSProperties} />
+        <div className="pp-head">
+          <span className="pp-avatar pp-avatar-initial mn-avatar-lg" style={{ background: avatarColor(mentorId) }}>
+            {initialOf(profile?.full_name)}
+          </span>
+          <div className="pp-actions">
+            {user && user.id !== mentorId && (
+              <FollowButton
+                profileId={mentorId}
+                followers={follow?.followers ?? 0}
+                following={follow?.i_follow ?? false}
+                signedIn
+                path={`/mentors/${mentorId}`}
+              />
             )}
           </div>
-          <span className="badge-pill eng">{mentor.level}</span>
         </div>
 
-        <div className="tags-row" style={{ marginTop: 12, alignItems: 'center' }}>
-          <span className="id-chip">{profile?.techmood_id}</span>
-          <Stars value={mentor.rating_avg ?? 0} />
-          <span className="muted" style={{ fontSize: '0.8rem' }}>{t(`${mentor.sessions_count} جلسة مكتملة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'} held`)}</span>
-          {user && user.id !== mentorId && (
-            <FollowButton
-              profileId={mentorId}
-              followers={follow?.followers ?? 0}
-              following={follow?.i_follow ?? false}
-              signedIn
-              path={`/mentors/${mentorId}`}
-            />
+        <div className="pp-identity">
+          <h2>{profile?.full_name} <span className="mn-level eng">{mentor.level}</span></h2>
+          {mentor.headline_ar && <p className="pp-headline">{mentor.headline_ar}</p>}
+          <div className="mn-rating">
+            <Stars value={mentor.rating_avg ?? 0} />
+            <span className="eng">{mentor.rating_avg ? Number(mentor.rating_avg).toFixed(1) : '—'}</span>
+            <span className="muted">· {t(`${mentor.sessions_count} جلسة مكتملة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'} held`)}</span>
+            <span className="id-chip">{profile?.techmood_id}</span>
+          </div>
+          {mentor.bio_ar && <p className="pp-bio">{mentor.bio_ar}</p>}
+          {(mentor.domains ?? []).length > 0 && (
+            <div className="mn-domains">
+              {(mentor.domains ?? []).map((domain) => <span className="mn-domain" key={domain}>{domainLabel(domain)}</span>)}
+            </div>
           )}
         </div>
 
-        {mentor.bio_ar && <p style={{ fontSize: '0.9rem', marginTop: 14 }}>{mentor.bio_ar}</p>}
-
-        <div className="tags-row" style={{ marginTop: 12 }}>
-          {(mentor.domains ?? []).map((domain) => <span className="tag eng" key={domain}>{domain}</span>)}
-        </div>
-
-        <div className="row-between" style={{ marginTop: 18 }}>
-          <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', fontSize: '1.1rem' }}>
-            {fromPrice !== null ? <>{t('من ', 'From ')}{money(fromPrice)}{t(' / جلسة', ' / session')}</> : '—'}
+        <div className="mn-book-bar">
+          <span className="mn-price">
+            {fromPrice !== null
+              ? <>{t('من ', 'From ')}<strong className="eng">{money(fromPrice)}</strong>{t(' / جلسة', ' / session')}</>
+              : <span className="muted">—</span>}
           </span>
           {mentor.is_accepting && sessionTypes.length > 0 ? (
-            <Link className="btn btn-primary" href={`/mentors/${mentorId}/book`}>{t('احجز جلسة', 'Book a session')}</Link>
+            <Link className="btn btn-primary btn-lg" href={`/mentors/${mentorId}/book`}>
+              <Icon name="calendar" size={18} />{t('احجز جلسة', 'Book a session')}
+            </Link>
           ) : (
             <span className="status-pill status-muted">
               {mentor.pause_reason === 'vacation' && mentor.paused_until
@@ -119,6 +129,15 @@ export default async function MentorProfilePage({
         )}
       </section>
 
+      {mentor.is_accepting && sessionTypes.length > 0 && (
+        <div className="mn-sticky-book">
+          <span className="mn-price">
+            {fromPrice !== null && <>{t('من ', 'From ')}<strong className="eng">{money(fromPrice)}</strong></>}
+          </span>
+          <Link className="btn btn-primary" href={`/mentors/${mentorId}/book`}>{t('احجز جلسة', 'Book a session')}</Link>
+        </div>
+      )}
+
       <FeedbackSummary profileId={mentorId} isMentor />
 
       <div className="detail-grid">
@@ -127,19 +146,18 @@ export default async function MentorProfilePage({
           {sessionTypes.length === 0 ? (
             <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لم يحدد هذا المنتور أنواع جلساته بعد.', 'This mentor has not set up session types yet.')}</p>
           ) : (
-            sessionTypes.map((type) => (
-              <div className="row-between" key={type.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-                <div>
-                  <strong style={{ fontSize: '0.9rem' }}>{type.name_ar}</strong>
-                  {type.description_ar && (
-                    <p className="muted" style={{ fontSize: '0.82rem', marginTop: 3 }}>{type.description_ar}</p>
-                  )}
+            <div className="mn-types">
+              {sessionTypes.map((type) => (
+                <div className="mn-type" key={type.id}>
+                  <div className="mn-type-main">
+                    <strong>{type.name_ar}</strong>
+                    {type.description_ar && <p className="muted">{type.description_ar}</p>}
+                    <span className="mn-type-meta"><Icon name="clock" size={14} />{t(`${type.duration_minutes} دقيقة`, `${type.duration_minutes} min`)}</span>
+                  </div>
+                  {priceOf.has(type.id) && <span className="mn-type-price eng">{money(priceOf.get(type.id)!)}</span>}
                 </div>
-                <span className="badge-pill eng">
-                  {type.duration_minutes} min{priceOf.has(type.id) ? ` · ${money(priceOf.get(type.id)!)}` : ''}
-                </span>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </section>
 
@@ -148,14 +166,14 @@ export default async function MentorProfilePage({
           {(availability?.length ?? 0) === 0 ? (
             <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لم يُنشر جدول توفر بعد.', 'No availability published yet.')}</p>
           ) : (
-            availability!.map((slot, index) => (
-              <div className="row-between" key={`${slot.day_of_week}-${index}`} style={{ marginBottom: 8 }}>
-                <span style={{ fontSize: '0.86rem' }}>{t(DAY_NAMES[slot.day_of_week])}</span>
-                <span className="eng muted" style={{ fontSize: '0.82rem' }}>
-                  {slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}
-                </span>
-              </div>
-            ))
+            <ul className="mn-days">
+              {availability!.map((slot, index) => (
+                <li key={`${slot.day_of_week}-${index}`}>
+                  <span>{t(DAY_NAMES[slot.day_of_week])}</span>
+                  <span className="eng">{slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)}</span>
+                </li>
+              ))}
+            </ul>
           )}
           <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
             {t('بحد أقصى 5 ساعات يومياً، والحجز قبل 72 ساعة على الأقل.', 'At most five hours a day, and bookings need 72 hours’ notice.')}
