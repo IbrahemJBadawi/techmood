@@ -2006,3 +2006,20 @@ reached by its public link. `profiles.avatar_url` is checked by
 `check_avatar_url()`: it is empty, a file in the member's own folder, or the
 Google photo the account was created with — never an arbitrary address. Where
 the choice is saved at once (Settings), the replaced file is removed. Test 78.
+
+## English full names (0109)
+
+`profiles.full_name` is what certificates print, so every change to it must be
+Latin letters, spaces, `.`, `'` and `-` (`check_english_full_name()`); runs of
+spaces are tidied. A new account may still arrive with its Google name in
+another script — refusing it would refuse the sign-up — and onboarding then
+asks for the English spelling. The display name stays in any script. Test 79.
+
+## The students' league (0110)
+
+`student_league(metric, window, path, limit)` ranks students only, by points
+(XP in the window), streak (days in a row up to today, `streak_of`) or rating
+(average stars of approved work in the window, rated students only), over
+today / week / month / year / all, across everybody or one path's students.
+Only public profiles are listed; the asker always gets their own row. It is
+for members only. Test 80.

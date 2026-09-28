@@ -9,7 +9,7 @@ import type { UserRole } from '@/lib/database.types';
 
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
-import type { WindowKey } from './student/Leaderboard';
+import { parseLeague } from './student/League';
 import { roleInScope } from '@/lib/scope';
 
 export const metadata = { title: 'Home — TechMood' };
@@ -17,7 +17,7 @@ export const metadata = { title: 'Home — TechMood' };
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ lb?: string }>;
+  searchParams: Promise<{ lm?: string; lw?: string; lp?: string }>;
 }) {
   const t = await getT();
   const supabase = await createClient();
@@ -47,8 +47,7 @@ export default async function HomePage({
     : defaultRole(approved, (profile.primary_role ?? null) as UserRole | null);
 
   const params = await searchParams;
-  const windowKey: WindowKey =
-    params.lb === 'month' || params.lb === 'year' ? params.lb : 'all';
+  const league = parseLeague(params);
 
   return (
     <>
@@ -67,7 +66,7 @@ export default async function HomePage({
         role dashboard until its own centre is designed.
       */}
       {active === 'student'
-        ? <StudentHome userId={user.id} profile={profile} windowKey={windowKey} />
+        ? <StudentHome userId={user.id} profile={profile} league={league} />
         : <RoleDashboard role={active} userId={user.id} name={profile.display_name ?? profile.full_name} />}
     </>
   );

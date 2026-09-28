@@ -5619,3 +5619,25 @@ input[type="file"]::file-selector-button:hover { border-color: var(--royal); col
 }
 .skip-link:focus { transform: none; }
 #main:focus { outline: none; }
+
+/* the students' league */
+.hm-seg a {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 7px 6px; border-radius: 9px; font-size: 0.8rem; font-weight: 600;
+  color: var(--ink-soft); text-decoration: none;
+}
+.hm-seg a.is-on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow-1); }
+.hm-league-note { font-size: 0.74rem; color: var(--ink-soft); margin: 10px 2px 4px; }
+.hm-scope { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0 4px; padding-bottom: 2px; scrollbar-width: none; }
+.hm-scope::-webkit-scrollbar { display: none; }
+.hm-scope a {
+  flex: none; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line);
+  font-size: 0.74rem; color: var(--ink-soft); text-decoration: none;
+}
+.hm-scope a.is-on { background: var(--sky-tint); border-color: transparent; color: var(--royal-dark); font-weight: 600; }
+.hm-ranks li.is-me { background: var(--sky-tint); }
+.hm-ranks li.is-me strong { color: var(--royal-dark); }
+.hm-ranks-gap { justify-content: center; color: var(--ink-faint); padding: 0 !important; }
+.hm-rank-xp.is-streak { color: var(--streak-ink); }
+.hm-rank-xp.is-rating { color: var(--warn-ink); }

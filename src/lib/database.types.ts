@@ -1752,6 +1752,13 @@ export type Database = {
           shared_fields: string[];
         }[];
       };
+      student_league: {
+        Args: { p_metric?: string; p_window?: string; p_path?: string | null; p_limit?: number };
+        Returns: {
+          rank: number; profile_id: string; techmood_id: string; name: string; avatar_url: string | null;
+          score: number; points: number; stars: number | null; rated: number; streak: number; is_me: boolean;
+        }[];
+      };
       leaderboard_students_ranked: {
         Args: { p_since?: string | null; p_limit?: number };
         Returns: {

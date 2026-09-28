@@ -11,7 +11,7 @@ import { IS_MVP } from '@/lib/scope';
 import { Avatar } from '../../shell/ProfileMenu';
 import { ContinueLearning, type Resume } from './ContinueLearning';
 import { DailyBoard, type AgendaEntry } from './DailyBoard';
-import { Leaderboard, type Boards, type WindowKey } from './Leaderboard';
+import { League, type LeagueQuery } from './League';
 import { Pomodoro } from './Pomodoro';
 import { StudentHero, StreakCard, type ActivityDay } from './StudentHero';
 import { ProgressRing } from '../../academy/ProgressRing';
@@ -25,12 +25,6 @@ const KIND_LABEL: Record<string, Text> = {
   remote:     { ar: 'عن بُعد',       en: 'Remote' },
 };
 
-function since(windowKey: WindowKey): string | null {
-  const now = new Date();
-  if (windowKey === 'month') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  if (windowKey === 'year') return new Date(now.getFullYear(), 0, 1).toISOString();
-  return null;
-}
 
 /**
  * The student command centre.
@@ -47,7 +41,7 @@ function since(windowKey: WindowKey): string | null {
 export async function StudentHome({
   userId,
   profile,
-  windowKey,
+  league,
 }: {
   userId: string;
   profile: {
@@ -56,7 +50,7 @@ export async function StudentHome({
     techmood_id: string;
     avatar_url: string | null;
   };
-  windowKey: WindowKey;
+  league: LeagueQuery;
 }) {
   const t = await getT();
   const supabase = await createClient();
@@ -80,7 +74,6 @@ export async function StudentHome({
     { data: mentors },
     { data: achievements },
     { data: reputation },
-    { data: myRank },
   ] = await Promise.all([
     supabase.from('profile_xp').select('total_xp').eq('profile_id', userId).maybeSingle(),
     supabase.from('profile_stars').select('stars_avg, rated_count').eq('profile_id', userId).maybeSingle(),
@@ -108,7 +101,6 @@ export async function StudentHome({
       .order('awarded_at', { ascending: false })
       .limit(6),
     supabase.from('reputation_scores').select('dimension, value').eq('profile_id', userId),
-    supabase.rpc('my_leaderboard_rank', { p_since: since(windowKey) }),
   ]);
 
   const resume = ((resumeRows as Resume[] | null) ?? [])[0] ?? null;
@@ -147,7 +139,6 @@ export async function StudentHome({
   const badgeById = new Map((badges ?? []).map((row) => [row.id, row]));
   const dimensionName = new Map((dimensions ?? []).map((row) => [row.slug, row.name_ar]));
 
-  const boards = await loadBoards(since(windowKey));
 
   const nameOf = new Map((mentorNames ?? []).map((row) => [row.id, row.display_name ?? row.full_name]));
 
@@ -388,7 +379,10 @@ export async function StudentHome({
 
           <Pomodoro suggestion={resume?.lesson_title ?? null} />
 
-          <Leaderboard boards={boards} myRank={typeof myRank === 'number' ? myRank : null} windowKey={windowKey} />
+          <League
+            query={league}
+            paths={pathRows.map((row) => ({ id: row.path!.id, title: contentText(t.locale, row.path!.title_ar, row.path!.title_en) }))}
+          />
 
           {/* achievements */}
           <article className="hm-card">
@@ -519,34 +513,5 @@ async function loadTeam(teamId: string) {
     leaderName: leader?.display_name ?? leader?.full_name ?? '—',
     openTasks: openTasks ?? 0,
     stars: rating?.stars_avg ?? 0,
-  };
-}
-
-async function loadBoards(p_since: string | null): Promise<Boards> {
-  const supabase = await createClient();
-  const [students, mentors, teams, companies] = await Promise.all([
-    supabase.rpc('leaderboard_students_ranked', { p_since, p_limit: 10 }),
-    supabase.rpc('leaderboard_mentors_ranked', { p_since, p_limit: 10 }),
-    supabase.rpc('leaderboard_teams_ranked', { p_since, p_limit: 10 }),
-    supabase.rpc('leaderboard_companies_ranked', { p_since, p_limit: 10 }),
-  ]);
-
-  return {
-    students: (students.data ?? []).map((row) => ({
-      rank: row.rank, id: row.profile_id, name: row.name, avatarUrl: row.avatar_url,
-      points: row.points, stars: row.stars, extra: row.achievements,
-    })),
-    mentors: (mentors.data ?? []).map((row) => ({
-      rank: row.rank, id: row.profile_id, name: row.name, avatarUrl: row.avatar_url,
-      points: row.points, stars: row.stars, extra: row.sessions,
-    })),
-    teams: (teams.data ?? []).map((row) => ({
-      rank: row.rank, id: row.team_id, name: row.name, avatarUrl: row.avatar_url,
-      points: row.points, stars: row.stars, extra: row.projects,
-    })),
-    companies: (companies.data ?? []).map((row) => ({
-      rank: row.rank, id: row.profile_id, name: row.name, avatarUrl: row.avatar_url,
-      points: null, stars: null, extra: row.accepted,
-    })),
   };
 }

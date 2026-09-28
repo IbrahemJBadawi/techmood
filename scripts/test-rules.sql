@@ -8935,6 +8935,58 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- ---------------------------------------------------------------------------
+-- 80. The students' league (0110)
+-- ---------------------------------------------------------------------------
+\echo '80. students league'
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) = 1 from public.student_league('points', 'all', null, 10) where is_me),
+  '80.1 the student always sees their own row');
+select array_agg(profile_id)::text as league_all from public.student_league('points', 'all', null, 50) \gset
+select array_agg(profile_id) filter (where not is_me)::text as league_path,
+       (select path_id from public.enrollments where path_id is not null limit 1)::text as league_path_id
+  from public.student_league('points', 'all', (select path_id from public.enrollments where path_id is not null limit 1), 50) \gset
+select public.assert(
+  (select bool_and(score = points) from public.student_league('points', 'year', null, 50)),
+  '80.3 ranked by points, the score is the points in the window');
+select public.assert(
+  (select bool_and(rated > 0 or is_me) from public.student_league('rating', 'all', null, 50)),
+  '80.4 ranked by rating, only rated students are listed');
+select public.assert(
+  (select bool_and(streak > 0 or is_me) and bool_and(score = streak) from public.student_league('streak', 'all', null, 50)),
+  '80.5 ranked by streak, the score is the days in a row');
+select public.assert(
+  (select coalesce(max(rank), 0) <= 2 or bool_or(is_me) from public.student_league('points', 'all', null, 2) where not is_me),
+  '80.7 the list stops at the limit, besides the asker');
+select public.assert_rejects(
+  $$select * from public.student_league('followers', 'all', null, 10)$$,
+  '80.8 there is no ranking by anything else', 'غير معروف');
+select public.assert_rejects(
+  $$select public.streak_of('11111111-1111-1111-1111-111111111111')$$,
+  '80.9 another member''s activity is not readable directly', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  not exists (select 1 from unnest(:'league_all'::uuid[]) as l(id)
+               where not exists (select 1 from public.profile_roles pr
+                                  where pr.profile_id = l.id and pr.role = 'student' and pr.status = 'approved')),
+  '80.2 only students are ranked');
+select public.assert(
+  not exists (select 1 from unnest(coalesce(:'league_path'::uuid[], '{}')) as l(id)
+               where not exists (select 1 from public.enrollments e
+                                  where e.profile_id = l.id and e.path_id = :'league_path_id'::uuid)),
+  '80.6 a path league holds only the students enrolled in it');
+
+set role anon;
+select public.assert_rejects(
+  $$select * from public.student_league('points', 'all', null, 10)$$,
+  '80.10 the league is for members', 'permission denied');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
