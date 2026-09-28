@@ -61,9 +61,10 @@ export default async function NewTicketPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/support">{t('→ بلاغاتي', '← My tickets')}</Link>
-      <section className="panel section-block" style={{ marginTop: 16, maxWidth: 720 }}>
-        <h2 style={{ fontSize: '1.15rem' }}>{t('إنشاء بلاغ', 'New report')}</h2>
+      <div className="sp-page">
+      <Link className="sp-back" href="/support">{t('→ المساعدة والبلاغات', '← Help & reports')}</Link>
+      <section className="hm-card sp-form section-block">
+        <h1>{t('بلّغ عن مشكلة', 'Report a problem')}</h1>
         <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
           {t('الأولوية يحددها النظام. ما تكتبه هنا يراه فريق الدعم فقط، ولا يراه من تبلّغ عنه.',
              'The system sets the priority. What you write is seen by the support team only — never by the person you report.')}
@@ -100,6 +101,7 @@ export default async function NewTicketPage({
           </SupportComposer>
         </div>
       </section>
+      </div>
     </>
   );
 }

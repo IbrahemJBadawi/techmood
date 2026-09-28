@@ -17,16 +17,18 @@ export default async function HelpArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/support">{t('→ المساعدة والبلاغات', '← Help & reports')}</Link>
-      <article className="panel section-block" style={{ marginTop: 16, maxWidth: 760 }}>
+      <div className="sp-page">
+      <Link className="sp-back" href="/support">{t('→ المساعدة والبلاغات', '← Help & reports')}</Link>
+      <article className="hm-card sp-article section-block">
         {article.category && <span className="tag">{t(TICKET_CATEGORY[article.category])}</span>}
-        <h2 style={{ fontSize: '1.2rem', marginTop: 8 }}>{t.locale === 'en' && article.title_en ? article.title_en : article.title_ar}</h2>
-        <div style={{ fontSize: '0.92rem', marginTop: 12, whiteSpace: 'pre-line', lineHeight: 1.8 }}>{article.body_ar}</div>
-        <p className="muted" style={{ fontSize: '0.8rem', marginTop: 16 }}>
-          {t('لم يحلّ المقال مشكلتك؟ ', 'Did not solve it? ')}
-          <Link href={`/support/new${article.category ? `?category=${article.category}` : ''}`}>{t('افتح بلاغاً', 'Open a ticket')}</Link>
-        </p>
+        <h1>{t.locale === 'en' && article.title_en ? article.title_en : article.title_ar}</h1>
+        <div className="sp-article-body">{article.body_ar}</div>
+        <div className="sp-article-foot">
+          <span>{t('لم يحلّ المقال مشكلتك؟', 'Did not solve it?')}</span>
+          <Link className="btn btn-primary btn-sm" href={`/support/new${article.category ? `?category=${article.category}` : ''}`}>{t('بلّغ عن مشكلة', 'Report a problem')}</Link>
+        </div>
       </article>
+      </div>
     </>
   );
 }

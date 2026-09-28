@@ -31,50 +31,47 @@ export async function TicketThread({ ticketId, viewer = 'reporter' }: { ticketId
         : kind === 'system' ? t('النظام', 'System')
           : viewer === 'admin' ? t('👤 صاحب البلاغ', '👤 Reporter') : t('أنت', 'You');
 
+  const mine = (kind: string) => (viewer === 'admin' ? kind === 'admin' : kind === 'user');
+
   return (
-    <div className="detail-grid">
-      <section className="panel">
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('المحادثة', 'Conversation')}</h3>
-        <div className="stack">
+    <div className="tk-grid">
+      <section className="hm-card tk-chat">
+        <h3 className="tk-h">{t('المحادثة', 'Conversation')}</h3>
+        <div className="tk-bubbles">
           {(messages ?? []).map((row) => (
             <article
               key={row.id}
-              className={`ticket-line is-${row.author_kind}${row.is_internal ? ' is-internal' : ''}`}
+              className={`tk-bubble is-${row.author_kind}${mine(row.author_kind) ? ' is-mine' : ''}${row.is_internal ? ' is-internal' : ''}`}
             >
-              <div className="row-between">
-                <strong style={{ fontSize: '0.82rem' }}>
-                  {who(row.author_kind)}
-                  {row.is_internal && <span className="tag" style={{ marginInlineStart: 6 }}>{t('داخلي', 'Internal')}</span>}
-                </strong>
-                <span className="muted" style={{ fontSize: '0.74rem' }}>{time.format(new Date(row.created_at))}</span>
-              </div>
-              <p style={{ fontSize: '0.88rem', marginTop: 6, whiteSpace: 'pre-line' }}>{row.body_ar}</p>
+              <strong className="tk-who">
+                {who(row.author_kind)}
+                {row.is_internal && <span className="tag" style={{ marginInlineStart: 6 }}>{t('داخلي', 'Internal')}</span>}
+              </strong>
+              <p>{row.body_ar}</p>
               {files.has(row.id) && (
-                <a className="badge-pill" href={files.get(row.id)} target="_blank" rel="noreferrer noopener" style={{ marginTop: 6 }}>
+                <a className="tk-file" href={files.get(row.id)} target="_blank" rel="noreferrer noopener">
                   📎 {t('المرفق', 'Attachment')}
                 </a>
               )}
+              <span className="tk-time date">{time.format(new Date(row.created_at))}</span>
             </article>
           ))}
         </div>
       </section>
 
-      <aside className="panel">
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('الخط الزمني', 'Timeline')}</h3>
-        <ul className="finance-timeline">
+      <aside className="hm-card tk-side">
+        <h3 className="tk-h">{t('الخط الزمني', 'Timeline')}</h3>
+        <ol className="tk-timeline">
           {(events ?? []).map((row) => (
             <li key={row.id}>
-              <span className="finance-dot">•</span>
-              <div>
-                <strong style={{ fontSize: '0.84rem' }}>{TICKET_EVENT[row.kind] ? t(TICKET_EVENT[row.kind]) : row.note_ar}</strong>
-                {row.note_ar && TICKET_EVENT[row.kind] && row.note_ar !== TICKET_EVENT[row.kind].ar && (
-                  <div className="muted" style={{ fontSize: '0.78rem' }}>{row.note_ar}</div>
-                )}
-                <div className="muted" style={{ fontSize: '0.74rem' }}>{time.format(new Date(row.created_at))}</div>
-              </div>
+              <strong>{TICKET_EVENT[row.kind] ? t(TICKET_EVENT[row.kind]) : row.note_ar}</strong>
+              {row.note_ar && TICKET_EVENT[row.kind] && row.note_ar !== TICKET_EVENT[row.kind].ar && (
+                <span className="muted">{row.note_ar}</span>
+              )}
+              <span className="tk-time date">{time.format(new Date(row.created_at))}</span>
             </li>
           ))}
-        </ul>
+        </ol>
       </aside>
     </div>
   );

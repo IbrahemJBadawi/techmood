@@ -31,13 +31,13 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/support">{t('→ بلاغاتي', '← My tickets')}</Link>
+      <Link className="sp-back" href="/support">{t('→ المساعدة والبلاغات', '← Help & reports')}</Link>
 
-      <section className="panel section-block" style={{ marginTop: 16 }}>
-        <div className="row-between" style={{ alignItems: 'flex-start' }}>
-          <div>
-            <p className="kicker eng">#{ticket.code}</p>
-            <h2 style={{ fontSize: '1.15rem', marginTop: 4 }}>{ticket.subject_ar}</h2>
+      <section className="hm-card sp-ticket-head section-block">
+        <div className="row-between" style={{ alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <p className="sp-code"><bdi>#{ticket.code}</bdi></p>
+            <h1>{ticket.subject_ar}</h1>
             <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
               {t(TICKET_CATEGORY[ticket.category])}
               {ticket.related_type && <> · {t(TICKET_RELATED[ticket.related_type])}</>}
@@ -65,17 +65,17 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketI
       <TicketThread ticketId={ticket.id} />
 
       {closed ? (
-        <p className="notice" style={{ marginTop: 16 }}>
+        <p className="notice tk-closed">
           {t('أُغلق هذا البلاغ. إن استمرت المشكلة ', 'This ticket is closed. If the problem continues, ')}
           <Link href="/support/new">{t('افتح بلاغاً جديداً', 'open a new one')}</Link>.
         </p>
       ) : (
-        <section className="panel section-block" style={{ marginTop: 16 }}>
+        <section className="hm-card tk-compose">
           <SupportComposer action={replyToTicket} userId={user.id} submitLabel={t('أرسل', 'Send')} resetOnSuccess>
             <input type="hidden" name="ticket_id" value={ticket.id} />
             <div className="field">
-              <label htmlFor="body">{t('رسالتك', 'Your message')}</label>
-              <textarea id="body" name="body" rows={3} required maxLength={5000} />
+              <label htmlFor="body" className="sr-only">{t('رسالتك', 'Your message')}</label>
+              <textarea id="body" name="body" rows={3} required maxLength={5000} placeholder={t('اكتب ردّك…', 'Write your reply…')} />
             </div>
           </SupportComposer>
         </section>
