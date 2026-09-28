@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { isEnglishName, tidyName } from '@/lib/names';
 import { isLocale, LOCALE_COOKIE } from '@/lib/i18n';
 import { getT } from '@/lib/i18n.server';
 
@@ -133,13 +134,17 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   const t = await getT();
   const supabase = await createClient();
 
-  const fullName = String(formData.get('full_name') ?? '').trim();
+  const fullName = tidyName(String(formData.get('full_name') ?? ''));
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
   const confirm = String(formData.get('password_confirm') ?? '');
 
   if (fullName.length < 2) {
     return { error: t('الرجاء إدخال الاسم الكامل.', 'Please enter your full name.') };
+  }
+  if (!isEnglishName(fullName)) {
+    return { error: t('اكتب اسمك الكامل بالحروف الإنجليزية فقط — كما سيظهر على شهاداتك.',
+                      'Write your full name in English letters only — as it will appear on your certificates.') };
   }
   if (password.length < 8) {
     return { error: t('كلمة المرور 8 أحرف على الأقل.', 'The password needs at least 8 characters.') };

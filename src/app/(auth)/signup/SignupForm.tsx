@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
+import { ENGLISH_NAME_PATTERN, isEnglishName } from '@/lib/names';
 
 import { signup, type AuthState } from '../actions';
 
@@ -17,6 +18,8 @@ export function SignupForm() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [show, setShow] = useState(false);
+  const [name, setName] = useState('');
+  const nameBad = name.trim().length > 0 && !isEnglishName(name);
 
   const mismatch = confirm.length > 0 && confirm !== password;
   const tooShort = password.length > 0 && password.length < 8;
@@ -25,8 +28,17 @@ export function SignupForm() {
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="full_name">{t('الاسم الكامل', 'Full name')}</label>
-        <input id="full_name" name="full_name" type="text" required autoComplete="name" />
+        <label htmlFor="full_name">{t('الاسم الكامل بالإنجليزية', 'Full name in English')}</label>
+        <input id="full_name" name="full_name" type="text" required autoComplete="name" dir="ltr"
+               lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
+               value={name} onChange={(event) => setName(event.target.value)}
+               aria-invalid={nameBad} aria-describedby="name-hint"
+               title={t('حروف إنجليزية فقط', 'English letters only')} />
+        <p id="name-hint" className={`field-hint${nameBad ? ' is-error' : ''}`} aria-live="polite">
+          {nameBad
+            ? t('اكتب اسمك بالحروف الإنجليزية فقط — كما سيظهر على شهاداتك.', 'Use English letters only — as it will appear on your certificates.')
+            : t('كما سيظهر على شهاداتك. اسمك الظاهر بالعربية تختاره في الخطوة التالية.', 'As it will appear on your certificates. You choose a display name in any language next.')}
+        </p>
       </div>
 
       <div className="field">
@@ -69,7 +81,7 @@ export function SignupForm() {
 
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 14 }}>{state.error}</p>}
 
-      <button className="btn btn-primary btn-block" disabled={pending || mismatch}>
+      <button className="btn btn-primary btn-block" disabled={pending || mismatch || nameBad}>
         {pending ? t('جارٍ الإنشاء…', 'Creating…') : t('أنشئ الحساب', 'Create account')}
       </button>
     </form>

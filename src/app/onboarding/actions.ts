@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { dbError } from '@/lib/db-errors';
+import { isEnglishName, tidyName } from '@/lib/names';
 import { SELECTABLE_ROLES } from '@/lib/roles';
 import type { TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
 
@@ -35,11 +36,15 @@ export async function saveBasics(_prev: StepState, formData: FormData): Promise<
   const t = await getT();
   const { supabase, user } = await me();
 
-  const fullName = String(formData.get('full_name') ?? '').trim();
+  const fullName = tidyName(String(formData.get('full_name') ?? ''));
   const displayName = String(formData.get('display_name') ?? '').trim();
   const username = String(formData.get('username') ?? '').trim().toLowerCase();
 
   if (fullName.length < 2) return { error: t('الاسم الكامل مطلوب.', 'Your full name is required.') };
+  if (!isEnglishName(fullName)) {
+    return { error: t('اكتب اسمك الكامل بالحروف الإنجليزية فقط — كما سيظهر على شهاداتك.',
+                      'Write your full name in English letters only — as it will appear on your certificates.') };
+  }
   if (displayName.length < 2) return { error: t('الاسم الظاهر مطلوب.', 'A display name is required.') };
   if (!/^[a-z0-9_]{3,30}$/.test(username)) {
     return {
@@ -69,6 +74,8 @@ export async function saveBasics(_prev: StepState, formData: FormData): Promise<
     return {
       error: error.message.includes('username')
         ? t('اسم المستخدم غير صالح أو محجوز.', 'That username is invalid or taken.')
+        : error.message.includes('بالإنجليزية')
+          ? t('اكتب اسمك الكامل بالحروف الإنجليزية فقط.', 'Write your full name in English letters only.')
         : error.message.includes('الصورة')
           ? t('ارفع الصورة من زر «أضف صورة».', 'Upload the photo with the “Add a photo” button.')
           : t('تعذّر الحفظ.', 'Could not save.'),

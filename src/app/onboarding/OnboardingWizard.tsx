@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useState } from 'react';
 
 import { AvatarUploader } from '@/components/AvatarUploader';
+import { ENGLISH_NAME_PATTERN, isEnglishName } from '@/lib/names';
 import { SELECTABLE_ROLES, ROLE_STATUS_LABEL, roleLabel } from '@/lib/roles';
 import { useT } from '@/lib/i18n.client';
 import type { T } from '@/lib/i18n';
@@ -203,9 +204,10 @@ function BasicsStep({
       <div className="field-row">
         <div className="field">
           <label htmlFor="full_name">{t('الاسم الكامل بالإنجليزية', 'Full name in English')}</label>
-          <input id="full_name" name="full_name" defaultValue={profile.full_name} required
-                 dir="ltr" placeholder="Ibrahem Jamal Badawi" />
-          <small className="muted">{t('كما تريده أن يظهر على الشهادات.', 'As you want it printed on your certificates.')}</small>
+          <input id="full_name" name="full_name" defaultValue={isEnglishName(profile.full_name) ? profile.full_name : ''} required
+                 dir="ltr" lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
+                 title={t('حروف إنجليزية فقط', 'English letters only')} />
+          <small className="muted">{t('بالحروف الإنجليزية فقط، كما سيظهر على الشهادات.', 'English letters only, as it will be printed on your certificates.')}</small>
         </div>
         <div className="field">
           <label htmlFor="display_name">{t('الاسم الظاهر', 'Display name')}</label>

@@ -8914,6 +8914,27 @@ select public.assert(
   (select count(*) from storage.objects where bucket_id = 'avatars') = 0,
   '78.9 the owner can remove their own photo');
 
+-- ---------------------------------------------------------------------------
+-- 79. The full name is written in English (0109)
+-- ---------------------------------------------------------------------------
+\echo '79. english full names'
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+update public.profiles set full_name = '  Sara   Yousef ' where id = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select full_name = 'Sara Yousef' from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  '79.1 an English name is kept, with its spaces tidied');
+select public.assert_rejects(
+  $$update public.profiles set full_name = 'سارة يوسف' where id = '11111111-1111-1111-1111-111111111111'$$,
+  '79.2 changing it to Arabic script is refused', 'بالإنجليزية');
+update public.profiles set display_name = 'سارة' where id = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select display_name = 'سارة' from public.profiles where id = '11111111-1111-1111-1111-111111111111'),
+  '79.3 the display name stays in any script');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
