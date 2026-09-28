@@ -88,7 +88,8 @@ export const ROLES: RoleDefinition[] = [
     label: { ar: 'منتور', en: 'Mentor' },
     blurb: { ar: 'تراجع أعمال المتعلّمين وتقدّم جلسات إرشاد محجوزة.', en: 'You review learners\u2019 work and hold booked mentoring sessions.' },
     grant: 'review',
-    home: '/mentor-requests',
+    // The founder's rule: after home, a mentor's first page is their time.
+    home: '/bookings',
     icon: 'mentor',
   },
   {
@@ -253,8 +254,8 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'الإرشاد', en: 'Mentoring' },
       items: [
-        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
+        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },

@@ -1896,3 +1896,12 @@ function's source is `supabase/functions/push-dispatch/`.
 with a device, an open path and nothing studied in the last day — in the
 academy category, so they can silence it.
 
+## Each role's first page, and knowing where you are
+
+A mentor's role home is Bookings & calendar (first in their sidebar, and where
+switching to the mentor role lands); their dashboard leads with confirmed
+sessions, then requests waiting, evaluations owed (0095), work to review and
+earnings. A student's home already opens on "carry on learning" and their
+paths. Under the logo, every page says which role is being browsed and what
+that role does here.
+

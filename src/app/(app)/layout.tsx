@@ -75,6 +75,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <LogoMark />
           <span className="sidebar-wordmark">TechMood</span>
         </div>
+        <p className="sidebar-role" title={t(ROLE_BY_VALUE[active].blurb)}>
+          {t('أنت الآن: ', 'You are browsing as: ')}<strong>{t(ROLE_BY_VALUE[active].label)}</strong>
+          <span>{t(ROLE_BY_VALUE[active].blurb)}</span>
+        </p>
 
         {groups.map((group) => (
           <div className="nav-group" key={group.label.en}>

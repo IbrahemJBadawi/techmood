@@ -93,20 +93,22 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
   }
 
   if (role === 'mentor') {
-    const [requests, toReview, upcoming, earnings] = await Promise.all([
+    const [requests, toReview, upcoming, earnings, owed] = await Promise.all([
       n(from('bookings').eq('mentor_id', userId).eq('status', 'mentor_pending')),
       n(from('submissions').in('status', ['submitted', 'under_review'])),
       n(from('bookings').eq('mentor_id', userId).eq('status', 'confirmed')),
       n(from('wallet_entries').eq('profile_id', userId).eq('kind', 'earning')),
+      supabase.rpc('my_owed_evaluations').then(({ data }) => (data ?? []).length),
     ]);
-    lede = t('مراجعتك هي ما يجعل الشهادة في TechMood تعني شيئاً.', 'Your review is what makes a TechMood certificate mean something.');
+    lede = t('وقتك أولاً: حجوزاتك وتقويمك، ثم الطلبات والتقييمات المطلوبة منك.', 'Your time first: your bookings and calendar, then the requests and the evaluations you owe.');
     tiles = [
+      { value: upcoming, label: t('جلسات مؤكدة', 'Confirmed sessions'), href: '/bookings' },
       { value: requests, label: t('طلبات جلسات تنتظرك', 'Session requests waiting on you'), href: '/mentor-requests' },
+      { value: owed, label: t('تقييمات مطلوبة منك', 'Evaluations you owe'), href: '/mentor-requests' },
       { value: toReview, label: t('أعمال بانتظار المراجعة', 'Work waiting for review'), href: '/review' },
-      { value: upcoming, label: t('جلسات مؤكدة', 'Confirmed sessions'), href: '/mentor-requests' },
       { value: earnings, label: t('أرباح مسجّلة', 'Recorded earnings'), href: '/wallet' },
     ];
-    cta = { href: '/review', label: t('ابدأ المراجعة', 'Start reviewing') };
+    cta = { href: '/bookings', label: t('الحجوزات والتقويم', 'Bookings & calendar') };
   }
 
   if (role === 'team_leader') {
