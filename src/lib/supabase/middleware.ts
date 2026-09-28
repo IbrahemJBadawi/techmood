@@ -22,7 +22,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  let response = NextResponse.next({ request });
+  // The pages read which section they are in (the admin area shows the admin
+  // navigation to an admin whatever role they last browsed as).
+  // Rebuilt after a session refresh too, so the page sees the new cookies.
+  const forward = () => {
+    const headers = new Headers(request.headers);
+    headers.set('x-tm-path', request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers } });
+  };
+  let response = forward();
 
   const supabase = createServerClient(
     SUPABASE_URL,
@@ -34,7 +42,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = forward();
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

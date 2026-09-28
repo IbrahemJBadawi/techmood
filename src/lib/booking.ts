@@ -49,7 +49,7 @@ export const BOOKING_TIMELINE: { key: string; label: Text; matches: BookingStatu
 
 export function formatSlot(iso: string, locale: Locale = 'ar') {
   const date = new Date(iso);
-  const tag = locale === 'ar' ? 'ar-EG' : intlTag(locale);
+  const tag = locale === 'ar' ? 'ar-EG-u-nu-latn' : intlTag(locale);
   return {
     date: date.toLocaleDateString(tag, { weekday: 'long', day: 'numeric', month: 'long' }),
     time: date.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' }),

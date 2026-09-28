@@ -20,7 +20,7 @@ export default async function AdminCohortsPage() {
   if (!isAdmin) redirect('/home');
 
   const { data: cohorts } = await supabase.rpc('admin_cohorts', { p_months: 12 });
-  const month = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { month: 'long', year: 'numeric' });
+  const month = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { month: 'long', year: 'numeric' });
 
   return (
     <>

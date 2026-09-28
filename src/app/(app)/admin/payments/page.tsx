@@ -163,7 +163,7 @@ export default async function AdminPaymentsPage() {
                   <div className="summary-row">
                     <span className="muted">{t('أُرسل في', 'Sent on')}</span>
                     <span className="date">
-                      {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG') : '—'}
+                      {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG-u-nu-latn') : '—'}
                     </span>
                   </div>
                   {booking && (
@@ -229,7 +229,7 @@ export default async function AdminPaymentsPage() {
                       </span>
                     </td>
                     <td className="date">
-                      {payment.verified_at ? new Date(payment.verified_at).toLocaleDateString('ar-EG') : '—'}
+                      {payment.verified_at ? new Date(payment.verified_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
                     </td>
                   </tr>
                 );

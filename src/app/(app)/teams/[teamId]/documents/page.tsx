@@ -118,7 +118,7 @@ export default async function TeamDocumentsPage({
 
                   <p className="muted eng" style={{ fontSize: '0.74rem', marginTop: 10 }}>
                     {authorById.get(document.author_id) ?? '—'} ·{' '}
-                    {new Date(document.created_at).toLocaleDateString('ar-EG')}
+                    {new Date(document.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
                   </p>
                 </article>
               ))}

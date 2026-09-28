@@ -40,7 +40,7 @@ export default async function AdminAiPage({ searchParams }: { searchParams: Prom
     supabase.rpc('admin_cases', { p_filter: 'open' }),
   ]);
   const overview = overviewRows?.[0];
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
   const surface = (value: string) => (SURFACE[value as AiSurface] ? t(SURFACE[value as AiSurface].label) : value);
   const cases = (openCases ?? []).map((item) => ({ id: item.id, label: `#${item.code} — ${item.title_ar}` }));
 

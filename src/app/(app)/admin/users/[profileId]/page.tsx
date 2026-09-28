@@ -64,8 +64,8 @@ export default async function AdminUserPage({
   ]);
   if (!person || !summary) notFound();
 
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
   const approvedRoles = summary.roles.filter((row) => row.status === 'approved');
 
   return (
@@ -101,9 +101,9 @@ export default async function AdminUserPage({
 
       {tab === 'overview' && (
         <>
-          <div className="stat-tiles section-block">
+          <div className="stat-tiles cols-3 section-block">
             <div className="stat-tile"><div className="val eng">{summary.xp}</div><div className="lbl">XP</div></div>
-            <div className="stat-tile"><div className="val eng">{summary.stars ?? '—'}★</div><div className="lbl">{t('النجوم', 'Stars')}</div></div>
+            <div className="stat-tile"><div className="val eng">{summary.stars != null ? Number(summary.stars).toFixed(1) : '—'}★</div><div className="lbl">{t('النجوم', 'Stars')}</div></div>
             <div className="stat-tile"><div className="val eng">{summary.certificates}</div><div className="lbl">{t('شهادات', 'Certificates')}</div></div>
             <div className="stat-tile"><div className="val eng">{summary.bookings}</div><div className="lbl">{t('حجوزات', 'Bookings')}</div></div>
             <div className="stat-tile"><div className="val eng">{summary.sessions_as_mentor}</div><div className="lbl">{t('جلسات أدارها', 'Sessions mentored')}</div></div>

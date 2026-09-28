@@ -224,7 +224,7 @@ export function BookingWizard({
 
             <div className="date-tabs">
               {byDay.map(([day, items]) => {
-                const label = new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG', {
+                const label = new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', {
                   weekday: 'short',
                   day: 'numeric',
                   month: 'short',

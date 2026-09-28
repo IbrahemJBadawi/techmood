@@ -35,7 +35,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
     supabase.rpc('admin_tickets', { p_filter: filter }),
     supabase.rpc('admin_cases', { p_filter: 'open' }),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
 
   return (
     <>

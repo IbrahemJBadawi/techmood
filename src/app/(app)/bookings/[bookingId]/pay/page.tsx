@@ -88,7 +88,7 @@ export default async function PayBookingPage({
           <p className="notice section-block">
             {t('الموعد محجوز لك حتى ', 'The slot is held for you until ')}
             <span className="eng">
-              {new Date(booking.reserved_until).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(booking.reserved_until).toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}
             </span>
             {t('. أكمل الدفع قبل ذلك حتى لا يعود الموعد متاحاً لغيرك.', '. Pay before then, or the slot goes back to everyone else.')}
           </p>

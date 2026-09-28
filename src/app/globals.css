@@ -226,7 +226,7 @@ button, input, select, textarea { font-family: inherit; }
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);
   padding: clamp(14px, 2.4vw, 20px);
   box-shadow: var(--shadow-1);
 }
@@ -343,6 +343,8 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 }
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .field input, .field select, .field textarea { width: 100%; min-width: 0; }
+/* A checkbox or radio inside a .field is still a checkbox, not a text box. */
+.field input[type="checkbox"], .field input[type="radio"] { width: auto; min-height: 0; padding: 0; }
 
 /* ---------- indicators ---------- */
 .tag,
@@ -369,6 +371,12 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
   background: var(--bg-deep);
   border: 1px solid var(--line);
   color: var(--ink-soft);
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
 .progress-track {
@@ -423,7 +431,8 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 
 table.data {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.86rem;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -436,7 +445,10 @@ table.data td {
   text-align: start;
   border-bottom: 1px solid var(--line);
 }
-table.data th { background: var(--bg-deep); font-size: 0.78rem; color: var(--ink-soft); }
+table.data th { background: var(--bg-deep); font-size: 0.78rem; font-weight: 600; color: var(--ink-soft); }
+table.data { box-shadow: var(--shadow-1); border-radius: var(--radius-l); }
+table.data tbody tr { transition: background 0.12s; }
+table.data tbody tr:hover { background: color-mix(in srgb, var(--royal) 4%, transparent); }
 table.data tr:last-child td { border-bottom: none; }
 
 .lesson-row {

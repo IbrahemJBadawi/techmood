@@ -128,7 +128,7 @@ export default async function AdminPayoutsPage() {
                   </div>
                   <div className="summary-row">
                     <span className="muted">{t('تاريخ الطلب', 'Requested on')}</span>
-                    <span className="date">{new Date(request.created_at).toLocaleDateString('ar-EG')}</span>
+                    <span className="date">{new Date(request.created_at).toLocaleDateString('ar-EG-u-nu-latn')}</span>
                   </div>
                 </div>
 
@@ -189,7 +189,7 @@ export default async function AdminPayoutsPage() {
                   </td>
                   <td className="eng">{request.paid_reference ?? '—'}</td>
                   <td className="date">
-                    {request.reviewed_at ? new Date(request.reviewed_at).toLocaleDateString('ar-EG') : '—'}
+                    {request.reviewed_at ? new Date(request.reviewed_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
                   </td>
                 </tr>
               ))}

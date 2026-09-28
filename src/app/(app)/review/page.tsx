@@ -137,7 +137,7 @@ export default async function ReviewQueuePage() {
                   </td>
                   <td>{KIND_LABELS[assignment?.kind ?? ''] ? t(KIND_LABELS[assignment?.kind ?? '']) : '—'}</td>
                   <td className="eng">v{row.current_version}</td>
-                  <td className="date">{new Date(row.updated_at).toLocaleDateString('ar-EG')}</td>
+                  <td className="date">{new Date(row.updated_at).toLocaleDateString('ar-EG-u-nu-latn')}</td>
                   <td><span className={`status-pill ${status.className}`}>{t(status.text)}</span></td>
                   <td>
                     <Link className="btn btn-primary btn-sm" href={`/review/${row.id}`}>{t('راجِع', 'Review')}</Link>

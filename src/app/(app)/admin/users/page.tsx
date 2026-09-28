@@ -20,7 +20,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   if (!isAdmin) redirect('/home');
 
   const { data: users } = await supabase.rpc('admin_users', { p_role: role, p_query: params.q ?? null, p_limit: 200 });
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
 
   return (
     <>

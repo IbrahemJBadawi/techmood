@@ -174,7 +174,7 @@ export default async function StartupOverviewPage({
                     })()}
                     <br />
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                      {new Date(entry.changed_at).toLocaleDateString('ar-EG')}
+                      {new Date(entry.changed_at).toLocaleDateString('ar-EG-u-nu-latn')}
                     </span>
                   </span>
                 </li>

@@ -21,7 +21,10 @@ export function NavLink({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === href || pathname.startsWith(`${href}/`);
+  // A section's front page (the admin overview) lights up on itself only; its
+  // sub-pages have links of their own.
+  const exact = href === '/admin';
+  const isActive = pathname === href || (!exact && pathname.startsWith(`${href}/`));
 
   return (
     <Link

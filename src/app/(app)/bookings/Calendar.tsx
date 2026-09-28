@@ -17,7 +17,7 @@ function href(params: Record<string, string | undefined>) {
 }
 
 function monthTitle(locale: Locale, anchor: Date) {
-  return anchor.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+  return anchor.toLocaleDateString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
     month: 'long',
     year: 'numeric',
   });

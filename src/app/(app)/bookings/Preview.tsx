@@ -66,7 +66,7 @@ export async function Preview({ entry }: { entry: Entry }) {
       {entry.starts_at ? (
         <p className="muted" style={{ fontSize: '0.84rem' }}>
           {formatDateTime(locale, entry.starts_at)}
-          {entry.ends_at && ` — ${new Date(entry.ends_at).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}`}
+          {entry.ends_at && ` — ${new Date(entry.ends_at).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}`}
         </p>
       ) : (
         <p className="muted" style={{ fontSize: '0.84rem' }}>{entry.detail_ar}</p>

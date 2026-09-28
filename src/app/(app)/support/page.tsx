@@ -40,7 +40,7 @@ export default async function SupportCenterPage() {
     supabase.rpc('my_tickets'),
     supabase.from('kb_articles').select('slug, title_ar, title_en').eq('status', 'published').order('sort_order').limit(12),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
 
   const list = tickets ?? [];
   const open = list.filter((ticket) => !['resolved', 'rejected', 'closed'].includes(ticket.status));

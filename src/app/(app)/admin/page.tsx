@@ -51,7 +51,7 @@ export default async function AdminPage() {
   const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
   const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : hour < 18 ? t('مساء الخير', 'Good afternoon') : t('مساء الخير', 'Good evening');
   const firstName = (me?.display_name ?? me?.full_name ?? '').split(' ')[0];
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
   const attention = overview ? [
     { tone: 'red', value: overview.high_priority_reports, label: t('بلاغات عالية الأولوية', 'High-priority reports'), href: '/admin/support?filter=escalated' },
     { tone: 'orange', value: overview.pending_payments, label: t('مدفوعات بانتظار المراجعة', 'Payments to review'), href: '/admin/payments' },

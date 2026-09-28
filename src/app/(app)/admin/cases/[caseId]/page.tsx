@@ -58,7 +58,7 @@ export default async function CasePage({ params }: { params: Promise<{ caseId: s
   ]);
 
   const nameOf = new Map((people ?? []).map((row) => [row.id, `${row.full_name} (${row.techmood_id})`]));
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
   const featureLabel = (feature: string) => feature === 'everything' ? t('الحساب كله', 'The whole account') : t(FEATURE[feature as keyof typeof FEATURE]);
 
   return (

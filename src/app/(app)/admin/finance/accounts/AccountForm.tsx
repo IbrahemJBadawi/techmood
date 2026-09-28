@@ -125,13 +125,13 @@ export function AccountForm({ method }: { method: PaymentMethod }) {
               <tr key={field.key}>
                 <td>{t(field.ar, field.en)}</td>
                 <td>
-                  <label>
+                  <label className="switch-row">
                     <input type="checkbox" name="display_fields" value={field.key}
                            defaultChecked={method.display_fields.includes(field.key)} /> {t('يظهر', 'Shown')}
                   </label>
                 </td>
                 <td>
-                  <label>
+                  <label className="switch-row">
                     <input type="checkbox" name="international_fields" value={field.key}
                            defaultChecked={method.international_fields.includes(field.key)} /> {t('للخارج', 'Abroad only')}
                   </label>

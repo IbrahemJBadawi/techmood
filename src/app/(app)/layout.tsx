@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
@@ -68,9 +68,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // only honoured when it is one of the approved ones.
   const jar = await cookies();
   const requested = jar.get(ACTIVE_ROLE_COOKIE)?.value as UserRole | undefined;
-  const active = requested && approved.includes(requested)
-    ? requested
-    : defaultRole(approved, profile.primary_role);
+  // Inside the admin area an admin always gets the admin navigation, without
+  // changing the role they browse the rest of the platform as.
+  const inAdmin = (await headers()).get('x-tm-path')?.startsWith('/admin') ?? false;
+  const active: UserRole = inAdmin && approved.includes('admin')
+    ? 'admin'
+    : requested && approved.includes(requested)
+      ? requested
+      : defaultRole(approved, profile.primary_role);
 
   const groups = navFor(active);
   const displayName = profile.display_name ?? profile.full_name;

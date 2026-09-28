@@ -36,8 +36,8 @@ export default async function AdminPermissionsPage({ searchParams }: { searchPar
     supabase.rpc('admin_team'),
     supabase.rpc('admin_audit_trail', { p_action: audit || null, p_limit: 200 }),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
 
   return (
     <>

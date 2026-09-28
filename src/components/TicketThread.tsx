@@ -24,7 +24,7 @@ export async function TicketThread({ ticketId, viewer = 'reporter' }: { ticketId
     if (data?.signedUrl) files.set(row.id, data.signedUrl);
   }));
 
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
   const who = (kind: string) =>
     kind === 'assistant' ? t('🤖 مساعد تكمود (رد آلي)', '🤖 TechMood assistant (automated)')
       : kind === 'admin' ? t('🛟 فريق الدعم', '🛟 Support team')

@@ -174,7 +174,7 @@ export default async function AdminExhibitionPage() {
                     </span>
                   </td>
                   <td className="date">
-                    {entry.published_at ? new Date(entry.published_at).toLocaleDateString('ar-EG') : '—'}
+                    {entry.published_at ? new Date(entry.published_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
                   </td>
                 </tr>
               ))}

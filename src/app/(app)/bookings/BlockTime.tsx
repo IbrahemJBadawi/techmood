@@ -29,11 +29,11 @@ export function BlockTime({ blocks }: { blocks: Block[] }) {
           {blocks.map((block) => (
             <li className="row-between" key={block.id} style={{ fontSize: '0.86rem' }}>
               <span>
-                {new Date(block.starts_at).toLocaleString('ar-EG', {
+                {new Date(block.starts_at).toLocaleString('ar-EG-u-nu-latn', {
                   day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
                 })}
                 {' — '}
-                {new Date(block.ends_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(block.ends_at).toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}
                 {block.reason && <span className="muted"> · {block.reason}</span>}
               </span>
               <form action={unblockTime}>

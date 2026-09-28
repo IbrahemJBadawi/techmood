@@ -70,7 +70,7 @@ export default async function TeamCalendarPage({
       <article className="panel" key={day} style={{ marginBottom: 12 }}>
         <div className="row-between">
           <strong style={{ fontSize: '0.92rem' }}>
-            {new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG', {
+            {new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
@@ -133,7 +133,7 @@ export default async function TeamCalendarPage({
               <article className="panel session-row" key={meeting.id}>
                 <div>
                   <strong style={{ fontSize: '0.9rem' }}>
-                    {new Date(meeting.start_at).toLocaleString('ar-EG', {
+                    {new Date(meeting.start_at).toLocaleString('ar-EG-u-nu-latn', {
                       weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
                     })}
                   </strong>

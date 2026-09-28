@@ -165,7 +165,7 @@ export default async function ReviewSubmissionPage({
                     {index === 0 && <span className="badge-pill" style={{ marginInlineStart: 8 }}>{t('الأحدث', 'Latest')}</span>}
                   </strong>
                   <span className="muted eng" style={{ fontSize: '0.76rem' }}>
-                    {new Date(version.submitted_at).toLocaleDateString('ar-EG')}
+                    {new Date(version.submitted_at).toLocaleDateString('ar-EG-u-nu-latn')}
                   </span>
                 </div>
 
@@ -219,7 +219,7 @@ export default async function ReviewSubmissionPage({
                       <span className={`status-pill ${decision.className}`}>{t(decision.text)}</span>
                       <span className="muted eng" style={{ fontSize: '0.74rem' }}>
                         v{version?.version ?? '?'} ·{' '}
-                        {new Date(evaluation.created_at).toLocaleDateString('ar-EG')}
+                        {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
                         {evaluation.evaluator_id === user.id ? t(' · أنت', ' · you') : ''}
                       </span>
                     </div>

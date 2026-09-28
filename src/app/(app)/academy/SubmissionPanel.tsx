@@ -92,7 +92,7 @@ export function SubmissionPanel({
               <div className="row-between">
                 <Stars value={evaluation.stars} />
                 <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                  {new Date(evaluation.created_at).toLocaleDateString('ar-EG')}
+                  {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
                 </span>
               </div>
               {evaluation.feedback_ar && (

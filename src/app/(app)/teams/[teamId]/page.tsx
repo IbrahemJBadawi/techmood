@@ -205,7 +205,7 @@ export default async function TeamOverviewPage({
                     {entry.subject_ar && <span className="muted"> «{entry.subject_ar}»</span>}
                     <br />
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                      {new Date(entry.created_at).toLocaleDateString('ar-EG')}
+                      {new Date(entry.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
                     </span>
                   </span>
                 </li>

@@ -189,7 +189,7 @@ export default async function PassportPage() {
                       <span className="txn-icon is-in" aria-hidden="true"><Icon name="star" size={18} /></span>
                       <span className="txn-main">
                         <strong>{XP_SOURCE_LABELS[event.source] ? t(XP_SOURCE_LABELS[event.source]) : event.source}</strong>
-                        <span className="txn-meta">{new Date(event.created_at).toLocaleDateString(t.locale === 'ar' ? 'ar-EG' : 'en-GB')}</span>
+                        <span className="txn-meta">{new Date(event.created_at).toLocaleDateString(t.locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB')}</span>
                       </span>
                       <span className="txn-side"><span className="eng txn-amount is-in">+{event.xp} XP</span></span>
                     </div>

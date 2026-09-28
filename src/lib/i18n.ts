@@ -68,8 +68,9 @@ export function needsRtlIsolation(locale: Locale, en?: string | null) {
 }
 
 /** Locale tag for Intl — dates, numbers, relative times. */
+/** Arabic month and day names, Latin digits — the same on the server and in every browser. */
 export function intlTag(locale: Locale) {
-  return locale === 'ar' ? 'ar' : 'en-GB';
+  return locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB';
 }
 
 export function formatDate(locale: Locale, value: string | Date) {
