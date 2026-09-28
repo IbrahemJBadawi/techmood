@@ -31,14 +31,14 @@ export default async function LandingPage() {
               'Group projects and a shared workspace, because most real work happens in a team.'),
     },
     {
-      title: t('سوق العمل', 'Work'),
-      body: t('فرص عمل حر ووظائف وطلبات فرق تصل لمن يملك سجلاً مهنياً موثّقاً.',
-              'Freelance work, jobs and team openings that reach people with a verifiable record.'),
+      title: t('المعرض والسوق', 'Gallery & market'),
+      body: t('مشاريعك بعد تقييم المنتور تُعرض في المعرض، ويمكنك بيعها في سوق الطلاب.',
+              'Once a mentor has evaluated them, your projects go on show in the gallery — and you can sell them in the student market.'),
     },
     {
-      title: t('الحاضنة', 'Incubator'),
-      body: t('من فكرة إلى شركة ناشئة، بمراحل واضحة ومراجعة من خبراء.',
-              'From an idea to a startup, in clear stages with expert review.'),
+      title: t('المساعد الذكي', 'AI assistant'),
+      body: t('يقترح عليك المسار والدورة والمنتور المناسب، ويساعدك في دروسك ومهامك.',
+              'Suggests the right path, course and mentor, and helps you through your lessons and tasks.'),
     },
     {
       title: t('الجواز المهني', 'Professional passport'),

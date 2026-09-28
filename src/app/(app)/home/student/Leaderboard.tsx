@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Stars } from '@/components/Stars';
 import { useT } from '@/lib/i18n.client';
 import type { T, Text } from '@/lib/i18n';
+import { IS_MVP } from '@/lib/scope';
 
 export type BoardRow = {
   rank: number;
@@ -19,14 +20,16 @@ export type BoardRow = {
 
 export type Boards = Record<'students' | 'mentors' | 'teams' | 'companies', BoardRow[]>;
 
-const TABS: {
+type BoardTab = {
   key: keyof Boards; label: Text; extraLabel: Text; showStars: boolean; showPoints: boolean;
-}[] = [
+};
+
+const TABS: BoardTab[] = ([
   { key: 'students',  label: { ar: 'الطلاب',   en: 'Students' },      extraLabel: { ar: 'إنجازات', en: 'Achievements' }, showStars: true,  showPoints: true },
   { key: 'mentors',   label: { ar: 'المنتورز', en: 'Mentors' },       extraLabel: { ar: 'جلسات',   en: 'Sessions' },     showStars: true,  showPoints: true },
   { key: 'teams',     label: { ar: 'الفرق',    en: 'Teams' },         extraLabel: { ar: 'مشاريع',  en: 'Projects' },     showStars: true,  showPoints: true },
   { key: 'companies', label: { ar: 'المؤسسات', en: 'Organisations' }, extraLabel: { ar: 'تعيينات',en: 'Hires' },        showStars: false, showPoints: false },
-];
+] as BoardTab[]).filter((entry) => !IS_MVP || entry.key !== 'companies');
 
 const WINDOWS: { key: 'month' | 'year' | 'all'; label: Text }[] = [
   { key: 'month', label: { ar: 'هذا الشهر', en: 'This month' } },

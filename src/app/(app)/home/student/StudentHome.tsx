@@ -509,9 +509,9 @@ export async function StudentHome({
           <Link className="explore-chip" href="/academy">{t('الأكاديمية', 'Academy')}</Link>
           <Link className="explore-chip" href="/mentors">{t('المنتورز', 'Mentors')}</Link>
           <Link className="explore-chip" href="/teams">{t('الفرق', 'Teams')}</Link>
-          <Link className="explore-chip" href="/marketplace">{t('سوق العمل', 'Work')}</Link>
-          <Link className="explore-chip" href="/startups">{t('الشركات الناشئة', 'Startups')}</Link>
-          <Link className="explore-chip" href="/exhibition">{t('المعرض', 'Exhibition')}</Link>
+          <Link className="explore-chip" href="/exhibition">{t('المعرض', 'Gallery')}</Link>
+          <Link className="explore-chip" href="/marketplace">{t('سوق الطلاب', 'Student market')}</Link>
+          <Link className="explore-chip" href="/bookings">{t('الحجوزات والتقويم', 'Bookings & calendar')}</Link>
         </div>
       </section>
     </>

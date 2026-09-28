@@ -160,8 +160,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     <>
       <AiSurface surface="project" entityType="project" entityId={project.id} label={project.title_ar} />
 
-      <Link className="btn btn-ghost btn-sm" href="/marketplace?tab=work">
-        {t('→ رجوع لعملي', '← Back to my work')}
+      <Link className="btn btn-ghost btn-sm" href={project.team_id ? `/teams/${project.team_id}/projects` : '/passport'}>
+        {t('→ رجوع', '← Back')}
       </Link>
       <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
       {isParty && (

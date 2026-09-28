@@ -15,6 +15,7 @@ import { MyWork } from './MyWork';
 import { TalentList } from './TalentList';
 import { TeamList } from './TeamList';
 import { AiSurface } from '@/components/AiSurface';
+import { IS_MVP } from '@/lib/scope';
 
 export const metadata = { title: 'Market — TechMood' };
 
@@ -51,6 +52,39 @@ export default async function MarketPage({
   if (!user) redirect('/login');
 
   const params = await searchParams;
+
+  // The MVP's market is the Student Market: finished student and team projects
+  // for sale, and what you bought. Jobs and freelancing are outside its scope
+  // (src/lib/scope.ts) and their tabs are not shown.
+  if (IS_MVP) {
+    const mvpTab = params.tab === 'money' || params.tab === 'buying' ? 'money' : 'listings';
+    const search = (params.q ?? '').trim() || undefined;
+    return (
+      <>
+        <section className="market-hero section-block">
+          <h2>{t('سوق الطلاب', 'Student market')}</h2>
+          <p className="muted">
+            {t('مشاريع طلاب وفرق مكتملة، تحقّقت منها TechMood قبل عرضها. رابط التسليم يصلك بعد تأكيد الدفع. لتبيع مشروعك: افتح صفحة المشروع بعد اكتماله واضغط «اعرضه للبيع».',
+               'Finished student and team projects, checked by TechMood before they are listed. The delivery link reaches you once the payment is confirmed. To sell yours: open the project’s page once it is complete and choose “Put it up for sale”.')}
+          </p>
+          <form className="market-search" action="/marketplace">
+            <input type="search" name="q" defaultValue={search ?? ''}
+                   placeholder={t('ابحث عن مشروع…', 'Search for a project…')}
+                   aria-label={t('ابحث في السوق', 'Search the market')} />
+            <button className="btn btn-primary btn-sm">{t('ابحث', 'Search')}</button>
+          </form>
+        </section>
+        <nav className="tabs" aria-label={t('أقسام السوق', 'Market sections')}>
+          <Link className={`tab${mvpTab === 'listings' ? ' is-active' : ''}`} href="/marketplace">{t('المشاريع المعروضة', 'Projects for sale')}</Link>
+          <Link className={`tab${mvpTab === 'money' ? ' is-active' : ''}`} href="/marketplace?tab=money">{t('مشترياتي ومبيعاتي', 'My purchases & sales')}</Link>
+        </nav>
+        <section className="section-block">
+          {mvpTab === 'listings' ? <ListingList search={search} /> : (<><Purchases /><MoneyTab /></>)}
+        </section>
+      </>
+    );
+  }
+
   const tab = (['all', 'jobs', 'talent', 'teams', 'listings', 'work', 'money', 'saved'] as Tab[])
     .find((key) => key === params.tab) ?? 'all';
   const kind = Object.keys(OPPORTUNITY_KIND).includes(params.kind ?? '')

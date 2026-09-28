@@ -375,11 +375,11 @@ function RolesStep({
       })}
 
       <p className="notice">
-        {t('دور يقول شيئاً عنك — منتور، فريلانسر، مؤسس، قائد فريق، مؤسسة — يبدأ ',
-           'A role that makes a claim about you — mentor, freelancer, founder, team lead, organisation — starts as ')}
+        {t('دور المنتور يقول شيئاً عنك، فيبدأ ',
+           'The mentor role makes a claim about you, so it starts as ')}
         <strong>{t('قيد المراجعة', 'pending review')}</strong>
-        {t('. أمّا «متدرّب» و«عميل» فيفتحان فوراً: طلب الإرشاد أو وجود عمل تريد تنفيذه ليس ادّعاءً يحتاج من يتحقّق منه.',
-           '. Mentee and client open at once: wanting guidance, or having work to hand out, claims nothing anyone could verify.')}
+        {t('. أمّا «Mentee» فيفتح فوراً: طلب الإرشاد ليس ادّعاءً يحتاج من يتحقّق منه.',
+           '. Mentee opens at once: wanting guidance claims nothing anyone could verify.')}
       </p>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

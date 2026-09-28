@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { IS_MVP } from '@/lib/scope';
 
 export const metadata = { title: 'Search — TechMood' };
 
@@ -88,7 +89,8 @@ export default async function SearchPage({
     },
     {
       title: t('الفرص', 'Openings'),
-      rows: (opportunities.data ?? []).map((row) => ({
+      // Openings are outside the MVP (src/lib/scope.ts).
+      rows: (IS_MVP ? [] : opportunities.data ?? []).map((row) => ({
         key: row.id, href: `/marketplace/${row.id}`, title: row.title_ar, detail: row.organization_ar,
       })),
     },

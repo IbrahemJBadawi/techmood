@@ -1929,3 +1929,21 @@ migration must revoke what it does not mean to give. 0102 closed the ten from
 and test 73.1 now fails if any function outside the public list is callable by a
 signed-out visitor.
 
+## The MVP's scope (0103)
+
+The first release is Academy, Mentors, Mentees, Teams, Gallery, the Student
+Market (project sales), Wallet, Calendar & Bookings, AI and the Admin
+dashboard, with three roles people choose: student, mentor, mentee (admin is
+granted). Startups and the incubator, companies, freelancers and clients, and
+jobs/freelance openings are hidden, not deleted — their tables, functions and
+tests stay, and their rules are still tested with the full scope on.
+
+One switch in each layer: `platform_settings.mvp_scope` ('mvp' | 'full') makes
+the database refuse new startups, openings and applications, incubator
+applications, freelancer profiles and services, market-work escrows and the
+hidden roles (`refuse_outside_mvp()` triggers); `src/lib/scope.ts`
+(`NEXT_PUBLIC_TECHMOOD_SCOPE`, default 'mvp') redirects the hidden routes home,
+drops them from the sidebar, the role pickers, search and the leaderboards, and
+turns the market page into the Student Market. Setting both to 'full' brings
+the whole platform back. Test 74 covers the switch.
+

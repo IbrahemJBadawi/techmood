@@ -10,6 +10,7 @@ import type { UserRole } from '@/lib/database.types';
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
 import type { WindowKey } from './student/Leaderboard';
+import { roleInScope } from '@/lib/scope';
 
 export const metadata = { title: 'Home — TechMood' };
 
@@ -34,7 +35,8 @@ export default async function HomePage({
 
   if (!profile) redirect('/login');
 
-  const held = roles ?? [];
+  // Roles outside the MVP (src/lib/scope.ts) are neither shown nor entered.
+  const held = (roles ?? []).filter((row) => roleInScope(row.role));
   const approved = held.filter((row) => row.status === 'approved').map((row) => row.role as UserRole);
   const pendingRoles = held.filter((row) => row.status === 'pending_review');
 

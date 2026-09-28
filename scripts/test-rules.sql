@@ -9,6 +9,11 @@ set client_min_messages to notice;
 \pset tuples_only on
 \pset format unaligned
 
+-- The MVP hides startups, companies, freelancers and jobs (0103). The rules of
+-- those systems are still tested below, with the full scope switched on;
+-- section 74 switches the MVP back on and tests the switch itself.
+update public.platform_settings set value = 'full' where key = 'mvp_scope';
+
 create or replace function public.assert(p_condition boolean, p_label text)
 returns text language plpgsql as $$
 begin
@@ -8404,6 +8409,38 @@ select public.assert(
          'academy_courses', 'is_course_published', 'is_path_open')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
+
+-- ===========================================================================
+-- 74. The MVP's scope is one switch (0103)
+-- ===========================================================================
+update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(public.in_mvp(), '74.1 the platform runs in its MVP scope');
+select public.assert_rejects(
+  $$select public.apply_for_role('freelancer')$$,
+  '74.2 a hidden role cannot be asked for', 'غير متاح');
+select public.assert_rejects(
+  $$insert into public.startups (slug, founder_id, name_ar) values ('mvp-idea', '11111111-1111-1111-1111-111111111111', 'فكرة')$$,
+  '74.3 nor a startup opened', 'غير متاحة');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert_rejects(
+  $$insert into public.freelancer_services (profile_id, title_ar, from_usd)
+    values ('11111111-1111-1111-1111-111111111111', 'خدمة', 10)$$,
+  '74.4 nor a freelance service, even by a trusted path', 'غير متاحة');
+
+select public.assert(
+  not public.is_mvp_hidden_role('student') and not public.is_mvp_hidden_role('mentor')
+  and not public.is_mvp_hidden_role('mentee') and not public.is_mvp_hidden_role('admin')
+  and public.is_mvp_hidden_role('freelancer') and public.is_mvp_hidden_role('company'),
+  '74.5 student, mentor and mentee (and admin) are the MVP''s roles; the rest wait');
+
+update public.platform_settings set value = 'full' where key = 'mvp_scope';
+select public.assert(not public.in_mvp(), '74.6 one setting brings the full platform back');
+update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
 
 \echo ''
 \echo '================================================'

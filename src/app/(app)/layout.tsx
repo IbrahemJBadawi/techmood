@@ -18,6 +18,7 @@ import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
 import { InstallApp } from '@/components/InstallApp';
+import { roleInScope } from '@/lib/scope';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const t = await getT();
@@ -51,7 +52,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // no answered role questions — there is nothing for the shell to render yet.
   if (!profile?.onboarding_completed_at) redirect('/onboarding');
 
-  const held = roles ?? [];
+  // Roles outside the MVP (src/lib/scope.ts) are neither shown nor entered.
+  const held = (roles ?? []).filter((row) => roleInScope(row.role));
   const approved = held.filter((row) => row.status === 'approved').map((row) => row.role);
 
   // The cookie is a preference, not a permission: whatever it says, the role is

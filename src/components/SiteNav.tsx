@@ -7,7 +7,7 @@ import { LogoMark } from '@/components/Logo';
 /**
  * The public navigation.
  *
- * Academy, Mentors, Teams, Work and Startups are the platform itself, so a
+ * Academy, Mentors, Teams, the Market and the Gallery are the platform, so a
  * signed-out visitor who opens one is asked to sign in and is then taken there —
  * the link is real, and nothing here is a dead end.
  */
@@ -20,7 +20,7 @@ export async function SiteNav() {
     { href: '/mentors', label: t('المنتورز', 'Mentors') },
     { href: '/teams', label: t('الفرق', 'Teams') },
     { href: '/marketplace', label: t('السوق', 'Market') },
-    { href: '/startups', label: t('الشركات الناشئة', 'Startups') },
+    { href: '/exhibition', label: t('المعرض', 'Gallery') },
     { href: '/about', label: t('عن TechMood', 'About') },
   ];
 

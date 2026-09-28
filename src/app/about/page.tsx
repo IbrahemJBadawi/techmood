@@ -16,8 +16,8 @@ export default async function AboutPage() {
     },
     {
       title: t('الأدوار وصول، لا ترتيب', 'Roles are access, not rank'),
-      body: t('المنتور ليس «أعلى» من الطالب، والمؤسس ليس «أعلى» من الفريلانسر. كل دور يفتح مساحة عمل مختلفة، ويمكنك حمل عدة أدوار في الوقت نفسه. رفض دور لا يمسّ حسابك.',
-              'A mentor is not "above" a student, and a founder is not "above" a freelancer. Each role opens a different workspace, and you can hold several at once. Turning a role down does not touch your account.'),
+      body: t('المنتور ليس «أعلى» من الطالب أو المتدرّب. كل دور يفتح مساحة عمل مختلفة، ويمكنك حمل عدة أدوار في الوقت نفسه. رفض دور لا يمسّ حسابك.',
+              'A mentor is not "above" a student or a mentee. Each role opens a different workspace, and you can hold several at once. Turning a role down does not touch your account.'),
     },
     {
       title: t('لا شهادة بلا مراجعة', 'No certificate without review'),
@@ -46,8 +46,8 @@ export default async function AboutPage() {
     { step: t('تبني', 'You build'),    body: t('كل دورة تنتهي بمشروع حقيقي، لا باختبار اختيار من متعدد.', 'Every course ends in a real project, not a multiple-choice quiz.') },
     { step: t('تُراجَع', 'You are reviewed'), body: t('منتور بشري يقرأ عملك ويعطيك نجوماً وملاحظات.', 'A human mentor reads your work and gives you stars and notes.') },
     { step: t('تنضم', 'You join'),     body: t('فرق ومساحات عمل مغلقة بمهام وسبرنتات وتسليمات.', 'Teams and closed workspaces with tasks, sprints and deliverables.') },
-    { step: t('تعمل', 'You work'),     body: t('فرص عمل حر ووظائف تصل لمن يملك سجلاً موثّقاً.', 'Freelance work and jobs that reach people with a verifiable record.') },
-    { step: t('تكبر', 'You grow'),     body: t('حاضنة تأخذ فكرتك إلى نموذج عمل وخطة مكتوبة.', 'An incubator that takes your idea to a business model and a written plan.') },
+    { step: t('تُعرض', 'You show'),    body: t('مشاريعك المقيَّمة تُعرض في المعرض وتُباع في سوق الطلاب.', 'Your evaluated projects go on show in the gallery and on sale in the student market.') },
+    { step: t('تكبر', 'You grow'),     body: t('منتورز يرافقونك بجلسات محجوزة، وسجلّ مهني يكبر معك.', 'Mentors who walk with you in booked sessions, and a professional record that grows with you.') },
   ];
 
   return (

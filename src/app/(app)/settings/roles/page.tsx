@@ -7,6 +7,7 @@ import { ROLE_STATUS_LABEL, ROLE_STATUS_TONE, SELECTABLE_ROLES, roleLabel } from
 import type { RoleStatus, UserRole } from '@/lib/database.types';
 
 import { MyRoles } from './MyRoles';
+import { roleInScope } from '@/lib/scope';
 
 export const metadata = { title: 'My roles — TechMood' };
 
@@ -36,7 +37,8 @@ export default async function MyRolesPage() {
       .order('created_at'),
   ]);
 
-  const held = roles ?? [];
+  // Roles outside the MVP (src/lib/scope.ts) are neither shown nor entered.
+  const held = (roles ?? []).filter((row) => roleInScope(row.role));
   const requestIds = held.map((row) => row.id);
   const { data: events } = requestIds.length
     ? await supabase

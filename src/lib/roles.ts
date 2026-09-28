@@ -1,3 +1,4 @@
+import { IS_MVP, pathInScope, roleInScope } from '@/lib/scope';
 import type { Text } from '@/lib/i18n';
 import type { RoleStatus, UserRole } from '@/lib/database.types';
 
@@ -126,8 +127,12 @@ export const ROLES: RoleDefinition[] = [
   },
 ];
 
-/** Roles a person may ask for. Admin is granted by another admin, never requested. */
-export const SELECTABLE_ROLES = ROLES.filter((role) => role.value !== 'admin');
+/**
+ * Roles a person may ask for. Admin is granted by another admin, never
+ * requested; in the MVP only mentor and mentee are offered next to student
+ * (src/lib/scope.ts).
+ */
+export const SELECTABLE_ROLES = ROLES.filter((role) => role.value !== 'admin' && roleInScope(role.value));
 
 export const ROLE_BY_VALUE: Record<UserRole, RoleDefinition> = Object.fromEntries(
   ROLES.map((role) => [role.value, role]),
@@ -377,7 +382,78 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
   ],
 };
 
+/**
+ * The MVP's sidebar: the platform first, then time and money, then the
+ * account — the same for everybody — with each role's own work on top.
+ */
+const MVP_MAIN: NavGroup[] = [
+  {
+    label: { ar: 'المنصة', en: 'Platform' },
+    items: [
+      { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+      { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
+      { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
+      { href: '/exhibition', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
+      { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
+    ],
+  },
+  {
+    label: { ar: 'الإرشاد والوقت', en: 'Mentoring & time' },
+    items: [
+      { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
+      { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
+      { href: '/wallet', label: { ar: 'المحفظة', en: 'Wallet' }, icon: 'wallet' },
+      { href: '/ai', label: { ar: 'المساعد الذكي', en: 'AI assistant' }, icon: 'assistant' },
+    ],
+  },
+];
+
+const MVP_ACCOUNT: NavGroup = {
+  label: { ar: 'حسابي', en: 'My account' },
+  items: [
+    { href: '/passport', label: { ar: 'ملفي المهني', en: 'My profile' }, icon: 'passport' },
+    { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
+    { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
+    { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'shield' },
+    { href: '/support', label: { ar: 'المساعدة والبلاغات', en: 'Help & reports' }, icon: 'review' },
+    { href: '/settings/profile', label: { ar: 'الإعدادات', en: 'Settings' }, icon: 'settings' },
+  ],
+};
+
+const MVP_ROLE_NAV: Partial<Record<UserRole, NavGroup[]>> = {
+  mentor: [
+    {
+      label: { ar: 'عملي كمنتور', en: 'My mentoring' },
+      items: [
+        { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
+        { href: '/mentor-requests/pricing', label: { ar: 'أسعاري', en: 'My prices' }, icon: 'wallet' },
+        { href: '/mentor-requests/level', label: { ar: 'مستواي', en: 'My level' }, icon: 'certificate' },
+        { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
+        { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
+        { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
+      ],
+    },
+  ],
+  mentee: [
+    {
+      label: { ar: 'رحلتي', en: 'My journey' },
+      items: [
+        { href: '/mentorship', label: { ar: 'أهدافي مع المنتورز', en: 'My mentoring goals' }, icon: 'mentor' },
+        { href: '/sessions', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
+      ],
+    },
+  ],
+  admin: ROLE_NAV.admin
+    .map((group) => ({ ...group, items: group.items.filter((item) => pathInScope(item.href)) }))
+    .filter((group) => group.items.length > 0),
+};
+
 export function navFor(role: UserRole): NavGroup[] {
+  if (IS_MVP) {
+    return role === 'admin'
+      ? [...(MVP_ROLE_NAV.admin ?? []), ...MVP_MAIN, MVP_ACCOUNT]
+      : [...(MVP_ROLE_NAV[role] ?? []), ...MVP_MAIN, MVP_ACCOUNT];
+  }
   return [COMMON, ...(ROLE_NAV[role] ?? [])];
 }
 
@@ -387,6 +463,7 @@ export function navFor(role: UserRole): NavGroup[] {
  * holds, so this never returns a role the person cannot enter.
  */
 export function defaultRole(approved: UserRole[], primary: UserRole | null): UserRole {
-  if (primary && approved.includes(primary)) return primary;
-  return approved[0] ?? 'student';
+  const usable = approved.filter(roleInScope);
+  if (primary && usable.includes(primary)) return primary;
+  return usable[0] ?? 'student';
 }
