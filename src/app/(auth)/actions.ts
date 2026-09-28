@@ -46,15 +46,24 @@ function safeNext(value: unknown): string | null {
   return next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null;
 }
 
+/**
+ * The address the visitor is actually on. The request says it for certain;
+ * a configured NEXT_PUBLIC_SITE_URL is only the fallback, so a stale
+ * localhost value left in a deployment's settings cannot send a person
+ * returning from Google to their own machine.
+ */
 async function siteOrigin(): Promise<string> {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
-  if (explicit) return explicit.replace(/\/$/, '');
-
   const h = await headers();
   const host = h.get('x-forwarded-host') ?? h.get('host');
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  return `${proto}://${host}`;
+  if (host) {
+    const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+    return `${proto}://${host}`;
+  }
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmoodtech.vercel.app').replace(/\/$/, '');
 }
+
+/** Where to go after Google, kept in a short-lived cookie so the return address stays exact. */
+const AUTH_NEXT_COOKIE = 'tm-auth-next';
 
 /**
  * Continue with Google.
@@ -71,10 +80,16 @@ export async function signInWithGoogle(_prev: AuthState, formData: FormData): Pr
   const supabase = await createClient();
   const next = safeNext(formData.get('next')) ?? '/onboarding';
 
+  // The return address carries no query string: Supabase only sends people
+  // back to an address on its allow list, and an exact path is the one that
+  // matches. Where to go afterwards rides in a cookie instead.
+  const jar = await cookies();
+  jar.set(AUTH_NEXT_COOKIE, next, { httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 60 * 10 });
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`,
+      redirectTo: `${await siteOrigin()}/auth/callback`,
       queryParams: { prompt: 'select_account' },
     },
   });
@@ -140,7 +155,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
       data: { full_name: fullName },
       // The confirmation email brings the person back here, not to Supabase's
       // default site URL — the callback exchanges the code for a session.
-      emailRedirectTo: `${await siteOrigin()}/auth/callback?next=${encodeURIComponent('/onboarding')}`,
+      emailRedirectTo: `${await siteOrigin()}/auth/callback`,
     },
   });
 

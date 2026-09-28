@@ -15,7 +15,9 @@ import { isLocale, LOCALE_COOKIE } from '@/lib/i18n';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/home';
+  const jar = await cookies();
+  const next = searchParams.get('next') ?? jar.get('tm-auth-next')?.value ?? '/home';
+  jar.delete('tm-auth-next');
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=auth`);
@@ -34,7 +36,6 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (isLocale(profile?.language)) {
-    const jar = await cookies();
     jar.set(LOCALE_COOKIE, profile.language, {
       sameSite: 'lax',
       path: '/',
