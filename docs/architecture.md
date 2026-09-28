@@ -1860,3 +1860,16 @@ charged is `listing_price()`, the same one the market shows. The shelf shows
 the verified mark, the demo, the discount, the number of paid sales, and the
 seller's mentor rating when they are a mentor. Commission: 15% (0090).
 
+## TechMood as an installed app (PWA)
+
+`src/app/manifest.ts` describes the app (standalone, RTL, royal blue, opening
+on /home); `public/sw.js` is a deliberately small service worker: nothing a
+person sees is served from a cache — TechMood's pages are personal and change
+constantly — it only shows `public/offline.html` when a navigation fails, and
+receives device notifications and opens their page when tapped. `InstallApp`
+registers it and offers "add to home screen": a quiet banner in the shell,
+shown once and then not for two weeks after "later", and a permanent button in
+Settings → Notifications; on iPhone, where browsers cannot prompt, it explains
+Share → Add to Home Screen. The proxy leaves `/sw.js`, the manifest and the
+offline page alone so a signed-out browser can fetch them.
+

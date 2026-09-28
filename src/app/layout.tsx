@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
 
 import { LocaleProvider } from '@/lib/i18n.client';
@@ -40,6 +40,11 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { title: 'TechMood Technology', description, images: ['/logo.png'] },
   };
 }
+
+/** The browser chrome around TechMood when it runs as an installed app. */
+export const viewport: Viewport = {
+  themeColor: '#007BFF',
+};
 
 /**
  * Applied before the first paint so a person who chose the dark theme never

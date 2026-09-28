@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
+import { InstallApp } from '@/components/InstallApp';
+
 import { PreferencesForm, type Category } from './PreferencesForm';
 
 export const metadata = { title: 'Notification settings — TechMood' };
@@ -46,6 +48,11 @@ export default async function NotificationSettingsPage() {
           {t('البريد ليس الإشعار — هو نسخة منه. ما يظهر داخل TechMood يبقى سجلّاً لما حدث، والبريد يُرسل حين يستحق النوع ذلك وتوافق أنت.',
              'Email is not the notification — it is a copy of one. What appears inside TechMood stays as the record of what happened; mail is sent when the category deserves it and you agree.')}
         </p>
+      </section>
+
+      <section className="section-block">
+        <h3 style={{ fontSize: '0.98rem', marginBottom: 8 }}>{t('TechMood على هاتفك', 'TechMood on your phone')}</h3>
+        <InstallApp variant="inline" />
       </section>
 
       <section className="panel section-block">

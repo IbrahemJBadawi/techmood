@@ -17,6 +17,7 @@ import { ThemeToggle } from './shell/ThemeToggle';
 import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
+import { InstallApp } from '@/components/InstallApp';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const t = await getT();
@@ -127,6 +128,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {' — '}<Link href="/support">{t('المساعدة والبلاغات', 'Help & reports')}</Link>
               </p>
             )}
+            <InstallApp />
             {application && (
               <p className={`notice ${application.status === 'needs_more_info' ? 'notice-warn' : application.status === 'rejected' ? 'notice-danger' : ''}`}
                  style={{ marginBottom: 16 }}>
