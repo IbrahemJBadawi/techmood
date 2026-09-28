@@ -5020,7 +5020,7 @@ select public.assert(
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert_rejects(
-  format($$select public.list_project_for_sale(%L, 500, 'نظام كامل مع الكود والتوثيق والتسليمات')$$, :'work_project'),
+  format($$select public.list_project_for_sale(%L, 500, 'نظام كامل مع الكود والتوثيق والتسليمات', 'https://files.example/w')$$, :'work_project'),
   '46.1 work somebody paid to have built is not the builder''s to sell',
   'نُفّذ لعميل');
 reset role;
@@ -5029,7 +5029,7 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 select public.assert_rejects(
-  format($$select public.list_project_for_sale(%L, 500, 'مشروع جاهز مع الكود والتوثيق كاملاً')$$, :'solo'),
+  format($$select public.list_project_for_sale(%L, 500, 'مشروع جاهز مع الكود والتوثيق كاملاً', 'https://files.example/s')$$, :'solo'),
   '46.2 and only whoever made it — or their team lead — may put it on sale',
   'صاحب المشروع أو قائد الفريق');
 reset role;
@@ -5040,8 +5040,23 @@ set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.publish_exhibition_entry(:'solo_entry');
 select (public.list_project_for_sale(
-  :'solo', 600, 'نظام جرد كامل: الكود، قاعدة البيانات، التوثيق، ونسخة تجريبية.',
-  'usage_rights', array['الكود المصدري', 'قاعدة البيانات', 'دليل التشغيل'])).id as listing \gset
+  p_project => :'solo', p_price => 600,
+  p_summary => 'نظام جرد كامل: الكود، قاعدة البيانات، التوثيق، ونسخة تجريبية.',
+  p_delivery_url => 'https://files.example/solo-full.zip',
+  p_licence => 'full_transfer',
+  p_includes => array['الكود المصدري', 'قاعدة البيانات', 'دليل التشغيل'])).id as listing \gset
+reset role;
+reset request.jwt.claim.sub;
+
+-- Every listing is checked by an admin before it shows (0099).
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_listing(:'listing', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 
 select public.assert_rejects(
   format($$select public.buy_project(%L, 'jawwal_pay')$$, :'listing'),
@@ -5063,7 +5078,7 @@ select public.assert(
   (select status from public.project_listings where id = :'listing') = 'reserved'
   and (select commission_usd from public.escrows
         where id = (select escrow_id from public.project_sales where id = :'sale')) = 90.00,
-  '46.4 buying reserves the listing and holds the money, at the sale commission');
+  '46.4 buying a full transfer reserves the listing and holds the money, at the sale commission');
 
 set role authenticated;
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
@@ -5083,7 +5098,7 @@ select public.assert(
   (select status from public.project_listings where id = :'listing') = 'sold'
   and (select status from public.projects where id = :'solo') = 'sold'
   and (select completed_at from public.project_sales where id = :'sale') is not null,
-  '46.5 releasing the money is what completes a sale');
+  '46.5 releasing the money is what completes a sale — and a full transfer is sold once');
 
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
@@ -8094,6 +8109,129 @@ select public.assert(
   (select status from public.invoices where payment_id = :'pay69') = 'refunded'
   and (select refunded_at from public.invoices where payment_id = :'pay69') is not null,
   '69.7 a refund marks the invoice refunded; it is never deleted');
+
+-- ===========================================================================
+-- 70. A market TechMood vouches for: reviewed, delivered once paid, resold
+-- ===========================================================================
+insert into public.projects (title_ar, owner_id, status)
+values ('قالب لوحة تحكم للمتاجر', '77777777-7777-7777-7777-777777777777', 'completed')
+returning id as shop_project \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert_rejects(
+  format($$select public.list_project_for_sale(%L, 50, 'قالب لوحة تحكم كامل مع الكود والتوثيق.', null)$$, :'shop_project'),
+  '70.1 a listing carries the link it delivers — hidden until the payment is confirmed',
+  'رابط التسليم مطلوب');
+select (public.list_project_for_sale(
+  p_project => :'shop_project', p_price => 50,
+  p_summary => 'قالب لوحة تحكم كامل مع الكود والتوثيق.',
+  p_delivery_url => 'https://files.example/dashboard-template.zip',
+  p_demo_url => 'https://demo.example/dashboard')).id as shop_listing \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  not exists (select 1 from public.market_listings() where id = :'shop_listing'),
+  '70.2 an unreviewed listing is not on the shelf');
+select public.assert_rejects(
+  format($$select delivery_url from public.project_listings where id = %L$$, :'shop_listing'),
+  '70.3 and nobody reads a listing''s delivery link from the table',
+  'permission denied');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  public.listing_delivery_url(:'shop_listing') = 'https://files.example/dashboard-template.zip',
+  '70.4 the admin reviewing it can open the link');
+select public.review_listing(:'shop_listing', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.set_listing_discount(:'shop_listing', 20);
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select verified and effective_price = 40 and discount_pct = 20 and demo_url is not null
+     from public.market_listings() where id = :'shop_listing'),
+  '70.5 verified, it shows with its mark, its demo, and the discounted price');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select (public.buy_project(:'shop_listing', 'jawwal_pay')).id as shop_sale \gset
+select public.assert(
+  (select amount_usd from public.escrows where id = (select escrow_id from public.project_sales where id = :'shop_sale')) = 40
+  and (select delivery_url from public.my_purchases() where sale_id = :'shop_sale') is null,
+  '70.6 the price charged is the price shown — and the link waits for the payment');
+select public.assert_rejects(
+  format($$select public.buy_project(%L, 'jawwal_pay')$$, :'shop_listing'),
+  '70.7 one buyer buys a listing once',
+  'اشتريت هذا العرض');
+select public.submit_escrow_proof(
+  (select escrow_id from public.project_sales where id = :'shop_sale'),
+  '11111111-1111-1111-1111-111111111111/shop.png', 'JP-70');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(
+  (select id from public.payments where escrow_id = (select escrow_id from public.project_sales where id = :'shop_sale')),
+  true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select delivery_url from public.my_purchases() where sale_id = :'shop_sale') = 'https://files.example/dashboard-template.zip',
+  '70.8 once TechMood confirms the payment, the buyer has the link');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.buy_project(:'shop_listing', 'jawwal_pay')).id as shop_sale2 \gset
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status from public.project_listings where id = :'shop_listing') = 'listed'
+  and (select sales_count from public.market_listings() where id = :'shop_listing') = 1,
+  '70.9 usage rights stay on the shelf for the next buyer, and the market counts the sales');
+
+-- A listing the admin refuses is gone, and it counts against the seller.
+insert into public.projects (title_ar, owner_id, status)
+values ('مشروع منسوخ', '77777777-7777-7777-7777-777777777777', 'completed')
+returning id as copied_project \gset
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select (public.list_project_for_sale(:'copied_project', 30, 'مشروع كامل جاهز للاستخدام مباشرة.',
+  'https://files.example/copied.zip')).id as bad_listing \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(
+  format($$select public.review_listing(%L, false)$$, :'bad_listing'),
+  '70.10 a refusal gives the seller its reason',
+  'سبب الرفض مطلوب');
+select public.review_listing(:'bad_listing', false, 'العمل منسوخ من مستودع عام دون إضافة حقيقية');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status from public.project_listings where id = :'bad_listing') = 'rejected'
+  and exists (select 1 from public.user_warnings
+               where profile_id = '77777777-7777-7777-7777-777777777777' and reason_ar like 'عرض في السوق رُفض%')
+  and exists (select 1 from public.admin_audit_log where entity_id = :'bad_listing' and action = 'listing_rejected'),
+  '70.11 refused: off the market, a warning on the seller''s record, and a line in the audit log');
 
 \echo ''
 \echo '================================================'

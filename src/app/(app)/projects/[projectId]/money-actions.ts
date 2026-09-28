@@ -138,13 +138,16 @@ export async function listForSale(_prev: MoneyState, formData: FormData): Promis
     p_summary: String(formData.get('summary') ?? '').trim(),
     p_licence: (String(formData.get('licence') ?? 'usage_rights') as SaleLicence),
     p_includes: String(formData.get('includes') ?? '')
-      .split(',').map((item) => item.trim()).filter(Boolean),
+      .split(/[,،]/).map((item) => item.trim()).filter(Boolean),
+    p_delivery_url: String(formData.get('delivery_url') ?? '').trim(),
+    p_demo_url: String(formData.get('demo_url') ?? '').trim() || null,
+    p_discount_pct: Number(formData.get('discount_pct') ?? 0) || 0,
   });
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath('/marketplace');
   if (error) return { error: dbError(t, error.message) };
-  return { ok: t('عُرض المشروع للبيع.', 'The project is on sale.') };
+  return { ok: t('أُرسل العرض للمراجعة — يظهر في السوق بعد تحقق الإدارة.', 'The listing is sent for review — it shows in the market once TechMood has checked it.') };
 }
 
 export async function withdrawListing(formData: FormData) {
@@ -170,8 +173,8 @@ export async function buyProject(_prev: MoneyState, formData: FormData): Promise
 
   revalidatePath('/marketplace');
   if (error) return { error: dbError(t, error.message) };
-  return { ok: t('حُجز المشروع لك — أرسل الإيصال من «عملي».',
-                 'The project is reserved for you — send the receipt from “My work”.') };
+  return { ok: t('فُتح حجز مالي — أرسل الإيصال، ويصلك رابط التسليم حين تؤكد TechMood الدفع.',
+                 'A hold is open — send the receipt, and the delivery link reaches you once TechMood confirms the payment.') };
 }
 
 /**

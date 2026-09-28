@@ -78,7 +78,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       .eq('project_id', projectId).order('created_at', { ascending: false }),
     supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order'),
     supabase.from('project_listings')
-      .select('id, price_usd, licence, summary_ar, includes, status')
+      .select('id, price_usd, licence, summary_ar, includes, status, demo_url, discount_pct, review_note_ar')
       .eq('project_id', projectId).maybeSingle(),
     supabase.from('client_reviews')
       .select('id, stars, comment_ar, client_id').eq('project_id', projectId).maybeSingle(),
@@ -94,14 +94,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     ? await supabase.rpc('compute_commission', { p_kind: 'market_work', p_amount: suggested })
     : { data: null };
 
-  const { data: exhibited } = await supabase
-    .from('exhibition_entries')
-    .select('status').eq('project_id', projectId).maybeSingle();
-
+  // Every listing is reviewed by an admin before it shows (0099), so finished
+  // work need not have been exhibited to be sold.
   const canSell = isOwner
     && project.client_id === null
-    && (project.status === 'completed' || project.status === 'sold')
-    && exhibited?.status === 'exhibited';
+    && (project.status === 'completed' || project.status === 'sold');
 
   const released = holds.some((row) => row.status === 'released');
 

@@ -8,6 +8,7 @@ import type { OpportunityKind } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { JobList } from './JobList';
+import { Purchases } from './Purchases';
 import { ListingList } from './ListingList';
 import { MoneyTab } from './Money';
 import { MyWork } from './MyWork';
@@ -216,8 +217,8 @@ export default async function MarketPage({
       {tab === 'listings' && (
         <section className="section-block">
           <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 14, maxWidth: '66ch' }}>
-            {t('عمل مكتمل، مرّ بتقييم منتور وظهر في المعرض، ثم عُرض للبيع. الشراء يفتح حجزاً مالياً — والبيع ينقل العمل لا نسبته: يبقى في سجلّ من بناه.',
-               'Finished work, judged by a mentor and shown in the exhibition, then put up for sale. Buying opens a hold — and a sale moves the work, never the authorship: it stays on the record of whoever built it.')}
+            {t('عمل مكتمل تحقّقت منه TechMood قبل عرضه. الشراء يفتح حجزاً مالياً، ورابط التسليم يصلك بعد تأكيد الدفع — والبيع ينقل العمل لا نسبته: يبقى في سجلّ من بناه.',
+               'Finished work TechMood checked before listing it. Buying opens a hold, and the delivery link reaches you once the payment is confirmed — and a sale moves the work, never the authorship: it stays on the record of whoever built it.')}
           </p>
           <ListingList search={search} />
         </section>
@@ -225,6 +226,7 @@ export default async function MarketPage({
 
       {tab === 'money' && (
         <section className="section-block">
+          <Purchases />
           <MoneyTab />
         </section>
       )}

@@ -350,6 +350,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
+        { href: '/admin/market', label: { ar: 'مراجعة السوق', en: 'Market review' }, icon: 'work' },
       ],
     },
     {

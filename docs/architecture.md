@@ -1839,3 +1839,24 @@ Paying accounts). Handing a payment in without one uses the default; with
 neither, the database refuses. It is a snapshot on the payment — editing a
 saved account never rewrites history — readable only by the payer and admins.
 
+## A market TechMood vouches for (0098–0099)
+
+A new or edited listing waits `pending_review`; an admin opens it at Admin →
+Market review — including its delivery link — and verifies it (it shows, marked
+verified) or refuses it with a reason (it leaves the market, a warning goes on
+the seller's record, and the audit log keeps both). Since a person checks every
+listing, the 0057 rule that only exhibited work may be sold is lifted.
+
+The delivery link is the goods: the column is not granted to `anon` or
+`authenticated` at all, and it is read only by the seller and admins
+(`listing_delivery_url()`, `admin_pending_listings()`) and by a buyer whose
+escrow TechMood has funded (`my_purchases()`), who is notified the moment it is.
+A demo/preview link is public.
+
+A usage-rights listing stays on the shelf and can be bought by many buyers,
+each once; a full transfer is still sold once. A seller can discount a live
+listing (up to 90%, optionally until a date) without re-review; the price
+charged is `listing_price()`, the same one the market shows. The shelf shows
+the verified mark, the demo, the discount, the number of paid sales, and the
+seller's mentor rating when they are a mentor. Commission: 15% (0090).
+

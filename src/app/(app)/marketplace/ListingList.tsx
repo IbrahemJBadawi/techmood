@@ -48,12 +48,20 @@ export async function ListingList({ search }: { search?: string }) {
         <article className="panel talent-card" key={listing.id}>
           <div className="row-between">
             <span className="id-chip">{listing.listing_code}</span>
-            <span className="badge-pill">{t(LICENCE[listing.licence])}</span>
+            <span style={{ display: 'flex', gap: 6 }}>
+              {listing.verified && <span className="status-pill status-ok">✓ {t('تم التحقق', 'Verified')}</span>}
+              <span className="badge-pill">{t(LICENCE[listing.licence])}</span>
+            </span>
           </div>
 
           <h3 style={{ fontSize: '0.98rem', marginTop: 8 }}>{listing.project_title}</h3>
           <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>
             {listing.team_title ?? listing.seller_name}
+            {listing.seller_rating !== null && (
+              <> · <span className="eng">★ {Number(listing.seller_rating).toFixed(1)}</span> {t('تقييمه كمنتور', 'as a mentor')}</>
+            )}
+            {' · '}
+            <span className="eng">{listing.sales_count}</span> {t('مبيعات', 'sales')}
           </p>
 
           <p style={{ fontSize: '0.86rem', marginTop: 8 }}>{listing.summary_ar}</p>
@@ -74,8 +82,19 @@ export async function ListingList({ search }: { search?: string }) {
 
           <div className="row-between" style={{ marginTop: 12 }}>
             <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>
-              {money(listing.price_usd)}
+              {money(listing.effective_price)}
+              {listing.discount_pct > 0 && (
+                <>
+                  {' '}<s className="muted" style={{ fontWeight: 400 }}>{money(listing.price_usd)}</s>
+                  {' '}<span className="status-pill status-pending">-{listing.discount_pct}%</span>
+                </>
+              )}
             </span>
+            {listing.demo_url && (
+              <a className="btn btn-ghost btn-sm" href={listing.demo_url} target="_blank" rel="noopener noreferrer">
+                {t('عرض تجريبي', 'Demo')}
+              </a>
+            )}
             {listing.entry_code && (
               <Link className="btn btn-ghost btn-sm" href={`/exhibition/${listing.entry_code}/verify`}>
                 {t('تحقّق من العمل', 'Check the work')}
@@ -88,8 +107,8 @@ export async function ListingList({ search }: { search?: string }) {
           </div>
 
           <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
-            {t('الشراء يفتح حجزاً مالياً — لا ينتقل المال إلا بعد استلامك ما وعد به العرض.',
-               'Buying opens a hold — the money moves only once you have what the listing promised.')}
+            {t('الشراء يفتح حجزاً مالياً — رابط التسليم يصلك بعد تأكيد الدفع، ولا ينتقل المال للبائع إلا بعد استلامك.',
+               'Buying opens a hold — the delivery link reaches you once the payment is confirmed, and the seller is paid only once you have it.')}
           </p>
         </article>
       ))}

@@ -67,3 +67,19 @@ export async function setAdmin(_prev: ActionFormState, formData: FormData): Prom
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('تم، وسُجّل في سجل التدقيق.', 'Done, and written to the audit log.') };
 }
+
+/** A market listing: verified onto the shelf, or refused with a reason (0099). */
+export async function reviewListing(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const approve = text(formData, 'decision') === 'approve';
+  const { error } = await supabase.rpc('review_listing', {
+    p_listing: text(formData, 'listing_id'),
+    p_approve: approve,
+    p_note: text(formData, 'note') || null,
+  });
+  revalidatePath('/admin/market');
+  revalidatePath('/marketplace');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: approve ? t('تحقّقت منه — ظاهر في السوق.', 'Verified — it is on the market.') : t('رُفض، وسُجّل تنبيه على البائع.', 'Refused, and a warning is on the seller’s record.') };
+}

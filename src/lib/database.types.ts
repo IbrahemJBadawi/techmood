@@ -218,7 +218,7 @@ export type EscrowStatus =
 
 export type EscrowKind = 'market_work' | 'project_sale';
 export type TermsStatus = 'offered' | 'accepted' | 'superseded' | 'withdrawn';
-export type ListingStatus = 'listed' | 'reserved' | 'sold' | 'withdrawn';
+export type ListingStatus = 'pending_review' | 'listed' | 'reserved' | 'sold' | 'withdrawn' | 'rejected';
 export type SaleLicence = 'usage_rights' | 'full_transfer';
 export type ClientCriterion =
   | 'quality' | 'communication' | 'deadline' | 'professionalism' | 'scope';
@@ -1199,6 +1199,9 @@ export type Database = {
         team_id: string | null; price_usd: number; licence: SaleLicence;
         summary_ar: string; includes: string[]; status: ListingStatus;
         created_at: string; sold_at: string | null;
+        /** Public demo or preview (0099). The delivery link is not readable here. */
+        demo_url: string | null; discount_pct: number; discount_ends_at: string | null;
+        verified_at: string | null; review_note_ar: string | null; reviewed_at: string | null;
       }>;
       project_sales: Table<{
         id: string; listing_id: string; project_id: string; buyer_id: string;
@@ -1903,8 +1906,9 @@ export type Database = {
       };
       list_project_for_sale: {
         Args: {
-          p_project: string; p_price: number; p_summary: string;
-          p_licence?: SaleLicence; p_includes?: string[];
+          p_project: string; p_price: number; p_summary: string; p_delivery_url: string;
+          p_licence?: SaleLicence; p_includes?: string[]; p_demo_url?: string | null;
+          p_discount_pct?: number; p_discount_ends_at?: string | null;
         };
         Returns: Database['public']['Tables']['project_listings']['Row'];
       };
@@ -1917,11 +1921,33 @@ export type Database = {
         Args: { p_search?: string | null; p_limit?: number };
         Returns: {
           id: string; listing_code: string; project_id: string; project_title: string | null;
-          seller_name: string | null; team_title: string | null; price_usd: number;
+          seller_id: string; seller_name: string | null; team_title: string | null;
+          price_usd: number; effective_price: number; discount_pct: number; discount_ends_at: string | null;
           licence: SaleLicence; summary_ar: string; includes: string[];
           status: ListingStatus; entry_code: string | null; technologies: string[];
+          demo_url: string | null; verified: boolean; sales_count: number; seller_rating: number | null;
         }[];
       };
+      my_purchases: {
+        Args: Record<string, never>;
+        Returns: {
+          sale_id: string; listing_code: string; project_title: string; seller_name: string;
+          amount_usd: number; licence: SaleLicence; escrow_id: string | null;
+          escrow_status: EscrowStatus | null; delivery_url: string | null; bought_at: string;
+        }[];
+      };
+      admin_pending_listings: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; listing_code: string; project_id: string; project_title: string;
+          seller_id: string; seller_name: string; price_usd: number; licence: SaleLicence;
+          summary_ar: string; includes: string[]; demo_url: string | null; delivery_url: string | null;
+          seller_warnings: number; created_at: string;
+        }[];
+      };
+      review_listing: { Args: { p_listing: string; p_approve: boolean; p_note?: string | null }; Returns: undefined };
+      set_listing_discount: { Args: { p_listing: string; p_pct: number; p_ends_at?: string | null }; Returns: undefined };
+      listing_delivery_url: { Args: { p_listing: string }; Returns: string | null };
       can_manage_startup: { Args: { p_startup: string }; Returns: boolean };
       my_notifications: {
         Args: { p_kind?: NotificationKind | null; p_unread?: boolean; p_limit?: number };

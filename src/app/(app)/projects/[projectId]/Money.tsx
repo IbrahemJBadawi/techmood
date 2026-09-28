@@ -317,7 +317,10 @@ export function SellForm({
   listing,
 }: {
   projectId: string;
-  listing: { id: string; price_usd: number; licence: SaleLicence; summary_ar: string; includes: string[]; status: string } | null;
+  listing: {
+    id: string; price_usd: number; licence: SaleLicence; summary_ar: string; includes: string[]; status: string;
+    demo_url?: string | null; discount_pct?: number; review_note_ar?: string | null;
+  } | null;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(listForSale, undefined as MoneyState);
@@ -357,6 +360,23 @@ export function SellForm({
         <input id="includes" name="includes" defaultValue={(listing?.includes ?? []).join('، ')} />
       </div>
 
+      <div className="rules-grid">
+        <div className="field">
+          <label htmlFor="delivery_url">{t('رابط التسليم (مخفي حتى يتأكد الدفع) *', 'Delivery link (hidden until payment is confirmed) *')}</label>
+          <input id="delivery_url" name="delivery_url" type="url" dir="ltr" required placeholder="https://" />
+          <small className="muted">{t('المستودع أو الملفات أو رابط التحميل. تراه الإدارة للتحقق، والمشتري بعد تأكيد دفعه فقط.',
+                                      'The repository, files or download link. TechMood sees it to verify; a buyer only once their payment is confirmed.')}</small>
+        </div>
+        <div className="field">
+          <label htmlFor="demo_url">{t('عرض تجريبي أو معاينة (عام، اختياري)', 'Demo or preview (public, optional)')}</label>
+          <input id="demo_url" name="demo_url" type="url" dir="ltr" placeholder="https://" defaultValue={listing?.demo_url ?? ''} />
+        </div>
+        <div className="field">
+          <label htmlFor="discount_pct">{t('خصم % (اختياري)', 'Discount % (optional)')}</label>
+          <input id="discount_pct" name="discount_pct" type="number" min={0} max={90} defaultValue={listing?.discount_pct ?? 0} />
+        </div>
+      </div>
+
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
@@ -368,7 +388,18 @@ export function SellForm({
 
       {listing && listing.status === 'listed' && (
         <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-          {t('العرض منشور في السوق.', 'The listing is live in the market.')}
+          {t('العرض منشور في السوق بعلامة «تم التحقق».', 'The listing is live in the market, marked verified.')}
+        </p>
+      )}
+      {listing && listing.status === 'pending_review' && (
+        <p className="notice" style={{ marginTop: 10 }}>
+          {t('العرض قيد المراجعة — يظهر في السوق بعد تحقق الإدارة منه ومن رابط التسليم.',
+             'The listing is under review — it shows in the market once TechMood has checked it and its delivery link.')}
+        </p>
+      )}
+      {listing && listing.status === 'rejected' && (
+        <p className="notice notice-danger" style={{ marginTop: 10 }}>
+          {t('رُفض العرض', 'The listing was refused')}{listing.review_note_ar ? `: ${listing.review_note_ar}` : ''}
         </p>
       )}
     </form>
