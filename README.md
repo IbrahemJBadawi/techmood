@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 934 business-rule assertions
+scripts/test.sh                   # 942 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -316,17 +316,22 @@ never paid for. Run it every few minutes with pg_cron:
 select cron.schedule('expire-bookings', '*/5 * * * *', $$select public.expire_stale_bookings()$$);
 ```
 
-`public.claim_email_batch()` hands a worker the queued copies of notifications
-to send, and `public.mark_email_sent()` records how each one fared. **No mail
-provider is configured in this repository** — the outbox is real and durable,
-the sender is not written here.
+Queued email is sent by the `email-dispatch` edge function (0111), through
+Resend. pg_cron runs `public.dispatch_email()` each minute; it wakes the
+function only when there is mail, a provider key and a sender. Nothing secret
+is in the repository — to turn mail on:
 
 ```sql
--- inside an edge function, service role:
-select * from public.claim_email_batch(20);
--- …send each one, then:
-select public.mark_email_sent('<id>', true, null);
+-- the provider's API key, in Vault only:
+select vault.create_secret('<resend api key>', 'email_api_key');
+-- a sender on a domain verified with the provider, and the function's URL:
+update public.platform_settings set value = 'TechMood <hello@your-domain>' where key = 'email_from';
+update public.platform_settings set value = 'https://<project>.supabase.co/functions/v1/email-dispatch'
+ where key = 'email_dispatch_url';
 ```
+
+Mail left unsent for three days is skipped, and a batch the sender never
+reported on is retried twice before it counts as failed.
 
 `public.close_due_video_sessions()` ends sessions whose time has passed, marking
 a session nobody attended as a no-show, and `public.notify_due_sessions()` sends

@@ -8987,6 +8987,52 @@ select public.assert_rejects(
   '80.10 the league is for members', 'permission denied');
 reset role;
 
+-- ---------------------------------------------------------------------------
+-- 81. Sending the email outbox (0111)
+-- ---------------------------------------------------------------------------
+\echo '81. email dispatch'
+
+select public.assert(
+  public.dispatch_email() = false,
+  '81.1 without a provider key, nothing is woken');
+insert into public.email_outbox (profile_id, to_email, subject, body_ar, queued_at)
+values ('11111111-1111-1111-1111-111111111111', 'old@example.com', 'قديم', 'قديم', now() - interval '4 days')
+returning id as old_mail \gset
+select public.dispatch_email();
+select public.assert(
+  (select status from public.email_outbox where id = :'old_mail') = 'skipped',
+  '81.2 mail left three days is skipped, not delivered late');
+insert into public.email_outbox (profile_id, to_email, subject, body_ar)
+values ('11111111-1111-1111-1111-111111111111', 'stuck@example.com', 'عالق', 'عالق')
+returning id as stuck_mail \gset
+select count(*) from public.claim_email_batch(100) \gset
+update public.email_outbox set claimed_at = now() - interval '20 minutes' where id = :'stuck_mail';
+select public.dispatch_email();
+select public.assert(
+  (select status from public.email_outbox where id = :'stuck_mail') = 'queued',
+  '81.3 a claim the sender never reported on goes back to the queue');
+update public.email_outbox set status = 'sending', attempts = 3, claimed_at = now() - interval '20 minutes' where id = :'stuck_mail';
+select public.dispatch_email();
+select public.assert(
+  (select status from public.email_outbox where id = :'stuck_mail') = 'failed',
+  '81.4 after three tries it counts as failed');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects($$select * from public.email_config()$$,
+  '81.5 members cannot read the mail configuration', 'permission denied');
+select public.assert_rejects($$select public.dispatch_email()$$,
+  '81.6 members cannot wake the sender', 'permission denied');
+select public.assert_rejects($$select * from public.claim_email_batch(5)$$,
+  '81.7 members cannot claim mail', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+set role service_role;
+select public.assert(
+  (select count(*) = 1 from public.email_config()),
+  '81.8 the sender (service role) reads its configuration');
+reset role;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
