@@ -65,7 +65,7 @@ export default async function ExternalClaimsPage() {
                       <Link href={`/u/${owner.techmood_id}`}>{owner.full_name}</Link>
                     )}
                     {claim.organiser && <> · {claim.organiser}</>}
-                    {claim.held_on && <> · <span className="eng">{formatDate(locale, claim.held_on)}</span></>}
+                    {claim.held_on && <> · <span className="date">{formatDate(locale, claim.held_on)}</span></>}
                   </p>
                 </div>
                 {claim.evidence_url && (

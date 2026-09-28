@@ -53,7 +53,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ invoic
         {refunded && (
           <p className="notice notice-danger" style={{ marginTop: 14 }}>
             {t('مُستردّة', 'Refunded')}
-            {invoice.refunded_at && <> — <span className="eng">{formatDateTime(locale, invoice.refunded_at)}</span></>}
+            {invoice.refunded_at && <> — <span className="date">{formatDateTime(locale, invoice.refunded_at)}</span></>}
           </p>
         )}
 

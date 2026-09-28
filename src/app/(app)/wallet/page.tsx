@@ -127,7 +127,7 @@ export default async function WalletPage({
               <span className="txn-main">
                 <strong>{row.label_ar}</strong>
                 <span className="txn-meta">
-                  <span className="eng">{formatDateTime(locale, row.at)}</span>
+                  <span className="date">{formatDateTime(locale, row.at)}</span>
                   {row.code && <span className="eng"> · {row.code}</span>}
                 </span>
               </span>

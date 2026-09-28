@@ -87,7 +87,7 @@ export default async function ExhibitionReviewQueue() {
                     <span className="id-chip">{project?.code}</span>
                   </td>
                   <td className="eng">v{entry.version}</td>
-                  <td className="eng">{formatDate(locale, entry.created_at)}</td>
+                  <td className="date">{formatDate(locale, entry.created_at)}</td>
                   <td>
                     <span className={`status-pill ${entry.status === 'under_review' ? 'status-pending' : 'status-muted'}`}>
                       {entry.status === 'under_review' ? t('قيد المراجعة', 'Under review') : t('بانتظار منتور', 'Waiting')}

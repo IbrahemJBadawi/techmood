@@ -266,7 +266,7 @@ export default async function BookingDetailPage({
                 <tbody>
                   {events!.map((event) => (
                     <tr key={event.id}>
-                      <td className="eng" style={{ width: 110 }}>
+                      <td className="date" style={{ width: 110 }}>
                         {formatDate(t.locale, event.created_at)}
                       </td>
                       <td>

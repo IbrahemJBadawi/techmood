@@ -169,7 +169,7 @@ export default async function ClientPage() {
                         </span>
                       )}
                     </td>
-                    <td className="eng">{brief.closes_on ? formatDate(locale, brief.closes_on) : '—'}</td>
+                    <td className="date">{brief.closes_on ? formatDate(locale, brief.closes_on) : '—'}</td>
                     <td>
                       {counts.total > 1 && (
                         <Link className="btn btn-ghost btn-sm" href={`/marketplace/${brief.id}/compare`}>

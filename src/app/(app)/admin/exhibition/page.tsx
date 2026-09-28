@@ -173,7 +173,7 @@ export default async function AdminExhibitionPage() {
                         : t('أُعيد للتعديل', 'Sent back')}
                     </span>
                   </td>
-                  <td className="eng">
+                  <td className="date">
                     {entry.published_at ? new Date(entry.published_at).toLocaleDateString('ar-EG') : '—'}
                   </td>
                 </tr>

@@ -108,7 +108,7 @@ export default async function TeamMembersPage({
                     <span className="id-chip">{profileById.get(invite.invitee_id ?? '')?.techmood_id}</span>
                   </td>
                   <td>{invite.responsibility_ar ?? '—'}</td>
-                  <td className="eng">{new Date(invite.expires_at).toLocaleDateString('ar-EG')}</td>
+                  <td className="date">{new Date(invite.expires_at).toLocaleDateString('ar-EG')}</td>
                 </tr>
               ))}
             </tbody>

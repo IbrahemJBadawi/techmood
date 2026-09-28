@@ -59,7 +59,7 @@ export default async function AdminMarketPage() {
                       {listing.seller_warnings} {t('تنبيهات سابقة', 'previous warnings')}
                     </span>
                   )}
-                  {' · '}<span className="eng">{formatDateTime(locale, listing.created_at)}</span>
+                  {' · '}<span className="date">{formatDateTime(locale, listing.created_at)}</span>
                 </p>
               </div>
               <span className="eng" style={{ fontWeight: 700 }}>{money(listing.price_usd)}</span>

@@ -162,7 +162,7 @@ export default async function AdminPaymentsPage() {
                   )}
                   <div className="summary-row">
                     <span className="muted">{t('أُرسل في', 'Sent on')}</span>
-                    <span className="eng">
+                    <span className="date">
                       {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG') : '—'}
                     </span>
                   </div>
@@ -228,7 +228,7 @@ export default async function AdminPaymentsPage() {
                         {t(PAYMENT_STATUS[payment.status].text)}
                       </span>
                     </td>
-                    <td className="eng">
+                    <td className="date">
                       {payment.verified_at ? new Date(payment.verified_at).toLocaleDateString('ar-EG') : '—'}
                     </td>
                   </tr>

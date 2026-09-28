@@ -136,6 +136,8 @@ button, input, select, textarea { font-family: inherit; }
   unicode-bidi: isolate;
 }
 .muted { color: var(--ink-soft); }
+/* Dates are written in the reader's language, so they keep the body font; only the digits line up. */
+.date { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* ---------- layout ---------- */
 .app { display: flex; min-height: 100vh; }
@@ -250,6 +252,10 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 }
 .stat-tile .val { font-size: 1.5rem; font-weight: 700; color: var(--royal-dark); }
 .stat-tile .lbl { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; }
+@media (min-width: 901px) {
+  .stat-tiles.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stat-tiles.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 /* ---------- controls ---------- */
 .btn {
@@ -2887,8 +2893,9 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   text-decoration: none;
   color: inherit;
 }
+.stat-card { border-radius: var(--radius-m); box-shadow: var(--shadow-1); padding: 14px 16px; }
 .stat-card:hover { border-color: var(--royal); }
-.stat-value { font-size: 1.25rem; font-weight: 600; line-height: 1.1; }
+.stat-value { font-size: 1.45rem; font-weight: 700; line-height: 1.1; color: var(--royal-dark); justify-self: start; }
 .stat-label { font-size: 0.76rem; color: var(--ink-soft); }
 
 .needs-action { border-inline-start: 3px solid var(--warn); }
@@ -3014,6 +3021,16 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .cal-hour { background: var(--bg-deep); font-size: 0.68rem; color: var(--ink-soft); padding: 4px 6px; }
 .cal-cell { background: var(--panel); padding: 2px; display: flex; flex-direction: column; gap: 2px; }
 .cal-weekcol.is-today .cal-weekday { color: var(--royal); font-weight: 600; }
+.cal-week .cal-weekday { height: 58px; box-sizing: border-box; }
+.cal-weekcol .cal-weekday { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.1; }
+.cal-wd-name { font-size: 0.72rem; color: var(--ink-soft); }
+.cal-wd-num {
+  display: grid; place-items: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 0.95rem; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.cal-weekcol.is-today .cal-wd-name { color: var(--royal); }
+.cal-weekcol.is-today .cal-wd-num { background: var(--royal); color: #fff; }
 
 .cal-dayview { display: grid; gap: 8px; }
 .cal-dayrow { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start; }
@@ -3603,7 +3620,7 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .btn-danger:disabled { opacity: 0.5; }
 
 /* ---------- admin control center ---------- */
-.attention-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.attention-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 12px; }
 .attention-card {
   border: 1px solid var(--line);
   border-radius: var(--radius-s);
@@ -3622,8 +3639,51 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .tone-blue { border-inline-start: 4px solid #2F6FDB; }
 .tone-green { border-inline-start: 4px solid #2E9E5B; }
 .tone-purple { border-inline-start: 4px solid #7B4FD6; }
-.event-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.event-feed li { padding: 8px 12px; border-radius: var(--radius-s); background: var(--panel); border: 1px solid var(--line); }
+.attention-card { box-shadow: var(--shadow-1); transition: transform .15s ease, box-shadow .15s ease; }
+.attention-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.attention-card.tone-red    { background: color-mix(in srgb, #D64545 7%, var(--panel)); }
+.attention-card.tone-orange { background: color-mix(in srgb, #E07B28 7%, var(--panel)); }
+.attention-card.tone-yellow { background: color-mix(in srgb, #D4A72C 8%, var(--panel)); }
+.attention-card.tone-blue   { background: color-mix(in srgb, #2F6FDB 7%, var(--panel)); }
+.attention-card.tone-green  { background: color-mix(in srgb, #2E9E5B 7%, var(--panel)); }
+.attention-card.tone-purple { background: color-mix(in srgb, #7B4FD6 7%, var(--panel)); }
+.attention-card .val { justify-self: start; align-self: flex-start; line-height: 1.1; }
+
+/* The feed reads like a timeline: one panel, a colored dot per event, the time muted at the end. */
+.event-feed {
+  list-style: none; margin: 0; padding: 4px 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-1);
+  max-height: 560px;
+  overflow-y: auto;
+}
+.event-feed li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  font-size: 0.88rem;
+}
+.event-feed li + li { border-top: 1px solid var(--line); }
+.event-feed a { color: inherit; text-decoration: none; }
+.event-feed .ev-title a:hover { color: var(--royal); }
+.ev-title { overflow-wrap: anywhere; }
+.ev-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); }
+.ev-dot.dot-red { background: #D64545; }
+.ev-dot.dot-orange { background: #E07B28; }
+.ev-dot.dot-yellow { background: #D4A72C; }
+.ev-dot.dot-blue { background: #2F6FDB; }
+.ev-dot.dot-green { background: #2E9E5B; }
+.ev-dot.dot-purple { background: #7B4FD6; }
+.ev-meta { display: flex; gap: 10px; align-items: center; font-size: 0.74rem; color: var(--ink-soft); white-space: nowrap; }
+.ev-meta a { color: var(--royal); }
+@media (max-width: 640px) {
+  .event-feed li { grid-template-columns: auto minmax(0, 1fr); row-gap: 2px; }
+  .ev-meta { grid-column: 2; }
+}
 .user-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 16px; }
 
 /* ---------- control-center charts (see src/components/Charts.tsx) ---------- */

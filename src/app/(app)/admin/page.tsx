@@ -84,7 +84,7 @@ export default async function AdminPage() {
       {overview && (
         <section className="section-block">
           <h3 className="academy-heading">{t('نظرة على المنصة', 'Platform overview')}</h3>
-          <div className="stat-tiles">
+          <div className="stat-tiles cols-4">
             <div className="stat-tile"><div className="val eng">{overview.users}</div><div className="lbl">{t('المستخدمون', 'Users')}</div></div>
             <div className="stat-tile"><div className="val eng">{overview.active_today}</div><div className="lbl">{t('نشطون اليوم', 'Active today')}</div></div>
             <div className="stat-tile"><div className="val eng">{overview.mentors}</div><div className="lbl">{t('المنتورز', 'Mentors')}</div></div>
@@ -115,21 +115,31 @@ export default async function AdminPage() {
 
       <section className="section-block">
         <h3 className="academy-heading">{t('ما يحدث على تكمود', 'What is happening on TechMood')}</h3>
-        <ul className="event-feed">
-          {(feed ?? []).map((event, index) => (
-            <li key={index} className={`tone-${event.tone}`}>
-              {event.link ? <Link href={event.link}>{event.title_ar}</Link> : event.title_ar}
-              <span className="muted" style={{ fontSize: '0.74rem', marginInlineStart: 8 }}>{time.format(new Date(event.at))}</span>
-              {event.profile_id && (
-                <Link className="muted" style={{ fontSize: '0.74rem', marginInlineStart: 8 }} href={`/admin/users/${event.profile_id}`}>{t('الشخص', 'Person')}</Link>
-              )}
-            </li>
-          ))}
-        </ul>
+        {(feed ?? []).length === 0 ? (
+          <p className="muted" style={{ fontSize: '0.88rem' }}>{t('لا نشاط بعد.', 'No activity yet.')}</p>
+        ) : (
+          <ul className="event-feed">
+            {(feed ?? []).map((event, index) => (
+              <li key={index}>
+                <span className={`ev-dot dot-${event.tone}`} aria-hidden />
+                <span className="ev-title">
+                  {event.link ? <Link href={event.link}>{event.title_ar}</Link> : event.title_ar}
+                </span>
+                <span className="ev-meta">
+                  {event.profile_id && (
+                    <Link href={`/admin/users/${event.profile_id}`}>{t('الشخص', 'Person')}</Link>
+                  )}
+                  <time>{time.format(new Date(event.at))}</time>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="section-block">
-        <div className="stat-tiles">
+        <h3 className="academy-heading">{t('قائمة المراجعة', 'Review queue')}</h3>
+        <div className="stat-tiles cols-3">
           {Object.entries(ITEM_LABELS).map(([kind, label]) => (
             <div className="stat-tile" key={kind}>
               <div className="val eng">{byKind(kind).length}</div>
@@ -166,7 +176,7 @@ export default async function AdminPage() {
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('طلبات الأدوار', 'Role requests')}</h3>
+        <h3 className="academy-heading">{t('طلبات الأدوار', 'Role requests')}</h3>
         {(pendingRoles?.length ?? 0) === 0 ? (
           <p className="muted" style={{ fontSize: '0.88rem' }}>{t('لا طلبات أدوار بانتظار المراجعة 🎉', 'No role requests waiting 🎉')}</p>
         ) : (
@@ -209,7 +219,7 @@ export default async function AdminPage() {
       </section>
 
       <section className="section-block">
-        <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('بقية قائمة المراجعة', 'The rest of the queue')}</h3>
+        <h3 className="academy-heading">{t('بقية قائمة المراجعة', 'The rest of the queue')}</h3>
         {(queue ?? []).filter((item) => item.item_kind !== 'role_application').length === 0 ? (
           <p className="muted" style={{ fontSize: '0.88rem' }}>{t('لا عناصر أخرى بانتظار المراجعة.', 'Nothing else waiting.')}</p>
         ) : (
@@ -225,7 +235,7 @@ export default async function AdminPage() {
                     <td>{ITEM_LABELS[item.item_kind] ? t(ITEM_LABELS[item.item_kind]) : item.item_kind}</td>
                     <td>{item.subject ?? '—'}</td>
                     <td>{item.detail ?? '—'}</td>
-                    <td className="eng">
+                    <td style={{ whiteSpace: 'nowrap' }}>
                       {item.created_at ? formatDate(t.locale, item.created_at) : '—'}
                     </td>
                   </tr>

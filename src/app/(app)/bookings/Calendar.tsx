@@ -151,8 +151,8 @@ export async function Calendar({
             return (
               <div className={`cal-weekcol${key === todayKey ? ' is-today' : ''}`} key={key}>
                 <div className="cal-weekday">
-                  {t(WEEKDAYS[(date.getDay() + 1) % 7])}
-                  <span className="eng"> {date.getDate()}</span>
+                  <span className="cal-wd-name">{t(WEEKDAYS[(date.getDay() + 1) % 7])}</span>
+                  <span className="cal-wd-num">{date.getDate()}</span>
                 </div>
 
                 {GRID_HOURS.map((hour) => (

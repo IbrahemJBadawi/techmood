@@ -69,7 +69,7 @@ export default async function MyApplicationsPage() {
                   <td>{opportunity ? t(OPPORTUNITY_KIND[opportunity.kind].label) : '—'}</td>
                   <td className="eng">{opportunity ? compensationLabel(t.locale, opportunity) : '—'}</td>
                   <td><span className={`status-pill ${stage.className}`}>{t(stage.text)}</span></td>
-                  <td className="eng">{new Date(application.created_at).toLocaleDateString('ar-EG')}</td>
+                  <td className="date">{new Date(application.created_at).toLocaleDateString('ar-EG')}</td>
                   <td>
                     {opportunity && (
                       <Link className="btn btn-ghost btn-sm" href={`/marketplace/${opportunity.id}`}>{t('عرض', 'View')}</Link>

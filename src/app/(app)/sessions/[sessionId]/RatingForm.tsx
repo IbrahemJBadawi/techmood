@@ -44,7 +44,7 @@ export function RatingForm({
         {dueAt && (
           <>
             {' '}{t('آخر موعد للتقييم:', 'Last day to rate:')}{' '}
-            <span className="eng">{new Date(dueAt).toLocaleDateString('en-GB')}</span>.
+            <span className="date">{new Date(dueAt).toLocaleDateString('en-GB')}</span>.
           </>
         )}
       </p>
