@@ -680,7 +680,7 @@ export type BookingReviewItem = {
 export type XpSource =
   | 'lesson_completed' | 'assignment_evaluated' | 'course_project_evaluated'
   | 'course_completed' | 'path_project_evaluated' | 'path_completed'
-  | 'mentor_session_attended' | 'team_contribution' | 'achievement_awarded';
+  | 'mentor_session_attended' | 'mentor_session_booked' | 'team_contribution' | 'achievement_awarded';
 
 export type Profile = {
   id: string;
@@ -1285,6 +1285,10 @@ export type Database = {
       certificates: Table<Certificate>;
       xp_events: Table<XpEvent>;
       xp_levels: Table<{ min_xp: number; title_ar: string; sort_order: number }>;
+      level_upgrade_questions: Table<{
+        key: string; question_ar: string; hint_ar: string | null; min_chars: number;
+        sort_order: number; is_active: boolean;
+      }>;
       xp_rules: Table<{ source: XpSource; base_xp: number; per_star_xp: number; description_ar: string | null }>;
       schools: Table<{ id: string; slug: string; name_ar: string; name_en: string | null; sort_order: number }>;
       notifications: Table<{
@@ -2655,6 +2659,26 @@ export type Database = {
         Returns: undefined;
       };
       remove_push_subscription: { Args: { p_endpoint: string }; Returns: undefined };
+      my_level_progress: {
+        Args: Record<string, never>;
+        Returns: {
+          current_level: MentorLevel | null; next_level: MentorLevel | null;
+          sessions_count: number | null; sessions_needed: number | null;
+          rating_avg: number | null; rating_needed: number | null; eligible: boolean;
+          pending_request: string | null; last_status: 'pending' | 'approved' | 'declined' | 'withdrawn' | null;
+          last_note: string | null;
+        }[];
+      };
+      submit_level_upgrade: { Args: { p_answers: Record<string, string> }; Returns: string };
+      review_level_upgrade: { Args: { p_request: string; p_approve: boolean; p_note?: string | null }; Returns: undefined };
+      admin_level_upgrades: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; mentor_id: string; mentor_name: string; from_level: MentorLevel; to_level: MentorLevel;
+          answers: Record<string, string>; sessions_at_request: number; rating_at_request: number | null;
+          sessions_now: number; rating_now: number | null; created_at: string;
+        }[];
+      };
       invoice_issuer: { Args: Record<string, never>; Returns: { name: string; details: string }[] };
       my_mentor_application: {
         Args: Record<string, never>;

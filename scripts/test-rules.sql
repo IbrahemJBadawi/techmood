@@ -8315,6 +8315,67 @@ select public.assert(
         where profile_id = '55555555-5555-5555-5555-555555555555' and metadata ->> 'reminder' = 'daily') = 1,
   '71.10 one nudge a day to a learner with a device and nothing studied — not two');
 
+-- ===========================================================================
+-- 72. Moving up a level: earned by numbers, then asked for in writing
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert(
+  (select current_level = 'L1' and next_level = 'L2' and not eligible from public.my_level_progress()),
+  '72.1 a mentor sees where they stand against the next level');
+select public.assert_rejects(
+  $$select public.submit_level_upgrade('{}'::jsonb)$$,
+  '72.2 and cannot ask before the numbers are met',
+  'لم تبلغ متطلبات');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.mentor_profiles set sessions_count = 25, rating_avg = 4.6
+ where profile_id = '88888888-8888-8888-8888-888888888888';
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert_rejects(
+  $$select public.submit_level_upgrade('{"impact":"جيد"}'::jsonb)$$,
+  '72.3 the questionnaire is answered properly, not in a word',
+  'أجب عن');
+select public.submit_level_upgrade(jsonb_build_object(
+  'impact', repeat('متعلّمة انتقلت من مشروع غير مكتمل إلى مشروع منشور بعد ثلاث جلسات. ', 3),
+  'reviews', repeat('أسمّي ما نجح ثم ما يلزم تحسينه ثم خطوة تالية واضحة ومحددة بزمن. ', 3),
+  'depth', repeat('تعمّقت في هندسة الواجهات؛ الدليل مستودعان ومقال منشور. ', 2),
+  'feedback', 'طلبوا أمثلة أكثر، فصرت أجهّز مثالاً قبل كل جلسة.',
+  'availability', 'ست ساعات أسبوعياً مساءً')) as upgrade72 \gset
+select public.assert_rejects(
+  $$select public.submit_level_upgrade('{}'::jsonb)$$,
+  '72.4 one request at a time',
+  'قيد المراجعة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select sessions_now = 25 and rating_now = 4.6 from public.admin_level_upgrades() where id = :'upgrade72'),
+  '72.5 the admin reads the answers with the numbers beside them');
+select public.review_level_upgrade(:'upgrade72', true, 'تقييمات مكتوبة ممتازة');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select level from public.mentor_profiles where profile_id = '88888888-8888-8888-8888-888888888888') = 'L2'
+  and (select status from public.level_upgrade_requests where id = :'upgrade72') = 'approved'
+  and exists (select 1 from public.admin_audit_log where entity_id = :'upgrade72'),
+  '72.6 approved: the level — and with it the price band — moves up, on the record');
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert_rejects(
+  $$select public.review_level_upgrade(gen_random_uuid(), true)$$,
+  '72.7 a mentor does not approve their own upgrade',
+  'للإدارة فقط');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

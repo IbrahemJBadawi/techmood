@@ -83,3 +83,18 @@ export async function reviewListing(_prev: ActionFormState, formData: FormData):
   if (error) return { error: dbError(t, error.message) };
   return { ok: approve ? t('تحقّقت منه — ظاهر في السوق.', 'Verified — it is on the market.') : t('رُفض، وسُجّل تنبيه على البائع.', 'Refused, and a warning is on the seller’s record.') };
 }
+
+/** A mentor's level upgrade: approved (the level moves) or declined with a reason (0101). */
+export async function reviewLevelUpgrade(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const approve = text(formData, 'decision') === 'approve';
+  const { error } = await supabase.rpc('review_level_upgrade', {
+    p_request: text(formData, 'request_id'),
+    p_approve: approve,
+    p_note: text(formData, 'note') || null,
+  });
+  revalidatePath('/admin/levels');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: approve ? t('رُقّي المنتور.', 'The mentor moved up.') : t('وصل المنتور السبب.', 'The mentor has the reason.') };
+}

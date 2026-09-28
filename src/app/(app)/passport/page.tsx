@@ -34,6 +34,7 @@ const XP_SOURCE_LABELS: Record<string, Text> = {
   path_project_evaluated:   { ar: 'مشروع مسار مُقيَّم',     en: 'Path project evaluated' },
   path_completed:           { ar: 'إكمال مسار',           en: 'Path completed' },
   mentor_session_attended:  { ar: 'حضور جلسة إرشاد',      en: 'Mentor session attended' },
+  mentor_session_booked:    { ar: 'تأكيد حجز جلسة',       en: 'Mentor session booked' },
   team_contribution:        { ar: 'مساهمة في فريق',       en: 'Team contribution' },
   achievement_awarded:      { ar: 'إنجاز',                en: 'Achievement' },
 };

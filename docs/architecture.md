@@ -1905,3 +1905,18 @@ earnings. A student's home already opens on "carry on learning" and their
 paths. Under the logo, every page says which role is being browsed and what
 that role does here.
 
+## The guide, and moving up a level (0101)
+
+`/guide` explains how work and sessions are judged, how XP and XP levels are
+earned, the mentor levels (price band, platform share, sessions and rating
+needed) and how to move up — every number read from the tables that decide it.
+
+A mentor sees their standing against the next level at `/mentor-requests/level`
+(`my_level_progress()`). Once the numbers are met, they answer the upgrade
+questionnaire (`level_upgrade_questions`, editable by admins, each with a
+minimum length); `submit_level_upgrade()` refuses before eligibility, a
+second pending request, or thin answers. An admin reads the answers beside the
+current numbers at Admin → Mentor upgrades and approves — `set_mentor_level()`
+(0006's never-above-earned guard still applies), so the price band moves too —
+or declines with a reason; both reach the mentor and the audit log.
+

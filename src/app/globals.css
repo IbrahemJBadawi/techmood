@@ -3247,3 +3247,7 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .sidebar-role { margin: 0 14px 12px; padding: 8px 10px; border-radius: var(--radius-s);
   background: var(--sky-tint); font-size: 0.78rem; color: var(--ink); line-height: 1.5; }
 .sidebar-role span { display: block; color: var(--ink-soft); font-size: 0.72rem; margin-top: 2px; }
+
+/* The ratings & levels guide. */
+.guide-list { margin: 8px 0 0; padding-inline-start: 20px; font-size: 0.88rem; line-height: 1.8; }
+.guide-list ul { padding-inline-start: 18px; color: var(--ink-soft); }

@@ -72,3 +72,15 @@ export async function savePrice(_prev: MentorFormState, formData: FormData): Pro
   revalidatePath(`/mentors/${user.id}`);
   return { ok: t('حُفظ.', 'Saved.') };
 }
+
+/** The upgrade questionnaire (0101). The database checks eligibility and every answer. */
+export async function submitLevelUpgrade(_prev: MentorFormState, formData: FormData): Promise<MentorFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const keys = String(formData.get('keys') ?? '').split(',').filter(Boolean);
+  const answers = Object.fromEntries(keys.map((key) => [key, String(formData.get(`q-${key}`) ?? '').trim()]));
+  const { error } = await supabase.rpc('submit_level_upgrade', { p_answers: answers });
+  revalidatePath('/mentor-requests/level');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('وصل طلبك — تقرؤه الإدارة مع أرقامك ويصلك القرار في الإشعارات.', 'Your request is in — TechMood reads it with your numbers and the decision reaches your notifications.') };
+}

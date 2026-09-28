@@ -94,6 +94,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="nav-group">
           <div className="nav-group-label">{t('الحساب', 'Account')}</div>
           <NavLink href="/settings/roles" icon="settings">{t('أدواري', 'My roles')}</NavLink>
+          <NavLink href="/guide" icon="review">{t('دليل التقييمات والترقيات', 'Ratings & levels guide')}</NavLink>
         </div>
       </aside>
 

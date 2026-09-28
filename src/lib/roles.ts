@@ -256,6 +256,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
         { href: '/mentor-requests', label: { ar: 'طلبات الجلسات', en: 'Session requests' }, icon: 'calendar' },
+        { href: '/mentor-requests/level', label: { ar: 'مستواي', en: 'My level' }, icon: 'certificate' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
@@ -352,6 +353,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/admin/exhibition', label: { ar: 'مراجعة المعرض', en: 'Review exhibition' }, icon: 'gallery' },
         { href: '/admin/market', label: { ar: 'مراجعة السوق', en: 'Market review' }, icon: 'work' },
+        { href: '/admin/levels', label: { ar: 'ترقيات المنتورز', en: 'Mentor upgrades' }, icon: 'mentor' },
       ],
     },
     {
