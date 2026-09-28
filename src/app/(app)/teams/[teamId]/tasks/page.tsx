@@ -74,10 +74,10 @@ export default async function TeamTasksPage({
           const columnTasks = (tasks ?? []).filter((task) => task.column_key === column.key);
 
           return (
-            <section className="kanban-col" key={column.key}>
-              <div className="row-between" style={{ marginBottom: 10 }}>
-                <h3 style={{ fontSize: '0.88rem' }}>{t(column.label)}</h3>
-                <span className="badge-pill eng">{columnTasks.length}</span>
+            <section className="kanban-col" key={column.key} data-col={column.key}>
+              <div className="kanban-col-head">
+                <h3><span className="kanban-col-dot" aria-hidden="true" />{t(column.label)}</h3>
+                <span className="kanban-col-count eng">{columnTasks.length}</span>
               </div>
 
               {columnTasks.length === 0 && (
@@ -87,7 +87,7 @@ export default async function TeamTasksPage({
               {columnTasks.map((task) => {
                 const late = isOverdue(task.due_on, task.column_key);
                 return (
-                  <article className="task-card" key={task.id}>
+                  <article className={`task-card${late ? ' is-late' : ''}`} key={task.id}>
                     <Link href={`/teams/${teamId}/tasks/${task.id}`} style={{ textDecoration: 'none' }}>
                       <strong style={{ fontSize: '0.86rem', display: 'block' }}>{task.title_ar}</strong>
                     </Link>

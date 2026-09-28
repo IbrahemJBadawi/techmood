@@ -4688,3 +4688,77 @@ a.txn:hover { background: var(--bg-deep); }
   body:has(.chat-shell.has-active) .ai-fab { display: none; }
 }
 .ci-body, .chat-head-text { grid-template-columns: minmax(0, 1fr); }
+
+/* =========================================================================
+   Teams — a board you can read and move on a phone
+   ========================================================================= */
+.kanban-board { grid-template-columns: repeat(5, minmax(230px, 1fr)); scroll-snap-type: x proximity; scrollbar-width: thin; }
+.kanban-col {
+  --col: var(--ink-faint);
+  scroll-snap-align: start;
+  border-top: 3px solid var(--col);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.kanban-col[data-col="doing"] { --col: var(--royal); }
+.kanban-col[data-col="blocked"] { --col: var(--danger); }
+.kanban-col[data-col="review"] { --col: var(--streak); }
+.kanban-col[data-col="done"] { --col: var(--xp); }
+.kanban-col-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kanban-col-head h3 { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.kanban-col-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--col); }
+.kanban-col-count {
+  font-size: 0.74rem; font-weight: 700;
+  padding: 2px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--col) 14%, var(--panel)); color: color-mix(in srgb, var(--col) 80%, var(--ink));
+}
+.task-card {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow 0.2s;
+}
+.task-card:hover { box-shadow: var(--shadow-2); }
+.task-card.is-late { border-inline-start: 3px solid var(--danger); }
+.task-card .tags-row { margin-top: 0 !important; }
+.task-move { display: grid; gap: 6px; }
+.task-move select {
+  width: 100%;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.task-move-reason { display: grid; gap: 6px; }
+.task-move-reason input {
+  font: inherit; font-size: 16px; padding: 8px 10px;
+  border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); color: var(--ink);
+}
+@media (max-width: 760px) {
+  .kanban-board {
+    display: flex;
+    margin-inline: -14px;
+    padding: 2px 14px 12px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .kanban-board::-webkit-scrollbar { display: none; }
+  .kanban-col { flex: 0 0 84%; min-width: 0; }
+}
+/* hidden labels inside a sideways-scrolling board must stay inside it,
+   or their off-screen position widens the whole page */
+.kanban-col, .task-card { position: relative; }
+.sr-only { margin: -1px; padding: 0; border: 0; }
+/* a table on a phone scrolls inside itself rather than squeezing each word
+   onto its own line (tables that stack by data-label keep doing that) */
+@media (max-width: 760px) {
+  table.data:not(:has(td[data-label])) { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+}

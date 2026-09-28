@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
+import { avatarColor } from '@/lib/mentor-look';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
 import { ACTIVITY_VERBS, SPRINT_STATUS, TEAM_KIND, TEAM_STATUS, isOverdue } from '@/lib/teams';
 
+import { ProgressRing } from '../../academy/ProgressRing';
 import { TeamNav } from './TeamNav';
 import { AiSurface } from '@/components/AiSurface';
 
@@ -57,31 +60,23 @@ export default async function TeamOverviewPage({
     <>
       <AiSurface surface="team" scope="team" entityType="team" entityId={team.id} label={team.title_ar} />
 
-      <section className="panel section-block">
-        <div className="row-between" style={{ alignItems: 'flex-start' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem' }}>{team.title_ar}</h2>
-            <div className="tags-row" style={{ marginTop: 8 }}>
-              <span className="id-chip">{team.team_code}</span>
-              <span className="tag">{t(TEAM_KIND[team.kind])}</span>
-              <span className={`status-pill ${TEAM_STATUS[team.status].className}`}>
-                {t(TEAM_STATUS[team.status].text)}
-              </span>
-            </div>
+      <section className="section-block ac-cover" style={{ '--hue': avatarColor(team.id) } as React.CSSProperties}>
+        <div className="ac-cover-top">
+          <span className="ac-cover-icon"><Icon name="team" size={26} /></span>
+          <div className="ac-cover-titles">
+            <p className="ac-cover-school">{t(TEAM_KIND[team.kind])} · {t(TEAM_STATUS[team.status].text)}</p>
+            <h2>{team.title_ar}</h2>
           </div>
-          <Link className="btn btn-ghost btn-sm" href="/messages">{t('محادثة الفريق', 'Team conversation')}</Link>
+          <ProgressRing percent={progress} size={64} stroke={6} label={t('تقدّم المهام', 'Task progress')} />
         </div>
-
-        {team.description_ar && (
-          <p className="muted" style={{ fontSize: '0.9rem', marginTop: 12 }}>{team.description_ar}</p>
-        )}
-
-        <div className="row-between" style={{ marginTop: 18 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('تقدّم المهام', 'Task progress')}</span>
-          <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>{progress}%</span>
-        </div>
-        <div className="progress-track" style={{ marginTop: 6 }}>
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        {team.description_ar && <p className="ac-cover-desc">{team.description_ar}</p>}
+        <ul className="ac-cover-meta">
+          <li className="eng">{team.team_code}</li>
+          <li><Icon name="check" size={15} />{t(`${done.length} من ${all.length} مهام مكتملة`, `${done.length} of ${all.length} tasks done`)}</li>
+        </ul>
+        <div className="ac-cover-actions">
+          <Link className="btn btn-sm ac-cover-ghost" href="/messages"><Icon name="message" size={16} />{t('محادثة الفريق', 'Team conversation')}</Link>
+          <Link className="btn btn-sm ac-cover-cta" href={`/teams/${teamId}/tasks`}>{t('لوحة المهام', 'Task board')}</Link>
         </div>
       </section>
 

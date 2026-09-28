@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
+import { avatarColor } from '@/lib/mentor-look';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { TEAM_KIND, TEAM_STATUS } from '@/lib/teams';
@@ -82,7 +84,7 @@ export default async function TeamsPage() {
           {t('لست عضواً في أي فريق بعد. أنشئ فريقك، أو انتظر دعوة من قائد فريق عبر TechMood ID.', 'You are not in a team yet. Start one, or wait for a team lead to invite you by TechMood ID.')}
         </p>
       ) : (
-        <div className="card-grid">
+        <div className="ac-rail">
           {teams!.map((team) => {
             const count = countsById.get(team.id);
             const progress = count && count.total > 0 ? Math.round((count.done / count.total) * 100) : 0;
@@ -90,36 +92,31 @@ export default async function TeamsPage() {
             const role = roleById.get(team.id);
 
             return (
-              <article className="card" key={team.id}>
-                <div className="row-between">
-                  <span className="id-chip">{team.team_code}</span>
+              <article className="lcard" key={team.id} style={{ '--hue': avatarColor(team.id) } as React.CSSProperties}>
+                <div className="lcard-cover">
+                  <span className="lcard-icon"><Icon name="team" size={22} /></span>
+                  <span className="lcard-school">{t(TEAM_KIND[team.kind])}</span>
                   <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
                 </div>
-
-                <h3>{team.title_ar}</h3>
-                <div className="tags-row">
-                  <span className="tag">{t(TEAM_KIND[team.kind])}</span>
-                  {role?.role === 'leader' && <span className="badge-pill">{t('قائد الفريق', 'Team lead')}</span>}
-                  {role?.responsibility_ar && <span className="badge-pill">{role.responsibility_ar}</span>}
+                <div className="lcard-body">
+                  <h3>{team.title_ar}</h3>
+                  {team.description_ar && <p className="lcard-desc">{team.description_ar}</p>}
+                  <ul className="lcard-meta">
+                    <li><Icon name="team" size={14} />{t(`${count?.members ?? 0} أعضاء`, `${count?.members ?? 0} members`)}</li>
+                    <li><Icon name="check" size={14} /><span className="eng">{count?.done ?? 0}/{count?.total ?? 0}</span>&nbsp;{t('مهمة', 'tasks')}</li>
+                    <li className="lcard-xp"><span className="eng">{xpById.get(team.id) ?? 0} XP</span></li>
+                    {role?.role === 'leader' && <li>{t('أنت القائد', 'You lead it')}</li>}
+                    {role?.responsibility_ar && <li>{role.responsibility_ar}</li>}
+                  </ul>
+                  <div className="lcard-bar">
+                    <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
+                    <span className="eng">{progress}%</span>
+                  </div>
+                  <Stars value={starsById.get(team.id) ?? 0} />
                 </div>
-
-                {team.description_ar && <p>{team.description_ar}</p>}
-
-                <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
-                <div className="row-between" style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>
-                  <span className="eng">{count?.done ?? 0}/{count?.total ?? 0} {t('مهمة', 'tasks')}</span>
-                  <span className="eng">{progress}%</span>
+                <div className="lcard-foot">
+                  <Link className="btn btn-primary btn-sm" href={`/teams/${team.id}`}>{t('افتح مساحة العمل', 'Open the workspace')}</Link>
                 </div>
-
-                <div className="row-between" style={{ fontSize: '0.8rem', color: 'var(--ink-soft)' }}>
-                  <span>👥 {count?.members ?? 0} {t('أعضاء', 'members')}</span>
-                  <span>
-                    <Stars value={starsById.get(team.id) ?? 0} />{' '}
-                    <span className="xp-badge eng">{xpById.get(team.id) ?? 0} XP</span>
-                  </span>
-                </div>
-
-                <Link className="btn btn-ghost btn-sm" href={`/teams/${team.id}`}>{t('افتح مساحة العمل', 'Open the workspace')}</Link>
               </article>
             );
           })}
