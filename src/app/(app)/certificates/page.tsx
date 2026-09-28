@@ -3,10 +3,12 @@ import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 
 import { IssueCertificateButton } from './IssueCertificateButton';
+
+export const generateMetadata = localizedTitle('شهاداتي — TechMood', 'My certificates — TechMood');
 
 export default async function CertificatesPage() {
   const t = await getT();

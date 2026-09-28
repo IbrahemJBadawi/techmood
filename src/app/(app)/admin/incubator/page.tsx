@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { STARTUP_STAGES } from '@/lib/incubator';
 
 import { reviewApplication } from './actions';
+
+export const generateMetadata = localizedTitle('الحاضنة — إدارة TechMood', 'Incubator — TechMood admin');
 
 export default async function AdminIncubatorPage() {
   const t = await getT();

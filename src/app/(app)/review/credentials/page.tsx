@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { ReviewRow } from './ReviewRow';
 
-export const metadata = { title: 'Credentials to verify — TechMood' };
+export const generateMetadata = localizedTitle('شهادات للتحقق — TechMood', 'Credentials to verify — TechMood');
 
 /**
  * Credentials waiting for somebody to open them at the provider.

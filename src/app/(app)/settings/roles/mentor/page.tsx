@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLE_STATUS_LABEL } from '@/lib/roles';
 import type { RoleStatus } from '@/lib/database.types';
 
 import { MentorApplicationForm } from './MentorApplicationForm';
 
-export const metadata = { title: 'Apply as a mentor — TechMood' };
+export const generateMetadata = localizedTitle('التقديم كمنتور — TechMood', 'Apply as a mentor — TechMood');
 
 export default async function MentorApplicationPage() {
   const t = await getT();

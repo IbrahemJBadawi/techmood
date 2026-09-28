@@ -20,3 +20,18 @@ export const getLocale = cache(async (): Promise<Locale> => {
 });
 
 export const getT = cache(async (): Promise<T> => makeT(await getLocale()));
+
+/**
+ * A page's title in the reader's language — the browser tab, the history and
+ * a shared link's preview all show it. Used as
+ * `export const generateMetadata = localizedTitle('…', '…');`
+ */
+export function localizedTitle(ar: string, en: string, description?: { ar: string; en: string }) {
+  return async () => {
+    const locale = await getLocale();
+    return {
+      title: locale === 'ar' ? ar : en,
+      ...(description ? { description: locale === 'ar' ? description.ar : description.en } : {}),
+    };
+  };
+}

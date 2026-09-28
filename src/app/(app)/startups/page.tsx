@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { STARTUP_STAGES } from '@/lib/incubator';
+
+export const generateMetadata = localizedTitle('الشركات الناشئة — TechMood', 'Startups — TechMood');
 
 export default async function StartupsPage() {
   const t = await getT();

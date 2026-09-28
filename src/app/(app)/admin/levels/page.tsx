@@ -3,11 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { reviewLevelUpgrade } from '../sections-actions';
 
-export const metadata = { title: 'Level upgrades — TechMood' };
+export const generateMetadata = localizedTitle('ترقيات المستوى — TechMood', 'Level upgrades — TechMood');
 
 /** Mentors asking to move up (0101): their answers, with the numbers beside them. */
 export default async function AdminLevelsPage() {

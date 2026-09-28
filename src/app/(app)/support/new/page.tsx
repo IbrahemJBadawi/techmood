@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation';
 
 import { SupportComposer } from '@/components/SupportComposer';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TICKET_CATEGORY, TICKET_RELATED } from '@/lib/support';
 import type { TicketCategory, TicketRelated } from '@/lib/database.types';
 
 import { openTicket } from '../actions';
 import { IS_MVP } from '@/lib/scope';
 
-export const metadata = { title: 'Report a problem — TechMood' };
+export const generateMetadata = localizedTitle('بلّغ عن مشكلة — TechMood', 'Report a problem — TechMood');
 
 const PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
 

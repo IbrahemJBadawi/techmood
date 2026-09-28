@@ -5,12 +5,12 @@ import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { createClient } from '@/lib/supabase/server';
 import { money } from '@/lib/booking';
 import { CASE_STATUS, FEATURE } from '@/lib/cases';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLE_BY_VALUE } from '@/lib/roles';
 import { TICKET_CATEGORY, TICKET_STATUS } from '@/lib/support';
 import type { Text } from '@/lib/i18n';
 
-export const metadata = { title: 'User — TechMood admin' };
+export const generateMetadata = localizedTitle('مستخدم — إدارة TechMood', 'User — TechMood admin');
 
 const TABS: { key: string; label: Text }[] = [
   { key: 'overview',   label: { ar: 'نظرة عامة', en: 'Overview' } },

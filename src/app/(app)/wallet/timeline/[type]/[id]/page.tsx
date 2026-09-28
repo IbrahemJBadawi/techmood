@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { FINANCE_EVENT } from '@/lib/wallet';
 import type { FinanceEntity } from '@/lib/database.types';
 
-export const metadata = { title: 'Timeline — TechMood' };
+export const generateMetadata = localizedTitle('السجل — TechMood', 'Timeline — TechMood');
 
 const ENTITIES: FinanceEntity[] = ['payment', 'payout', 'escrow'];
 

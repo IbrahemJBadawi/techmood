@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime, type Text } from '@/lib/i18n';
 import type { Database, SessionPhase, VideoSessionType } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
+
+export const generateMetadata = localizedTitle('الجلسات — TechMood', 'Sessions — TechMood');
 
 type Session = Database['public']['Functions']['my_sessions']['Returns'][number];
 

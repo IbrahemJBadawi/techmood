@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { Icon } from '@/components/Icon';
 import { TICKET_CATEGORY, TICKET_STATUS } from '@/lib/support';
 import type { Text } from '@/lib/i18n';
 import type { TicketCategory, TicketStatus } from '@/lib/database.types';
 
-export const metadata = { title: 'Help & reports — TechMood' };
+export const generateMetadata = localizedTitle('المساعدة والبلاغات — TechMood', 'Help & reports — TechMood');
 
 // The problems people bring most, one tap from a form with the kind chosen.
 const QUICK: { key: TicketCategory; icon: string; color: string; hint: Text }[] = [

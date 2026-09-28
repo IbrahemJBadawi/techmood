@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { PLAN_SECTIONS } from '@/lib/incubator';
 import type { PlanSection } from '@/lib/database.types';
 
-export const metadata = { title: 'Shared from TechMood' };
+export const generateMetadata = localizedTitle('مشاركة من TechMood', 'Shared from TechMood');
 
 type CanvasPayload = {
   blocks: { key: string; title: string; hint: string | null; cards: { body: string; colour: string }[] }[];

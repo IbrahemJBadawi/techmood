@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 
-export const metadata = { title: 'Finance — TechMood' };
+export const generateMetadata = localizedTitle('المالية — TechMood', 'Finance — TechMood');
 
 const RANGES = ['today', 'month', 'all'] as const;
 type Range = (typeof RANGES)[number];

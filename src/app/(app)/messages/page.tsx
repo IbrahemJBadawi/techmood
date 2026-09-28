@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import type { ConversationKind, MessageReaction } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
@@ -11,6 +11,8 @@ import { IS_MVP } from '@/lib/scope';
 import { Composer } from './Composer';
 import { Reactions } from './Reactions';
 import { markRead } from './actions';
+
+export const generateMetadata = localizedTitle('الرسائل — TechMood', 'Messages — TechMood');
 
 const KIND_ICON: Record<ConversationKind, string> = {
   channel: '📣',

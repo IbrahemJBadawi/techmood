@@ -2,7 +2,7 @@ import Link from 'next/link';
 import QRCode from 'qrcode';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { VerifiedCertificate } from '@/lib/database.types';
 import { LogoMark } from '@/components/Logo';
@@ -11,7 +11,7 @@ import { Certificate } from './Certificate';
 import { PrintButton } from './PrintButton';
 import { siteOrigin } from '@/lib/site';
 
-export const metadata = { title: 'Verify a certificate — TechMood' };
+export const generateMetadata = localizedTitle('تحقّق من شهادة — TechMood', 'Verify a certificate — TechMood');
 
 /**
  * Public certificate verification — the QR target printed on every certificate.

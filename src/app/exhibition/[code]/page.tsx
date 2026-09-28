@@ -4,14 +4,14 @@ import QRCode from 'qrcode';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { ExhibitionSnapshot, ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL, KIND_LABEL } from '../types';
 import { siteOrigin } from '@/lib/site';
 
-export const metadata = { title: 'A project in the TechMood exhibition' };
+export const generateMetadata = localizedTitle('مشروع في معرض TechMood', 'A project in the TechMood exhibition');
 
 const CRITERIA: ReviewCriterion[] = [
   'requirements', 'technical_quality', 'ui_ux', 'problem_solving', 'documentation', 'completeness',

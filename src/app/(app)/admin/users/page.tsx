@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLES, ROLE_BY_VALUE } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
-export const metadata = { title: 'Users — TechMood admin' };
+export const generateMetadata = localizedTitle('المستخدمون — إدارة TechMood', 'Users — TechMood admin');
 
 /** Everyone, findable by name, username or TechMood ID, and by role. */
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ role?: string; q?: string }> }) {

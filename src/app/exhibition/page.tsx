@@ -3,15 +3,15 @@ import { SiteFooter, SiteNav } from '@/components/SiteNav';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { ExhibitionExplorer } from './ExhibitionExplorer';
 import type { GalleryEntry } from './types';
 
-export const metadata = {
-  title: 'TechMood Exhibition',
-  description: 'Real projects built by TechMood students and teams, evaluated by mentors and verified.',
-};
+export const generateMetadata = localizedTitle('معرض TechMood', 'TechMood Exhibition', {
+  ar: 'مشاريع حقيقية بناها طلاب وفرق TechMood، قيّمها المنتورز وتم التحقق منها.',
+  en: 'Real projects built by TechMood students and teams, evaluated by mentors and verified.',
+});
 
 /**
  * The public gallery.

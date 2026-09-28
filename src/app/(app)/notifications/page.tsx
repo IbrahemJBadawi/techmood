@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate, intlTag } from '@/lib/i18n';
 import { Icon } from '@/components/Icon';
 import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY } from '@/lib/notifications';
@@ -10,7 +10,7 @@ import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from '../shell/actions';
 
-export const metadata = { title: 'Notifications — TechMood' };
+export const generateMetadata = localizedTitle('الإشعارات — TechMood', 'Notifications — TechMood');
 
 const KIND_COLOR: Partial<Record<NotificationKind, string>> = {
   academy: '#2F6BFF', evaluation: '#7C5CFF', booking: '#0B8FB3', team: '#0E9F6E',

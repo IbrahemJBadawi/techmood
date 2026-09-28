@@ -2,12 +2,12 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 
 import { reviewClaim } from './actions';
 
-export const metadata = { title: 'External claims — TechMood' };
+export const generateMetadata = localizedTitle('الإنجازات الخارجية — TechMood', 'External claims — TechMood');
 
 /**
  * The only queue on the platform for something it did not witness.

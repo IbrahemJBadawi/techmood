@@ -2,14 +2,14 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { SCOPE, SURFACE } from '@/lib/ai';
 import { AiSurface } from '@/components/AiSurface';
 
 import { openPanel, type PanelWhere } from '../actions';
 import { Conversation } from './Conversation';
 
-export const metadata = { title: 'AI thread — TechMood' };
+export const generateMetadata = localizedTitle('محادثة الذكاء الاصطناعي — TechMood', 'AI thread — TechMood');
 
 export default async function AiThreadPage({
   params,

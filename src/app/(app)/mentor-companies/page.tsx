@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import { STARTUP_STAGES } from '@/lib/incubator';
 
-export const metadata = { title: 'Companies I advise — TechMood' };
+export const generateMetadata = localizedTitle('الشركات التي أرشدها — TechMood', 'Companies I advise — TechMood');
 
 /**
  * The companies that let this mentor in.

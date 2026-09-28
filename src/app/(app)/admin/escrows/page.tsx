@@ -2,14 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 
 import { ESCROW_STATUS } from '../../projects/[projectId]/escrow-status';
 import { settleEscrow } from './actions';
 
-export const metadata = { title: 'Escrow — TechMood' };
+export const generateMetadata = localizedTitle('الضمان — TechMood', 'Escrow — TechMood');
 
 /**
  * The money TechMood is holding, and the arguments about it.

@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { PrimaryFieldPicker } from './PrimaryFieldPicker';
 
-export const metadata = { title: 'My fields — TechMood' };
+export const generateMetadata = localizedTitle('مجالاتي — TechMood', 'My fields — TechMood');
 
 export default async function FieldsPage() {
   const t = await getT();

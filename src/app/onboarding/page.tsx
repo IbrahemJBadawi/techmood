@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 import { OnboardingWizard } from './OnboardingWizard';
+import { localizedTitle } from '@/lib/i18n.server';
 
-export const metadata = { title: 'Set up your account — TechMood' };
+export const generateMetadata = localizedTitle('إعداد حسابك — TechMood', 'Set up your account — TechMood');
 
 export default async function OnboardingPage() {
   const supabase = await createClient();

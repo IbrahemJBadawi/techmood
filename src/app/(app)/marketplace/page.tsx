@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { OPPORTUNITY_KIND } from '@/lib/marketplace';
 import type { OpportunityKind } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
@@ -17,7 +17,7 @@ import { TeamList } from './TeamList';
 import { AiSurface } from '@/components/AiSurface';
 import { IS_MVP } from '@/lib/scope';
 
-export const metadata = { title: 'Market — TechMood' };
+export const generateMetadata = localizedTitle('السوق — TechMood', 'Market — TechMood');
 
 type Tab = 'all' | 'jobs' | 'talent' | 'teams' | 'listings' | 'work' | 'money' | 'saved';
 

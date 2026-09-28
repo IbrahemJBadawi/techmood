@@ -3,11 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { setAdmin } from '../sections-actions';
 
-export const metadata = { title: 'Admins & permissions — TechMood admin' };
+export const generateMetadata = localizedTitle('المشرفون والصلاحيات — إدارة TechMood', 'Admins & permissions — TechMood admin');
 
 const AUDIT_FILTERS = [
   { key: '', label: { ar: 'الكل', en: 'All' } },

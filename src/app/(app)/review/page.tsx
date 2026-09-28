@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
+
+export const generateMetadata = localizedTitle('المراجعة — TechMood', 'Review — TechMood');
 
 const KIND_LABELS: Record<string, Text> = {
   lesson_assignment:  { ar: 'تكليف درس',          en: 'Lesson assignment' },

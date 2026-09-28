@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ESCALATION, TICKET_CATEGORY, TICKET_PRIORITY, TICKET_STATUS } from '@/lib/support';
 
-export const metadata = { title: 'Support & reports — TechMood admin' };
+export const generateMetadata = localizedTitle('الدعم والبلاغات — إدارة TechMood', 'Support & reports — TechMood admin');
 
 const FILTERS = [
   { key: 'all',       label: { ar: 'الكل', en: 'All' } },

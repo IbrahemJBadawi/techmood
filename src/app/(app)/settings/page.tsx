@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { signOut } from '../../(auth)/actions';
 import { setLanguage } from '../shell/actions';
 import { Avatar } from '../shell/ProfileMenu';
 import { SETTINGS_PAGES } from './settings-pages';
 
-export const metadata = { title: 'Settings — TechMood' };
+export const generateMetadata = localizedTitle('الإعدادات — TechMood', 'Settings — TechMood');
 
 /**
  * The settings home: who you are at the top, then every section as one row

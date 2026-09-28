@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 
 import { reviewListing } from '../sections-actions';
 
-export const metadata = { title: 'Market review — TechMood' };
+export const generateMetadata = localizedTitle('مراجعة السوق — TechMood', 'Market review — TechMood');
 
 /**
  * Listings waiting for a person to check them (0099): what is sold, the demo,

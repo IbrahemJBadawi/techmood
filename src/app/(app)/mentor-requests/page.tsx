@@ -5,12 +5,14 @@ import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 import { IS_MVP } from '@/lib/scope';
 
 import { decideBooking } from './actions';
 import { AvailabilitySwitch } from './AvailabilitySwitch';
+
+export const generateMetadata = localizedTitle('طلبات الإرشاد — TechMood', 'Mentoring requests — TechMood');
 
 export default async function MentorRequestsPage() {
   const t = await getT();

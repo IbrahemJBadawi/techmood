@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { dayKey, parseDay, rangeFor, type CalendarView } from '@/lib/calendar';
 import type { Text } from '@/lib/i18n';
@@ -16,7 +16,7 @@ import { History } from './History';
 import { Preview } from './Preview';
 import { AiSurface } from '@/components/AiSurface';
 
-export const metadata = { title: 'Bookings & Calendar — TechMood' };
+export const generateMetadata = localizedTitle('الحجوزات والتقويم — TechMood', 'Bookings & Calendar — TechMood');
 
 type Tab = 'overview' | 'calendar' | 'bookings' | 'availability' | 'history';
 

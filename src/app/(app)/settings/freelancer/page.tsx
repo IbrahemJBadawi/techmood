@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { ListingForm, type Listing, type Service } from './ListingForm';
 
-export const metadata = { title: 'Market listing — TechMood' };
+export const generateMetadata = localizedTitle('ملفي في السوق — TechMood', 'Market listing — TechMood');
 
 export default async function FreelancerSettingsPage() {
   const t = await getT();

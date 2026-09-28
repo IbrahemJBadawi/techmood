@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { Text } from '@/lib/i18n';
 import { IS_MVP } from '@/lib/scope';
 
 import { RoleReviewForm } from './RoleReviewForm';
+
+export const generateMetadata = localizedTitle('لوحة الإدارة — TechMood', 'Admin — TechMood');
 
 const ALL_ITEM_LABELS: Record<string, Text> = {
   role_application:     { ar: 'طلب دور',                  en: 'Role request' },

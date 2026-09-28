@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 
 import { PriceRow } from './PriceRow';
 
-export const metadata = { title: 'My prices — TechMood' };
+export const generateMetadata = localizedTitle('أسعاري — TechMood', 'My prices — TechMood');
 
 /**
  * A mentor's own prices.

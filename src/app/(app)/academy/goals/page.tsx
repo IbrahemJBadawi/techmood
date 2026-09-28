@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { GoalCard, type Goal } from './GoalCard';
+
+export const generateMetadata = localizedTitle('أهدافي التعليمية — TechMood', 'My learning goals — TechMood');
 
 /**
  * "What do you want to become?" — the question the academy document asks

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 import type { ContentStatus } from '@/lib/database.types';
 
@@ -12,7 +12,7 @@ import {
 } from './actions';
 import { STATUS_LABEL, STATUS_ORDER, STATUS_PILL, STATUS_SHORT } from './status';
 
-export const metadata = { title: 'Academy content — TechMood' };
+export const generateMetadata = localizedTitle('محتوى الأكاديمية — TechMood', 'Academy content — TechMood');
 
 const HERE = '/admin/academy';
 

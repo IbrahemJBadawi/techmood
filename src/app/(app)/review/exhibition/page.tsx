@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 
 import { claimEntry } from './actions';
+
+export const generateMetadata = localizedTitle('مراجعة المعرض — TechMood', 'Exhibition review — TechMood');
 
 /**
  * The mentor's exhibition queue.

@@ -2,14 +2,14 @@ import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TICKET_CATEGORY } from '@/lib/support';
 import type { ContentStatus, TicketCategory } from '@/lib/database.types';
 
 import { deleteArticle, saveArticle } from '../sections-actions';
 import { STATUS_LABEL, STATUS_PILL, STATUS_SHORT } from '../academy/status';
 
-export const metadata = { title: 'Knowledge base — TechMood admin' };
+export const generateMetadata = localizedTitle('قاعدة المعرفة — إدارة TechMood', 'Knowledge base — TechMood admin');
 
 type Article = {
   id: string; slug: string; category: TicketCategory | null; title_ar: string; title_en: string | null;

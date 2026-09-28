@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { NOTIFICATION_KIND, PRIORITY } from '@/lib/notifications';
 import { roleLabel } from '@/lib/roles';
@@ -10,7 +10,7 @@ import { roleLabel } from '@/lib/roles';
 import { BroadcastForm } from './BroadcastForm';
 import { deleteBroadcast, sendBroadcast } from './actions';
 
-export const metadata = { title: 'Announcements — TechMood' };
+export const generateMetadata = localizedTitle('الإعلانات — TechMood', 'Announcements — TechMood');
 
 /**
  * The platform's own voice, and what became of it.

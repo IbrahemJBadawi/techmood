@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { Database } from '@/lib/database.types';
 
@@ -13,7 +13,7 @@ import { siteOrigin } from '@/lib/site';
 
 type Verified = Database['public']['Functions']['verify_exhibition_entry']['Returns'][number];
 
-export const metadata = { title: 'Verify a project — TechMood' };
+export const generateMetadata = localizedTitle('تحقّق من مشروع — TechMood', 'Verify a project — TechMood');
 
 /**
  * What a QR scan answers.

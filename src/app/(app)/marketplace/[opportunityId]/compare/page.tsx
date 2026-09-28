@@ -2,13 +2,13 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { Stars } from '@/components/Stars';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 
-export const metadata = { title: 'Compare — TechMood' };
+export const generateMetadata = localizedTitle('مقارنة العروض — TechMood', 'Compare — TechMood');
 
 /**
  * Candidates, side by side.

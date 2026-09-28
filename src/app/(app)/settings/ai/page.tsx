@@ -1,14 +1,14 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { PERMISSION } from '@/lib/ai';
 import { AiSurface } from '@/components/AiSurface';
 
 import { MemoryList } from './MemoryList';
 import { PreferencesForm } from './PreferencesForm';
 
-export const metadata = { title: 'AI settings — TechMood' };
+export const generateMetadata = localizedTitle('إعدادات الذكاء الاصطناعي — TechMood', 'AI settings — TechMood');
 
 /**
  * What the assistant is allowed to know, and allowed to do.

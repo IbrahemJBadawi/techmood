@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import type { TaxonomyKind } from '@/lib/database.types';
 
 import { reviewTerm } from './actions';
 
-export const metadata = { title: 'Suggested terms — TechMood' };
+export const generateMetadata = localizedTitle('المصطلحات المقترحة — TechMood', 'Suggested terms — TechMood');
 
 const SECTIONS: {
   kind: TaxonomyKind; table: 'fields' | 'interests' | 'skills'; title: Text; note: Text;

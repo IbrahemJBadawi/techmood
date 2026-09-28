@@ -4,12 +4,12 @@ import { redirect } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 
 import { refundBooking, saveLevel, saveSetting, saveTier, settleAttendance, switchMentor } from './actions';
 
-export const metadata = { title: 'Pricing — TechMood admin' };
+export const generateMetadata = localizedTitle('الأسعار — إدارة TechMood', 'Pricing — TechMood admin');
 
 const TIER_KINDS: Record<string, Text> = {
   market_work:  { ar: 'العمل عبر السوق (عقود ومشاريع)', en: 'Market work (contracts and projects)' },

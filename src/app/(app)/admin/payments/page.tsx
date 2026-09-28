@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { BOOKING_STATUS, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
 import { IS_MVP } from '@/lib/scope';
 
 import { ReceiptLink } from './ReceiptLink';
 import { reviewPayment } from './actions';
+
+export const generateMetadata = localizedTitle('المدفوعات — إدارة TechMood', 'Payments — TechMood admin');
 
 export default async function AdminPaymentsPage() {
   const t = await getT();

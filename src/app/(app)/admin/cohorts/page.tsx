@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
-export const metadata = { title: 'Cohorts — TechMood admin' };
+export const generateMetadata = localizedTitle('الدفعات — إدارة TechMood', 'Cohorts — TechMood admin');
 
 /**
  * Cohorts as a lens, not a split: the people who started the same path in the

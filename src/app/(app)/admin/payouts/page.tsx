@@ -2,13 +2,15 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { money } from '@/lib/booking';
 import { PAYOUT_STATUS } from '@/lib/wallet';
 
 import { reviewPayout, startTransfer } from './actions';
 import { PayoutProof } from './PayoutProof';
+
+export const generateMetadata = localizedTitle('السحوبات — إدارة TechMood', 'Payouts — TechMood admin');
 
 export default async function AdminPayoutsPage() {
   const t = await getT();

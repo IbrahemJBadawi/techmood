@@ -2,9 +2,11 @@ import Link from 'next/link';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
+
+export const generateMetadata = localizedTitle('المنتورز — TechMood', 'Mentors — TechMood');
 
 export default async function MentorsPage() {
   const t = await getT();

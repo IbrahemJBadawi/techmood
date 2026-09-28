@@ -1,9 +1,9 @@
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { redirect } from 'next/navigation';
 
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
-export const metadata = { title: 'Verify a certificate — TechMood' };
+export const generateMetadata = localizedTitle('تحقّق من شهادة — TechMood', 'Verify a certificate — TechMood');
 
 async function goToCode(formData: FormData) {
   'use server';

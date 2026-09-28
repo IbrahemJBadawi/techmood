@@ -5,14 +5,14 @@ import QRCode from 'qrcode';
 
 import { FollowButton } from '@/components/Social';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { contentText, formatDate, type Text } from '@/lib/i18n';
 import type { ExperienceKind, LinkKind, ProfileSection } from '@/lib/database.types';
 
 import { ProfileCard, type Card } from './ProfileCard';
 import { siteOrigin } from '@/lib/site';
 
-export const metadata = { title: 'A TechMood profile' };
+export const generateMetadata = localizedTitle('ملف على TechMood', 'A TechMood profile');
 
 const LINK_LABEL: Record<LinkKind, string> = {
   linkedin: 'LinkedIn', github: 'GitHub', behance: 'Behance', dribbble: 'Dribbble',

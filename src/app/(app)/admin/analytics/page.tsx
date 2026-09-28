@@ -2,10 +2,10 @@ import { redirect } from 'next/navigation';
 
 import { BarList, ColumnChart } from '@/components/Charts';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TICKET_CATEGORY } from '@/lib/support';
 
-export const metadata = { title: 'Analytics — TechMood admin' };
+export const generateMetadata = localizedTitle('التحليلات — إدارة TechMood', 'Analytics — TechMood admin');
 
 /**
  * What happened, week by week — each measure its own small chart on its own

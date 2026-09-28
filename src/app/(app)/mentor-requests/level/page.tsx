@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { UpgradeForm } from './UpgradeForm';
 
-export const metadata = { title: 'My level — TechMood' };
+export const generateMetadata = localizedTitle('مستواي — TechMood', 'My level — TechMood');
 
 /** Where a mentor stands against the next level, and the way to ask (0101). */
 export default async function MentorLevelPage() {

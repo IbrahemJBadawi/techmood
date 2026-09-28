@@ -1,6 +1,6 @@
 import type { Database } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 
 import type { Resume } from '../home/student/ContinueLearning';
 import { AcademyExplorer } from './AcademyExplorer';
@@ -14,6 +14,8 @@ import {
   LEVEL_ORDER, pathTitle,
   type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
 } from './types';
+
+export const generateMetadata = localizedTitle('الأكاديمية — TechMood', 'Academy — TechMood');
 
 type Goal = Database['public']['Functions']['career_goals_catalogue']['Returns'][number];
 type GoalStep = Database['public']['Functions']['career_goal_plan']['Returns'][number];

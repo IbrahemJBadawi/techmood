@@ -1,10 +1,10 @@
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 
-export const metadata = { title: 'Ratings & levels guide — TechMood' };
+export const generateMetadata = localizedTitle('دليل التقييمات والمستويات — TechMood', 'Ratings & levels guide — TechMood');
 
 /**
  * How TechMood judges and how people move up — written once, with every

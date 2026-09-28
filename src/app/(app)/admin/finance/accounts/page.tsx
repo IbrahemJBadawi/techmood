@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { AccountForm } from './AccountForm';
 
-export const metadata = { title: 'Receiving accounts — TechMood' };
+export const generateMetadata = localizedTitle('حسابات الاستلام — TechMood', 'Receiving accounts — TechMood');
 
 /**
  * Where TechMood receives money. The numbers live in the database, never in

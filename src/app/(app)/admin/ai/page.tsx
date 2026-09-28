@@ -4,12 +4,12 @@ import { redirect } from 'next/navigation';
 import { aiConfigured } from '@/lib/ai-claude';
 import { ACTION_STATUS, SURFACE } from '@/lib/ai';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { AiSurface } from '@/lib/database.types';
 
 import { ReadThread } from './ReadThread';
 
-export const metadata = { title: 'AI oversight — TechMood admin' };
+export const generateMetadata = localizedTitle('مراقبة الذكاء الاصطناعي — إدارة TechMood', 'AI oversight — TechMood admin');
 
 const TABS = [
   { key: 'threads', label: { ar: 'المحادثات', en: 'Conversations' } },

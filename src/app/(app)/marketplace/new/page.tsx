@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { NewOpportunityForm } from './NewOpportunityForm';
+
+export const generateMetadata = localizedTitle('فرصة جديدة — TechMood', 'New opportunity — TechMood');
 
 export default async function NewOpportunityPage({
   searchParams,

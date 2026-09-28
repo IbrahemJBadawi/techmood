@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { APPLICATION_STAGE, OPPORTUNITY_KIND, compensationLabel } from '@/lib/marketplace';
 import { Opportunity } from '@/lib/database.types';
+
+export const generateMetadata = localizedTitle('طلباتي — TechMood', 'My applications — TechMood');
 
 export default async function MyApplicationsPage() {
   const t = await getT();

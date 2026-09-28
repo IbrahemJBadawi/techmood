@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { InstallApp } from '@/components/InstallApp';
 
@@ -10,7 +10,7 @@ import { DevicePush } from './DevicePush';
 
 import { PreferencesForm, type Category } from './PreferencesForm';
 
-export const metadata = { title: 'Notification settings — TechMood' };
+export const generateMetadata = localizedTitle('إعدادات الإشعارات — TechMood', 'Notification settings — TechMood');
 
 export default async function NotificationSettingsPage() {
   const t = await getT();

@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import { CANVAS_KIND, ORG_KIND, STARTUP_STAGES } from '@/lib/incubator';
 import type { CanvasKind } from '@/lib/database.types';
 
-export const metadata = { title: 'A TechMood company' };
+export const generateMetadata = localizedTitle('شركة على TechMood', 'A TechMood company');
 
 /**
  * The company as the world sees it.

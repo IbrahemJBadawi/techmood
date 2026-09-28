@@ -1,8 +1,10 @@
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { STARTUP_STAGES } from '@/lib/incubator';
+
+export const generateMetadata = localizedTitle('الحاضنة — TechMood', 'Incubator — TechMood');
 
 export default async function IncubatorPage() {
   const t = await getT();

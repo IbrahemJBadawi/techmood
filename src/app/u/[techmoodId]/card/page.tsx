@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import QRCode from 'qrcode';
 
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { createClient } from '@/lib/supabase/server';
 
 import { ProfileCard, type Card } from '../ProfileCard';
 import { ShareButtons } from './ShareButtons';
 import { siteOrigin } from '@/lib/site';
 
-export const metadata = { title: 'A TechMood identity card' };
+export const generateMetadata = localizedTitle('بطاقة هوية TechMood', 'A TechMood identity card');
 
 /**
  * The identity card on its own, at 9:16.

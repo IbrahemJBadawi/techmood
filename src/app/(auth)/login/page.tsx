@@ -1,13 +1,13 @@
 import Link from 'next/link';
 
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { AuthShell } from '../AuthShell';
 import { GoogleButton } from '../GoogleButton';
 import { isGoogleEnabled } from '@/lib/auth-providers';
 import { LoginForm } from './LoginForm';
 
-export const metadata = { title: 'Sign in — TechMood' };
+export const generateMetadata = localizedTitle('تسجيل الدخول — TechMood', 'Sign in — TechMood');
 
 export default async function LoginPage({
   searchParams,

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ACTIVE_ROLE_COOKIE, defaultRole } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
@@ -12,7 +12,7 @@ import { StudentHome } from './student/StudentHome';
 import { parseLeague } from './student/League';
 import { roleInScope } from '@/lib/scope';
 
-export const metadata = { title: 'Home — TechMood' };
+export const generateMetadata = localizedTitle('الرئيسية — TechMood', 'Home — TechMood');
 
 export default async function HomePage({
   searchParams,

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import { ROLE_STATUS_LABEL, ROLE_STATUS_TONE, SELECTABLE_ROLES, roleLabel } from '@/lib/roles';
 import type { RoleStatus, UserRole } from '@/lib/database.types';
@@ -9,7 +9,7 @@ import type { RoleStatus, UserRole } from '@/lib/database.types';
 import { MyRoles } from './MyRoles';
 import { roleInScope } from '@/lib/scope';
 
-export const metadata = { title: 'My roles — TechMood' };
+export const generateMetadata = localizedTitle('أدواري — TechMood', 'My roles — TechMood');
 
 const EVENT_LABEL: Record<string, Text> = {
   submitted:           { ar: 'أُرسل الطلب',             en: 'Request sent' },

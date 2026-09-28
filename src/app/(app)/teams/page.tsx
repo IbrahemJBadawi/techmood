@@ -5,8 +5,10 @@ import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
 import { avatarColor } from '@/lib/mentor-look';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TEAM_KIND, TEAM_STATUS } from '@/lib/teams';
+
+export const generateMetadata = localizedTitle('الفرق — TechMood', 'Teams — TechMood');
 
 export default async function TeamsPage() {
   const t = await getT();

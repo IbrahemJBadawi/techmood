@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { CASE_STATUS } from '@/lib/cases';
 import { TICKET_PRIORITY } from '@/lib/support';
 
-export const metadata = { title: 'Cases — TechMood admin' };
+export const generateMetadata = localizedTitle('القضايا — إدارة TechMood', 'Cases — TechMood admin');
 
 export default async function AdminCasesPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const { filter: raw } = await searchParams;

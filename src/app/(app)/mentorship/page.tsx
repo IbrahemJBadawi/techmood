@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate, formatDateTime, type Text } from '@/lib/i18n';
 import type { MentorshipGoalStatus } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
@@ -11,7 +11,7 @@ import { AskAI } from '@/components/AskAI';
 
 import { AddGoalForm, CloseGoalForm, LinkSessionForm } from './GoalForms';
 
-export const metadata = { title: 'Mentorship — TechMood' };
+export const generateMetadata = localizedTitle('الإرشاد — TechMood', 'Mentorship — TechMood');
 
 const GOAL_STATUS: Record<MentorshipGoalStatus, { label: Text; className: string }> = {
   active:   { label: { ar: 'مفتوح',     en: 'Open' },      className: 'status-pending' },

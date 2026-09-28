@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { IS_MVP } from '@/lib/scope';
 
-export const metadata = { title: 'Search — TechMood' };
+export const generateMetadata = localizedTitle('البحث — TechMood', 'Search — TechMood');
 
 /**
  * One search across the platform.

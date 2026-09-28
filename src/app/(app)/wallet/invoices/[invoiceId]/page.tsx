@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 import { PrintButton } from '@/app/verify/[code]/PrintButton';
 
-export const metadata = { title: 'Invoice — TechMood' };
+export const generateMetadata = localizedTitle('فاتورة — TechMood', 'Invoice — TechMood');
 
 /**
  * One invoice, laid out to print (0097). The print stylesheet drops the app

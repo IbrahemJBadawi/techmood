@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import type {
   ExperienceKind, LinkKind, ProfileAudience, ProfileSection, TaxonomyStatus,
@@ -17,7 +17,7 @@ import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { AutoSubmitSelect } from '@/components/AutoSubmitSelect';
 
-export const metadata = { title: 'Profile — TechMood' };
+export const generateMetadata = localizedTitle('الملف الشخصي — TechMood', 'Profile — TechMood');
 
 const SECTION_LABEL: Record<ProfileSection, Text> = {
   about:       { ar: 'النبذة',            en: 'About' },

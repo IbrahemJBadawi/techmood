@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLE_STATUS_LABEL, ROLE_STATUS_TONE, roleLabel } from '@/lib/roles';
 import type { RoleStatus, UserRole } from '@/lib/database.types';
 
 import { RequestReview } from './RequestReview';
 
-export const metadata = { title: 'Role requests — TechMood' };
+export const generateMetadata = localizedTitle('طلبات الأدوار — TechMood', 'Role requests — TechMood');
 
 const OPEN: RoleStatus[] = ['pending_review', 'needs_more_info'];
 

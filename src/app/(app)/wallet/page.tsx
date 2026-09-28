@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 import { PAYOUT_STATUS, TRANSACTION_FILTERS, signedMoney } from '@/lib/wallet';
@@ -12,7 +12,7 @@ import type { PayoutAccount } from '@/lib/database.types';
 import { PayoutPanel } from './PayoutPanel';
 import { PayerAccounts } from './PayerAccounts';
 
-export const metadata = { title: 'Wallet — TechMood' };
+export const generateMetadata = localizedTitle('المحفظة — TechMood', 'Wallet — TechMood');
 
 const TABS = ['overview', 'transactions', 'payments', 'invoices', 'earnings', 'withdrawals', 'methods', 'paying'] as const;
 type Tab = (typeof TABS)[number];

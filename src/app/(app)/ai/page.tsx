@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
-import { getLocale, getT } from '@/lib/i18n.server';
+import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
 import { ACTION_STATUS, PERMISSION, SCOPE, SURFACE } from '@/lib/ai';
 import { AiSurface } from '@/components/AiSurface';
 
-export const metadata = { title: 'AI — TechMood' };
+export const generateMetadata = localizedTitle('المساعد الذكي — TechMood', 'AI — TechMood');
 
 /**
  * Every journey the assistant has been part of.

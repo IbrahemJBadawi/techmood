@@ -4,10 +4,12 @@ import { redirect } from 'next/navigation';
 import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
-import { getT } from '@/lib/i18n.server';
+import { getT, localizedTitle } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { levelInfo } from '@/lib/xp';
 import { AiSurface } from '@/components/AiSurface';
+
+export const generateMetadata = localizedTitle('جواز المهارات — TechMood', 'Skills passport — TechMood');
 
 const ROLE_LABELS: Record<string, Text> = {
   student:     { ar: 'طالب',       en: 'Student' },
