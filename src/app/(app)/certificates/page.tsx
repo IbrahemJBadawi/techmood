@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { formatDate } from '@/lib/i18n';
 
 import { IssueCertificateButton } from './IssueCertificateButton';
 
@@ -49,54 +51,76 @@ export default async function CertificatesPage() {
   const claimableCourses = eligibleCourses.filter((course) => !issuedCourseIds.has(course.id));
   const claimablePaths = eligiblePaths.filter((path) => !issuedPathIds.has(path.id));
 
+  const readyCount = claimableCourses.length + claimablePaths.length;
+
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>{t('الشهادات', 'Certificates')}</h2>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
+        <h1 className="st-title" style={{ marginBottom: 4 }}>{t('شهاداتي', 'My certificates')}</h1>
+        <p className="muted" style={{ fontSize: '0.9rem', maxWidth: '70ch' }}>
           {t('كل شهادة تحمل رقماً فريداً ورمز QR يقود إلى صفحة تحقق عامة، ويمكن لأي جهة التأكد منها دون الحاجة لحساب.',
              'Every certificate carries a unique number and a QR code that lead to a public verification page — anyone can check it without an account.')}
         </p>
       </section>
 
-      {(claimableCourses.length > 0 || claimablePaths.length > 0) && (
-        <section className="panel section-block">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 12 }}>{t('جاهزة للإصدار', 'Ready to issue')}</h3>
-          {claimableCourses.map((course) => (
-            <div className="row-between" key={course.id} style={{ marginBottom: 10 }}>
-              <span style={{ fontSize: '0.9rem' }}>{course.title_ar}</span>
-              <IssueCertificateButton kind="course" targetId={course.id} />
+      {readyCount > 0 && (
+        <section className="ct-ready section-block">
+          <div className="ct-ready-head">
+            <span aria-hidden="true">🎉</span>
+            <div>
+              <strong>{t(`${readyCount} ${readyCount === 1 ? 'شهادة جاهزة' : 'شهادات جاهزة'} للإصدار`, `${readyCount} ready to issue`)}</strong>
+              <p>{t('أنهيت ما يلزم — أصدرها لتظهر على جوازك المهني.', 'You finished what it takes — issue it to put it on your passport.')}</p>
             </div>
-          ))}
-          {claimablePaths.map((path) => (
-            <div className="row-between" key={path.id} style={{ marginBottom: 10 }}>
-              <span style={{ fontSize: '0.9rem' }}>{path.title_ar}{t(' — شهادة مسار', ' — path certificate')}</span>
-              <IssueCertificateButton kind="path" targetId={path.id} />
-            </div>
-          ))}
+          </div>
+          <ul className="ct-ready-list">
+            {claimableCourses.map((course) => (
+              <li key={course.id}>
+                <span className="ct-ready-kind">{t('دورة', 'Course')}</span>
+                <span className="ct-ready-title">{course.title_ar}</span>
+                <IssueCertificateButton kind="course" targetId={course.id} />
+              </li>
+            ))}
+            {claimablePaths.map((path) => (
+              <li key={path.id}>
+                <span className="ct-ready-kind is-path">{t('مسار', 'Path')}</span>
+                <span className="ct-ready-title">{path.title_ar}</span>
+                <IssueCertificateButton kind="path" targetId={path.id} />
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
-      <section>
+      <section className="section-block">
         {(certificates?.length ?? 0) === 0 ? (
-          <p className="notice">
-            {t('لا شهادات بعد. أكمل دروس دورة كاملة واحصل على اعتماد منتور لأعمالها المطلوبة، وستظهر الشهادة هنا جاهزة للإصدار.',
-               'No certificates yet. Finish a whole course\u2019s lessons and get a mentor to approve its required work, and the certificate will appear here ready to issue.')}
-          </p>
+          <div className="hm-card hm-empty">
+            <span className="hm-empty-icon" aria-hidden="true">🎓</span>
+            <div>
+              <strong>{t('لا شهادات بعد', 'No certificates yet')}</strong>
+              <p className="muted">
+                {t('أكمل دروس دورة كاملة واحصل على اعتماد منتور لأعمالها المطلوبة، وستظهر الشهادة هنا جاهزة للإصدار.',
+                   'Finish a whole course\u2019s lessons and get a mentor to approve its required work, and the certificate will appear here ready to issue.')}
+              </p>
+            </div>
+            <Link className="btn btn-primary btn-sm" href="/academy">{t('إلى الأكاديمية', 'To the academy')}</Link>
+          </div>
         ) : (
-          <div className="card-grid">
+          <div className="ct-grid">
             {certificates!.map((certificate) => (
-              <article className="card" key={certificate.certificate_code}>
-                <span className="badge-pill">
-                  {certificate.kind === 'path' ? t('شهادة مسار', 'Path certificate') : t('شهادة دورة', 'Course certificate')}
-                </span>
-                <h3>{certificate.snapshot?.title}</h3>
-                <span className="id-chip">{certificate.certificate_code}</span>
-                <p className="muted eng" style={{ fontSize: '0.78rem' }}>
-                  {new Date(certificate.issued_at).toLocaleDateString('ar-EG')}
-                </p>
-                <Link className="btn btn-ghost btn-sm" href={`/verify/${certificate.certificate_code}`}>
-                  {t('عرض الشهادة والتحقق', 'View and verify')}
+              <article className={`ct-card${certificate.kind === 'path' ? ' is-path' : ''}`} key={certificate.certificate_code}>
+                <div className="ct-ribbon">
+                  <span className="ct-seal" aria-hidden="true">{certificate.kind === 'path' ? '🏆' : '🎓'}</span>
+                  <span>{certificate.kind === 'path' ? t('شهادة مسار', 'Path certificate') : t('شهادة دورة', 'Course certificate')}</span>
+                </div>
+                <div className="ct-body">
+                  <h3>{certificate.snapshot?.title}</h3>
+                  <p className="muted">
+                    {t('صدرت في ', 'Issued ')}<span className="date">{formatDate(t.locale, certificate.issued_at)}</span>
+                  </p>
+                  <span className="id-chip">{certificate.certificate_code}</span>
+                </div>
+                <Link className="ct-open" href={`/verify/${certificate.certificate_code}`}>
+                  {t('عرض الشهادة والتحقق', 'View and verify')} <Icon name="arrow" size={14} />
                 </Link>
               </article>
             ))}

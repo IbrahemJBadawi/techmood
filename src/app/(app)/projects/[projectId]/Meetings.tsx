@@ -38,7 +38,7 @@ export function Meetings({ projectId, meetings }: { projectId: string; meetings:
   const past = meetings.filter((row) => row.status !== 'scheduled' && row.status !== 'live');
 
   return (
-    <div className="panel section-block">
+    <div className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('اجتماعات المشروع', 'Project meetings')}</h3>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
         {t('اجتماع بينك وبين الطرف الآخر — بلا سعر وبلا وسيط. الغرفة هي غرفة TechMood نفسها، والحضور يُسجَّل.',

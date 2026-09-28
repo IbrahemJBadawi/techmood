@@ -17,9 +17,10 @@ import { escrowPayTo, type EscrowPayTo } from '@/lib/escrow-instructions';
 import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
 import {
-  ClientReviewForm, EscrowControls, EscrowProofForm, ESCROW_STATUS,
+  ClientReviewForm, EscrowControls, EscrowProofForm,
   OpenEscrowForm, SellForm, WithdrawListing, WorkerReviewForm,
 } from './Money';
+import { ESCROW_STATUS } from './escrow-status';
 import type { PaymentMethodPublic } from '@/lib/database.types';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
@@ -169,27 +170,31 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     <>
       <AiSurface surface="project" entityType="project" entityId={project.id} label={project.title_ar} />
 
-      <Link className="btn btn-ghost btn-sm" href={project.team_id ? `/teams/${project.team_id}/projects` : '/passport'}>
-        {t('→ رجوع', '← Back')}
-      </Link>
-      <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
-      {isParty && (
-        <Link className="btn btn-ghost btn-sm" href={`/support/new?type=project&id=${project.id}`}>
-          {t('مشكلة في هذا المشروع؟', 'A problem with this project?')}
+      <div className="pj-top">
+        <Link className="sp-back" href={project.team_id ? `/teams/${project.team_id}/projects` : '/passport'}>
+          {t('→ رجوع', '← Back')}
         </Link>
-      )}
+        <div className="pj-top-actions">
+          <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
+          {isParty && (
+            <Link className="btn btn-ghost btn-sm" href={`/support/new?type=project&id=${project.id}`}>
+              {t('مشكلة في هذا المشروع؟', 'A problem with this project?')}
+            </Link>
+          )}
+        </div>
+      </div>
 
-      <section className="panel section-block" style={{ marginTop: 16 }}>
-        <div className="row-between" style={{ alignItems: 'flex-start' }}>
-          <div>
-            <span className="id-chip">{project.code}</span>
-            <h2 style={{ fontSize: '1.2rem', marginTop: 8 }}>{project.title_ar}</h2>
-            <p className="muted" style={{ fontSize: '0.86rem', marginTop: 6 }}>
+      <section className={`pj-cover section-block is-${project.status}`}>
+        <div className="pj-cover-row">
+          <div style={{ minWidth: 0 }}>
+            <span className="pj-code">{project.code}</span>
+            <h1>{project.title_ar}</h1>
+            <p className="pj-meta">
               {t('ينفّذه ', 'Built by ')}{nameOf.get(project.owner_id) ?? '—'}
               {project.client_id && ` · ${t('لصالح ', 'for ')}${nameOf.get(project.client_id) ?? '—'}`}
             </p>
           </div>
-          <div style={{ textAlign: 'start', display: 'grid', gap: 8, justifyItems: 'start' }}>
+          <div className="pj-cover-side">
             <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
             <LikeButton
               projectId={projectId}
@@ -200,19 +205,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               path={`/projects/${projectId}`}
             />
             {project.agreed_amount_usd !== null && (
-              <p className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', marginTop: 8 }}>
-                ${project.agreed_amount_usd}
-              </p>
+              <p className="pj-amount">${project.agreed_amount_usd}</p>
             )}
           </div>
         </div>
 
         {project.description_ar && (
-          <p style={{ fontSize: '0.9rem', marginTop: 14, whiteSpace: 'pre-wrap' }}>{project.description_ar}</p>
+          <p className="pj-desc">{project.description_ar}</p>
         )}
 
         {isOwner && project.status !== 'completed' && (
-          <form action={setProjectStatus} className="row-actions" style={{ marginTop: 16 }}>
+          <form action={setProjectStatus} className="row-actions pj-status-form">
             <input type="hidden" name="project_id" value={projectId} />
             <button className="btn btn-ghost btn-sm" name="status" value="in_progress">
               {t('بدأت العمل', 'Started')}
@@ -227,17 +230,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
         )}
 
         {project.opportunity_id && (
-          <p className="muted" style={{ fontSize: '0.78rem', marginTop: 12 }}>
+          <p className="pj-note">
             {t('هذا العمل جاء من فرصة في السوق. ', 'This work came from an opening in the market. ')}
             <Link href={`/marketplace/${project.opportunity_id}`}>{t('افتح الفرصة', 'Open it')}</Link>
           </p>
         )}
       </section>
 
-      <div className="detail-grid">
+      <div className="detail-grid pj-grid">
         <section>
-          <div className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem' }}>{t('المواعيد', 'Milestones')}</h3>
+          <div className="hm-card section-block pj-card">
+            <h3 className="pj-h">{t('المواعيد', 'Milestones')}</h3>
             {(milestones ?? []).length === 0 ? (
               <p className="muted" style={{ fontSize: '0.86rem', marginTop: 8 }}>
                 {t('لا مواعيد بعد.', 'No dates yet.')}
@@ -257,8 +260,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
             {isOwner && <div style={{ marginTop: 14 }}><MilestoneForm projectId={projectId} /></div>}
           </div>
 
-          <div className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem' }}>{t('التسليمات', 'Deliverables')}</h3>
+          <div className="hm-card section-block pj-card">
+            <h3 className="pj-h">{t('التسليمات', 'Deliverables')}</h3>
             {(evidence ?? []).length === 0 ? (
               <p className="muted" style={{ fontSize: '0.86rem', marginTop: 8 }}>
                 {t('لم يُرفق شيء بعد.', 'Nothing attached yet.')}
@@ -273,7 +276,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                        target="_blank" rel="noreferrer noopener">
                       {item.label ?? item.url}
                     </a>
-                    <span className="muted eng">
+                    <span className="muted">
                       {' · '}{item.is_upload ? t('ملف مرفوع', 'uploaded file') : item.kind}
                     </span>
                   </li>
@@ -301,8 +304,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
 
           {holds.length > 0 && (
-            <div className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('المال', 'The money')}</h3>
+            <div className="hm-card section-block pj-card">
+              <h3 className="pj-h">{t('المال', 'The money')}</h3>
               <div className="stack" style={{ marginTop: 12 }}>
                 {holds.map((hold) => (
                   <article key={hold.id} style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
@@ -312,8 +315,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                         {t(ESCROW_STATUS[hold.status].text)}
                       </span>
                     </div>
-                    <p className="eng" style={{ fontWeight: 600, marginTop: 8 }}>
-                      {money(hold.amount_usd)}
+                    <p style={{ fontWeight: 700, marginTop: 8 }}>
+                      <bdi>{money(hold.amount_usd)}</bdi>
                       <span className="muted" style={{ fontWeight: 400, fontSize: '0.8rem' }}>
                         {' '}({t('عمولة', 'commission')} {money(hold.commission_usd)} · {t('صافي', 'net')} {money(hold.net_usd)})
                       </span>
@@ -365,8 +368,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
 
           {workerReview && (
-            <div className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('تقييم المنفّذ للعميل', 'What the freelancer said about the client')}</h3>
+            <div className="hm-card section-block pj-card">
+              <h3 className="pj-h">{t('تقييم المنفّذ للعميل', 'What the freelancer said about the client')}</h3>
               <p style={{ marginTop: 8 }}><Stars value={workerReview.stars} /></p>
               {workerReview.comment_ar && (
                 <p className="muted" style={{ fontSize: '0.86rem' }}>{workerReview.comment_ar}</p>
@@ -375,8 +378,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
 
           {review && (
-            <div className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('تقييم العميل', 'The client’s review')}</h3>
+            <div className="hm-card section-block pj-card">
+              <h3 className="pj-h">{t('تقييم العميل', 'The client’s review')}</h3>
               <p style={{ marginTop: 8 }}><Stars value={review.stars} /></p>
               {review.comment_ar && (
                 <p className="muted" style={{ fontSize: '0.86rem' }}>{review.comment_ar}</p>
@@ -387,7 +390,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           {canSell && <SellForm projectId={projectId} listing={listing ?? null} />}
 
           {isOwner && listing && listing.status === 'listed' && (
-            <div className="panel section-block">
+            <div className="hm-card section-block pj-card">
               <div className="row-between">
                 <span className="muted" style={{ fontSize: '0.86rem' }}>
                   {t('معروض للبيع بـ ', 'On sale for ')}<span className="eng">{money(listing.price_usd)}</span>
@@ -398,8 +401,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           )}
         </section>
 
-        <aside className="panel">
-          <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('ماذا بعد؟', 'What comes next')}</h3>
+        <aside className="hm-card pj-aside">
+          <h3 className="pj-h">{t('ماذا بعد؟', 'What comes next')}</h3>
 
           <ul className="plain-list" style={{ fontSize: '0.86rem' }}>
             <li>

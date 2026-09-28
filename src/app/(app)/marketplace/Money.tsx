@@ -5,7 +5,8 @@ import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import { money } from '@/lib/booking';
 
-import { ESCROW_STATUS, EscrowProofForm } from '../projects/[projectId]/Money';
+import { EscrowProofForm } from '../projects/[projectId]/Money';
+import { ESCROW_STATUS } from '../projects/[projectId]/escrow-status';
 import { escrowPayTo, type EscrowPayTo } from '@/lib/escrow-instructions';
 
 /**

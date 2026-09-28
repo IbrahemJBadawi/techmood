@@ -35,7 +35,7 @@ export function TeamSplit({ projectId, rows, canEdit, locked }: {
   const total = Object.values(values).reduce((sum, value) => sum + (Number(value) || 0), 0);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('تقسيم مستحقات الفريق', 'How the team is paid')}</h3>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
         {hasAgreement

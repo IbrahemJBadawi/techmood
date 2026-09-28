@@ -12,21 +12,12 @@ import type { EscrowPayTo } from '@/lib/escrow-instructions';
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
 import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
-import type { Text } from '@/lib/i18n';
 
 import {
   buyProject, escrowAction, listForSale, openEscrow, reviewClient, reviewWork,
   submitEscrowProof, withdrawListing, type MoneyState,
 } from './money-actions';
 
-export const ESCROW_STATUS: Record<EscrowStatus, { text: Text; className: string }> = {
-  awaiting_payment: { text: { ar: 'بانتظار الدفع', en: 'Awaiting payment' }, className: 'status-pending' },
-  funded:           { text: { ar: 'محتجز',         en: 'Held' },             className: 'status-ok' },
-  released:         { text: { ar: 'أُفرج عنه',      en: 'Released' },         className: 'status-ok' },
-  refunded:         { text: { ar: 'مسترد',         en: 'Refunded' },         className: 'status-muted' },
-  disputed:         { text: { ar: 'في نزاع',       en: 'Disputed' },         className: 'status-danger' },
-  cancelled:        { text: { ar: 'ملغى',          en: 'Cancelled' },        className: 'status-muted' },
-};
 
 
 /** What the person who did the work judges the client on. */
@@ -61,7 +52,7 @@ export function OpenEscrowForm({
   const [state, formAction, pending] = useActionState(openEscrow, undefined as MoneyState);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('ادفع للحساب المحتجز', 'Pay into escrow')}</h3>
       <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6, maxWidth: '62ch' }}>
         {t(`يبقى المبلغ محتجزاً لدى TechMood حتى تستلم العمل وتفرج عنه بنفسك. ${payeeName} يرى أنه وصل، ولا يستطيع سحبه قبل ذلك.`,
@@ -267,7 +258,7 @@ export function ClientReviewForm({ projectId }: { projectId: string }) {
   const [state, formAction, pending] = useActionState(reviewWork, undefined as MoneyState);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('قيّم هذا العمل', 'Review this work')}</h3>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
         {t('تقييمك يصبح جزءاً من سجلّ من نفّذ العمل، ويظهر على صفحته المهنية.',
@@ -326,7 +317,7 @@ export function SellForm({
   const [state, formAction, pending] = useActionState(listForSale, undefined as MoneyState);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('اعرضه للبيع', 'Put it up for sale')}</h3>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6, maxWidth: '62ch' }}>
         {t('البيع ينقل العمل، لا نسبته إليك: تبقى مشاركتك في المعرض وتقييمها ومهاراتها في سجلّك مهما تغيّر المالك.',
@@ -453,7 +444,7 @@ export function WorkerReviewForm({ projectId }: { projectId: string }) {
   const [state, formAction, pending] = useActionState(reviewClient, undefined as MoneyState);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card section-block pj-card">
       <h3 style={{ fontSize: '0.98rem' }}>{t('قيّم هذا العميل', 'Review this client')}</h3>
       <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
         {t('يقرأه من يفكّر في العمل معه لاحقاً — كما يقرأ العملاء سجلّك أنت.',
