@@ -134,10 +134,11 @@ deliberate — it is what stops work from disappearing into a chat thread.
 ever exposes tasks, chat or documents, and the RLS policies name the leader
 explicitly so a creator can read back the team they just made.
 
-Conversations are never created by a person. All four kinds are opened by the
-database: an admin thread when an account is created, a team chat when a team
-is, a mentor conversation when a booking is confirmed, and a path conversation
-when a path is published. Members join and leave the team chat with their
+Conversations are never created by a person. They are opened by the database:
+an admin thread when an account is created, a team chat when a team is, and a
+path conversation when a path is published; every account is also in the one
+TechMood channel (0092), where only an admin writes. A booking or a market hire
+opens no chat at all — see *No private chat where money passes* below. Members join and leave the team chat with their
 membership, and enrolling in a path joins its chat. There is no "new chat",
 because every conversation must be backed by a relationship that already exists.
 
@@ -1073,9 +1074,9 @@ What deliberately does not exist: connects to spend, hundreds of unread bids, a
 race to the cheapest.
 
 The talking goes where talking already happens. `conversations` gained
-`application_id` and a `market` kind, and shortlisting somebody opens one with
-both sides in it — the same Messages surface, with its read state and replies,
-rather than a second inbox nobody checks.
+`application_id` and a `market` kind, and shortlisting somebody opened one with
+both sides in it. 0092 closed that again: money passes between client and
+freelancer, so the negotiation rounds — each with its sentence — are the record.
 
 ### The client's judgement, and meters that are finally computed
 
@@ -1757,3 +1758,29 @@ stylesheet and no change to the design system.
 Numbers use Latin digits in both languages. They sit next to code, prices and
 XP, and switching digit shapes between screens reads as a bug rather than as a
 translation.
+
+## Founder's pricing, no money chats, the TechMood channel (0090–0092)
+
+**Pricing (0090).** Sessions run from 10$ to 150$ an hour across the six level
+bands; TechMood takes 30% at every level except level 1, whose default 15$
+session stays 5$ + 10$ (33.33%). A finished project sold in the market pays a
+flat 15%. These are starting values; Admin → Pricing edits all of them, and a
+booking keeps the figures it was made with.
+
+**No private chat where money passes (0092).** A learner and the mentor they
+pay, or a client and the freelancer they hire, get no private chat: it is where
+a deal leaves the platform, where a refund dispute has no record, and where
+somebody gets pressured. The booking page, the session room, the evaluation and
+the rating carry a session; the negotiation rounds and the work's tasks carry
+market work; Support carries a problem. Confirming a booking and shortlisting an
+applicant no longer open a conversation, the ones that existed were closed with
+a note and kept read-only as history, and a trigger refuses the two kinds on
+insert so no later function can reopen one.
+
+**The TechMood channel.** One `channel` conversation; every account is a
+participant from the moment it exists, so unread counts and the Messages list
+needed no new rule. The send policy lets a participant write anywhere except
+the channel, and an admin write in the admin threads and the channel. Channel
+posts may carry links — the no-links rule protects people from each other — and
+the page shows them as TechMood's, pinned above every other conversation.
+

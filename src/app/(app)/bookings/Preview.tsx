@@ -111,10 +111,6 @@ export async function Preview({ entry }: { entry: Entry }) {
           {isBooking ? t('تفاصيل الحجز', 'View booking') : t('افتح', 'Open')}
         </Link>
 
-        {booking && (
-          <Link className="btn btn-ghost btn-sm" href="/messages">{t('المحادثة', 'Open chat')}</Link>
-        )}
-
         {room && (phase === 'lobby' || phase === 'live') && (
           <Link className="btn btn-primary btn-sm" href={`/sessions/${room.id}`}>
             {t('ادخل الجلسة', 'Join session')}

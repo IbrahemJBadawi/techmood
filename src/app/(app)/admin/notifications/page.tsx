@@ -31,13 +31,14 @@ export default async function AdminNotificationsPage() {
     return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
-  const [{ data: drafts }, { data: log }, { data: outbox }] = await Promise.all([
+  const [{ data: drafts }, { data: log }, { data: outbox }, { data: channel }] = await Promise.all([
     supabase.from('notification_broadcasts')
       .select('id, kind, title_ar, body_ar, link, priority, audience_role, created_at')
       .is('sent_at', null)
       .order('created_at', { ascending: false }),
     supabase.rpc('broadcast_log'),
     supabase.from('email_outbox').select('status'),
+    supabase.rpc('channel_id'),
   ]);
 
   const mail = { queued: 0, sent: 0, failed: 0 };
@@ -54,6 +55,11 @@ export default async function AdminNotificationsPage() {
           <h2 style={{ fontSize: '1.2rem' }}>{t('الإعلانات', 'Announcements')}</h2>
           <Link className="btn btn-ghost btn-sm" href="/admin">{t('لوحة الإدارة', 'Admin panel')}</Link>
         </div>
+        <p className="muted" style={{ fontSize: '0.86rem', marginTop: 6 }}>
+          {t('الإعلان هنا يصل كإشعار لمن تختار. ولمنشور يبقى في رسائل الجميع (أخبار، فعاليات، روابط) اكتب في ',
+             'An announcement here arrives as a notification to whoever you choose. For a post that stays in everybody’s Messages (news, events, links), write in ')}
+          <Link href={channel ? `/messages?c=${channel}` : '/messages'}>{t('قناة TechMood', 'the TechMood channel')}</Link>.
+        </p>
       </section>
 
       <section className="stat-strip">

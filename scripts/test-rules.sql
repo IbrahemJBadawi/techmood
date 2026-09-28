@@ -451,8 +451,8 @@ select public.assert(
   '6.12 payment verified + mentor accepted = confirmed');
 
 select public.assert(
-  (select count(*) from public.conversations where booking_id = :'booking') = 1,
-  '6.13 confirming a booking opens its mentor conversation');
+  (select count(*) from public.conversations where booking_id = :'booking') = 0,
+  '6.13 confirming a booking opens no private chat — money passes between the two (0092)');
 
 -- Payment proof privacy: the mentor is a party to the session, not to the receipt.
 set role authenticated;
@@ -487,7 +487,9 @@ select public.assert(
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
-select id as conv from public.conversations where booking_id = :'booking' \gset
+select c.id as conv from public.conversations c
+  join public.conversation_participants cp on cp.conversation_id = c.id
+ where c.kind = 'admin' and cp.profile_id = '11111111-1111-1111-1111-111111111111' \gset
 
 select public.assert_rejects(
   format($$insert into public.messages (conversation_id, sender_id, body_ar)
@@ -1207,7 +1209,8 @@ values (:'sara_admin_conv', '44444444-4444-4444-4444-444444444444', 'أهلاً 
 reset role;
 
 select public.assert(
-  (select count(*) from public.messages where conversation_id = :'sara_admin_conv') = 2,
+  (select count(*) from public.messages where conversation_id = :'sara_admin_conv'
+      and sender_id = '44444444-4444-4444-4444-444444444444') = 1,
   '14.10 an admin can answer a support thread without joining it first');
 
 -- ===========================================================================
@@ -4931,17 +4934,15 @@ select public.assert(
   (select count(*) from public.proposal_terms where application_id = :'gig_app') = 2,
   '44.5 and every round is kept — the agreed price is the last accepted one, not the only one');
 
--- The talking happens in the Messages that already exist.
+-- Money passes between client and freelancer, so no private chat opens
+-- (0092): the rounds above, each with its sentence, are the conversation.
 select public.assert(
-  (select count(*) from public.conversations
-    where application_id = :'gig_app' and kind = 'market') = 1,
-  '44.6 shortlisting somebody opens a conversation where conversations already live');
+  (select count(*) from public.conversations where application_id = :'gig_app') = 0,
+  '44.6 shortlisting somebody opens no private chat — the negotiation rounds are the record');
 
 select public.assert(
-  (select count(*) from public.conversation_participants cp
-    join public.conversations c on c.id = cp.conversation_id
-   where c.application_id = :'gig_app') = 2,
-  '44.7 with both sides in it, and nobody else');
+  (select count(message_ar) from public.proposal_terms where application_id = :'gig_app') >= 1,
+  '44.7 and each round carries its own sentence, so the reasoning is still there');
 
 -- ===========================================================================
 -- 45. The client's judgement, and meters that are computed
@@ -7404,7 +7405,7 @@ reset request.jwt.claim.sub;
 
 select c.id as mentor_conv from public.conversations c
   join public.conversation_participants cp on cp.conversation_id = c.id
- where cp.profile_id = '33333333-3333-3333-3333-333333333333' and c.kind <> 'admin' limit 1 \gset
+ where cp.profile_id = '33333333-3333-3333-3333-333333333333' and c.kind not in ('admin', 'channel') limit 1 \gset
 select c.id as mentor_admin_conv from public.conversations c
   join public.conversation_participants cp on cp.conversation_id = c.id
  where cp.profile_id = '33333333-3333-3333-3333-333333333333' and c.kind = 'admin' limit 1 \gset
@@ -7655,6 +7656,53 @@ select public.assert(
   and (select count(*) from public.kb_articles where slug = 'draft-article') = 0
   and (select count(*) from public.kb_articles where slug = 'payment-under-review') = 1,
   '64.16 a draft article is the admins''; a published one is everyone''s');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 65. No private chat where money passes; one channel from TechMood
+-- ===========================================================================
+select public.assert_rejects(
+  format($$insert into public.conversations (kind, booking_id, title_ar) values ('mentor_booking', %L, 'x')$$, :'booking'),
+  '65.1 no function can open a chat between a learner and the mentor they pay',
+  'no private conversations');
+
+select public.assert_rejects(
+  format($$insert into public.conversations (kind, application_id, title_ar) values ('market', %L, 'x')$$, :'gig_app'),
+  '65.2 nor between a client and the freelancer they hire',
+  'no private conversations');
+
+select public.assert(
+  (select count(*) from public.conversations where kind = 'channel') = 1
+  and (select count(*) from public.conversation_participants where conversation_id = public.channel_id())
+      = (select count(*) from public.profiles),
+  '65.3 there is one TechMood channel, and every account is in it from the moment it exists');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$insert into public.messages (conversation_id, sender_id, body_ar)
+    values (public.channel_id(), '11111111-1111-1111-1111-111111111111', 'مرحبا')$$,
+  '65.4 in the channel a member reads; they do not write');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (public.channel_id(), '44444444-4444-4444-4444-444444444444',
+        'ورشة جديدة يوم الخميس — التفاصيل: https://techmood.example/workshops');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.messages where conversation_id = public.channel_id()) = 1
+  and (select unread_count from public.conversation_unread
+        where conversation_id = public.channel_id()
+          and profile_id = '22222222-2222-2222-2222-222222222222') = 1,
+  '65.5 an admin posts (a link included), and everybody sees it as unread in their Messages');
 reset role;
 reset request.jwt.claim.sub;
 

@@ -135,7 +135,7 @@ export type TaskColumn = 'todo' | 'doing' | 'blocked' | 'review' | 'done';
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type SprintStatus = 'planned' | 'active' | 'review' | 'closed';
 export type MessageReaction = 'like' | 'love' | 'laugh' | 'wow' | 'thanks' | 'celebrate';
-export type ConversationKind = 'admin' | 'team' | 'mentor_booking' | 'learning_path';
+export type ConversationKind = 'channel' | 'admin' | 'team' | 'mentor_booking' | 'market' | 'learning_path';
 export type ProjectStatus = 'planning' | 'in_progress' | 'in_review' | 'completed' | 'sold' | 'archived';
 export type StartupStage =
   | 'idea' | 'validation' | 'business_model' | 'mvp'
@@ -2483,6 +2483,7 @@ export type Database = {
         }[];
       };
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      channel_id: { Args: Record<string, never>; Returns: string };
       is_mentor: { Args: Record<string, never>; Returns: boolean };
       session_quote: {
         Args: { p_mentor: string; p_session_type: string };

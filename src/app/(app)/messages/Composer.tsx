@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef } from 'react';
 import { sendMessage, type MessageState } from './actions';
 import { useT } from '@/lib/i18n.client';
 
-export function Composer({ conversationId, readOnly }: { conversationId: string; readOnly: boolean }) {
+export function Composer({ conversationId, readOnly, note }: { conversationId: string; readOnly: boolean; note?: string }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(sendMessage, undefined as MessageState);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -19,7 +19,7 @@ export function Composer({ conversationId, readOnly }: { conversationId: string;
     return (
       <div className="chat-composer">
         <p className="muted" style={{ fontSize: '0.84rem', margin: 'auto' }}>
-          {t('هذه المحادثة للقراءة فقط — انتهت العلاقة التي أنشأتها.', 'This conversation is read-only — the relationship that created it has ended.')}
+          {note ?? t('هذه المحادثة للقراءة فقط — انتهت العلاقة التي أنشأتها.', 'This conversation is read-only — the relationship that created it has ended.')}
         </p>
       </div>
     );

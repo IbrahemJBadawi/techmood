@@ -11,18 +11,31 @@ import { Reactions } from './Reactions';
 import { markRead } from './actions';
 
 const KIND_ICON: Record<ConversationKind, string> = {
+  channel: '📣',
   admin: '🛡️',
   team: '👥',
   mentor_booking: '🎓',
+  market: '🤝',
   learning_path: '📚',
 };
 
 const KIND_LABEL: Record<ConversationKind, Text> = {
+  channel:        { ar: 'قناة TechMood',  en: 'TechMood channel' },
   admin:          { ar: 'إدارة TechMood', en: 'TechMood team' },
   team:           { ar: 'فريق',           en: 'Team' },
-  mentor_booking: { ar: 'منتور',          en: 'Mentor' },
+  mentor_booking: { ar: 'منتور (مغلقة)',  en: 'Mentor (closed)' },
+  market:         { ar: 'سوق (مغلقة)',    en: 'Market (closed)' },
   learning_path:  { ar: 'مسار تعلّم',     en: 'Learning path' },
 };
+
+/** Channel posts are TechMood's own, so their links open; nobody else's do. */
+function withLinks(text: string) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
+    /^https?:\/\//.test(part)
+      ? <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="eng">{part}</a>
+      : part,
+  );
+}
 
 export default async function MessagesPage({
   searchParams,
@@ -46,7 +59,7 @@ export default async function MessagesPage({
   const conversationIds = (myParticipations ?? []).map((row) => row.conversation_id);
   const placeholder = ['00000000-0000-0000-0000-000000000000'];
 
-  const [{ data: conversations }, { data: unread }] = await Promise.all([
+  const [{ data: conversations }, { data: unread }, { data: isAdmin }] = await Promise.all([
     supabase
       .from('conversations')
       .select('id, kind, title_ar, team_id, booking_id, path_id, is_read_only, archived_at')
@@ -55,11 +68,14 @@ export default async function MessagesPage({
       .from('conversation_unread')
       .select('conversation_id, unread_count, last_message_at')
       .eq('profile_id', user.id),
+    supabase.rpc('is_admin'),
   ]);
 
   const unreadById = new Map((unread ?? []).map((row) => [row.conversation_id, row]));
 
+  // The channel stays on top, like a pinned chat; the rest by latest message.
   const ordered = [...(conversations ?? [])].sort((a, b) => {
+    if ((a.kind === 'channel') !== (b.kind === 'channel')) return a.kind === 'channel' ? -1 : 1;
     const aTime = unreadById.get(a.id)?.last_message_at ?? '';
     const bTime = unreadById.get(b.id)?.last_message_at ?? '';
     return bTime.localeCompare(aTime);
@@ -129,21 +145,29 @@ export default async function MessagesPage({
   }
 
   const bodyById = new Map(messages.map((row) => [row.id, row.body_ar]));
-  const readOnly = Boolean(active?.is_read_only || active?.archived_at);
+  const isChannel = active?.kind === 'channel';
+  const readOnly = Boolean(active?.is_read_only || active?.archived_at || (isChannel && isAdmin !== true));
+  const readOnlyNote = isChannel
+    ? t('قناة TechMood للقراءة: أخبار المنصة والفعاليات والتنبيهات المهمة. للتواصل مع الإدارة استخدم محادثة «إدارة TechMood» أو الدعم.',
+        'The TechMood channel is read-only: platform news, events and important notices. To reach the team, use the «TechMood team» thread or Support.')
+    : active?.kind === 'mentor_booking' || active?.kind === 'market'
+      ? t('أُغلقت: لا محادثات خاصة بين طرفين بينهما دفع. التفاصيل في صفحة الحجز أو المشروع، ولأي مشكلة افتح تذكرة دعم.',
+          'Closed: no private chats between two parties money passes between. Details are on the booking or project page; for any problem, open a support ticket.')
+      : undefined;
 
   return (
     <>
       <section className="section-block">
         <h2 style={{ fontSize: '1.2rem' }}>{t('الرسائل', 'Messages')}</h2>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
-          {t('محادثات تنشأ من علاقاتك داخل TechMood: الإدارة، فرقك، منتور حجزت معه، ومسار التحقت به. بلا روابط ولا ملفات ولا منشورات.',
-             'Conversations that come from your actual relationships on TechMood: the team, your teams, a mentor you booked, a path you joined. No links, no files, no posts.')}
+          {t('قناة TechMood، ومحادثتك مع الإدارة، وفرقك، والمسارات التي التحقت بها. لا محادثات خاصة بين طرفين بينهما دفع — الجلسات والأعمال لها صفحاتها وسجلها. بلا روابط ولا ملفات.',
+             'The TechMood channel, your thread with the team, your teams and the paths you joined. No private chats between two parties money passes between — sessions and work have their own pages and record. No links, no files.')}
         </p>
       </section>
 
       {ordered.length === 0 ? (
         <p className="notice">
-          {t('لا محادثات بعد. تُفتح المحادثة تلقائياً عند انضمامك لفريق، أو تأكيد حجز مع منتور.', 'No conversations yet. One opens by itself when you join a team, or when a mentor booking is confirmed.')}
+          {t('لا محادثات بعد. تُفتح المحادثة تلقائياً عند انضمامك لفريق أو التحاقك بمسار.', 'No conversations yet. One opens by itself when you join a team or a path.')}
         </p>
       ) : (
         <div className="chat-shell">
@@ -244,10 +268,10 @@ export default async function MessagesPage({
                           )}
                           {!mine && (
                             <span className="b-meta" style={{ marginTop: 0, marginBottom: 4 }}>
-                              {nameById.get(message.sender_id ?? '') ?? t('عضو', 'A member')}
+                              {isChannel ? 'TechMood' : nameById.get(message.sender_id ?? '') ?? t('عضو', 'A member')}
                             </span>
                           )}
-                          {message.body_ar}
+                          {isChannel ? withLinks(message.body_ar) : message.body_ar}
                           <span className="b-meta eng">
                             {new Date(message.created_at).toLocaleTimeString('ar-EG', {
                               hour: '2-digit',
@@ -262,7 +286,7 @@ export default async function MessagesPage({
                   })}
                 </div>
 
-                <Composer conversationId={active.id} readOnly={readOnly} />
+                <Composer conversationId={active.id} readOnly={readOnly} note={readOnlyNote} />
               </>
             )}
           </section>

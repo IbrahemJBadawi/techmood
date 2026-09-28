@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 802 business-rule assertions
+scripts/test.sh                   # 807 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -237,7 +237,7 @@ of your TechMood identity and a proposal rather than a CV; and the workspace an
 accepted application opens, which both sides can see.
 
 Also built: escrow with tiered commissions, a negotiation that keeps every
-round, market conversations inside the existing Messages, client reviews that
+round (no private chat between the two sides — 0092), client reviews that
 follow released money, reputation meters computed from real records rather than
 typed in, and finished projects listed and sold — where a sale moves the work
 and never the authorship.
