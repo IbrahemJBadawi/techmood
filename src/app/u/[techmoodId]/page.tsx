@@ -198,7 +198,7 @@ export default async function PublicProfilePage({
         <ProfileCard card={card} qrDataUrl={qrDataUrl} profileUrl={profileUrl} locale={locale} />
         <div className="identity-actions no-print">
           {viewer?.id === card.profile_id ? (
-            <span className="badge-pill eng">{t(`${follow?.followers ?? 0} متابِع`, `${follow?.followers ?? 0} followers`)}</span>
+            <span className="badge-pill">{t(`${follow?.followers ?? 0} متابِع`, `${follow?.followers ?? 0} followers`)}</span>
           ) : (
             <FollowButton
               profileId={card.profile_id}
