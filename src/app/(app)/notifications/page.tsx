@@ -3,13 +3,20 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
-import { formatDateTime } from '@/lib/i18n';
+import { formatDate, intlTag } from '@/lib/i18n';
+import { Icon } from '@/components/Icon';
 import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from '../shell/actions';
 
 export const metadata = { title: 'Notifications — TechMood' };
+
+const KIND_COLOR: Partial<Record<NotificationKind, string>> = {
+  academy: '#2F6BFF', evaluation: '#7C5CFF', booking: '#0B8FB3', team: '#0E9F6E',
+  work: '#E8590C', project: '#C77700', message: '#2F6BFF', certificate: '#0E9F6E',
+  payment: '#16A36A', role_review: '#7C5CFF', security: '#D6336C', system: '#E8590C', support: '#0B8FB3',
+};
 
 /**
  * Everything the platform has told this person.
@@ -63,8 +70,10 @@ export default async function NotificationsPage({
     const day = new Date(iso).toDateString();
     if (day === today) return t('اليوم', 'Today');
     if (day === yesterday) return t('أمس', 'Yesterday');
-    return formatDateTime(locale, iso).split('،')[0];
+    return formatDate(locale, iso);
   };
+  const timeOf = (iso: string) =>
+    new Intl.DateTimeFormat(intlTag(locale), { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
   const groups: { label: string; rows: NonNullable<typeof items> }[] = [];
   for (const item of items ?? []) {
@@ -75,97 +84,98 @@ export default async function NotificationsPage({
   }
 
   return (
-    <>
-      <section className="section-block">
-        <div className="row-between">
-          <div>
-            <h2 style={{ fontSize: '1.2rem' }}>{t('الإشعارات', 'Notifications')}</h2>
-            <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6, maxWidth: '64ch' }}>
-              {t('كل ما أخبرتك به المنصة، وكل إشعار يفتح الشيء نفسه لا صفحة عامة. المحادثات في «الرسائل» — هنا الأحداث.',
-                 'Everything the platform has told you, and each one opens the thing itself rather than a general page. Conversations live in Messages — events live here.')}
-            </p>
-          </div>
+    <div className="nt-page">
+      <section className="nt-head section-block">
+        <div>
+          <h2>
+            {t('الإشعارات', 'Notifications')}
+            {totalUnread > 0 && <span className="nt-badge">{totalUnread}</span>}
+          </h2>
+          <p className="muted">
+            {t('كل إشعار يفتح الشيء نفسه. المحادثات في «الرسائل» — هنا الأحداث.',
+               'Each one opens the thing itself. Conversations live in Messages — events live here.')}
+          </p>
+        </div>
+        <div className="nt-actions">
+          {totalUnread > 0 && (
+            <form action={markNotificationsRead}>
+              <button className="btn btn-ghost btn-sm"><Icon name="check" size={14} /> {t('تعليم الكل كمقروء', 'Mark all read')}</button>
+            </form>
+          )}
+          <Link className="nt-gear" href="/settings/notifications" aria-label={t('إعدادات الإشعارات', 'Notification settings')}
+                title={t('إعدادات الإشعارات', 'Notification settings')}>
+            <Icon name="settings" size={18} />
+          </Link>
+        </div>
+      </section>
 
-          <div className="row-actions">
-            <Link className="btn btn-ghost btn-sm" href="/settings/notifications">
-              {t('إعدادات الإشعارات', 'Notification settings')}
+      <nav className="nt-filters section-block" aria-label={t('تصفية', 'Filter')}>
+        <Link className={`nt-chip${!kind && !unreadOnly ? ' is-on' : ''}`} href="/notifications">
+          {t('الكل', 'All')}
+        </Link>
+        <Link className={`nt-chip${unreadOnly ? ' is-on' : ''}`} href={href({ unread: unreadOnly ? '' : '1' })}>
+          {t('غير المقروء', 'Unread')}
+          {totalUnread > 0 && <span className="nt-chip-count">{totalUnread}</span>}
+        </Link>
+        {NOTIFICATION_ORDER.map((option) => {
+          const count = countOf.get(option);
+          if (!count || count.total === 0) return null;
+          return (
+            <Link className={`nt-chip${kind === option ? ' is-on' : ''}`} href={href({ kind: kind === option ? '' : option })} key={option}>
+              <span aria-hidden="true">{NOTIFICATION_KIND[option].icon}</span> {t(NOTIFICATION_KIND[option].label)}
+              {count.unread > 0 && <span className="nt-chip-count">{count.unread}</span>}
             </Link>
-            {totalUnread > 0 && (
-              <form action={markNotificationsRead}>
-                <button className="btn btn-primary btn-sm">{t('تعليم الكل كمقروء', 'Mark all as read')}</button>
-              </form>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="filter-row">
-          <Link className={`chip${!kind ? ' is-active' : ''}`} href={href({ kind: '' })}>
-            {t('الكل', 'All')}
-          </Link>
-          <Link className={`chip${unreadOnly ? ' is-active' : ''}`} href={href({ unread: unreadOnly ? '' : '1' })}>
-            {t('غير المقروء', 'Unread')}
-            {totalUnread > 0 && <span className="eng"> {totalUnread}</span>}
-          </Link>
-          {NOTIFICATION_ORDER.map((option) => {
-            const count = countOf.get(option);
-            if (!count || count.total === 0) return null;
-
-            return (
-              <Link className={`chip${kind === option ? ' is-active' : ''}`} href={href({ kind: option })} key={option}>
-                {NOTIFICATION_KIND[option].icon} {t(NOTIFICATION_KIND[option].label)}
-                {count.unread > 0 && <span className="eng"> {count.unread}</span>}
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+          );
+        })}
+      </nav>
 
       {(items ?? []).length === 0 ? (
-        <div className="panel empty-state">
-          <h3 style={{ fontSize: '0.98rem' }}>{t('لا شيء هنا', 'Nothing here')}</h3>
-          <p className="muted" style={{ fontSize: '0.86rem' }}>
-            {t('جرّب فلتراً آخر، أو عد لاحقاً.', 'Try another filter, or come back later.')}
+        <div className="hm-card nt-empty">
+          <span aria-hidden="true">🔔</span>
+          <h3>{unreadOnly ? t('قرأت كل شيء', 'All caught up') : t('لا شيء هنا', 'Nothing here')}</h3>
+          <p className="muted">
+            {unreadOnly
+              ? t('لا إشعارات غير مقروءة.', 'No unread notifications.')
+              : t('جرّب فلتراً آخر، أو عد لاحقاً.', 'Try another filter, or come back later.')}
           </p>
         </div>
       ) : (
         groups.map((group) => (
           <section className="section-block" key={group.label}>
-            <h3 className="academy-heading">{group.label}</h3>
-            <div className="stack">
-              {group.rows.map((item) => (
-                <article className={`panel notification-row${item.is_read ? '' : ' is-unread'}`} key={item.id}>
-                  <span className="notification-icon" aria-hidden="true">
-                    {NOTIFICATION_KIND[item.kind].icon}
-                  </span>
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="row-between" style={{ gap: 10 }}>
-                      <strong style={{ fontSize: '0.94rem' }}>{item.title_ar}</strong>
-                      {item.priority !== 'normal' && (
-                        <span className={`status-pill ${PRIORITY[item.priority].className}`}>
-                          {t(PRIORITY[item.priority].label)}
-                        </span>
-                      )}
-                    </div>
-                    {item.body_ar && (
-                      <p className="muted" style={{ fontSize: '0.85rem', marginTop: 4 }}>{item.body_ar}</p>
-                    )}
-                    <p className="muted" style={{ fontSize: '0.76rem', marginTop: 4 }}>
-                      {t(NOTIFICATION_KIND[item.kind].label)} · {formatDateTime(locale, item.created_at)}
-                    </p>
-                  </div>
-
-                  {item.link && (
-                    <Link className="btn btn-ghost btn-sm" href={item.link}>{t('افتح', 'Open')}</Link>
-                  )}
-                </article>
-              ))}
-            </div>
+            <h3 className="nt-day">{group.label}</h3>
+            <ul className="nt-list">
+              {group.rows.map((item) => {
+                const look = NOTIFICATION_KIND[item.kind];
+                const body = (
+                  <>
+                    <span className="nt-icon" style={{ background: `color-mix(in srgb, ${KIND_COLOR[item.kind] ?? '#5B6B7C'} 14%, transparent)` }} aria-hidden="true">
+                      {look.icon}
+                    </span>
+                    <span className="nt-main">
+                      <span className="nt-title">
+                        <strong>{item.title_ar}</strong>
+                        {item.priority === 'critical' || item.priority === 'important' ? (
+                          <span className={`status-pill ${PRIORITY[item.priority].className}`}>{t(PRIORITY[item.priority].label)}</span>
+                        ) : null}
+                      </span>
+                      {item.body_ar && <span className="nt-body">{item.body_ar}</span>}
+                      <span className="nt-meta">{t(look.label)} · {timeOf(item.created_at)}</span>
+                    </span>
+                    {!item.is_read && <span className="nt-dot" aria-label={t('غير مقروء', 'Unread')} />}
+                  </>
+                );
+                return (
+                  <li key={item.id} className={item.is_read ? undefined : 'is-unread'}>
+                    {item.link
+                      ? <Link className="nt-row" href={item.link}>{body}</Link>
+                      : <div className="nt-row">{body}</div>}
+                  </li>
+                );
+              })}
+            </ul>
           </section>
         ))
       )}
-    </>
+    </div>
   );
 }
