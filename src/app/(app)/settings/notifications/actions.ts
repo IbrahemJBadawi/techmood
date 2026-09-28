@@ -32,6 +32,7 @@ export async function saveNotificationPreferences(
     kind,
     in_app: formData.get(`in_app-${kind}`) === 'on',
     email: formData.get(`email-${kind}`) === 'on',
+    push: formData.get(`push-${kind}`) === 'on',
   }));
 
   if (rows.length === 0) return { error: t('لا شيء لحفظه.', 'Nothing to save.') };
@@ -42,4 +43,26 @@ export async function saveNotificationPreferences(
   if (error) return { error: t('تعذّر الحفظ.', 'That could not be saved.') };
 
   return { ok: t('حُفظت تفضيلاتك.', 'Your choices are saved.') };
+}
+
+/** This device's push subscription (0100), as the browser gave it. */
+export async function savePushSubscription(subscription: {
+  endpoint: string; p256dh: string; auth: string; userAgent: string;
+}): Promise<{ error?: string }> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('save_push_subscription', {
+    p_endpoint: subscription.endpoint,
+    p_p256dh: subscription.p256dh,
+    p_auth: subscription.auth,
+    p_user_agent: subscription.userAgent.slice(0, 300),
+  });
+  revalidatePath('/settings/notifications');
+  return error ? { error: t('تعذّر تفعيل الإشعارات على هذا الجهاز.', 'Device notifications could not be turned on.') } : {};
+}
+
+export async function removePushSubscription(endpoint: string): Promise<void> {
+  const supabase = await createClient();
+  await supabase.rpc('remove_push_subscription', { p_endpoint: endpoint });
+  revalidatePath('/settings/notifications');
 }

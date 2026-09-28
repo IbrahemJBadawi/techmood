@@ -1296,10 +1296,10 @@ export type Database = {
       }>;
       notification_categories: Table<{
         kind: NotificationKind; title_ar: string; detail_ar: string | null;
-        in_app_default: boolean; email_default: boolean; is_mandatory: boolean; sort_order: number;
+        in_app_default: boolean; email_default: boolean; push_default: boolean; is_mandatory: boolean; sort_order: number;
       }>;
       notification_preferences: Table<{
-        profile_id: string; kind: NotificationKind; in_app: boolean; email: boolean; updated_at: string;
+        profile_id: string; kind: NotificationKind; in_app: boolean; email: boolean; push: boolean; updated_at: string;
       }>;
       email_outbox: Table<{
         id: string; notification_id: string | null; profile_id: string; to_email: string;
@@ -2649,6 +2649,12 @@ export type Database = {
         };
         Returns: undefined;
       };
+      push_public_key: { Args: Record<string, never>; Returns: string | null };
+      save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null };
+        Returns: undefined;
+      };
+      remove_push_subscription: { Args: { p_endpoint: string }; Returns: undefined };
       invoice_issuer: { Args: Record<string, never>; Returns: { name: string; details: string }[] };
       my_mentor_application: {
         Args: Record<string, never>;

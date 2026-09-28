@@ -8233,6 +8233,88 @@ select public.assert(
   and exists (select 1 from public.admin_audit_log where entity_id = :'bad_listing' and action = 'listing_rejected'),
   '70.11 refused: off the market, a warning on the seller''s record, and a line in the audit log');
 
+-- ===========================================================================
+-- 71. Notifications on the device, and one nudge a day
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.save_push_subscription('http://insecure.example/x', 'k', 'a')$$,
+  '71.1 a device subscription is a push service''s https address',
+  'غير صالح');
+select public.save_push_subscription('https://push.example/device-1', 'BPtestkey', 'authsecret', 'test browser');
+select public.assert(
+  (select count(*) from public.push_subscriptions) = 1,
+  '71.2 a person turns device notifications on per device, and sees only their own');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.push_subscriptions) = 0,
+  '71.3 nobody else sees somebody''s devices');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.notify('11111111-1111-1111-1111-111111111111', 'team', 'دعوة لفريق', 'انضم لفريق الذكاء', '/teams');
+select public.notify('22222222-2222-2222-2222-222222222222', 'team', 'دعوة لفريق', 'بلا جهاز', '/teams');
+select public.assert(
+  (select count(*) from public.push_outbox where profile_id = '11111111-1111-1111-1111-111111111111' and title = 'دعوة لفريق') = 1
+  and (select count(*) from public.push_outbox where profile_id = '22222222-2222-2222-2222-222222222222') = 0,
+  '71.4 a notification is queued for the devices of a person who has one');
+
+insert into public.notification_preferences (profile_id, kind, in_app, email, push)
+values ('11111111-1111-1111-1111-111111111111', 'team', true, false, false)
+on conflict (profile_id, kind) do update set push = false;
+select public.notify('11111111-1111-1111-1111-111111111111', 'team', 'مهمة جديدة', null, '/teams');
+select public.notify('11111111-1111-1111-1111-111111111111', 'payment', 'تأكدت دفعتك', null, '/wallet');
+select public.assert(
+  not exists (select 1 from public.push_outbox where title = 'مهمة جديدة')
+  and exists (select 1 from public.push_outbox where title = 'تأكدت دفعتك'),
+  '71.5 a category silenced for the device stays off it — money reaches it regardless');
+
+select count(*) as claimed71 from public.claim_push_batch(10) \gset
+select public.assert(
+  :claimed71 >= 2
+  and not exists (select 1 from public.push_outbox where status = 'queued'),
+  '71.6 the sender claims the queue, so two senders never send the same one');
+
+select public.mark_push_result(
+  (select id from public.push_outbox where title = 'تأكدت دفعتك'), false, '410 Gone',
+  array[(select id from public.push_subscriptions where endpoint = 'https://push.example/device-1')]);
+select public.assert(
+  not exists (select 1 from public.push_subscriptions where endpoint = 'https://push.example/device-1')
+  and (select status from public.push_outbox where title = 'تأكدت دفعتك') = 'failed',
+  '71.7 a device the push service says is gone is removed, not retried');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects($$select * from public.claim_push_batch(1)$$,
+  '71.8 no signed-in person can drain the queue');
+select public.assert_rejects($$select * from public.push_config()$$,
+  '71.9 nor read the dispatcher''s keys');
+reset role;
+reset request.jwt.claim.sub;
+
+-- The daily nudge: an open path, a device, nothing studied today.
+insert into public.push_subscriptions (profile_id, endpoint, p256dh, auth)
+values ('55555555-5555-5555-5555-555555555555', 'https://push.example/device-5', 'k', 'a');
+insert into public.enrollments (profile_id, path_id)
+select '55555555-5555-5555-5555-555555555555', lp.id from public.learning_paths lp
+ where lp.slug = 'genai'
+   and not exists (select 1 from public.enrollments e
+                    where e.profile_id = '55555555-5555-5555-5555-555555555555' and e.path_id = lp.id);
+update public.lesson_progress set updated_at = now() - interval '2 days'
+ where profile_id = '55555555-5555-5555-5555-555555555555';
+select public.daily_learning_reminder() as nudged_first \gset
+select public.daily_learning_reminder() as nudged_again \gset
+select public.assert(
+  :nudged_first >= 1 and :nudged_again = 0
+  and (select count(*) from public.notifications
+        where profile_id = '55555555-5555-5555-5555-555555555555' and metadata ->> 'reminder' = 'daily') = 1,
+  '71.10 one nudge a day to a learner with a device and nothing studied — not two');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

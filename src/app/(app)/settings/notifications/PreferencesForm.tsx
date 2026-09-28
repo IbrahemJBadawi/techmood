@@ -15,6 +15,7 @@ export type Category = {
   is_mandatory: boolean;
   in_app: boolean;
   email: boolean;
+  push: boolean;
 };
 
 /**
@@ -40,6 +41,7 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
             <th>{t('النوع', 'Category')}</th>
             <th>{t('داخل TechMood', 'In TechMood')}</th>
             <th>{t('البريد', 'Email')}</th>
+            <th>{t('الجهاز', 'Device')}</th>
           </tr>
         </thead>
         <tbody>
@@ -63,6 +65,12 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
                   <span className="muted" style={{ fontSize: '0.8rem' }}>{t('يُرسل', 'Sent')}</span>
                 </label>
               </td>
+              <td data-label={t('الجهاز', 'Device')}>
+                <label className="switch-row">
+                  <input type="checkbox" name={`push-${row.kind}`} defaultChecked={row.push} />
+                  <span className="muted" style={{ fontSize: '0.8rem' }}>{t('يظهر', 'Shown')}</span>
+                </label>
+              </td>
             </tr>
           ))}
 
@@ -74,9 +82,9 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
                   <p className="muted" style={{ fontSize: '0.78rem' }}>{row.detail_ar}</p>
                 )}
               </td>
-              <td colSpan={2} className="muted" data-label={t('دائماً', 'Always')}>
-                {t('يصلك دائماً، في المنصة وبالبريد — قرارات المال والأمان والحساب لا تُكتم.',
-                   'Always reaches you, in the platform and by email — money, security and account decisions are not silenced.')}
+              <td colSpan={3} className="muted" data-label={t('دائماً', 'Always')}>
+                {t('يصلك دائماً، في المنصة وبالبريد وعلى الجهاز — قرارات المال والأمان والحساب لا تُكتم.',
+                   'Always reaches you, in the platform, by email and on your device — money, security and account decisions are not silenced.')}
               </td>
             </tr>
           ))}

@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 848 business-rule assertions
+scripts/test.sh                   # 858 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -301,6 +301,8 @@ pushed to Supabase — nothing to run by hand:
 | `techmood-notify-sessions` | 5 min | `notify_due_sessions()` |
 | `techmood-session-evaluations` | hourly (:17) | `session_evaluation_housekeeping()` — an owed evaluation missed a week after the session: release the held share, mark it, tell the mentor and admins |
 | `techmood-mentor-requests` | 10 min | `mentor_request_housekeeping()` |
+| `techmood-push-dispatch` | 1 min | `dispatch_push()` — wakes the `push-dispatch` Edge Function when device notifications are queued |
+| `techmood-daily-reminder` | daily 16:00 UTC | `daily_learning_reminder()` — one nudge to learners with a device and nothing studied that day |
 
 Their last run is on Admin → Analytics. A database without pg_cron (or not the
 database pg_cron runs in) skips the migration with a notice; the functions stay

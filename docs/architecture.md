@@ -1873,3 +1873,26 @@ Settings → Notifications; on iPhone, where browsers cannot prompt, it explains
 Share → Add to Home Screen. The proxy leaves `/sw.js`, the manifest and the
 offline page alone so a signed-out browser can fetch them.
 
+## Device notifications (0100)
+
+Web Push is the engine's third channel. A person turns it on per device in
+Settings → Notifications (the browser's subscription is stored in
+`push_subscriptions`, theirs only) and chooses per category in a "Device"
+column; the categories nobody may silence reach the device too. A trigger on
+`notifications` copies each one to `push_outbox` for a person with a device who
+wants it — the same durable-queue shape as email. pg_cron wakes the
+`push-dispatch` Edge Function every minute through pg_net (`dispatch_push()`,
+only when something is queued), with a shared secret; the function reads its
+VAPID keys through `push_config()` (service role only) from platform settings
+and Supabase Vault, sends to every device of the person, reports back with
+`mark_push_result()`, and removes devices the push service says are gone.
+
+No key is in this repository or in the app: the public key, the subject and the
+dispatcher's URL are platform settings; the private key and the shared secret
+are the Vault secrets `push_vapid_private_key` and `push_dispatch_secret`. The
+function's source is `supabase/functions/push-dispatch/`.
+
+`daily_learning_reminder()` (daily, 16:00 UTC) sends one nudge to a learner
+with a device, an open path and nothing studied in the last day — in the
+academy category, so they can silence it.
+
