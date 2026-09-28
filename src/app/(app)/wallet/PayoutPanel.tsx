@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { money } from '@/lib/booking';
 import type { PayoutAccount } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 
 import { addPayoutAccount, requestPayout, type WalletState } from './actions';
 import { useT } from '@/lib/i18n.client';
@@ -15,7 +16,7 @@ export function PayoutPanel({
   minimum,
 }: {
   accounts: PayoutAccount[];
-  methods: { key: string; name_ar: string; icon: string | null }[];
+  methods: { key: string; name_ar: string; icon: string | null; display_fields: string[] | null }[];
   available: number;
   minimum: number;
 }) {
@@ -23,6 +24,9 @@ export function PayoutPanel({
   const [requestState, requestAction, requesting] = useActionState(requestPayout, undefined as WalletState);
   const [accountState, accountAction, savingAccount] = useActionState(addPayoutAccount, undefined as WalletState);
   const [addingAccount, setAddingAccount] = useState(false);
+  const [methodKey, setMethodKey] = useState(methods[0]?.key ?? '');
+  // A wallet is paid to a wallet number; a bank, to an account number or an IBAN (0105).
+  const isWallet = methods.find((method) => method.key === methodKey)?.display_fields?.includes('wallet_number') ?? false;
 
   const canRequest = accounts.length > 0 && available >= minimum;
 
@@ -97,7 +101,7 @@ export function PayoutPanel({
           <form action={accountAction}>
             <div className="field">
               <label htmlFor="method_key">{t('طريقة الاستلام', 'Payout method')}</label>
-              <select id="method_key" name="method_key" required defaultValue={methods[0]?.key}>
+              <select id="method_key" name="method_key" required value={methodKey} onChange={(event) => setMethodKey(event.target.value)}>
                 {methods.map((method) => (
                   <option key={method.key} value={method.key}>
                     {method.icon} {method.name_ar}
@@ -111,37 +115,43 @@ export function PayoutPanel({
               <input id="holder_name" name="holder_name" required />
             </div>
 
-            <div className="field">
-              <label htmlFor="wallet_number">{t('رقم المحفظة', 'Wallet number')}</label>
-              <input id="wallet_number" name="wallet_number" dir="ltr" />
-            </div>
+            {isWallet ? (
+              <div className="field">
+                <label htmlFor="wallet_number">{t('رقم المحفظة', 'Wallet number')}</label>
+                <input id="wallet_number" name="wallet_number" type="tel" inputMode="tel" dir="ltr" placeholder="059…" required />
+              </div>
+            ) : (
+              <>
+                <div className="field">
+                  <label htmlFor="account_number">{t('رقم الحساب البنكي', 'Bank account number')}</label>
+                  <input id="account_number" name="account_number" dir="ltr" />
+                </div>
 
-            <div className="field">
-              <label htmlFor="account_number">{t('رقم الحساب البنكي', 'Bank account number')}</label>
-              <input id="account_number" name="account_number" dir="ltr" />
-            </div>
+                <div className="field-row">
+                  <div className="field">
+                    <label htmlFor="iban">IBAN</label>
+                    <input id="iban" name="iban" dir="ltr" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="bank_name">{t('البنك', 'Bank')}</label>
+                    <input id="bank_name" name="bank_name" />
+                  </div>
+                </div>
 
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="iban">IBAN</label>
-                <input id="iban" name="iban" dir="ltr" />
-              </div>
-              <div className="field">
-                <label htmlFor="swift">SWIFT</label>
-                <input id="swift" name="swift" dir="ltr" />
-              </div>
-            </div>
-
-            <div className="field-row">
-              <div className="field">
-                <label htmlFor="bank_name">{t('البنك', 'Bank')}</label>
-                <input id="bank_name" name="bank_name" />
-              </div>
-              <div className="field">
-                <label htmlFor="country">{t('الدولة', 'Country')}</label>
-                <input id="country" name="country" />
-              </div>
-            </div>
+                {!IS_MVP && (
+                  <div className="field-row">
+                    <div className="field">
+                      <label htmlFor="swift">SWIFT</label>
+                      <input id="swift" name="swift" dir="ltr" />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="country">{t('الدولة', 'Country')}</label>
+                      <input id="country" name="country" />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="field">
               <label htmlFor="label">{t('تسمية مختصرة (اختياري)', 'A short label (optional)')}</label>
@@ -149,8 +159,11 @@ export function PayoutPanel({
             </div>
 
             <p className="muted" style={{ fontSize: '0.78rem', marginBottom: 12 }}>
-              {t('أدخل رقم محفظة أو رقم حساب أو IBAN على الأقل. بياناتك المالية لا يقرأها إلا أنت وإدارة TechMood عند تنفيذ التحويل.',
-                 'Enter at least a wallet number, an account number or an IBAN. Your financial details are read only by you, and by TechMood when the transfer is made.')}
+              {isWallet
+                ? t('رقم المحفظة الذي تستلم عليه. بياناتك المالية لا يقرأها إلا أنت وإدارة TechMood عند تنفيذ التحويل.',
+                    'The wallet number you receive on. Your financial details are read only by you, and by TechMood when the transfer is made.')
+                : t('رقم الحساب أو الـIBAN على الأقل. بياناتك المالية لا يقرأها إلا أنت وإدارة TechMood عند تنفيذ التحويل.',
+                    'At least the account number or the IBAN. Your financial details are read only by you, and by TechMood when the transfer is made.')}
             </p>
 
             {accountState?.error && (

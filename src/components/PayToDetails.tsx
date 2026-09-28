@@ -9,7 +9,7 @@ import type { PayField, PayTo } from '@/lib/database.types';
 const LABEL: Record<PayField, { ar: string; en: string }> = {
   recipient_name: { ar: 'اسم المستفيد',   en: 'Beneficiary name' },
   bank_name:      { ar: 'البنك',          en: 'Bank name' },
-  account_number: { ar: 'رقم الحساب',     en: 'Account number' },
+  account_number: { ar: 'رقم الحساب / معرّف الدفع', en: 'Account / payment identifier' },
   iban:           { ar: 'IBAN',           en: 'IBAN' },
   swift:          { ar: 'SWIFT / BIC',    en: 'SWIFT / BIC' },
   bank_address:   { ar: 'عنوان البنك',     en: 'Bank address' },

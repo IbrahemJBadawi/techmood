@@ -73,7 +73,7 @@ export default async function WalletPage({
         .select('id, request_code, amount_usd, status, note_ar, paid_reference, created_at')
         .eq('profile_id', user.id)
         .order('created_at', { ascending: false }),
-      supabase.from('payment_methods').select('key, name_ar, icon').eq('supports_payout', true).order('sort_order'),
+      supabase.from('payment_methods').select('key, name_ar, icon, display_fields').eq('supports_payout', true).order('sort_order'),
       supabase.from('platform_settings').select('value').eq('key', 'payout_minimum_usd').maybeSingle(),
     ]);
 
@@ -292,7 +292,7 @@ export default async function WalletPage({
           <aside>
             <PayoutPanel
               accounts={(accounts ?? []) as PayoutAccount[]}
-              methods={(methods ?? []) as { key: string; name_ar: string; icon: string | null }[]}
+              methods={(methods ?? []) as { key: string; name_ar: string; icon: string | null; display_fields: string[] | null }[]}
               available={available}
               minimum={minimumUsd}
             />
@@ -349,7 +349,7 @@ export default async function WalletPage({
           </p>
           <PayoutPanel
             accounts={(accounts ?? []) as PayoutAccount[]}
-            methods={(methods ?? []) as { key: string; name_ar: string; icon: string | null }[]}
+            methods={(methods ?? []) as { key: string; name_ar: string; icon: string | null; display_fields: string[] | null }[]}
             available={available}
             minimum={minimumUsd}
           />

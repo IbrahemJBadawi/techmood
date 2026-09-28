@@ -39,7 +39,7 @@ export async function addPayoutAccount(_prev: WalletState, formData: FormData): 
     country: String(formData.get('country') ?? '').trim() || null,
   });
 
-  if (error) return { error: t('تعذّر حفظ حساب السحب.', 'The payout account could not be saved.') };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath('/wallet');
   return { ok: t('أُضيف حساب السحب.', 'Payout account added.') };

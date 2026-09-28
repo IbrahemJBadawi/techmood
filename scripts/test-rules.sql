@@ -8701,6 +8701,61 @@ select public.assert(
   and (select status from public.bookings where id = :'m5') = 'confirmed',
   '75.18 a session nobody recorded is flagged to the mentor and the admins once — and not closed for them');
 
+-- =============================================================================
+-- 76. Where members receive money (0105)
+-- =============================================================================
+\echo ''
+\echo '76. payout rails'
+
+-- The founder's setup: pay into Bank of Palestine only; receive on a bank
+-- account, PalPay or Jawwal Pay.
+update public.payment_methods
+   set is_enabled = (key = 'bank_of_palestine'),
+       supports_payout = key in ('bank_of_palestine', 'palpay', 'jawwal_pay');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select array_agg(key order by key) from public.payment_methods where supports_payout)
+    = array['bank_of_palestine', 'jawwal_pay', 'palpay'],
+  '76.1 a member can list the wallets they receive on, though nobody pays with them');
+select public.assert(
+  (select array_agg(key) from public.payment_methods where is_enabled) = array['bank_of_palestine'],
+  '76.2 and learners are offered Bank of Palestine alone');
+select public.assert_rejects(
+  $$insert into public.payout_accounts (profile_id, method_key, holder_name, account_number)
+    values ('11111111-1111-1111-1111-111111111111', 'paypal', 'طالب تجربة', '123456789')$$,
+  '76.3 a payout account on a rail TechMood does not send money on is refused', 'غير متاحة لاستلام');
+select public.assert_rejects(
+  $$insert into public.payout_accounts (profile_id, method_key, holder_name, account_number)
+    values ('11111111-1111-1111-1111-111111111111', 'palpay', 'طالب تجربة', '123456789')$$,
+  '76.4 a wallet needs a wallet number', 'رقم المحفظة');
+select public.assert_rejects(
+  $$insert into public.payout_accounts (profile_id, method_key, holder_name, wallet_number)
+    values ('11111111-1111-1111-1111-111111111111', 'bank_of_palestine', 'طالب تجربة', '0599000111')$$,
+  '76.5 a bank account needs an account number or an IBAN', 'IBAN');
+insert into public.payout_accounts (profile_id, method_key, holder_name, iban)
+values ('11111111-1111-1111-1111-111111111111', 'bank_of_palestine', ' طالب تجربة ', 'ps92 palS 0000 0000 0400 1234 5670 2')
+returning id as bop_acct, iban as bop_iban \gset
+insert into public.payout_accounts (profile_id, method_key, holder_name, wallet_number)
+values ('11111111-1111-1111-1111-111111111111', 'palpay', 'طالب تجربة', '0599 000 111')
+returning id as palpay_acct \gset
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(:'bop_iban' = 'PS92PALS000000000400123456702' and :'palpay_acct' is not null,
+  '76.6 a bank account and a PalPay wallet are saved, the IBAN written the one way');
+
+update public.payment_methods set supports_payout = false where key = 'palpay';
+select public.assert_rejects(
+  format($$insert into public.payout_requests (profile_id, account_id, amount_usd)
+           values ('11111111-1111-1111-1111-111111111111', %L, 25)$$, :'palpay_acct'),
+  '76.7 no payout to a rail that has since been switched off', 'لم تعد طريقة الاستلام');
+
+-- Back to the rails the earlier sections were written against.
+update public.payment_methods
+   set is_enabled = key not in ('fawateer', 'paypal'),
+       supports_payout = key in ('bank_of_palestine', 'palpay', 'jawwal_pay', 'western_union', 'moneygram', 'international_transfer');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
