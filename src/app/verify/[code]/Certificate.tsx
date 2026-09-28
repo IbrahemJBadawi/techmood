@@ -26,8 +26,8 @@ const KIND_OBJECT: Record<string, string> = {
  * Everything on it comes from verify_certificate(), which reads the snapshot
  * frozen when the certificate was issued — so a course renamed afterwards does
  * not quietly rewrite somebody's certificate. The page is sized in container
- * units, so the same markup is a card on a phone, a sheet on a screen and an
- * A4 landscape page in print, with no second layout to keep in step.
+ * units, so the same markup is a card on a phone, a sheet on a screen and a
+ * single 297 × 198 mm page in print, with no second layout to keep in step.
  *
  * The QR carries one thing: the holder's public profile. A certificate proves
  * one course; the profile is the record it belongs to, and it lists this
@@ -119,7 +119,7 @@ export function Certificate({
         </footer>
 
         <p className="certificate-brand">
-          <Image src="/logo-mark.png" alt="" width={48} height={48} />
+          <Image src="/logo.png" alt="" width={64} height={64} />
           <span>TechMood Academy</span>
         </p>
       </div>
