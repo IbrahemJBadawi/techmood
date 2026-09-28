@@ -9,6 +9,7 @@
 :root[data-theme="light"] {
   --bg: #F5F7FB;
   --bg-deep: #ECF1F8;
+  --track: #E3E9F2;
   --panel: #FFFFFF;
   --panel-raised: #FFFFFF;
   --ink: #0B1B2B;
@@ -47,6 +48,7 @@
   :root:not([data-theme="light"]) {
     --bg: #070B12;
     --bg-deep: #0E1520;
+    --track: rgba(255, 255, 255, 0.14);
     --panel: #111A27;
     --panel-raised: #162131;
     --ink: #F2F6FC;
@@ -76,6 +78,7 @@
 :root[data-theme="dark"] {
   --bg: #070B12;
   --bg-deep: #0E1520;
+  --track: rgba(255, 255, 255, 0.14);
   --panel: #111A27;
   --panel-raised: #162131;
   --ink: #F2F6FC;
@@ -252,6 +255,7 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 }
 .stat-tile .val { font-size: 1.5rem; font-weight: 700; color: var(--royal-dark); }
 .stat-tile .lbl { font-size: 0.78rem; color: var(--ink-soft); margin-top: 4px; }
+.stat-tile .val, .stat-tile .lbl { display: block; }
 @media (min-width: 901px) {
   .stat-tiles.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .stat-tiles.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -291,6 +295,29 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 .btn-ghost:hover:not(:disabled) { background: var(--sky-tint); color: var(--royal-dark); }
 .btn-sm { min-height: 34px; padding: 7px 14px; font-size: 0.84rem; }
 @media (pointer: coarse) { .btn-sm { min-height: 40px; } }
+
+/* Every text field and select starts from the platform's look, in light and dark,
+   even outside a .field — :where() keeps this at zero specificity so any
+   component's own rule still wins. */
+:where(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"]), select, textarea) {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  max-width: 100%;
+}
+:where(input, select, textarea)::placeholder { color: var(--ink-faint); }
+:where(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea):focus-visible {
+  outline: 2px solid var(--royal);
+  outline-offset: 1px;
+}
+:where(select) option { background: var(--panel); color: var(--ink); }
+@media (max-width: 760px) {
+  :where(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"]), select, textarea) { font-size: 16px; }
+}
 
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .field label { font-size: 0.84rem; color: var(--ink-soft); }
@@ -347,7 +374,7 @@ a.card:hover { box-shadow: var(--shadow-2); transform: translateY(-2px); border-
 .progress-track {
   height: 7px;
   border-radius: 999px;
-  background: var(--bg-deep);
+  background: var(--track);
   overflow: hidden;
   border: 1px solid var(--line);
 }
@@ -4983,7 +5010,7 @@ a.txn:hover { background: var(--bg-deep); }
 .hm-resume-path > span:last-child { white-space: nowrap; opacity: 0.9; }
 .hm-resume-track { flex: 1; height: 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
 .hm-resume-track > span { display: block; height: 100%; border-radius: inherit; background: #fff; }
-.hm-resume-track.is-soft { background: var(--bg-deep); height: 6px; }
+.hm-resume-track.is-soft { background: var(--track); height: 6px; }
 .hm-resume-track.is-soft > span { background: var(--xp); }
 .hm-resume-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin-top: 6px; }
 .hm-resume-cta {
@@ -5077,7 +5104,7 @@ a.hm-row:hover { background: var(--bg-deep); }
 .hm-week li { position: relative; display: grid; justify-items: center; gap: 4px; }
 .hm-week-dot {
   display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
-  background: var(--bg-deep); color: #fff; font-size: 0.8rem; font-weight: 700;
+  background: var(--track); color: #fff; font-size: 0.8rem; font-weight: 700;
 }
 .hm-week li.is-active .hm-week-dot { background: var(--streak); box-shadow: 0 3px 0 color-mix(in srgb, var(--streak) 70%, #000); }
 .hm-week li.is-today .hm-week-dot { outline: 2px solid var(--royal); outline-offset: 2px; }
