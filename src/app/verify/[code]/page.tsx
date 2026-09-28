@@ -9,6 +9,7 @@ import { LogoMark } from '@/components/Logo';
 
 import { Certificate } from './Certificate';
 import { PrintButton } from './PrintButton';
+import { siteOrigin } from '@/lib/site';
 
 export const metadata = { title: 'Verify a certificate — TechMood' };
 
@@ -29,7 +30,7 @@ export default async function VerifyCertificatePage({
   const { data } = await supabase.rpc('verify_certificate', { p_code: decodeURIComponent(code) });
   const certificate = (data as VerifiedCertificate[] | null)?.[0] ?? null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const siteUrl = await siteOrigin();
   // The QR on the document opens the holder's public record — one certificate
   // proves one course, the profile is what it belongs to, and it lists this
   // certificate among the rest.

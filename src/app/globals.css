@@ -2716,8 +2716,8 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .identity-wrap { margin-top: 28px; }
 .identity-actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 
+.identity-shell { container-type: inline-size; }
 .identity-card {
-  container-type: inline-size;
   position: relative;
   display: grid;
   gap: 3cqw;
@@ -2759,19 +2759,19 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   font-weight: 700;
 }
 .identity-who h1 { font-size: 5.4cqw; line-height: 1.2; }
-.identity-title { font-size: 2.6cqw; color: #bcd8ff; margin-top: 1cqw; }
-.identity-field { font-size: 2.2cqw; color: #8fb4e6; margin-top: 0.5cqw; }
+.identity-title { font-size: max(0.8rem, 2.6cqw); color: #bcd8ff; margin-top: 1cqw; }
+.identity-field { font-size: max(0.74rem, 2.2cqw); color: #8fb4e6; margin-top: 0.5cqw; }
 
 .identity-meters { display: flex; align-items: center; gap: 3cqw; flex-wrap: wrap; }
 .identity-level {
-  font-size: 2.4cqw;
-  padding: 1cqw 2.4cqw;
+  font-size: max(0.74rem, 2.4cqw);
+  padding: max(4px, 1cqw) max(10px, 2.4cqw);
   border-radius: 999px;
   background: rgba(143, 216, 255, 0.14);
   border: 1px solid rgba(143, 216, 255, 0.3);
 }
 .identity-level-title { color: #bcd8ff; }
-.identity-stars { display: inline-flex; align-items: center; gap: 1.2cqw; font-size: 2.4cqw; }
+.identity-stars { display: inline-flex; align-items: center; gap: 1.2cqw; font-size: max(0.74rem, 2.4cqw); }
 
 .identity-stats {
   display: grid;
@@ -2779,8 +2779,9 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   gap: 2cqw;
   margin: 0;
 }
-.identity-stats dt { font-size: 4.4cqw; font-weight: 700; }
-.identity-stats dd { margin: 0.4cqw 0 0; font-size: 1.9cqw; color: #9dc0ee; }
+.identity-stats > div { display: grid; justify-items: start; align-content: start; }
+.identity-stats dt { font-size: 4.4cqw; font-weight: 700; line-height: 1.1; }
+.identity-stats dd { margin: 0.4cqw 0 0; font-size: max(0.7rem, 1.9cqw); color: #9dc0ee; }
 
 .identity-foot {
   display: flex;
@@ -2791,9 +2792,9 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   padding-top: 3cqw;
 }
 .identity-id { display: grid; gap: 1.2cqw; }
-.identity-id .id-chip { background: rgba(143, 216, 255, 0.14); color: #cfe4ff; border-color: transparent; font-size: 1.9cqw; }
-.identity-url { font-size: 1.9cqw; color: #9dc0ee; }
-.identity-brand { display: flex; align-items: center; gap: 1.2cqw; font-size: 2.1cqw; font-weight: 600; }
+.identity-id .id-chip { background: rgba(143, 216, 255, 0.14); color: #cfe4ff; border-color: transparent; font-size: max(0.7rem, 1.9cqw); }
+.identity-url { font-size: max(0.66rem, 1.9cqw); color: #9dc0ee; overflow-wrap: anywhere; }
+.identity-brand { display: flex; align-items: center; gap: 1.2cqw; font-size: max(0.74rem, 2.1cqw); font-weight: 600; }
 .identity-brand img { width: 3.4cqw; height: auto; }
 .identity-qr {
   width: 20cqw;
@@ -2805,14 +2806,29 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 }
 
 /* the same card, shaped for a story */
+.identity-shell-story { width: min(420px, 100%); margin: 0 auto; }
 .identity-story {
   aspect-ratio: 9 / 16;
-  max-width: 420px;
-  margin: 0 auto;
   align-content: space-between;
   padding: 8cqw 7cqw;
   gap: 5cqw;
 }
+/* A story reads top to bottom, centred: the mark, the person, the record, the way back. */
+.identity-top { display: flex; align-items: center; justify-content: center; gap: 2cqw; font-weight: 800; font-size: 4cqw; }
+.identity-top img { width: 8cqw; height: auto; }
+.identity-top-kicker {
+  font-weight: 600; font-size: 2.6cqw; color: #9dc0ee;
+  padding: 0.8cqw 2.4cqw; border-radius: 999px; background: rgba(143, 216, 255, 0.12);
+}
+.identity-story .identity-head { flex-direction: column; text-align: center; gap: 3cqw; }
+.identity-story .identity-meters { justify-content: center; }
+.identity-story .identity-stats > div {
+  justify-items: center; padding: 3.2cqw 2cqw; border-radius: 4cqw;
+  background: rgba(143, 216, 255, 0.08); border: 1px solid rgba(143, 216, 255, 0.16);
+}
+.identity-story .identity-foot { flex-direction: column-reverse; align-items: center; text-align: center; gap: 3cqw; }
+.identity-story .identity-id { justify-items: center; }
+.identity-story .identity-brand { display: none; }
 .identity-story .identity-who h1 { font-size: 7cqw; }
 .identity-story .identity-title { font-size: 3.4cqw; }
 .identity-story .identity-field { font-size: 3cqw; }

@@ -10,6 +10,7 @@ import { contentText, formatDate, type Text } from '@/lib/i18n';
 import type { ExperienceKind, LinkKind, ProfileSection } from '@/lib/database.types';
 
 import { ProfileCard, type Card } from './ProfileCard';
+import { siteOrigin } from '@/lib/site';
 
 export const metadata = { title: 'A TechMood profile' };
 
@@ -85,7 +86,7 @@ export default async function PublicProfilePage({
   ]);
   const follow = followRows?.[0];
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const siteUrl = await siteOrigin();
   const profileUrl = `${siteUrl}/u/${card.techmood_id}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 300 });
 

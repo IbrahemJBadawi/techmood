@@ -17,7 +17,9 @@ export type Card = Database['public']['Functions']['profile_card']['Returns'][nu
  * can be typed in.
  *
  * `variant="story"` is the same card at 9:16 for sharing; the layout is the
- * same markup measured in container units, so the two cannot drift apart.
+ * same markup measured in container units, so the two cannot drift apart. The
+ * units are measured against the shell around the card, never the card itself
+ * (a container's own padding would be measured against the whole window).
  */
 export async function ProfileCard({
   card,
@@ -44,7 +46,16 @@ export async function ProfileCard({
   ];
 
   return (
-    <article className={`identity-card identity-${variant}`}>
+    <div className={`identity-shell identity-shell-${variant}`}>
+    <article className={`identity-card identity-${variant}`} id={variant === 'story' ? 'identity-story' : undefined}>
+      {variant === 'story' && (
+        <div className="identity-top">
+          <Image src="/logo.png" alt="" width={64} height={64} />
+          <span>TechMood</span>
+          <span className="identity-top-kicker">{t('الهوية المهنية', 'Professional identity')}</span>
+        </div>
+      )}
+
       <div className="identity-head">
         {card.avatar_url ? (
           <Image className="identity-avatar" src={card.avatar_url} alt="" width={128} height={128} />
@@ -86,7 +97,7 @@ export async function ProfileCard({
           <span className="id-chip">{card.techmood_id}</span>
           <span className="identity-url eng">{profileUrl.replace(/^https?:\/\//, '')}</span>
           <span className="identity-brand">
-            <Image src="/logo-mark.png" alt="" width={40} height={40} />
+            <Image src="/logo.png" alt="" width={48} height={48} />
             <span>TechMood</span>
           </span>
         </div>
@@ -94,5 +105,6 @@ export async function ProfileCard({
         <img className="identity-qr" src={qrDataUrl} alt={contentText(locale, `ملف ${name}`, `${name}'s profile`)} />
       </footer>
     </article>
+    </div>
   );
 }

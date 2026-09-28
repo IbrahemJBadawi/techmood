@@ -1,11 +1,12 @@
 'use server';
 
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
 import { isEnglishName, tidyName } from '@/lib/names';
+import { siteOrigin } from '@/lib/site';
 import { isLocale, LOCALE_COOKIE } from '@/lib/i18n';
 import { getT } from '@/lib/i18n.server';
 
@@ -45,22 +46,6 @@ async function landingFor(userId: string): Promise<string> {
 function safeNext(value: unknown): string | null {
   const next = String(value ?? '');
   return next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null;
-}
-
-/**
- * The address the visitor is actually on. The request says it for certain;
- * a configured NEXT_PUBLIC_SITE_URL is only the fallback, so a stale
- * localhost value left in a deployment's settings cannot send a person
- * returning from Google to their own machine.
- */
-async function siteOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  if (host) {
-    const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
-    return `${proto}://${host}`;
-  }
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmoodtech.vercel.app').replace(/\/$/, '');
 }
 
 /** Where to go after Google, kept in a short-lived cookie so the return address stays exact. */

@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/i18n';
 import type { ExhibitionSnapshot, ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL, KIND_LABEL } from '../types';
+import { siteOrigin } from '@/lib/site';
 
 export const metadata = { title: 'A project in the TechMood exhibition' };
 
@@ -70,7 +71,7 @@ export default async function ExhibitionEntryPage({
   const history = historyRows ?? [];
 
   // The QR a CV, a presentation or a printed page can carry.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const siteUrl = await siteOrigin();
   const verifyUrl = `${siteUrl}/exhibition/${entry.entry_code}/verify`;
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
 

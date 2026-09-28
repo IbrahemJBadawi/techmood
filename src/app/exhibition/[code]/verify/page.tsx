@@ -9,6 +9,7 @@ import type { Database } from '@/lib/database.types';
 
 import { KIND_LABEL } from '../../types';
 import { LogoMark } from '@/components/Logo';
+import { siteOrigin } from '@/lib/site';
 
 type Verified = Database['public']['Functions']['verify_exhibition_entry']['Returns'][number];
 
@@ -43,7 +44,7 @@ export default async function VerifyProjectPage({
   const project = ((data ?? []) as Verified[])[0] ?? null;
   const history = historyRows ?? [];
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const siteUrl = await siteOrigin();
   const verifyUrl = `${siteUrl}/exhibition/${encodeURIComponent(project?.entry_code ?? entryCode)}/verify`;
   const qrDataUrl = project ? await QRCode.toDataURL(verifyUrl, { margin: 1, width: 264 }) : null;
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 
 import { ProfileCard, type Card } from '../ProfileCard';
 import { ShareButtons } from './ShareButtons';
+import { siteOrigin } from '@/lib/site';
 
 export const metadata = { title: 'A TechMood identity card' };
 
@@ -40,7 +41,7 @@ export default async function ProfileCardPage({
     );
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
+  const siteUrl = await siteOrigin();
   const profileUrl = `${siteUrl}/u/${card.techmood_id}`;
   const qrDataUrl = await QRCode.toDataURL(profileUrl, { margin: 1, width: 360 });
 
@@ -49,15 +50,15 @@ export default async function ProfileCardPage({
       <ProfileCard card={card} qrDataUrl={qrDataUrl} profileUrl={profileUrl} locale={locale} variant="story" />
 
       <div className="card-stage-actions no-print">
-        <ShareButtons url={profileUrl} name={card.display_name ?? card.full_name} />
+        <ShareButtons url={profileUrl} name={card.display_name ?? card.full_name} techmoodId={card.techmood_id} />
         <Link className="btn btn-ghost btn-sm" href={`/u/${card.techmood_id}`}>
           {t('الملف كاملاً', 'The full profile')}
         </Link>
       </div>
 
       <p className="muted no-print card-stage-note">
-        {t('التقط البطاقة وانشرها — الـQR يعيد من يراها إلى ملفك على TechMood.',
-           'Screenshot it and post it — the QR walks whoever sees it back to your TechMood profile.')}
+        {t('شاركها كصورة في قصتك أو محادثاتك — الـQR عليها يعيد من يراها إلى ملفك على TechMood.',
+           'Share it as a picture in a story or a chat — the QR on it walks whoever sees it back to your TechMood profile.')}
       </p>
     </main>
   );
