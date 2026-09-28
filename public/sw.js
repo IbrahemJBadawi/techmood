@@ -7,7 +7,7 @@
  * (push), and opens the right page when one is tapped.
  */
 const OFFLINE = '/offline.html';
-const CACHE = 'techmood-shell-v1';
+const CACHE = 'techmood-shell-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([OFFLINE, '/logo-mark.png'])));

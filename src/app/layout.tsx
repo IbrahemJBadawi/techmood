@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /** The browser chrome around TechMood when it runs as an installed app. */
 export const viewport: Viewport = {
-  themeColor: '#007BFF',
+  themeColor: '#006BE0',
 };
 
 /**
