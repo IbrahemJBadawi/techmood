@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
+import { avatarColor } from '@/lib/mentor-look';
 import type { PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
@@ -45,71 +46,64 @@ export async function ListingList({ search }: { search?: string }) {
   return (
     <div className="market-grid">
       {(listings ?? []).map((listing) => (
-        <article className="panel talent-card" key={listing.id}>
-          <div className="row-between">
-            <span className="id-chip">{listing.listing_code}</span>
-            <span style={{ display: 'flex', gap: 6 }}>
-              {listing.verified && <span className="status-pill status-ok">✓ {t('تم التحقق', 'Verified')}</span>}
-              <span className="badge-pill">{t(LICENCE[listing.licence])}</span>
+        <article className="mk-card" key={listing.id} style={{ '--hue': avatarColor(listing.listing_code) } as React.CSSProperties}>
+          <div className="gl-cover mk-cover" aria-hidden="true">
+            <span className="gl-initial">{(listing.project_title ?? "?").trim().charAt(0)}</span>
+            <span className="gl-top">
+              <span className="gl-kind">{t(LICENCE[listing.licence])}</span>
+              {listing.discount_pct > 0 && <span className="gl-rating eng">-{listing.discount_pct}%</span>}
             </span>
           </div>
 
-          <h3 style={{ fontSize: '0.98rem', marginTop: 8 }}>{listing.project_title}</h3>
-          <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>
-            {listing.team_title ?? listing.seller_name}
-            {listing.seller_rating !== null && (
-              <> · <span className="eng">★ {Number(listing.seller_rating).toFixed(1)}</span> {t('تقييمه كمنتور', 'as a mentor')}</>
-            )}
-            {' · '}
-            <span className="eng">{listing.sales_count}</span> {t('مبيعات', 'sales')}
-          </p>
-
-          <p style={{ fontSize: '0.86rem', marginTop: 8 }}>{listing.summary_ar}</p>
-
-          {listing.includes.length > 0 && (
-            <div className="tags-row" style={{ marginTop: 10 }}>
-              {listing.includes.map((item) => <span className="badge-pill" key={item}>{item}</span>)}
+          <div className="mk-body">
+            <div className="mk-title-row">
+              <h3>{listing.project_title}</h3>
+              {listing.verified && <span className="mk-verified">✓ {t('موثّق', 'Verified')}</span>}
             </div>
-          )}
-
-          {listing.technologies.length > 0 && (
-            <div className="tags-row" style={{ marginTop: 6 }}>
-              {listing.technologies.slice(0, 5).map((tech) => (
-                <span className="badge-pill eng" key={tech}>{tech}</span>
-              ))}
-            </div>
-          )}
-
-          <div className="row-between" style={{ marginTop: 12 }}>
-            <span className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)' }}>
-              {money(listing.effective_price)}
-              {listing.discount_pct > 0 && (
-                <>
-                  {' '}<s className="muted" style={{ fontWeight: 400 }}>{money(listing.price_usd)}</s>
-                  {' '}<span className="status-pill status-pending">-{listing.discount_pct}%</span>
-                </>
+            <p className="mk-seller">
+              {listing.team_title ?? listing.seller_name}
+              {listing.seller_rating !== null && (
+                <> · <span className="eng">★ {Number(listing.seller_rating).toFixed(1)}</span></>
               )}
-            </span>
-            {listing.demo_url && (
-              <a className="btn btn-ghost btn-sm" href={listing.demo_url} target="_blank" rel="noopener noreferrer">
-                {t('عرض تجريبي', 'Demo')}
-              </a>
-            )}
-            {listing.entry_code && (
-              <Link className="btn btn-ghost btn-sm" href={`/exhibition/${listing.entry_code}/verify`}>
-                {t('تحقّق من العمل', 'Check the work')}
-              </Link>
-            )}
-          </div>
+              {' · '}{t(`${listing.sales_count} مبيعات`, `${listing.sales_count} sales`)}
+            </p>
+            <p className="mk-summary">{listing.summary_ar}</p>
 
-          <div style={{ marginTop: 10 }}>
-            <BuyForm listingId={listing.id} methods={(methods ?? []) as PaymentMethodPublic[]} />
-          </div>
+            {(listing.includes.length > 0 || listing.technologies.length > 0) && (
+              <div className="mk-chips">
+                {listing.includes.map((item) => <span key={item}>{item}</span>)}
+                {listing.technologies.slice(0, 4).map((tech) => <span className="eng" key={tech}>{tech}</span>)}
+              </div>
+            )}
 
-          <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
-            {t('الشراء يفتح حجزاً مالياً — رابط التسليم يصلك بعد تأكيد الدفع، ولا ينتقل المال للبائع إلا بعد استلامك.',
-               'Buying opens a hold — the delivery link reaches you once the payment is confirmed, and the seller is paid only once you have it.')}
-          </p>
+            <div className="mk-price-row">
+              <span className="mk-price eng">
+                {money(listing.effective_price)}
+                {listing.discount_pct > 0 && <s>{money(listing.price_usd)}</s>}
+              </span>
+              <span className="mk-links">
+                {listing.demo_url && (
+                  <a className="btn btn-ghost btn-sm" href={listing.demo_url} target="_blank" rel="noopener noreferrer">
+                    {t('عرض تجريبي', 'Demo')}
+                  </a>
+                )}
+                {listing.entry_code && (
+                  <Link className="btn btn-ghost btn-sm" href={`/exhibition/${listing.entry_code}/verify`}>
+                    {t('تحقّق', 'Check')}
+                  </Link>
+                )}
+              </span>
+            </div>
+
+            <div className="mk-buy">
+              <BuyForm listingId={listing.id} methods={(methods ?? []) as PaymentMethodPublic[]} />
+            </div>
+
+            <p className="mk-note">
+              {t('رابط التسليم يصلك بعد تأكيد الدفع، ولا ينتقل المال للبائع إلا بعد استلامك.',
+                 'The delivery link reaches you once the payment is confirmed; the seller is paid only once you have it.')}
+            </p>
+          </div>
         </article>
       ))}
     </div>

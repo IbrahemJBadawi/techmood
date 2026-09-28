@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Stars } from '@/components/Stars';
+import { avatarColor } from '@/lib/mentor-look';
 import { useT } from '@/lib/i18n.client';
 import type { ProjectKind } from '@/lib/database.types';
 
@@ -224,47 +224,43 @@ export function ExhibitionExplorer({ entries }: { entries: GalleryEntry[] }) {
         </div>
       ) : (
         <>
-          <div className="card-grid">
+          <div className="gl-grid">
             {matched.slice(0, shown).map((entry) => {
               const snapshot = entry.snapshot;
               return (
-                <article className="card exhibit-card" key={entry.entry_code}>
-                  <div className="row-between academy-card-head">
-                    <span className="kicker">{KIND_LABEL[snapshot.kind]?.[t.locale] ?? snapshot.kind}</span>
-                    <span className="id-chip">{snapshot.project_code}</span>
-                  </div>
-
-                  <h3>{snapshot.project_title}</h3>
-                  <p className="exhibit-builder">
-                    {builderName(entry, t.locale)}
-                    {snapshot.team && (snapshot.members?.length ?? 0) > 0 && (
-                      <span className="muted"> · {t(`${snapshot.members.length} أعضاء`, `${snapshot.members.length} members`)}</span>
+                <Link className="gl-card" key={entry.entry_code} href={`/exhibition/${entry.entry_code}`}
+                      style={{ '--hue': avatarColor(snapshot.project_code ?? entry.entry_code) } as React.CSSProperties}>
+                  <span className="gl-cover" aria-hidden="true">
+                    <span className="gl-initial">{(snapshot.project_title ?? '?').trim().charAt(0)}</span>
+                    <span className="gl-top">
+                      <span className="gl-kind">{KIND_LABEL[snapshot.kind]?.[t.locale] ?? snapshot.kind}</span>
+                      {snapshot.evaluation?.rating != null && (
+                        <span className="gl-rating eng">★ {snapshot.evaluation.rating.toFixed(1)}</span>
+                      )}
+                    </span>
+                  </span>
+                  <span className="gl-body">
+                    <strong>{snapshot.project_title}</strong>
+                    <span className="gl-builder">
+                      {builderName(entry, t.locale)}
+                      {snapshot.team && (snapshot.members?.length ?? 0) > 0 && (
+                        <> · {t(`${snapshot.members.length} أعضاء`, `${snapshot.members.length} members`)}</>
+                      )}
+                    </span>
+                    {snapshot.summary && <span className="gl-summary">{snapshot.summary}</span>}
+                    {(snapshot.technologies ?? []).length > 0 && (
+                      <span className="gl-tech">
+                        {(snapshot.technologies ?? []).slice(0, 4).map((item) => (
+                          <span className="eng" key={item}>{item}</span>
+                        ))}
+                      </span>
                     )}
-                  </p>
-                  <p>{snapshot.summary}</p>
-
-                  <div className="tags-row">
-                    {(snapshot.technologies ?? []).slice(0, 4).map((item) => (
-                      <span className="tag eng" key={item}>{item}</span>
-                    ))}
-                  </div>
-
-                  {snapshot.evaluation?.rating != null && (
-                    <p className="exhibit-rating">
-                      <Stars value={snapshot.evaluation.rating} />
-                      <span className="eng">{snapshot.evaluation.rating.toFixed(1)} / 5</span>
-                    </p>
-                  )}
-
-                  <ul className="exhibit-badges">
-                    {snapshot.evaluation && <li>{t('✓ قُيِّم من منتور', '✓ Mentor evaluated')}</li>}
-                    <li>{t('✓ موثّق من TechMood', '✓ TechMood verified')}</li>
-                  </ul>
-
-                  <Link className="btn btn-ghost btn-sm" href={`/exhibition/${entry.entry_code}`}>
-                    {t('عرض المشروع', 'View project')}
-                  </Link>
-                </article>
+                    <span className="gl-badges">
+                      {snapshot.evaluation && <span>{t('✓ قيّمه منتور', '✓ Mentor rated')}</span>}
+                      <span>{t('✓ موثّق', '✓ Verified')}</span>
+                    </span>
+                  </span>
+                </Link>
               );
             })}
           </div>
