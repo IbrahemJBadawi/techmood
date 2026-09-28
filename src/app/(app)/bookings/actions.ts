@@ -207,3 +207,68 @@ export async function answerPaymentQuestion(_prev: PaymentState, formData: FormD
   revalidatePath(`/bookings/${bookingId}`);
   redirect(`/bookings/${bookingId}`);
 }
+
+// ---------------------------------------------------------------------------
+// A confirmed session (0104): the meeting link, declining, attendance
+// ---------------------------------------------------------------------------
+
+export type SessionState = { error?: string; ok?: string } | undefined;
+
+/** The mentor puts the meeting link on the booking; the learner sees it only in the join window. */
+export async function setMeetingLink(_prev: SessionState, formData: FormData): Promise<SessionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const { error } = await supabase.rpc('set_meeting_link', {
+    p_booking: bookingId,
+    p_url: String(formData.get('url') ?? '').trim(),
+  });
+
+  revalidatePath(`/bookings/${bookingId}`);
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('حُفظ رابط الاجتماع.', 'The meeting link is saved.') };
+}
+
+/** The mentor cannot make it. The learner is told why, and their money is owed back. */
+export async function declineBooking(_prev: SessionState, formData: FormData): Promise<SessionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const { error } = await supabase.rpc('mentor_decline_booking', {
+    p_booking: bookingId,
+    p_reason: String(formData.get('reason') ?? '').trim().slice(0, 500),
+  });
+
+  revalidatePath('/bookings');
+  revalidatePath(`/bookings/${bookingId}`);
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('أُبلغ الطالب، وسيُعاد إليه المبلغ.', 'The learner has been told, and their money will be returned.') };
+}
+
+/** Who was there. The database decides who may say what, and when. */
+export async function recordAttendance(_prev: SessionState, formData: FormData): Promise<SessionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const outcome = String(formData.get('outcome') ?? '');
+  if (outcome !== 'held' && outcome !== 'learner_absent' && outcome !== 'mentor_absent') {
+    return { error: t('اختر ما حدث.', 'Choose what happened.') };
+  }
+
+  const { error } = await supabase.rpc('record_attendance', { p_booking: bookingId, p_outcome: outcome });
+
+  revalidatePath('/bookings');
+  revalidatePath(`/bookings/${bookingId}`);
+  revalidatePath('/admin/pricing');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('سُجّل الحضور.', 'Attendance is recorded.') };
+}

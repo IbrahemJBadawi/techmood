@@ -1,12 +1,13 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
-import { money } from '@/lib/booking';
+import { formatSlot, money } from '@/lib/booking';
 import { getT } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 
-import { refundBooking, saveLevel, saveSetting, saveTier, switchMentor } from './actions';
+import { refundBooking, saveLevel, saveSetting, saveTier, settleAttendance, switchMentor } from './actions';
 
 export const metadata = { title: 'Pricing — TechMood admin' };
 
@@ -45,7 +46,7 @@ export default async function AdminPricingPage() {
   const { data: isAdmin } = await supabase.rpc('can_enter_role', { p_role: 'admin' });
   if (!isAdmin) redirect('/home');
 
-  const [{ data: levels }, { data: tiers }, { data: settings }, { data: refunds }, { data: mentors }] = await Promise.all([
+  const [{ data: levels }, { data: tiers }, { data: settings }, { data: refunds }, { data: mentors }, { data: disputes }] = await Promise.all([
     supabase.from('mentor_levels').select('*').order('sort_order'),
     supabase.from('commission_tiers').select('*').order('kind').order('min_amount_usd'),
     supabase.from('platform_settings').select('key, value'),
@@ -55,6 +56,7 @@ export default async function AdminPricingPage() {
       .select('profile_id, level, is_accepting, pause_reason, paused_until, approved_at')
       .not('approved_at', 'is', null)
       .order('is_accepting'),
+    supabase.rpc('admin_attendance_disputes'),
   ]);
 
   const mentorIds = (mentors ?? []).map((row) => row.profile_id);
@@ -74,6 +76,52 @@ export default async function AdminPricingPage() {
              'Each mentor level has a floor and ceiling for an hour and TechMood’s percentage. Mentors price each session type within their level’s range; shorter sessions are priced by their length. Market work and project sales have commission brackets by amount.')}
         </p>
       </section>
+
+      {(disputes ?? []).length > 0 && (
+        <section className="section-block">
+          <h3 className="academy-heading">{t(`بلاغات غياب منتور (${disputes!.length})`, `Mentor absence reports (${disputes!.length})`)}</h3>
+          <p className="muted" style={{ fontSize: '0.84rem', marginBottom: 10 }}>
+            {t('أبلغ الطالب أن المنتور لم يحضر. تحقّق من الطرفين ثم قرّر: غياب المنتور يُعيد المبلغ للطالب، وانعقاد الجلسة يكملها.',
+               'The learner reported that the mentor did not come. Check with both sides, then decide: a mentor absence refunds the learner; a held session completes it.')}
+          </p>
+          <div className="stack">
+            {disputes!.map((row) => (
+              <article className="panel" key={row.booking_id}>
+                <div className="row-between">
+                  <div>
+                    <Link className="eng" href={`/bookings/${row.booking_id}`}><strong>{row.booking_code}</strong></Link>{' · '}
+                    {row.student_name ?? '—'}{t(' مع ', ' with ')}{row.mentor_name ?? '—'}
+                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+                      {formatSlot(row.scheduled_start).date} · <span className="eng">{formatSlot(row.scheduled_start).time}</span>
+                    </p>
+                  </div>
+                  <span className="badge-pill eng">{money(row.price_usd)}</span>
+                </div>
+                <div className="row-actions" style={{ marginTop: 10 }}>
+                  <ActionForm
+                    action={settleAttendance}
+                    className="admin-inline-form"
+                    submitLabel={t('غاب المنتور — أرجع المبلغ', 'Mentor absent — refund')}
+                    confirm={t('تسجيل غياب المنتور وإرجاع المبلغ للطالب؟', 'Record the mentor absent and refund the learner?')}
+                  >
+                    <input type="hidden" name="booking_id" value={row.booking_id} />
+                    <input type="hidden" name="outcome" value="mentor_absent" />
+                  </ActionForm>
+                  <ActionForm
+                    action={settleAttendance}
+                    className="admin-inline-form"
+                    submitLabel={t('انعقدت الجلسة', 'The session was held')}
+                    confirm={t('تسجيل الجلسة منعقدة؟', 'Record the session as held?')}
+                  >
+                    <input type="hidden" name="booking_id" value={row.booking_id} />
+                    <input type="hidden" name="outcome" value="held" />
+                  </ActionForm>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="section-block">
         <h3 className="academy-heading">{t(`مبالغ مستحقة الإرجاع (${refunds?.length ?? 0})`, `Refunds owed (${refunds?.length ?? 0})`)}</h3>

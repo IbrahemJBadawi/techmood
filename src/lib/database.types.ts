@@ -624,9 +624,17 @@ export type Booking = {
   mentor_respond_by: string | null;
   /** Declined by the platform because the mentor did not answer in time. */
   auto_declined: boolean;
+  /** Who was there, as the mentor (or, for a missing mentor, the learner) recorded it (0104). */
+  attendance: BookingAttendance | null;
+  attendance_by: string | null;
+  attendance_at: string | null;
+  /** Flagged to the mentor and the admins when nobody recorded it in 48 hours. */
+  attendance_flagged_at: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type BookingAttendance = 'held' | 'learner_absent' | 'mentor_absent';
 
 export type Payment = {
   id: string;
@@ -1775,6 +1783,20 @@ export type Database = {
       my_leaderboard_rank: { Args: { p_since?: string | null }; Returns: number };
       cancel_booking: { Args: { p_booking: string; p_reason?: string | null }; Returns: undefined };
       set_meeting_url: { Args: { p_booking: string; p_url: string }; Returns: undefined };
+      set_meeting_link: { Args: { p_booking: string; p_url: string }; Returns: undefined };
+      booking_meeting: {
+        Args: { p_booking: string };
+        Returns: { has_link: boolean; url: string | null; opens_at: string; closes_at: string; can_join: boolean }[];
+      };
+      mentor_decline_booking: { Args: { p_booking: string; p_reason: string }; Returns: undefined };
+      record_attendance: { Args: { p_booking: string; p_outcome: BookingAttendance }; Returns: undefined };
+      admin_attendance_disputes: {
+        Args: Record<string, never>;
+        Returns: {
+          booking_id: string; booking_code: string; student_name: string | null; mentor_name: string;
+          scheduled_start: string; price_usd: number; reported_at: string;
+        }[];
+      };
       is_username_available: { Args: { p_username: string }; Returns: boolean };
       can_enter_role: { Args: { p_role: UserRole }; Returns: boolean };
       suggest_taxonomy_term: {

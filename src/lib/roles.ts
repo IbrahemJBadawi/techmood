@@ -440,7 +440,6 @@ const MVP_ROLE_NAV: Partial<Record<UserRole, NavGroup[]>> = {
       label: { ar: 'رحلتي', en: 'My journey' },
       items: [
         { href: '/mentorship', label: { ar: 'أهدافي مع المنتورز', en: 'My mentoring goals' }, icon: 'mentor' },
-        { href: '/sessions', label: { ar: 'جلساتي', en: 'My sessions' }, icon: 'calendar' },
       ],
     },
   ],

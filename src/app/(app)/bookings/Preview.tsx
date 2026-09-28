@@ -6,6 +6,7 @@ import { formatDateTime } from '@/lib/i18n';
 import { BOOKING_STATUS, PAYMENT_STATUS, money } from '@/lib/booking';
 import { ENTRY_LABEL, TONE_LABEL } from '@/lib/calendar';
 import type { Database } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 
 type Entry = Database['public']['Functions']['my_calendar']['Returns'][number];
 
@@ -111,12 +112,12 @@ export async function Preview({ entry }: { entry: Entry }) {
           {isBooking ? t('تفاصيل الحجز', 'View booking') : t('افتح', 'Open')}
         </Link>
 
-        {room && (phase === 'lobby' || phase === 'live') && (
+        {!IS_MVP && room && (phase === 'lobby' || phase === 'live') && (
           <Link className="btn btn-primary btn-sm" href={`/sessions/${room.id}`}>
             {t('ادخل الجلسة', 'Join session')}
           </Link>
         )}
-        {room && phase === 'ended' && (
+        {!IS_MVP && room && phase === 'ended' && (
           <Link className="btn btn-ghost btn-sm" href={`/sessions/${room.id}`}>
             {t('ملخّص الجلسة', 'Session summary')}
           </Link>

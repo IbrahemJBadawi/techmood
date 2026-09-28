@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDateTime, type Text } from '@/lib/i18n';
 import type { Database, SessionPhase, VideoSessionType } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 
 type Session = Database['public']['Functions']['my_sessions']['Returns'][number];
 
@@ -38,6 +39,9 @@ export default async function SessionsPage() {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  // Booked sessions live on the booking pages in the MVP (0104).
+  if (IS_MVP) redirect('/bookings');
 
   const [{ data: upcoming }, { data: past }] = await Promise.all([
     supabase.rpc('my_sessions', { p_past: false }),

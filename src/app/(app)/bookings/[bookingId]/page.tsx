@@ -5,8 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { contentText, formatDate } from '@/lib/i18n';
 import { BOOKING_STATUS, BOOKING_TIMELINE, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
+import { IS_MVP } from '@/lib/scope';
+import { OF_LEARNER, OF_MENTOR } from '@/lib/criteria';
 
 import { cancelBooking } from '../actions';
+import { RatingForm } from '../../sessions/[sessionId]/RatingForm';
+import { AttendanceForm, DeclineForm, MeetingLinkForm } from './SessionPanel';
 
 export default async function BookingDetailPage({
   params,
@@ -77,6 +81,39 @@ export default async function BookingDetailPage({
   const status = BOOKING_STATUS[booking.status];
   const when = formatSlot(booking.scheduled_start);
   const isStudent = booking.student_id === user.id;
+  const isMentor = booking.mentor_id === user.id;
+  const isLearner = !isMentor && (isStudent || (seats ?? []).some((seat) => seat.profile_id === user.id));
+
+  // The MVP runs sessions on the mentor's own meeting link (0104): the link,
+  // when it opens, and who says the session was held.
+  const [{ data: meetingRows }, { data: serverNow }] = IS_MVP && ['confirmed', 'completed'].includes(booking.status)
+    ? await Promise.all([
+        booking.status === 'confirmed'
+          ? supabase.rpc('booking_meeting', { p_booking: bookingId })
+          : Promise.resolve({ data: null }),
+        supabase.rpc('server_now'),
+      ])
+    : [{ data: null }, { data: null }];
+  const meeting = meetingRows?.[0] ?? null;
+  // On a team booking the team's leader speaks for the learners (0104).
+  const { data: leadsTeam } = meeting && booking.team_id && !isMentor
+    ? await supabase.rpc('is_team_leader', { p_team: booking.team_id })
+    : { data: false };
+  const canRecord = isMentor || isStudent || leadsTeam === true;
+  const now = new Date(serverNow ?? booking.updated_at);
+  const started = new Date(booking.scheduled_start) <= now;
+
+  // Rating, a week from the end of a completed session (0095).
+  const [{ data: feedback }, { data: requiresEvaluation }] =
+    IS_MVP && booking.status === 'completed' && (isMentor || isLearner)
+      ? await Promise.all([
+          supabase.rpc('session_feedback_for', { p_booking: bookingId }),
+          supabase.rpc('booking_requires_evaluation', { p_booking: bookingId }),
+        ])
+      : [{ data: null }, { data: false }];
+  const rateBy = new Date(new Date(booking.scheduled_end).getTime() + 7 * 24 * 60 * 60 * 1000);
+  const alreadyRated = (feedback ?? []).some((row) => row.from_profile === user.id);
+  const canRate = feedback !== null && !alreadyRated && booking.attendance === 'held' && now <= rateBy;
 
   // Where the booking has reached on the fixed journey.
   const reachedIndex = BOOKING_TIMELINE.reduce(
@@ -117,7 +154,34 @@ export default async function BookingDetailPage({
           </Link>
         )}
 
-        {booking.status === 'rejected' && (
+        {IS_MVP && booking.status === 'cancelled' && booking.cancelled_reason?.startsWith('اعتذر المنتور') && (
+          <p className="notice notice-warn" style={{ marginTop: 16 }}>
+            {booking.cancelled_reason}.{' '}
+            {isStudent && t('سيُعاد إليك المبلغ كاملاً على حساب الاستقبال في محفظتك.',
+                            'Your money will be returned in full to the receiving account in your wallet.')}
+          </p>
+        )}
+
+        {IS_MVP && booking.status === 'rejected' && (
+          <p className="notice notice-danger" style={{ marginTop: 16 }}>
+            {t('لم يُقبل الدفع، وعاد الموعد متاحاً.', 'The payment was not accepted, and the slot is free again.')}
+            {payment?.rejection_reason ? ` ${payment.rejection_reason}` : ''}
+          </p>
+        )}
+
+        {IS_MVP && booking.status === 'completed' && booking.attendance === 'learner_absent' && (
+          <p className="notice" style={{ marginTop: 16 }}>
+            {t('سجّل المنتور أن الطالب لم يحضر هذه الجلسة.', 'The mentor recorded that the learner did not come to this session.')}
+          </p>
+        )}
+
+        {booking.status === 'refunded' && (
+          <p className="notice" style={{ marginTop: 16 }}>
+            {t('أُعيد المبلغ لهذا الحجز.', 'This booking was refunded.')}
+          </p>
+        )}
+
+        {!IS_MVP && booking.status === 'rejected' && (
           <p className="notice notice-danger" style={{ marginTop: 16 }}>
             {t('اعتذر المنتور عن هذه الجلسة.', 'The mentor declined this session.')}
             {booking.cancelled_reason ? t(` السبب: ${booking.cancelled_reason}`, ` Reason: ${booking.cancelled_reason}`) : ''}
@@ -251,11 +315,66 @@ export default async function BookingDetailPage({
             )}
 
             <p className="muted" style={{ fontSize: '0.76rem', marginTop: 12 }}>
-              {t('التحقق من الدفع لا يؤكد الجلسة وحده — موافقة المنتور شرط ثانٍ مستقل.', 'Verifying the payment does not confirm the session on its own — the mentor’s acceptance is a separate, second condition.')}
+              {IS_MVP
+                ? t('حين يتحقق فريق TechMood من الدفع تتأكّد الجلسة مباشرة.', 'Once TechMood verifies the payment, the session is confirmed straight away.')
+                : t('التحقق من الدفع لا يؤكد الجلسة وحده — موافقة المنتور شرط ثانٍ مستقل.', 'Verifying the payment does not confirm the session on its own — the mentor’s acceptance is a separate, second condition.')}
             </p>
           </div>
 
-          {videoSession && (
+          {IS_MVP && meeting && (isMentor || isLearner) && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>{t('الاجتماع', 'The meeting')}</h3>
+
+              {isMentor ? (
+                <>
+                  {!meeting.has_link && (
+                    <p className="notice notice-warn" style={{ marginBottom: 10 }}>
+                      {t('أضف رابط الاجتماع (Google Meet أو Zoom أو غيره) — يظهر للطالب قبل الموعد بعشر دقائق.',
+                         'Add the meeting link (Google Meet, Zoom or another) — the learner sees it ten minutes before the time.')}
+                    </p>
+                  )}
+                  <MeetingLinkForm bookingId={bookingId} current={meeting.url} />
+                </>
+              ) : meeting.can_join && meeting.url ? (
+                <a className="btn btn-primary btn-sm" href={meeting.url} target="_blank" rel="noopener noreferrer" style={{ width: '100%' }}>
+                  {t('انضم للاجتماع', 'Join the meeting')}
+                </a>
+              ) : (
+                <p className="muted" style={{ fontSize: '0.84rem' }}>
+                  {!meeting.has_link
+                    ? t('سيضع المنتور رابط الاجتماع قبل الموعد.', 'The mentor will add the meeting link before the time.')
+                    : now < new Date(meeting.opens_at)
+                      ? t('الرابط جاهز، ويظهر زر الانضمام قبل الموعد بعشر دقائق.', 'The link is ready — the Join button appears ten minutes before the time.')
+                      : t('انتهى وقت الجلسة.', 'The session time is over.')}
+                </p>
+              )}
+
+              {started && canRecord && !booking.attendance && (
+                <div style={{ marginTop: 14 }}>
+                  <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 8 }}>
+                    {isMentor
+                      ? t('بعد الجلسة سجّل ما حدث — به تكتمل الجلسة وتصل حصتك.', 'After the session, record what happened — that completes it and releases your share.')
+                      : t('إن لم يحضر المنتور أبلغنا هنا؛ يراجعه فريق TechMood ويُعاد المبلغ.', 'If the mentor did not come, tell us here — TechMood reviews it and refunds you.')}
+                  </p>
+                  <AttendanceForm bookingId={bookingId} side={isMentor ? 'mentor' : 'learner'} />
+                </div>
+              )}
+
+              {booking.attendance === 'mentor_absent' && (
+                <p className="notice notice-warn" style={{ marginTop: 12 }}>
+                  {t('أُبلغ عن غياب المنتور — ينتظر مراجعة فريق TechMood.', 'The mentor was reported absent — waiting for TechMood to review it.')}
+                </p>
+              )}
+
+              {isMentor && !started && (
+                <div style={{ marginTop: 14 }}>
+                  <DeclineForm bookingId={bookingId} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {!IS_MVP && videoSession && (
             <div className="panel section-block">
               <h3 style={{ fontSize: '0.95rem', marginBottom: 8 }}>{t('غرفة الجلسة', 'The session room')}</h3>
               <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 10 }}>
@@ -276,6 +395,16 @@ export default async function BookingDetailPage({
                    'Entry is from your own account, and only for the people the session was booked for — there is no link to forward.')}
               </p>
             </div>
+          )}
+
+          {canRate && (
+            <RatingForm
+              bookingId={bookingId}
+              criteria={isMentor ? OF_LEARNER : OF_MENTOR}
+              revalidate={`/bookings/${bookingId}`}
+              reviewOwed={isMentor && requiresEvaluation === true}
+              dueAt={rateBy.toISOString()}
+            />
           )}
 
           {isStudent && ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending'].includes(booking.status) && (

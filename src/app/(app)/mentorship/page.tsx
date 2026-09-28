@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate, formatDateTime, type Text } from '@/lib/i18n';
 import type { MentorshipGoalStatus } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 
@@ -112,7 +113,7 @@ export default async function MentorshipPage() {
             {t(`${m?.awaiting_rating} جلسة تنتظر تقييمك. التقييم يبقى مغلقاً حتى يكتب الطرفان.`,
                `${m?.awaiting_rating} session(s) waiting on your rating. Ratings stay sealed until both sides write.`)}
             {' '}
-            <Link href="/sessions">{t('افتح جلساتي', 'Open my sessions')}</Link>
+            <Link href={IS_MVP ? '/bookings' : '/sessions'}>{t('افتح جلساتي', 'Open my sessions')}</Link>
           </p>
         )}
       </section>

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
 import { getT } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
+import { IS_MVP } from '@/lib/scope';
 
 import { decideBooking } from './actions';
 import { AvailabilitySwitch } from './AvailabilitySwitch';
@@ -132,8 +133,9 @@ export default async function MentorRequestsPage() {
                   <td className="muted">{t('حتى', 'By')} <span className="eng">{formatSlot(row.due_at).date}</span></td>
                   <td className="eng">{money(row.held_usd)}</td>
                   <td>
-                    {owedRoomOf.get(row.booking_id) && (
-                      <Link className="btn btn-primary btn-sm" href={`/sessions/${owedRoomOf.get(row.booking_id)}`}>
+                    {(IS_MVP || owedRoomOf.get(row.booking_id)) && (
+                      <Link className="btn btn-primary btn-sm"
+                            href={IS_MVP ? `/bookings/${row.booking_id}` : `/sessions/${owedRoomOf.get(row.booking_id)}`}>
                         {t('قيّم الآن', 'Evaluate now')}
                       </Link>
                     )}
@@ -246,7 +248,7 @@ export default async function MentorRequestsPage() {
                     </p>
                   </div>
 
-                  {roomOf.get(row.id) && (
+                  {!IS_MVP && roomOf.get(row.id) && (
                     <Link className="btn btn-primary btn-sm" href={`/sessions/${roomOf.get(row.id)}`}>
                       {t('غرفة الجلسة', 'Session room')}
                     </Link>

@@ -6,6 +6,7 @@ import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { dayKey, parseDay, rangeFor, type CalendarView } from '@/lib/calendar';
 import type { Text } from '@/lib/i18n';
+import { IS_MVP } from '@/lib/scope';
 
 import { Availability, type Window } from './Availability';
 import { BlockTime } from './BlockTime';
@@ -120,7 +121,7 @@ export default async function BookingsHub({
           </div>
 
           <div className="row-actions">
-            <Link className="btn btn-ghost btn-sm" href="/sessions">{t('غرف الجلسات', 'Session rooms')}</Link>
+            {!IS_MVP && <Link className="btn btn-ghost btn-sm" href="/sessions">{t('غرف الجلسات', 'Session rooms')}</Link>}
             {mentor && (
               <Link className="btn btn-ghost btn-sm" href="/bookings?tab=availability">
                 {t('إدارة توفّري', 'Manage availability')}

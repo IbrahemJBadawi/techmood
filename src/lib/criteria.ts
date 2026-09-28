@@ -16,6 +16,14 @@ export const SESSION_CRITERION: Record<SessionCriterion, Text> = {
   communication:  { ar: 'التواصل',            en: 'Communication' },
 };
 
+/** What a learner or a team judges a mentor on. */
+export const OF_MENTOR: SessionCriterion[] =
+  ['quality', 'clarity', 'usefulness', 'punctuality', 'guidance', 'communication'];
+
+/** What a mentor judges the other side on. */
+export const OF_LEARNER: SessionCriterion[] =
+  ['commitment', 'preparation', 'participation', 'use_of_session', 'cooperation', 'communication'];
+
 export const CLIENT_CRITERION: Record<ClientCriterion, Text> = {
   quality:         { ar: 'جودة العمل',     en: 'Quality' },
   communication:   { ar: 'التواصل',        en: 'Communication' },

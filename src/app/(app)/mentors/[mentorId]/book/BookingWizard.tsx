@@ -6,6 +6,7 @@ import { formatSlot, money, SLOT_STATE } from '@/lib/booking';
 import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database.types';
 
 import { useT } from '@/lib/i18n.client';
+import { IS_MVP } from '@/lib/scope';
 
 import { createBooking, type BookingState } from '../../actions';
 
@@ -418,7 +419,9 @@ export function BookingWizard({
             </button>
 
             <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
-              {t('لا يصبح الحجز مؤكداً إلا بعد التحقق من الدفع وموافقة المنتور.', 'A booking is only confirmed once the payment is verified and the mentor has accepted.')}
+              {IS_MVP
+                ? t('يتأكّد الحجز حين يتحقق فريق TechMood من الدفع. إن اعتذر المنتور يُعاد إليك المبلغ كاملاً.', 'The booking is confirmed once TechMood verifies the payment. If the mentor declines, you get your money back in full.')
+                : t('لا يصبح الحجز مؤكداً إلا بعد التحقق من الدفع وموافقة المنتور.', 'A booking is only confirmed once the payment is verified and the mentor has accepted.')}
             </p>
           </div>
         </aside>

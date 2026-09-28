@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ROLE_BY_VALUE, roleLabel } from '@/lib/roles';
 import { getT } from '@/lib/i18n.server';
 import type { Database, UserRole } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 
 type Tile = { value: number | string; label: string; href: string };
 
@@ -70,8 +71,8 @@ export async function RoleDashboard({ role, userId }: { role: UserRole; userId: 
     tiles = [
       { value: m?.upcoming ?? 0, label: t('جلسات قادمة', 'Upcoming sessions'), href: '/bookings' },
       { value: m?.goals_active ?? 0, label: t('أهداف مفتوحة', 'Open goals'), href: '/mentorship' },
-      { value: m?.sessions_attended ?? 0, label: t('جلسات حضرتها', 'Sessions attended'), href: '/sessions' },
-      { value: m?.awaiting_rating ?? 0, label: t('جلسات تنتظر تقييمك', 'Sessions waiting on your rating'), href: '/sessions' },
+      { value: m?.sessions_attended ?? 0, label: t('جلسات حضرتها', 'Sessions attended'), href: IS_MVP ? '/bookings' : '/sessions' },
+      { value: m?.awaiting_rating ?? 0, label: t('جلسات تنتظر تقييمك', 'Sessions waiting on your rating'), href: IS_MVP ? '/bookings' : '/sessions' },
     ];
     cta = { href: '/mentors', label: t('ابحث عن منتور', 'Find a mentor') };
   }

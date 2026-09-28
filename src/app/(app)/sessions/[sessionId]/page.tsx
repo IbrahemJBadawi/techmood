@@ -5,7 +5,9 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDateTime, type Text } from '@/lib/i18n';
-import type { SessionCriterion, SessionRole, VideoSessionType } from '@/lib/database.types';
+import type { SessionRole, VideoSessionType } from '@/lib/database.types';
+import { OF_LEARNER, OF_MENTOR } from '@/lib/criteria';
+import { IS_MVP } from '@/lib/scope';
 
 import { RatingForm } from './RatingForm';
 import { Room } from './Room';
@@ -27,13 +29,6 @@ const ROLE_LABEL: Record<SessionRole, Text> = {
   contractor: { ar: 'المنفّذ',  en: 'Contractor' },
 };
 
-/** What a learner or a team judges a mentor on. */
-const OF_MENTOR: SessionCriterion[] =
-  ['quality', 'clarity', 'usefulness', 'punctuality', 'guidance', 'communication'];
-
-/** What a mentor judges the other side on. */
-const OF_LEARNER: SessionCriterion[] =
-  ['commitment', 'preparation', 'participation', 'use_of_session', 'cooperation', 'communication'];
 
 /**
  * One session, in whichever of its four states it is in.
@@ -59,6 +54,9 @@ export default async function SessionPage({ params }: { params: Promise<{ sessio
     .maybeSingle();
 
   if (!session) notFound();
+
+  // The MVP runs booked sessions on the mentor's meeting link, from the booking page (0104).
+  if (IS_MVP && session.booking_id) redirect(`/bookings/${session.booking_id}`);
 
   const [{ data: phase }, { data: attendance }, { data: serverNow }] = await Promise.all([
     supabase.rpc('session_phase', { p_session: session.id }),

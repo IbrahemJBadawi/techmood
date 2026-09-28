@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import type { ConversationKind, MessageReaction } from '@/lib/database.types';
+import { IS_MVP } from '@/lib/scope';
 
 import { Composer } from './Composer';
 import { Reactions } from './Reactions';
@@ -224,7 +225,7 @@ export default async function MessagesPage({
                       {t('تفاصيل الجلسة ↗', 'Session details ↗')}
                     </Link>
                   )}
-                  {room && (
+                  {!IS_MVP && room && (
                     <Link
                       className="muted"
                       style={{ fontSize: '0.78rem' }}

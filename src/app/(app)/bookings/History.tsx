@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { contentText, formatDate } from '@/lib/i18n';
 import { money } from '@/lib/booking';
+import { IS_MVP } from '@/lib/scope';
 
 /**
  * The record a session leaves behind.
@@ -97,8 +98,8 @@ export async function History() {
                 {stars ? <Stars value={stars} /> : <span className="muted">{t('لم تقيّم بعد', 'Not rated yet')}</span>}
               </td>
               <td>
-                {room && (
-                  <Link className="btn btn-ghost btn-sm" href={`/sessions/${room}`}>
+                {(room || IS_MVP) && (
+                  <Link className="btn btn-ghost btn-sm" href={IS_MVP ? `/bookings/${row.id}` : `/sessions/${room}`}>
                     {stars ? t('السجل', 'The record') : t('قيّمها', 'Rate it')}
                   </Link>
                 )}

@@ -4,6 +4,7 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { contentText, formatDate, formatDateTime, type Text } from '@/lib/i18n';
+import { IS_MVP } from '@/lib/scope';
 
 import { Avatar } from '../../shell/ProfileMenu';
 import { ContinueLearning, type Resume } from './ContinueLearning';
@@ -273,7 +274,7 @@ export async function StudentHome({
                       ? t('مؤكّدة', 'Confirmed')
                       : t('بانتظار التأكيد', 'Awaiting confirmation')}
                   </span>
-                  {roomOf.get(session.id) && (
+                  {!IS_MVP && roomOf.get(session.id) && (
                     <Link className="btn btn-primary btn-sm" href={`/sessions/${roomOf.get(session.id)}`}>
                       {t('ادخل الجلسة', 'Enter the session')}
                     </Link>

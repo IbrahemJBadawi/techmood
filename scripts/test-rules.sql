@@ -2780,7 +2780,7 @@ set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert_rejects(
   format($$select public.set_meeting_url(%L, 'https://meet.example.com/x')$$, :'booking3'),
   '22.6 a student cannot set the meeting link',
-  'يضعه المنتور');
+  'يضعه منتور الجلسة');
 reset role;
 reset request.jwt.claim.sub;
 
@@ -2788,22 +2788,26 @@ set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.assert_rejects(
   format($$select public.set_meeting_url(%L, 'javascript:alert(1)')$$, :'booking3'),
-  '22.7 and the link must be a real http(s) address',
-  'http');
+  '22.7 and the link must be a real https address',
+  'https://');
 
 select public.set_meeting_url(:'booking3', 'https://meet.example.com/techmood-1');
 reset role;
 reset request.jwt.claim.sub;
 
 select public.assert(
-  (select meeting_url from public.bookings where id = :'booking3') = 'https://meet.example.com/techmood-1',
-  '22.8 the mentor sets it, and it is stored on the booking');
+  (select url from public.booking_meeting_links where booking_id = :'booking3') = 'https://meet.example.com/techmood-1'
+  and (select meeting_url from public.bookings where id = :'booking3') is null,
+  '22.8 the mentor sets it, and it belongs to the booking alone — not on the booking row every party reads (0104)');
 
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert(
-  (select meeting_url from public.bookings where id = :'booking3') is not null,
-  '22.9 the student in the session can read it');
+  (select has_link and url is null and not can_join from public.booking_meeting(:'booking3')),
+  '22.9 the student knows a link is ready, and gets it only inside the session window');
+select public.assert(
+  (select count(*) from public.booking_meeting_links) = 0,
+  '22.10 and nobody reads the link from the table');
 reset role;
 reset request.jwt.claim.sub;
 
@@ -8441,6 +8445,261 @@ select public.assert(
 update public.platform_settings set value = 'full' where key = 'mvp_scope';
 select public.assert(not public.in_mvp(), '74.6 one setting brings the full platform back');
 update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
+
+-- ===========================================================================
+-- 75. The MVP's booking: confirmed by payment, joined by link, closed by
+--     attendance (0104)
+-- ===========================================================================
+update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '70 days') + interval '10 hours',
+        date_trunc('day', now() + interval '70 days') + interval '11 hours',
+        15, 5, 10, 'جلسة MVP', 'draft')
+returning id as m1 \gset
+update public.bookings set status = 'payment_pending' where id = :'m1';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'m1', 'jawwal_pay', 15, 'pending') returning id as m1_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_payment_proof(:'m1', '11111111-1111-1111-1111-111111111111/r-m1.png', 'JP-m1');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert_rejects(
+  $$insert into public.bookings
+      (kind, student_id, mentor_id, scheduled_start, scheduled_end, price_usd, platform_share_usd, mentor_share_usd, status)
+    values ('student_mentor', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333',
+            date_trunc('day', now() + interval '70 days') + interval '10 hours',
+            date_trunc('day', now() + interval '70 days') + interval '11 hours', 15, 5, 10, 'payment_pending')$$,
+  '75.1 once "I paid" is pressed the slot is locked — nobody else books it, whatever the page shows');
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'m1_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.bookings where id = :'m1') = 'confirmed'
+  and exists (select 1 from public.notifications
+               where profile_id = '33333333-3333-3333-3333-333333333333' and title_ar = 'حجز جديد مؤكّد'),
+  '75.2 the admin''s approval confirms the session at once, and the mentor is told to add the link');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.set_meeting_link(%L, 'http://zoom.example/j/1')$$, :'m1'),
+  '75.3 a meeting link is an https address', 'https://');
+select public.set_meeting_link(:'m1', 'https://zoom.example/j/123');
+select public.assert(
+  (select url from public.booking_meeting(:'m1')) = 'https://zoom.example/j/123',
+  '75.4 the mentor always sees the link they set');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  not exists (select 1 from public.booking_meeting(:'m1')),
+  '75.5 somebody outside the booking learns nothing about its link');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.mentor_decline_booking(%L, 'قصير')$$, :'m1'),
+  '75.6 a mentor who declines says why', 'سبب الاعتذار');
+select public.mentor_decline_booking(:'m1', 'ظرف طارئ يمنعني من الحضور في هذا الموعد');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.refunds_owed() where booking_id = :'m1') = 1,
+  '75.7 declined after payment: cancelled, and the learner''s money is a refund owed');
+select public.refund_booking(:'m1', 'اعتذار المنتور');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status from public.bookings where id = :'m1') = 'refunded',
+  '75.8 and the refund goes through (cancelled -> refunded was refused before 0104)');
+
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '71 days') + interval '10 hours',
+        date_trunc('day', now() + interval '71 days') + interval '11 hours',
+        15, 5, 10, 'جلسة MVP', 'draft')
+returning id as m2 \gset
+update public.bookings set status = 'payment_pending' where id = :'m2';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'m2', 'jawwal_pay', 15, 'pending') returning id as m2_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_payment_proof(:'m2', '11111111-1111-1111-1111-111111111111/r-m2.png', 'JP-m2');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'m2_pay', false, 'المبلغ لم يصل');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.bookings where id = :'m2') = 'rejected'
+  and (select status from public.payments where id = :'m2_pay') = 'rejected',
+  '75.9 a rejected payment rejects the booking');
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end, price_usd, platform_share_usd, mentor_share_usd, status)
+values ('student_mentor', '22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '71 days') + interval '10 hours',
+        date_trunc('day', now() + interval '71 days') + interval '11 hours', 15, 5, 10, 'payment_pending')
+returning id as m2_other \gset
+select public.assert(:'m2_other' is not null, '75.10 and releases the slot for somebody else');
+
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '72 days') + interval '10 hours',
+        date_trunc('day', now() + interval '72 days') + interval '11 hours',
+        15, 5, 10, 'جلسة MVP', 'draft')
+returning id as m3 \gset
+update public.bookings set status = 'payment_pending' where id = :'m3';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'m3', 'jawwal_pay', 15, 'pending') returning id as m3_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_payment_proof(:'m3', '11111111-1111-1111-1111-111111111111/r-m3.png', 'JP-m3');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'m3_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.set_meeting_link(:'m3', 'https://meet.example/abc-defg');
+select public.assert_rejects(
+  format($$select public.record_attendance(%L, 'held')$$, :'m3'),
+  '75.11 attendance is recorded once the session has started, not before', 'بعد بدء موعد');
+reset role;
+reset request.jwt.claim.sub;
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '20 minutes', scheduled_end = now() + interval '40 minutes'
+ where id = :'m3';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select can_join and url = 'https://meet.example/abc-defg' from public.booking_meeting(:'m3')),
+  '75.12 inside the session window the learner has the link and the Join button');
+select public.assert_rejects(
+  format($$select public.record_attendance(%L, 'held')$$, :'m3'),
+  '75.13 the learner does not close the session — they can only report the mentor absent', 'غياب المنتور فقط');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.record_attendance(:'m3', 'held');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status = 'completed' and attendance = 'held' from public.bookings where id = :'m3'),
+  '75.14 the mentor records it held: the session is completed');
+
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '73 days') + interval '10 hours',
+        date_trunc('day', now() + interval '73 days') + interval '11 hours',
+        15, 5, 10, 'جلسة MVP', 'draft')
+returning id as m4 \gset
+update public.bookings set status = 'payment_pending' where id = :'m4';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'m4', 'jawwal_pay', 15, 'pending') returning id as m4_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_payment_proof(:'m4', '11111111-1111-1111-1111-111111111111/r-m4.png', 'JP-m4');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'m4_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '100 minutes', scheduled_end = now() - interval '40 minutes'
+ where id = :'m4';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.record_attendance(:'m4', 'mentor_absent');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.record_attendance(%L, 'held')$$, :'m4'),
+  '75.15 once the learner reports the mentor absent, the mentor cannot overwrite it', 'سُجّل الحضور');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.admin_attendance_disputes() where booking_id = :'m4') = 1,
+  '75.16 the admin sees it waiting');
+select public.record_attendance(:'m4', 'mentor_absent');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status from public.bookings where id = :'m4') = 'refunded',
+  '75.17 and settles it: the learner is refunded');
+
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '74 days') + interval '10 hours',
+        date_trunc('day', now() + interval '74 days') + interval '11 hours',
+        15, 5, 10, 'جلسة MVP', 'draft')
+returning id as m5 \gset
+update public.bookings set status = 'payment_pending' where id = :'m5';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'m5', 'jawwal_pay', 15, 'pending') returning id as m5_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.submit_payment_proof(:'m5', '11111111-1111-1111-1111-111111111111/r-m5.png', 'JP-m5');
+reset role;
+reset request.jwt.claim.sub;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'m5_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '3 days', scheduled_end = now() - interval '3 days' + interval '1 hour'
+ where id = :'m5';
+set session_replication_role = origin;
+select public.attendance_housekeeping() as flagged_first \gset
+select public.attendance_housekeeping() as flagged_again \gset
+select public.assert(
+  :flagged_first >= 1 and :flagged_again = 0
+  and (select status from public.bookings where id = :'m5') = 'confirmed',
+  '75.18 a session nobody recorded is flagged to the mentor and the admins once — and not closed for them');
 
 \echo ''
 \echo '================================================'

@@ -69,6 +69,19 @@ export async function refundBooking(_prev: ActionFormState, formData: FormData):
   return done({ ar: 'أُعيد المبلغ إلى محفظة الطالب.', en: 'Refunded to the learner’s wallet.' }, error);
 }
 
+/** A learner reported the mentor absent: the admin settles it either way (0104). */
+export async function settleAttendance(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const supabase = await createClient();
+  const outcome = formData.get('outcome') === 'held' ? 'held' : 'mentor_absent';
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const { error } = await supabase.rpc('record_attendance', { p_booking: bookingId, p_outcome: outcome });
+  revalidatePath('/admin/pricing');
+  revalidatePath(`/bookings/${bookingId}`);
+  return done(outcome === 'held'
+    ? { ar: 'سُجّلت الجلسة منعقدة.', en: 'Recorded as held.' }
+    : { ar: 'سُجّل غياب المنتور وأُعيد المبلغ للطالب.', en: 'Mentor absence recorded; the learner is refunded.' }, error);
+}
+
 export async function switchMentor(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_mentor_accepting', {
