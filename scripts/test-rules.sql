@@ -362,7 +362,8 @@ select public.assert_rejects(
   $$insert into public.bookings
       (kind, student_id, mentor_id, scheduled_start, scheduled_end, price_usd, platform_share_usd, mentor_share_usd)
     values ('student_mentor', '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333',
-            date_trunc('week', now()) + interval '8 days 10 hours', date_trunc('week', now()) + interval '8 days 11 hours', 15, 5, 10)$$,
+            date_trunc('day', now() + interval '1 day') + interval '10 hours',
+            date_trunc('day', now() + interval '1 day') + interval '11 hours', 15, 5, 10)$$,
   '6.3 a session cannot be booked inside the 72-hour notice window',
   'at least 72 hours');
 
@@ -4760,7 +4761,8 @@ select public.assert(
   public.compute_commission('market_work', 100) = 15.00
   and public.compute_commission('market_work', 1000) = 120.00
   and public.compute_commission('market_work', 5000) = 500.00
-  and public.compute_commission('project_sale', 500) = 50.00,
+  and public.compute_commission('project_sale', 500) = 75.00
+  and public.compute_commission('project_sale', 5000) = 750.00,
   '43.1 the commission comes from brackets in a table, not from a number in the code');
 
 -- 22222222 pays for the work 11111111 is doing (the project of section 40).
@@ -5037,7 +5039,7 @@ reset request.jwt.claim.sub;
 select public.assert(
   (select status from public.project_listings where id = :'listing') = 'reserved'
   and (select commission_usd from public.escrows
-        where id = (select escrow_id from public.project_sales where id = :'sale')) = 60.00,
+        where id = (select escrow_id from public.project_sales where id = :'sale')) = 90.00,
   '46.4 buying reserves the listing and holds the money, at the sale commission');
 
 set role authenticated;
@@ -6711,16 +6713,20 @@ reset request.jwt.claim.sub;
 
 select public.assert(
   (select min_session_usd || '-' || session_price_usd || '-' || max_session_usd || '@' || commission_pct
-     from public.mentor_levels where level = 'L3') = '25.00-35.00-50.00@28.57'
-  and (select platform_share_usd from public.mentor_levels where level = 'L3') = 10,
-  '58.1 every level has a band and a percentage, and yesterday''s split is what the percentage gives');
+     from public.mentor_levels where level = 'L3') = '25.00-35.00-50.00@30.00'
+  and (select platform_share_usd from public.mentor_levels where level = 'L3') = 10.50
+  and (select string_agg(level || '@' || commission_pct, ',' order by sort_order) from public.mentor_levels)
+      = 'L1@33.33,L2@30.00,L3@30.00,L4@30.00,L5@30.00,L6@30.00'
+  and (select platform_share_usd || '/' || mentor_share_usd from public.mentor_levels where level = 'L1') = '5.00/10.00'
+  and (select min(min_session_usd) || '-' || max(max_session_usd) from public.mentor_levels) = '10.00-150.00',
+  '58.1 every level has a band and a percentage: 10$ to 150$, 30% to TechMood, and a new mentor''s 15$ is 5$ + 10$');
 
 select public.assert(
   (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
      from public.session_quote('33333333-3333-3333-3333-333333333333',
                                (select id from public.session_types where slug = 'career_guidance')))
-    = '35.00/10.00/25.00',
-  '58.2 a mentor who never set a price charges the level''s default, split as before');
+    = '35.00/10.50/24.50',
+  '58.2 a mentor who never set a price charges the level''s default, split by the percentage');
 
 select public.assert(
   (select min_usd || '-' || default_usd || '-' || max_usd
@@ -6747,7 +6753,7 @@ select public.assert(
   (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
      from public.session_quote('33333333-3333-3333-3333-333333333333',
                                (select id from public.session_types where slug = 'career_guidance')))
-    = '45.00/12.86/32.14'
+    = '45.00/13.50/31.50'
   and (select is_custom from public.mentor_price_list('33333333-3333-3333-3333-333333333333')
         where session_type_id = (select id from public.session_types where slug = 'career_guidance')),
   '58.6 inside the band the mentor names the price, and TechMood''s share follows the percentage');
@@ -6785,7 +6791,7 @@ returning id as priced_pay \gset
 
 select public.assert(
   (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
-     from public.bookings where id = :'priced_booking') = '45.00/12.86/32.14'
+     from public.bookings where id = :'priced_booking') = '45.00/13.50/31.50'
   and (select amount_usd from public.payments where id = :'priced_pay') = 45,
   '58.9 a booking is charged the mentor''s quote, and its payment asks for the same');
 
