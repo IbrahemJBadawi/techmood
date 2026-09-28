@@ -1784,6 +1784,20 @@ export type Database = {
       cancel_booking: { Args: { p_booking: string; p_reason?: string | null }; Returns: undefined };
       set_meeting_url: { Args: { p_booking: string; p_url: string }; Returns: undefined };
       set_meeting_link: { Args: { p_booking: string; p_url: string }; Returns: undefined };
+      toggle_follow: { Args: { p_profile: string }; Returns: boolean };
+      follow_stats: {
+        Args: { p_profile: string };
+        Returns: { followers: number; following: number; i_follow: boolean }[];
+      };
+      my_following: {
+        Args: Record<string, never>;
+        Returns: { profile_id: string; full_name: string; techmood_id: string; avatar_url: string | null; since: string }[];
+      };
+      toggle_project_like: { Args: { p_project: string }; Returns: boolean };
+      project_like_stats: {
+        Args: { p_projects: string[] };
+        Returns: { project_id: string; likes: number; i_like: boolean }[];
+      };
       booking_meeting: {
         Args: { p_booking: string };
         Returns: { has_link: boolean; url: string | null; opens_at: string; closes_at: string; can_join: boolean }[];

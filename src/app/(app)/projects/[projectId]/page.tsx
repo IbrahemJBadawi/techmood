@@ -7,6 +7,7 @@ import { formatDate, type Text } from '@/lib/i18n';
 import type { ProjectStatus } from '@/lib/database.types';
 
 import { Stars } from '@/components/Stars';
+import { LikeButton } from '@/components/Social';
 import { money } from '@/lib/booking';
 
 import { recordProjectFile, setProjectStatus } from './actions';
@@ -52,7 +53,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, created_at')
+    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, is_public, created_at')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -156,6 +157,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   const nameOf = new Map((people ?? []).map((row) => [row.id, row.full_name]));
   const status = STATUS[project.status];
 
+  // Likes are somebody else's opinion: the owner and the team see the count (0106).
+  const [{ data: likeRows }, { data: inTeam }] = await Promise.all([
+    supabase.rpc('project_like_stats', { p_projects: [projectId] }),
+    project.team_id ? supabase.rpc('is_team_member', { p_team: project.team_id }) : Promise.resolve({ data: false }),
+  ]);
+  const likeStats = likeRows?.[0];
+  const canLike = project.is_public && !isOwner && inTeam !== true;
+
   return (
     <>
       <AiSurface surface="project" entityType="project" entityId={project.id} label={project.title_ar} />
@@ -180,8 +189,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               {project.client_id && ` · ${t('لصالح ', 'for ')}${nameOf.get(project.client_id) ?? '—'}`}
             </p>
           </div>
-          <div style={{ textAlign: 'start' }}>
+          <div style={{ textAlign: 'start', display: 'grid', gap: 8, justifyItems: 'start' }}>
             <span className={`status-pill ${status.className}`}>{t(status.text)}</span>
+            <LikeButton
+              projectId={projectId}
+              likes={likeStats?.likes ?? 0}
+              liked={likeStats?.i_like ?? false}
+              canLike={canLike}
+              signedIn
+              path={`/projects/${projectId}`}
+            />
             {project.agreed_amount_usd !== null && (
               <p className="eng" style={{ fontWeight: 700, color: 'var(--royal-dark)', marginTop: 8 }}>
                 ${project.agreed_amount_usd}

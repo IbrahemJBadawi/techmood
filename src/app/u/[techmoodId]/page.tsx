@@ -3,6 +3,7 @@ import { Stars } from '@/components/Stars';
 import QRCode from 'qrcode';
 
 import { LogoMark } from '@/components/Logo';
+import { FollowButton } from '@/components/Social';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { contentText, formatDate, type Text } from '@/lib/i18n';
@@ -80,6 +81,12 @@ export default async function PublicProfilePage({
       </section>,
     );
   }
+
+  const [{ data: { user: viewer } }, { data: followRows }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.rpc('follow_stats', { p_profile: card.profile_id }),
+  ]);
+  const follow = followRows?.[0];
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmood.io';
   const profileUrl = `${siteUrl}/u/${card.techmood_id}`;
@@ -193,6 +200,17 @@ export default async function PublicProfilePage({
       <div className="identity-wrap">
         <ProfileCard card={card} qrDataUrl={qrDataUrl} profileUrl={profileUrl} locale={locale} />
         <div className="identity-actions no-print">
+          {viewer?.id === card.profile_id ? (
+            <span className="badge-pill eng">{t(`${follow?.followers ?? 0} متابِع`, `${follow?.followers ?? 0} followers`)}</span>
+          ) : (
+            <FollowButton
+              profileId={card.profile_id}
+              followers={follow?.followers ?? 0}
+              following={follow?.i_follow ?? false}
+              signedIn={Boolean(viewer)}
+              path={`/u/${card.techmood_id}`}
+            />
+          )}
           <Link className="btn btn-ghost btn-sm" href={`/u/${card.techmood_id}/card`}>
             {t('بطاقة للمشاركة', 'A card to share')}
           </Link>

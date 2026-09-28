@@ -8389,7 +8389,8 @@ reset request.jwt.claim.sub;
 -- 73. What a signed-out visitor may call is a list, not an accident
 -- ===========================================================================
 -- On Supabase every new function is granted to anon by name; this list is the
--- set 0088 kept plus the market's two (0099). A new function a visitor may
+-- set 0088 kept plus the market's two (0099) and the public counts of follows
+-- and likes (0106). A new function a visitor may
 -- call has to be added here on purpose.
 select public.assert(
   not exists (
@@ -8410,7 +8411,8 @@ select public.assert(
          'profile_exhibition_entries', 'profile_focus', 'profile_learning', 'profile_reputation',
          'profile_skill_evidence', 'profile_verified_skills', 'record_share_view', 'roadmap',
          'session_quote', 'shared_view', 'trust_signals', 'verify_certificate', 'verify_exhibition_entry',
-         'academy_courses', 'is_course_published', 'is_path_open')
+         'academy_courses', 'is_course_published', 'is_path_open',
+         'follow_stats', 'project_like_stats')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -8755,6 +8757,94 @@ select public.assert_rejects(
 update public.payment_methods
    set is_enabled = key not in ('fawateer', 'paypal'),
        supports_payout = key in ('bank_of_palestine', 'palpay', 'jawwal_pay', 'western_union', 'moneygram', 'international_transfer');
+
+-- =============================================================================
+-- 77. Following people, liking projects (0106)
+-- =============================================================================
+\echo ''
+\echo '77. follows and likes'
+
+insert into public.projects (title_ar, owner_id, is_public)
+values ('مشروع للإعجاب', '33333333-3333-3333-3333-333333333333', true) returning id as liked_project \gset
+insert into public.projects (title_ar, owner_id, is_public)
+values ('مشروع خاص', '33333333-3333-3333-3333-333333333333', false) returning id as private_project \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.toggle_follow('11111111-1111-1111-1111-111111111111')$$,
+  '77.1 nobody follows themselves', 'نفسك');
+select public.toggle_follow('33333333-3333-3333-3333-333333333333') as followed \gset
+select public.toggle_follow('33333333-3333-3333-3333-333333333333') as unfollowed \gset
+select public.toggle_follow('33333333-3333-3333-3333-333333333333') as refollowed \gset
+select public.assert(:'followed' and not :'unfollowed' and :'refollowed',
+  '77.2 follow, unfollow, follow again');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) from public.notifications
+    where profile_id = '33333333-3333-3333-3333-333333333333' and title_ar = 'متابع جديد') = 1,
+  '77.3 the person followed is told once — not every time somebody changes their mind');
+
+set role anon;
+select public.assert(
+  (select followers = 1 and not i_follow from public.follow_stats('33333333-3333-3333-3333-333333333333')),
+  '77.4 a signed-out visitor sees the count');
+select public.assert_rejects(
+  $$select count(*) from public.follows$$,
+  '77.5 but not who follows whom', 'permission denied');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.follows where follower_id = '11111111-1111-1111-1111-111111111111'
+                                         and followee_id = '33333333-3333-3333-3333-333333333333') = 1,
+  '77.6 an admin can see the follow');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.follows) = 0,
+  '77.7 a third member cannot see who follows whom');
+select public.assert_rejects(
+  $$insert into public.follows (follower_id, followee_id)
+    values ('22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333')$$,
+  '77.8 follows are written only through toggle_follow', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.toggle_project_like(%L)$$, :'liked_project'),
+  '77.9 nobody likes their own project', 'لمشاريع الآخرين');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.toggle_project_like(%L)$$, :'private_project'),
+  '77.10 a project you cannot see cannot be liked', 'غير موجود');
+select public.toggle_project_like(:'liked_project') as liked \gset
+select public.toggle_project_like(:'liked_project') as unliked \gset
+select public.toggle_project_like(:'liked_project') as reliked \gset
+select public.assert(:'liked' and not :'unliked' and :'reliked', '77.11 like, unlike, like again');
+select public.assert(
+  (select likes = 1 and i_like from public.project_like_stats(array[:'liked_project'::uuid])),
+  '77.12 the count and my own like');
+select public.assert(
+  (select count(*) from public.project_like_stats(array[:'private_project'::uuid])) = 0,
+  '77.13 a private project reports nothing to somebody outside it');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) from public.notifications
+    where profile_id = '33333333-3333-3333-3333-333333333333' and title_ar = 'أُعجب أحدهم بمشروعك') = 1,
+  '77.14 the owner is told once per person');
 
 \echo ''
 \echo '================================================'

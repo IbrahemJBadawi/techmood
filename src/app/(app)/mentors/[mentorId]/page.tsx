@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { Stars } from '@/components/Stars';
+import { FollowButton } from '@/components/Social';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
@@ -37,7 +38,9 @@ export default async function MentorProfilePage({
 
   if (!mentor) notFound();
 
-  const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }] = await Promise.all([
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }, { data: followRows }] = await Promise.all([
     supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url').eq('id', mentorId).single(),
     supabase.rpc('mentor_price_list', { p_mentor: mentorId }),
     supabase.from('mentor_availability').select('day_of_week, start_time, end_time').eq('mentor_id', mentorId).order('day_of_week'),
@@ -46,7 +49,9 @@ export default async function MentorProfilePage({
       .select('is_active, session_types(id, name_ar, description_ar, duration_minutes)')
       .eq('mentor_id', mentorId)
       .eq('is_active', true),
+    supabase.rpc('follow_stats', { p_profile: mentorId }),
   ]);
+  const follow = followRows?.[0];
 
   const sessionTypes = (offered ?? []).map(
     (row) => row.session_types as unknown as { id: string; name_ar: string; description_ar: string | null; duration_minutes: number },
@@ -78,6 +83,15 @@ export default async function MentorProfilePage({
           <span className="id-chip">{profile?.techmood_id}</span>
           <Stars value={mentor.rating_avg ?? 0} />
           <span className="muted" style={{ fontSize: '0.8rem' }}>{t(`${mentor.sessions_count} جلسة مكتملة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'} held`)}</span>
+          {user && user.id !== mentorId && (
+            <FollowButton
+              profileId={mentorId}
+              followers={follow?.followers ?? 0}
+              following={follow?.i_follow ?? false}
+              signedIn
+              path={`/mentors/${mentorId}`}
+            />
+          )}
         </div>
 
         {mentor.bio_ar && <p style={{ fontSize: '0.9rem', marginTop: 14 }}>{mentor.bio_ar}</p>}
