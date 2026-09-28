@@ -1784,3 +1784,16 @@ the channel, and an admin write in the admin threads and the channel. Channel
 posts may carry links — the no-links rule protects people from each other — and
 the page shows them as TechMood's, pinned above every other conversation.
 
+## Applying to mentor (0093)
+
+Someone who signs up to mentor uses TechMood as a learner, with every service,
+while the application waits; `my_mentor_application()` feeds a line the shell
+shows on every page (under review, more information asked, or — for two weeks —
+not accepted, with the reason). Only the basics are required: a headline, one
+field, years of experience. Everything else — motivation, experience, hours,
+languages, LinkedIn, portfolio, a CV link and up to ten certificate links — is
+optional evidence that can be added at any time while the application is open;
+adding it updates the application in place and, after "needs more information",
+puts it back in the queue. Approval makes a level-1 mentor; rejection leaves a
+learner, which is what they already were.
+

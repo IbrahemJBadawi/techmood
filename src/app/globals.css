@@ -1147,6 +1147,11 @@ table.data tr:last-child td { border-bottom: none; }
   background: color-mix(in srgb, var(--ok) 10%, transparent);
   color: var(--ok);
 }
+.notice-warn {
+  border-inline-start-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--ink);
+}
 
 .stack { display: grid; gap: 14px; }
 

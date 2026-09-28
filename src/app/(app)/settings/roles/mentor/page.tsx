@@ -25,7 +25,7 @@ export default async function MentorApplicationPage() {
       .maybeSingle(),
     supabase
       .from('mentor_profiles')
-      .select('headline_ar, bio_ar, domains, years_experience, weekly_hours, motivation_ar, experience_ar, linkedin_url, portfolio_url, languages')
+      .select('headline_ar, bio_ar, domains, years_experience, weekly_hours, motivation_ar, experience_ar, linkedin_url, portfolio_url, cv_url, certificate_urls, languages')
       .eq('profile_id', user.id)
       .maybeSingle(),
     supabase.from('fields').select('slug, name_ar').eq('status', 'approved').order('name_ar'),
@@ -50,8 +50,8 @@ export default async function MentorApplicationPage() {
       <section className="section-block">
         <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>{t('التقدّم كمنتور', 'Apply as a mentor')}</h1>
         <p className="muted" style={{ fontSize: '0.9rem', maxWidth: 680 }}>
-          {t('المنتور في TechMood يراجع أعمال الناس ويقرّر ما إذا كانت تستحق شهادة. لهذا الطلب نموذج كامل وليس زرّاً: من سيقرأه يحتاج أن يعرف خبرتك ودافعك قبل أن يفتح لك هذه المسؤولية.',
-             'A mentor on TechMood reviews other people\u2019s work and decides whether it earns a certificate. That is why this is a full form and not a button: whoever reads it needs to know your experience and your reasons before handing you that responsibility.')}
+          {t('ابدأ بالأساسيات، وخلال المراجعة تستخدم TechMood كطالب بكل خدماته. أضف أدلة (سيرة، شهادات، أعمال) متى شئت — تقوّي طلبك. عند القبول تبدأ من المستوى الأول (جلسة 15$: 10$ لك و5$ للمنصة) وترتقي بجلسات وتقييمات حقيقية. وإن لم يُقبل الطلب تبقى طالباً كما أنت، مع السبب.',
+             'Start with the basics; while it is reviewed you use TechMood as a learner, with every service. Add evidence (CV, certificates, work) whenever you like — it strengthens your application. Once approved you start at level 1 (a 15$ session: 10$ to you, 5$ to the platform) and move up on real sessions and ratings. If it is not accepted, you stay a learner as you were, with the reason.')}
         </p>
       </section>
 
@@ -72,7 +72,7 @@ export default async function MentorApplicationPage() {
       <MentorApplicationForm
         fields={fields ?? []}
         existing={mentor ?? null}
-        locked={status === 'pending_review'}
+        isOpen={status === 'pending_review' || status === 'needs_more_info'}
       />
     </>
   );

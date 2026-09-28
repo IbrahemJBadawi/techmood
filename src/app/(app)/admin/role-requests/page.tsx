@@ -54,7 +54,7 @@ export default async function RoleRequestsPage({
   const { data: mentorApplications } = mentorIds.length
     ? await supabase
         .from('mentor_profiles')
-        .select('profile_id, domains, years_experience, weekly_hours, motivation_ar, experience_ar, linkedin_url, portfolio_url, languages')
+        .select('profile_id, domains, years_experience, weekly_hours, motivation_ar, experience_ar, linkedin_url, portfolio_url, cv_url, certificate_urls, languages')
         .in('profile_id', mentorIds)
     : { data: [] };
 
@@ -146,6 +146,16 @@ export default async function RoleRequestsPage({
                   )}
                   {mentor.portfolio_url && (
                     <div><dt>{t('أعمال', 'Work')}</dt><dd dir="ltr">{mentor.portfolio_url}</dd></div>
+                  )}
+                  {mentor.cv_url && (
+                    <div><dt>{t('السيرة الذاتية', 'CV')}</dt><dd dir="ltr"><a href={mentor.cv_url} target="_blank" rel="noopener noreferrer">{mentor.cv_url}</a></dd></div>
+                  )}
+                  {(mentor.certificate_urls ?? []).length > 0 && (
+                    <div><dt>{t('الشهادات', 'Certificates')}</dt><dd dir="ltr">
+                      {mentor.certificate_urls.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>{url}</a>
+                      ))}
+                    </dd></div>
                   )}
                 </dl>
               )}

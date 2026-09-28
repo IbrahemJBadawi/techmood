@@ -2358,19 +2358,21 @@ set role authenticated;
 set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
 
 select public.assert_rejects($$select public.submit_mentor_application(
-  'مطوّر واجهات', 'سيرة', array['frontend-development'], 5, 4, 'قصير', 'قصير')$$,
-  '20.40 a mentor application is a form with substance, not three words', 'دافعك');
+  p_headline => 'مطوّر واجهات', p_domains => '{}', p_years => 5)$$,
+  '20.40 a mentor application needs its basics: a headline, a field to mentor in, years of experience',
+  'مجال إرشاد');
 
 select public.submit_mentor_application(
-  'مطوّر واجهات أمامية',
-  'خمس سنوات في بناء واجهات إنتاجية.',
-  array['frontend-development', 'ux-design'],
-  5, 6,
-  'أريد أن أختصر على غيري الطريق الذي مشيته وحدي في بداياتي بغزة.',
-  'قدت فريق واجهات من أربعة أشخاص، وراجعت أعمال متدرّبين لعامين كاملين.',
-  'https://linkedin.com/in/rami',
-  'https://rami.dev',
-  array['ar', 'en']) \gset mentor_
+  p_headline      => 'مطوّر واجهات أمامية',
+  p_bio           => 'خمس سنوات في بناء واجهات إنتاجية.',
+  p_domains       => array['frontend-development', 'ux-design'],
+  p_years         => 5,
+  p_weekly_hours  => 6,
+  p_motivation    => 'أريد أن أختصر على غيري الطريق الذي مشيته وحدي في بداياتي بغزة.',
+  p_experience    => 'قدت فريق واجهات من أربعة أشخاص، وراجعت أعمال متدرّبين لعامين كاملين.',
+  p_linkedin_url  => 'https://linkedin.com/in/rami',
+  p_portfolio_url => 'https://rami.dev',
+  p_languages     => array['ar', 'en']) \gset mentor_
 reset role;
 reset request.jwt.claim.sub;
 
@@ -7705,6 +7707,85 @@ select public.assert(
   '65.5 an admin posts (a link included), and everybody sees it as unread in their Messages');
 reset role;
 reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 66. Applying to mentor: the basics to start, evidence whenever you have it
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.submit_mentor_application(
+  p_headline => 'محللة بيانات', p_domains => array['data-analysis'], p_years => 3) as applicant_request \gset
+
+select public.assert(
+  (select status from public.my_mentor_application()) = 'pending_review'
+  and (select has_details from public.my_mentor_application())
+  and public.has_role('student') and not public.has_role('mentor'),
+  '66.1 the basics alone are an application, and the applicant keeps using TechMood as a learner meanwhile');
+
+select public.assert_rejects(
+  $$select public.submit_mentor_application(p_headline => 'محللة بيانات', p_domains => array['data-analysis'],
+      p_years => 3, p_certificate_urls => array['شهادة جوجل'])$$,
+  '66.2 evidence is a link, not a claim',
+  'https://');
+
+select public.submit_mentor_application(
+  p_headline => 'محللة بيانات', p_domains => array['data-analysis'], p_years => 3,
+  p_cv_url => 'https://cv.example/sara.pdf',
+  p_certificate_urls => array['https://certs.example/a', ' ', 'https://certs.example/b']);
+select public.assert(
+  (select count(*) from public.profile_roles
+    where profile_id = '22222222-2222-2222-2222-222222222222' and role = 'mentor') = 1
+  and (select cv_url || ' ' || cardinality(certificate_urls) from public.mentor_profiles
+        where profile_id = '22222222-2222-2222-2222-222222222222') = 'https://cv.example/sara.pdf 2'
+  and (select status from public.my_mentor_application()) = 'pending_review',
+  '66.3 evidence added while the application waits updates it in place — not a second application');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.decide_role_request(:'applicant_request', 'more_info_requested', 'أرسلي رابط مشروع تحليل قمتِ به');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select status from public.my_mentor_application()) = 'needs_more_info',
+  '66.4 the admin asks for more only when a decision needs it, and the applicant sees it');
+select public.submit_mentor_application(
+  p_headline => 'محللة بيانات', p_domains => array['data-analysis'], p_years => 3,
+  p_portfolio_url => 'https://github.example/sara/analysis');
+select public.assert(
+  (select status from public.my_mentor_application()) = 'pending_review'
+  and (select count(*) from public.role_request_events
+        where role_request_id = :'applicant_request' and event = 'more_info_provided') = 2,
+  '66.5 answering with more evidence puts it back in the queue, on the record');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.decide_role_request(:'applicant_request', 'rejected', 'الخبرة العملية غير كافية بعد — أعيدي التقديم بعد مشروعين');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select status from public.my_mentor_application()) = 'rejected'
+  and (select review_note from public.my_mentor_application()) like 'الخبرة العملية%'
+  and public.has_role('student') and not public.has_role('mentor')
+  and not public.can_enter_role('mentor'),
+  '66.6 a rejected applicant is exactly what they were — a learner — and reads why');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert_rejects(
+  $$select * from public.my_mentor_application()$$,
+  '66.7 a signed-out visitor has no application to ask about');
+reset role;
 
 \echo ''
 \echo '================================================'

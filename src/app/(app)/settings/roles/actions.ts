@@ -85,21 +85,34 @@ export async function submitMentorApplication(
   const domains = formData.getAll('domains').map(String).filter(Boolean);
   const languages = formData.getAll('languages').map(String).filter(Boolean);
 
+  const text = (name: string) => String(formData.get(name) ?? '').trim() || null;
+  const hours = Number(formData.get('weekly_hours') ?? '');
+  // One link per line; the database checks each is a link.
+  const certificates = String(formData.get('certificate_urls') ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
   const { error } = await supabase.rpc('submit_mentor_application', {
     p_headline: String(formData.get('headline') ?? '').trim(),
-    p_bio: String(formData.get('bio') ?? '').trim(),
     p_domains: domains,
     p_years: Number(formData.get('years') ?? 0),
-    p_weekly_hours: Number(formData.get('weekly_hours') ?? 1),
-    p_motivation: String(formData.get('motivation') ?? '').trim(),
-    p_experience: String(formData.get('experience') ?? '').trim(),
-    p_linkedin_url: String(formData.get('linkedin_url') ?? '').trim() || null,
-    p_portfolio_url: String(formData.get('portfolio_url') ?? '').trim() || null,
+    p_bio: text('bio'),
+    p_weekly_hours: Number.isFinite(hours) && hours > 0 ? hours : null,
+    p_motivation: text('motivation'),
+    p_experience: text('experience'),
+    p_linkedin_url: text('linkedin_url'),
+    p_portfolio_url: text('portfolio_url'),
     p_languages: languages,
+    p_cv_url: text('cv_url'),
+    p_certificate_urls: certificates,
   });
 
   if (error) return { error: dbError(t, error.message) };
 
-  revalidatePath('/settings/roles');
-  redirect('/settings/roles');
+  revalidatePath('/', 'layout');
+  return {
+    ok: t('حُفظ طلبك وهو قيد المراجعة. استخدم المنصة كالمعتاد، وأضف أدلة متى شئت من هذه الصفحة.',
+          'Your application is saved and under review. Use TechMood as usual, and add evidence any time from this page.'),
+  };
 }

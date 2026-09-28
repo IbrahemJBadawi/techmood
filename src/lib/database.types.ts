@@ -1313,6 +1313,7 @@ export type Database = {
         years_experience: number | null; weekly_hours: number | null;
         motivation_ar: string | null; experience_ar: string | null;
         linkedin_url: string | null; portfolio_url: string | null;
+        cv_url: string | null; certificate_urls: string[];
         languages: string[]; approved_at: string | null;
         pause_reason: MentorPauseReason | null; paused_until: string | null;
         pause_note_ar: string | null; paused_at: string | null; accepting_since: string;
@@ -1767,15 +1768,17 @@ export type Database = {
       submit_mentor_application: {
         Args: {
           p_headline: string;
-          p_bio: string;
           p_domains: string[];
           p_years: number;
-          p_weekly_hours: number;
-          p_motivation: string;
-          p_experience: string;
+          p_bio?: string | null;
+          p_weekly_hours?: number | null;
+          p_motivation?: string | null;
+          p_experience?: string | null;
           p_linkedin_url?: string | null;
           p_portfolio_url?: string | null;
           p_languages?: string[];
+          p_cv_url?: string | null;
+          p_certificate_urls?: string[];
         };
         Returns: string;
       };
@@ -2590,6 +2593,13 @@ export type Database = {
         }[];
       };
       is_restricted: { Args: { p_profile: string; p_feature: RestrictedFeature }; Returns: boolean };
+      my_mentor_application: {
+        Args: Record<string, never>;
+        Returns: {
+          request_id: string; status: RoleStatus; review_note: string | null;
+          has_details: boolean; submitted_at: string;
+        }[];
+      };
       my_restrictions: {
         Args: Record<string, never>;
         Returns: { feature: RestrictedFeature; reason_ar: string; ends_at: string | null }[];
