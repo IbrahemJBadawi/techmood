@@ -44,7 +44,7 @@ export type IconName =
   | 'message' | 'mentor' | 'calendar' | 'wallet' | 'work' | 'application'
   | 'startup' | 'incubator' | 'review' | 'shield' | 'settings' | 'company'
   | 'assistant' | 'menu' | 'close' | 'more' | 'check' | 'arrow' | 'globe' | 'play' | 'star'
-  | 'code' | 'chart' | 'brush' | 'search' | 'clock' | 'layers' | 'lock';
+  | 'code' | 'chart' | 'brush' | 'search' | 'clock' | 'layers' | 'lock' | 'bell' | 'user';
 
 export const ROLES: RoleDefinition[] = [
   {
@@ -174,7 +174,7 @@ const COMMON: NavGroup = {
     { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
     { href: '/passport', label: { ar: 'الجواز المهني', en: 'Passport' }, icon: 'passport' },
     { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
-    { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'shield' },
+    { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'bell' },
     { href: '/ai', label: { ar: 'المساعد', en: 'Assistant' }, icon: 'assistant' },
   ],
 };
@@ -416,9 +416,9 @@ const MVP_ACCOUNT: NavGroup = {
     { href: '/passport', label: { ar: 'ملفي المهني', en: 'My profile' }, icon: 'passport' },
     { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
     { href: '/messages', label: { ar: 'الرسائل', en: 'Messages' }, icon: 'message' },
-    { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'shield' },
+    { href: '/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, icon: 'bell' },
     { href: '/support', label: { ar: 'المساعدة والبلاغات', en: 'Help & reports' }, icon: 'review' },
-    { href: '/settings/profile', label: { ar: 'الإعدادات', en: 'Settings' }, icon: 'settings' },
+    { href: '/settings', label: { ar: 'الإعدادات', en: 'Settings' }, icon: 'settings' },
   ],
 };
 

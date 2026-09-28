@@ -20,7 +20,7 @@ export function BasicsForm({
   const [state, formAction, pending] = useActionState(saveProfileBasics, undefined as ProfileState);
 
   return (
-    <form action={formAction} className="panel section-block">
+    <form action={formAction} className="hm-card st-section section-block">
       <h3 style={{ fontSize: '0.98rem' }}>{t('واجهتك', 'Your public face')}</h3>
 
       <div className="field" style={{ marginTop: 14 }}>
@@ -33,7 +33,7 @@ export function BasicsForm({
         <textarea id="bio" name="bio" rows={3} defaultValue={bio ?? ''} maxLength={600} />
       </div>
 
-      <label className="radio-row" htmlFor="is_public">
+      <label className="radio-row switch-row" htmlFor="is_public">
         <input id="is_public" name="is_public" type="checkbox" defaultChecked={isPublic} />
         <span>{t('ملفي عام', 'My profile is public')}</span>
         <span className="muted" style={{ fontSize: '0.78rem' }}>

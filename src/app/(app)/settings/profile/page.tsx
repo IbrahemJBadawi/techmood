@@ -14,6 +14,7 @@ import {
 import { BasicsForm } from './BasicsForm';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { AutoSubmitSelect } from '@/components/AutoSubmitSelect';
 
 export const metadata = { title: 'Profile — TechMood' };
 
@@ -97,54 +98,60 @@ export default async function ProfileSettingsPage() {
     <>
       <AiSurface surface="cv" scope="profile" />
 
-      <section className="section-block">
-        <div className="row-between">
-          <h2 style={{ fontSize: '1.2rem' }}>{t('ملفي المهني', 'My professional profile')}</h2>
+      <section className="st-page-head section-block">
+        <div>
+          <h1 className="st-title">{t('ملفي المهني', 'My professional profile')}</h1>
+          <p className="muted">
+            {t('ما سجّلته المنصة — عمل معتمد، شهادات، مشاريع، جلسات — يظهر على ملفك من نفسه. هنا تكتب ما لم تشهده المنصة، وتقرّر من يرى كل قسم.',
+               'What the platform recorded — approved work, certificates, projects, sessions — appears by itself. Here you write what it did not witness, and decide who reads each part.')}
+          </p>
+        </div>
+        <div className="st-page-actions">
           <AskAI prompt="اقترح لي عنواناً مهنياً ونبذة من سطرين بناءً على مهاراتي الموثّقة وأعمالي." />
           {profile && (
             <Link className="btn btn-ghost btn-sm" href={`/u/${profile.techmood_id}`}>
-              {t('اعرض ملفي كما يراه الزائر', 'See it as a visitor does')}
+              {t('اعرضه كما يراه الزائر', 'See it as a visitor')}
             </Link>
           )}
         </div>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6, maxWidth: '68ch' }}>
-          {t('ما سجّلته المنصة — عمل معتمد، شهادات، مشاريع معروضة، جلسات — يظهر على ملفك من نفسه ولا يُكتب هنا. ما تكتبه هنا هو ما لم تشهده المنصة، وما تقرّره هنا هو من يرى كل قسم.',
-             'What the platform recorded — approved work, certificates, exhibited projects, sessions — appears on your profile by itself and is not typed here. What you write here is what the platform did not witness, and what you decide here is who reads each part.')}
-        </p>
       </section>
 
       {profile && (
         <BasicsForm headline={profile.headline} bio={profile.bio} isPublic={profile.is_public} />
       )}
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('من يرى ماذا', 'Who sees what')}</h3>
+      <section className="hm-card st-section section-block">
+        <h3>{t('من يرى ماذا', 'Who sees what')}</h3>
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
           {t('«للمهنيين المعتمدين» تعني منتوراً أو قائد فريق أو شركة أو مؤسساً — أي من له سبب مهني ليقرأ أعمق.',
              '“Approved professionals” means a mentor, a team lead, a company or a founder — somebody with a working reason to read deeper.')}
         </p>
-        <ul className="admin-mini-list" style={{ marginTop: 12, gap: 10 }}>
+        <ul className="st-vis">
           {(Object.keys(SECTION_LABEL) as ProfileSection[]).map((section) => (
             <li key={section}>
               <span>{t(SECTION_LABEL[section])}</span>
-              <form action={setSectionAudience} className="admin-inline-form" style={{ margin: 0 }}>
+              <form action={setSectionAudience} className={`st-vis-form is-${audienceOf(section)}`}>
                 <input type="hidden" name="section" value={section} />
-                <select name="audience" defaultValue={audienceOf(section)} aria-label={t(SECTION_LABEL[section])}>
-                  {(Object.keys(AUDIENCE_LABEL) as ProfileAudience[]).map((audience) => (
-                    <option value={audience} key={audience}>{t(AUDIENCE_LABEL[audience])}</option>
-                  ))}
-                </select>
-                <button className="btn btn-ghost btn-sm" type="submit">{t('طبّق', 'Apply')}</button>
+                <AutoSubmitSelect
+                  name="audience"
+                  defaultValue={audienceOf(section)}
+                  label={t(SECTION_LABEL[section])}
+                  savedLabel={t('حُفظ', 'Saved')}
+                  options={(Object.keys(AUDIENCE_LABEL) as ProfileAudience[]).map((audience) => ({
+                    value: audience, label: t(AUDIENCE_LABEL[audience]),
+                  }))}
+                />
+                <noscript><button className="btn btn-ghost btn-sm" type="submit">{t('طبّق', 'Apply')}</button></noscript>
               </form>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('ملفات أخرى', 'External profiles')}</h3>
+      <section className="hm-card st-section section-block">
+        <h3>{t('ملفات أخرى', 'External profiles')}</h3>
         {(links ?? []).length > 0 && (
-          <ul className="admin-mini-list" style={{ marginTop: 10 }}>
+          <ul className="st-items">
             {(links ?? []).map((link) => (
               <li key={link.id}>
                 <span>{link.label ?? link.kind}</span>
@@ -154,7 +161,9 @@ export default async function ProfileSettingsPage() {
             ))}
           </ul>
         )}
-        <form action={addLink} className="admin-inline-form">
+        <details className="st-add">
+          <summary>+ {t('أضف رابطاً', 'Add a link')}</summary>
+        <form action={addLink} className="st-add-form">
           <select name="kind" defaultValue="linkedin" aria-label={t('النوع', 'Kind')}>
             {LINK_KINDS.map((kind) => <option value={kind} key={kind}>{kind}</option>)}
           </select>
@@ -162,12 +171,13 @@ export default async function ProfileSettingsPage() {
           <input name="label" placeholder={t('اسم اختياري', 'Optional label')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
+        </details>
       </section>
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('الخبرة', 'Experience')}</h3>
+      <section className="hm-card st-section section-block">
+        <h3>{t('الخبرة', 'Experience')}</h3>
         {(experience ?? []).length > 0 && (
-          <ul className="admin-mini-list" style={{ marginTop: 10 }}>
+          <ul className="st-items">
             {(experience ?? []).map((row) => (
               <li key={row.id}>
                 <span>{row.title} · {row.organisation}</span>
@@ -177,7 +187,9 @@ export default async function ProfileSettingsPage() {
             ))}
           </ul>
         )}
-        <form action={addExperience} className="admin-inline-form">
+        <details className="st-add">
+          <summary>+ {t('أضف خبرة', 'Add experience')}</summary>
+        <form action={addExperience} className="st-add-form">
           <input name="title" required placeholder={t('المسمّى', 'Title')} />
           <input name="organisation" required placeholder={t('الجهة', 'Organisation')} />
           <select name="kind" defaultValue="job" aria-label={t('النوع', 'Kind')}>
@@ -187,12 +199,13 @@ export default async function ProfileSettingsPage() {
           <input name="ended_on" type="date" aria-label={t('إلى', 'To')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
+        </details>
       </section>
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('التعليم', 'Education')}</h3>
+      <section className="hm-card st-section section-block">
+        <h3>{t('التعليم', 'Education')}</h3>
         {(education ?? []).length > 0 && (
-          <ul className="admin-mini-list" style={{ marginTop: 10 }}>
+          <ul className="st-items">
             {(education ?? []).map((row) => (
               <li key={row.id}>
                 <span>{row.institution}{row.degree ? ` · ${row.degree}` : ''}</span>
@@ -202,7 +215,9 @@ export default async function ProfileSettingsPage() {
             ))}
           </ul>
         )}
-        <form action={addEducation} className="admin-inline-form">
+        <details className="st-add">
+          <summary>+ {t('أضف تعليماً', 'Add education')}</summary>
+        <form action={addEducation} className="st-add-form">
           <input name="institution" required placeholder={t('الجامعة أو المعهد', 'Institution')} />
           <input name="degree" placeholder={t('الدرجة', 'Degree')} />
           <input name="field" placeholder={t('التخصص', 'Field')} />
@@ -210,16 +225,17 @@ export default async function ProfileSettingsPage() {
           <input name="ended_on" type="date" aria-label={t('إلى', 'To')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
+        </details>
       </section>
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('مشاركات خارج TechMood', 'Outside TechMood')}</h3>
+      <section className="hm-card st-section section-block">
+        <h3>{t('مشاركات خارج TechMood', 'Outside TechMood')}</h3>
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
           {t('هذه الوحيدة التي لم تشهدها المنصة، فتصل كادّعاء ولا يراها أحد حتى تتحقّق منها الإدارة. أرفق دليلاً.',
              'This is the one thing the platform did not witness, so it arrives as a claim and nobody sees it until an admin has checked it. Attach evidence.')}
         </p>
         {(external ?? []).length > 0 && (
-          <ul className="admin-mini-list" style={{ marginTop: 10 }}>
+          <ul className="st-items">
             {(external ?? []).map((row) => (
               <li key={row.id}>
                 <span>{row.title}{row.organiser ? ` · ${row.organiser}` : ''}</span>
@@ -232,7 +248,9 @@ export default async function ProfileSettingsPage() {
             ))}
           </ul>
         )}
-        <form action={addExternalExhibition} className="admin-inline-form">
+        <details className="st-add">
+          <summary>+ {t('أضف مشاركة', 'Add an entry')}</summary>
+        <form action={addExternalExhibition} className="st-add-form">
           <input name="title" required placeholder={t('اسم المعرض أو المسابقة', 'Exhibition or competition')} />
           <input name="organiser" placeholder={t('الجهة المنظّمة', 'Organiser')} />
           <input name="role" placeholder={t('دورك', 'Your role')} />
@@ -241,20 +259,9 @@ export default async function ProfileSettingsPage() {
           <input name="held_on" type="date" aria-label={t('التاريخ', 'Date')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
+        </details>
       </section>
 
-      <section className="panel section-block">
-        <h3 style={{ fontSize: '0.98rem' }}>{t('حسابك وأموالك', 'Your account and your money')}</h3>
-        <p className="muted" style={{ fontSize: '0.86rem', marginTop: 6 }}>
-          {t('البريد والهاتف والمدفوعات والسحوبات ليست جزءاً من الملف المهني ولا تظهر لأحد. تجدها في صفحاتها.',
-             'Email, phone, payments and payouts are not part of the professional profile and are shown to nobody. They live on their own pages.')}
-        </p>
-        <div className="explore-row" style={{ marginTop: 10 }}>
-          <Link className="explore-chip" href="/settings/fields">{t('المجالات والاهتمامات', 'Fields and interests')}</Link>
-          <Link className="explore-chip" href="/settings/roles">{t('الأدوار', 'Roles')}</Link>
-          <Link className="explore-chip" href="/wallet">{t('المحفظة والسحب', 'Wallet and payouts')}</Link>
-        </div>
-      </section>
     </>
   );
 }
