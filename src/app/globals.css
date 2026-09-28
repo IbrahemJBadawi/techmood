@@ -4212,3 +4212,105 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .lesson-summary { font-size: 0.92rem; }
 .lesson-done-form { margin-top: 6px; }
 @media (max-width: 560px) { .lesson-done-form .btn { width: 100%; } }
+
+/* =========================================================================
+   Wallet — Wise's calm: one big number, round actions, a clean activity list
+   ========================================================================= */
+.wallet-card {
+  display: grid;
+  gap: 4px;
+  padding: clamp(20px, 3.5vw, 32px);
+  border-radius: var(--radius-l);
+  color: #fff;
+  background:
+    radial-gradient(100% 140% at 100% 0%, rgba(34, 181, 115, 0.35), transparent 55%),
+    linear-gradient(135deg, #0B1B2B, #163049);
+  box-shadow: 0 20px 44px -22px rgba(11, 27, 43, 0.7);
+}
+.wallet-card-label { font-size: 0.86rem; opacity: 0.8; font-weight: 600; }
+.wallet-card-amount { font-size: clamp(2.2rem, 7vw, 3.2rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+.wallet-card-amount.is-negative { color: #FF8A8A; }
+.wallet-card-sub { font-size: 0.86rem; opacity: 0.8; }
+.wallet-actions { display: flex; flex-wrap: wrap; gap: clamp(10px, 3vw, 22px); margin-top: 18px; }
+.wallet-action {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 64px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: center;
+}
+.wallet-action > span {
+  display: grid; place-items: center;
+  width: 50px; height: 50px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.15s, transform 0.12s;
+}
+.wallet-action:hover > span { background: rgba(255, 255, 255, 0.22); }
+.wallet-action:active > span { transform: scale(0.94); }
+.wallet-action:first-child > span { background: #22B573; }
+[dir="rtl"] .wallet-action .icon { transform: scaleX(-1); }
+
+.wallet-h { font-size: 1rem; margin-bottom: 10px; }
+.wallet-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.wallet-tile {
+  --tone: var(--royal);
+  display: grid;
+  gap: 2px;
+  padding: 14px;
+  border-radius: var(--radius-m);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+}
+.wallet-tile.tone-xp { --tone: var(--xp); }
+.wallet-tile.tone-streak { --tone: var(--streak); }
+.wallet-tile.tone-muted { --tone: var(--ink-soft); }
+.wallet-tile > span {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 10px; margin-bottom: 6px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent); color: var(--tone);
+}
+.wallet-tile strong { font-size: 1.2rem; justify-self: start; }
+.wallet-tile small { font-size: 0.76rem; color: var(--ink-soft); }
+@media (max-width: 760px) { .wallet-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.txn-list {
+  list-style: none; margin: 0; padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-1);
+}
+.txn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+a.txn:hover { background: var(--bg-deep); }
+.txn-list li + li .txn { border-top: 1px solid var(--line); border-radius: 0; }
+.txn-list li + li a.txn:hover { border-radius: 14px; border-top-color: transparent; }
+.txn-list li.is-cancelled { opacity: 0.55; }
+.txn-icon {
+  display: grid; place-items: center; flex: none;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--bg-deep); color: var(--ink-soft);
+}
+.txn-icon.is-in { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+.txn-icon.is-in .icon { transform: rotate(90deg); }
+.txn-icon.is-out .icon { transform: rotate(-90deg); }
+.txn-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.txn-main strong { font-size: 0.92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-meta { font-size: 0.74rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-side { display: grid; justify-items: end; gap: 2px; flex: none; }
+.txn-amount { font-weight: 700; font-size: 0.95rem; }
+.txn-amount.is-in { color: var(--ok); }
+.txn-status { font-size: 0.7rem; background: none !important; border: 0; padding: 0; }
+.wallet-card-amount { justify-self: start; }

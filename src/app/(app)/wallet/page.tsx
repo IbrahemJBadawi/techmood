@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
@@ -112,30 +113,34 @@ export default async function WalletPage({
     (rows ?? []).length === 0 ? (
       <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا شيء هنا بعد.', 'Nothing here yet.')}</p>
     ) : (
-      <ul className="wallet-statement">
+      <ul className="txn-list">
         {(rows ?? []).map((row) => {
           const status = STATUS_LABEL[row.status];
           const timeline = row.entity_type === 'payment' || row.entity_type === 'payout'
             ? `/wallet/timeline/${row.entity_type}/${row.entity_id}` : null;
+          const out = Number(row.amount_usd) < 0;
+          const inner = (
+            <>
+              <span className={`txn-icon ${out ? 'is-out' : 'is-in'}`} aria-hidden="true">
+                <Icon name="arrow" size={18} />
+              </span>
+              <span className="txn-main">
+                <strong>{row.label_ar}</strong>
+                <span className="txn-meta">
+                  <span className="eng">{formatDateTime(locale, row.at)}</span>
+                  {row.code && <span className="eng"> · {row.code}</span>}
+                </span>
+              </span>
+              <span className="txn-side">
+                <span className={`eng txn-amount ${out ? 'is-out' : 'is-in'}`}>{signedMoney(Number(row.amount_usd))}</span>
+                <span className={`txn-status ${status?.tone ?? 'status-muted'}`}>{status ? t(status.ar, status.en) : row.status}</span>
+              </span>
+            </>
+          );
           return (
             <li key={`${row.entity_type}-${row.entity_id}-${row.at}`}
                 className={row.status === 'cancelled' ? 'is-cancelled' : ''}>
-              <span className={`eng wallet-amount ${Number(row.amount_usd) < 0 ? 'is-out' : 'is-in'}`}>
-                {signedMoney(Number(row.amount_usd))}
-              </span>
-              <span className="wallet-label">
-                {row.label_ar}
-                {row.code && <span className="id-chip" style={{ marginInlineStart: 6 }}>{row.code}</span>}
-                <span className="muted eng" style={{ display: 'block', fontSize: '0.76rem' }}>
-                  {formatDateTime(locale, row.at)}
-                </span>
-              </span>
-              <span className={`status-pill ${status?.tone ?? 'status-muted'}`}>
-                {status ? t(status.ar, status.en) : row.status}
-              </span>
-              {timeline && (
-                <Link className="btn btn-ghost btn-sm" href={timeline}>{t('السجلّ', 'Timeline')}</Link>
-              )}
+              {timeline ? <Link className="txn" href={timeline}>{inner}</Link> : <div className="txn">{inner}</div>}
             </li>
           );
         })}
@@ -145,12 +150,34 @@ export default async function WalletPage({
 
   return (
     <>
-      <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>💰 {t('المحفظة', 'Wallet')}</h2>
-        <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6, maxWidth: '68ch' }}>
-          {t('سجلّ مالي، لا مال محفوظ: ما دفعته، وما أصبح مستحقاً لك، وما حُوّل إليك، وما زال قيد المراجعة. كل رقم هنا محسوب من السجلّ نفسه.',
-             'A financial record, not money held: what you paid, what became owed to you, what was sent to you, and what is still being checked. Every figure is computed from the record itself.')}
+      <section className="section-block wallet-card">
+        <p className="wallet-card-label">
+          {earns ? t('متاح للسحب', 'Available to withdraw') : t('إجمالي ما دفعته', 'Total you have paid')}
         </p>
+        <p className={`wallet-card-amount eng${earns && available < 0 ? ' is-negative' : ''}`}>
+          {earns ? money(available) : money(Number(o?.paid_usd ?? 0) - Number(o?.refunded_usd ?? 0))}
+        </p>
+        {earns && (o?.pending_usd ?? 0) > 0 && (
+          <p className="wallet-card-sub">
+            {t('وقيد الانتظار ', 'plus pending ')}<span className="eng">{money(o?.pending_usd ?? 0)}</span>
+          </p>
+        )}
+        <nav className="wallet-actions" aria-label={t('إجراءات المحفظة', 'Wallet actions')}>
+          {earns && (
+            <Link href="/wallet?tab=withdrawals" className="wallet-action">
+              <span><Icon name="arrow" size={20} /></span>{t('سحب', 'Withdraw')}
+            </Link>
+          )}
+          <Link href="/wallet?tab=transactions" className="wallet-action">
+            <span><Icon name="layers" size={20} /></span>{t('المعاملات', 'Activity')}
+          </Link>
+          <Link href="/wallet?tab=invoices" className="wallet-action">
+            <span><Icon name="review" size={20} /></span>{t('الفواتير', 'Invoices')}
+          </Link>
+          <Link href={earns ? '/wallet?tab=methods' : '/wallet?tab=paying'} className="wallet-action">
+            <span><Icon name="wallet" size={20} /></span>{earns ? t('حسابات الاستلام', 'Payout accounts') : t('حسابات الدفع', 'Paying accounts')}
+          </Link>
+        </nav>
       </section>
 
       <nav className="tabs" aria-label={t('أقسام المحفظة', 'Wallet sections')}>
@@ -165,33 +192,26 @@ export default async function WalletPage({
         <>
           {earns && (
             <section className="section-block">
-              <div className="wallet-hero">
-                <div>
-                  <div className="lbl">{t('متاح للسحب', 'Available to withdraw')}</div>
-                  <div className="val eng" style={available < 0 ? { color: 'var(--danger)' } : undefined}>
-                    {money(available)}
-                  </div>
+              <div className="wallet-tiles">
+                <div className="wallet-tile tone-streak">
+                  <span><Icon name="clock" size={18} /></span>
+                  <strong className="eng">{money(o?.pending_usd ?? 0)}</strong>
+                  <small>{t('مستحقات قيد الانتظار', 'Pending earnings')}</small>
                 </div>
-                <Link className="btn btn-primary" href="/wallet?tab=withdrawals">
-                  {t('سحب المستحقات', 'Withdraw')}
-                </Link>
-              </div>
-              <div className="stat-tiles" style={{ marginTop: 12 }}>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.pending_usd ?? 0)}</div>
-                  <div className="lbl">{t('مستحقات قيد الانتظار', 'Pending earnings')}</div>
+                <div className="wallet-tile tone-royal">
+                  <span><Icon name="arrow" size={18} /></span>
+                  <strong className="eng">{money(o?.withdrawal_pending_usd ?? 0)}</strong>
+                  <small>{t('سحب قيد التنفيذ', 'Withdrawal in progress')}</small>
                 </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.withdrawal_pending_usd ?? 0)}</div>
-                  <div className="lbl">{t('سحب قيد التنفيذ', 'Withdrawal in progress')}</div>
+                <div className="wallet-tile tone-muted">
+                  <span><Icon name="check" size={18} /></span>
+                  <strong className="eng">{money(o?.withdrawn_usd ?? 0)}</strong>
+                  <small>{t('تمّ سحبه', 'Withdrawn')}</small>
                 </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.withdrawn_usd ?? 0)}</div>
-                  <div className="lbl">{t('تمّ سحبه', 'Withdrawn')}</div>
-                </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.total_earned_usd ?? 0)}</div>
-                  <div className="lbl">{t('إجمالي الأرباح', 'Total earned')}</div>
+                <div className="wallet-tile tone-xp">
+                  <span><Icon name="chart" size={18} /></span>
+                  <strong className="eng">{money(o?.total_earned_usd ?? 0)}</strong>
+                  <small>{t('إجمالي الأرباح', 'Total earned')}</small>
                 </div>
               </div>
               {available < 0 && (
@@ -205,23 +225,27 @@ export default async function WalletPage({
 
           {(pays || !earns) && (
             <section className="section-block">
-              <h3 style={{ fontSize: '1rem' }}>{t('سجلّ المدفوعات', 'Payment history')}</h3>
-              <div className="stat-tiles" style={{ marginTop: 10 }}>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.paid_usd ?? 0)}</div>
-                  <div className="lbl">💳 {t('المدفوع', 'Paid')}</div>
+              <h3 className="wallet-h">{t('سجلّ المدفوعات', 'Payment history')}</h3>
+              <div className="wallet-tiles">
+                <div className="wallet-tile tone-royal">
+                  <span><Icon name="wallet" size={18} /></span>
+                  <strong className="eng">{money(o?.paid_usd ?? 0)}</strong>
+                  <small>{t('المدفوع', 'Paid')}</small>
                 </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.under_review_usd ?? 0)}</div>
-                  <div className="lbl">⏳ {t('قيد المراجعة', 'Being checked')}</div>
+                <div className="wallet-tile tone-streak">
+                  <span><Icon name="clock" size={18} /></span>
+                  <strong className="eng">{money(o?.under_review_usd ?? 0)}</strong>
+                  <small>{t('قيد المراجعة', 'Being checked')}</small>
                 </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(o?.refunded_usd ?? 0)}</div>
-                  <div className="lbl">↩️ {t('المسترد', 'Refunded')}</div>
+                <div className="wallet-tile tone-muted">
+                  <span><Icon name="arrow" size={18} /></span>
+                  <strong className="eng">{money(o?.refunded_usd ?? 0)}</strong>
+                  <small>{t('المسترد', 'Refunded')}</small>
                 </div>
-                <div className="stat-tile">
-                  <div className="val eng">{money(Number(o?.paid_usd ?? 0) - Number(o?.refunded_usd ?? 0))}</div>
-                  <div className="lbl">📊 {t('إجمالي الإنفاق', 'Total spent')}</div>
+                <div className="wallet-tile tone-xp">
+                  <span><Icon name="chart" size={18} /></span>
+                  <strong className="eng">{money(Number(o?.paid_usd ?? 0) - Number(o?.refunded_usd ?? 0))}</strong>
+                  <small>{t('إجمالي الإنفاق', 'Total spent')}</small>
                 </div>
               </div>
             </section>
@@ -229,7 +253,7 @@ export default async function WalletPage({
 
           <section className="section-block">
             <div className="row-between">
-              <h3 style={{ fontSize: '1rem' }}>{t('آخر الحركات', 'Recent movements')}</h3>
+              <h3 className="wallet-h">{t('آخر الحركات', 'Recent activity')}</h3>
               <Link className="btn btn-ghost btn-sm" href="/wallet?tab=transactions">
                 {t('كل المعاملات', 'All transactions')}
               </Link>
