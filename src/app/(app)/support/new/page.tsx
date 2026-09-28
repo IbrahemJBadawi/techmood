@@ -8,6 +8,7 @@ import { TICKET_CATEGORY, TICKET_RELATED } from '@/lib/support';
 import type { TicketCategory, TicketRelated } from '@/lib/database.types';
 
 import { openTicket } from '../actions';
+import { IS_MVP } from '@/lib/scope';
 
 export const metadata = { title: 'Report a problem — TechMood' };
 
@@ -73,7 +74,9 @@ export default async function NewTicketPage({
               <label htmlFor="category">{t('نوع المشكلة', 'What is it about?')}</label>
               <select id="category" name="category" required defaultValue={category}>
                 <option value="" disabled>—</option>
-                {(Object.keys(TICKET_CATEGORY) as TicketCategory[]).map((key) => (
+                {(Object.keys(TICKET_CATEGORY) as TicketCategory[])
+                  .filter((key) => !IS_MVP || (key !== 'freelancer' && key !== 'client'))
+                  .map((key) => (
                   <option key={key} value={key}>{t(TICKET_CATEGORY[key])}</option>
                 ))}
               </select>

@@ -56,10 +56,11 @@ export const ROLES: RoleDefinition[] = [
   },
   {
     value: 'mentee',
-    label: { ar: 'متدرّب', en: 'Mentee' },
+    // Shown as "Mentee" in both languages — the founder's word for the role.
+    label: { ar: 'Mentee', en: 'Mentee' },
     blurb: {
-      ar: 'تبحث عن إرشاد: تختار منتوراً، تحجز جلسة، وتحوّلها إلى هدف تتابعه.',
-      en: 'You are here for guidance: pick a mentor, book a session, and turn it into a goal you follow.',
+      ar: 'ملف مهني بخبراتك ومهاراتك وأعمالك، تطلب به جلسات إرشاد وتحوّلها إلى أهداف تتابعها.',
+      en: 'A professional profile — your experience, skills and work — with which you book mentoring sessions and turn them into goals you follow.',
     },
     grant: 'self_serve',
     home: '/mentorship',

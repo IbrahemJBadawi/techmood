@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 
 import { createTeam, type TeamState } from '../actions';
 import { useT } from '@/lib/i18n.client';
+import { IS_MVP } from '@/lib/scope';
 
 export default function NewTeamPage() {
   const t = useT();
@@ -32,8 +33,8 @@ export default function NewTeamPage() {
           <select id="kind" name="kind" defaultValue="project">
             <option value="learning">{t('فريق تعلّم', 'Learning team')}</option>
             <option value="project">{t('فريق مشروع', 'Project team')}</option>
-            <option value="freelance">{t('فريق عمل حر', 'Freelance team')}</option>
-            <option value="startup">{t('فريق شركة ناشئة', 'Startup team')}</option>
+            {!IS_MVP && <option value="freelance">{t('فريق عمل حر', 'Freelance team')}</option>}
+            {!IS_MVP && <option value="startup">{t('فريق شركة ناشئة', 'Startup team')}</option>}
           </select>
         </div>
 
