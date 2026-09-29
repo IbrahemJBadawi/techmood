@@ -29,7 +29,11 @@ export async function toggleLesson(formData: FormData) {
     { onConflict: 'profile_id,lesson_id' },
   );
 
+  // The first lesson of a course also joins its path (0118), so the academy
+  // and home pages change too.
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
+  revalidatePath('/academy');
+  revalidatePath('/home');
 }
 
 /**
@@ -126,12 +130,17 @@ export async function enrolInPath(formData: FormData) {
   if (!user) redirect('/login');
 
   const pathId = String(formData.get('path_id') ?? '');
+  const back = String(formData.get('revalidate') ?? '/academy');
 
-  await supabase
-    .from('enrollments')
-    .upsert({ profile_id: user.id, path_id: pathId }, { onConflict: 'profile_id,path_id' });
-
-  revalidatePath(String(formData.get('revalidate') ?? '/academy'));
+  // Through enrol_in_path (0118): a plain upsert here could never save, because
+  // the unique index on (profile_id, path_id) is partial. A refusal is shown on
+  // the path page instead of the page silently staying the same.
+  const { error } = await supabase.rpc('enrol_in_path', { p_path: pathId });
+  revalidatePath(back);
+  revalidatePath('/academy');
+  revalidatePath('/home');
+  // Back to the same page either way, so it shows «you are on this path» at once.
+  redirect(error ? `${back}?join=failed` : back);
 }
 
 /**

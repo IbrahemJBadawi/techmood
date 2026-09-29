@@ -2340,6 +2340,8 @@ export type Database = {
       };
       is_course_complete: { Args: { p_profile: string; p_course: string }; Returns: boolean };
       is_path_complete: { Args: { p_profile: string; p_path: string }; Returns: boolean };
+      /** Joins a path (0118); refuses a hidden or switched-off one. Returns the enrolment id. */
+      enrol_in_path: { Args: { p_path: string }; Returns: string };
       ai_settings: {
         Args: Record<string, never>;
         Returns: { memory_enabled: boolean; actions_enabled: boolean }[];

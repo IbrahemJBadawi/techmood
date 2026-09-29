@@ -86,14 +86,21 @@ export default async function CoursePage({
 
   const lessonIds = lessons.map((lesson) => lesson.id);
 
-  const [{ data: progress }, { data: assignments }] = await Promise.all([
+  const [{ data: progress }, { data: assignments }, { data: videoRows }] = await Promise.all([
     supabase.from('lesson_progress').select('lesson_id, status').eq('profile_id', user.id).in('lesson_id', lessonIds.length ? lessonIds : ['00000000-0000-0000-0000-000000000000']),
     supabase
       .from('assignments')
       .select('id, kind, lesson_id, course_id, title_ar, brief_ar, required_evidence, is_required, is_group_work, status')
       .eq('status', 'published')
       .or(`course_id.eq.${course.id},lesson_id.in.(${lessonIds.length ? lessonIds.join(',') : '00000000-0000-0000-0000-000000000000'})`),
+    // Which lessons already have their walkthrough video, to say which do not yet.
+    supabase.from('lesson_videos').select('lesson_id').in('lesson_id', lessonIds.length ? lessonIds : ['00000000-0000-0000-0000-000000000000']),
   ]);
+  const withVideo = new Set((videoRows ?? []).map((row) => row.lesson_id));
+  // A video or live lesson that is open but has no video yet can still be
+  // studied (summary, sources, assignment) — it is marked, not locked.
+  const missingVideo = (lesson: { id: string; kind: string; status: string }) =>
+    lesson.status === 'published' && (lesson.kind === 'video' || lesson.kind === 'live') && !withVideo.has(lesson.id);
 
   const assignmentIds = (assignments ?? []).map((assignment) => assignment.id);
 
@@ -276,6 +283,20 @@ export default async function CoursePage({
         <section>
           <div className="panel section-block ac-lessons" style={{ '--hue': look.color } as React.CSSProperties}>
             <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('دروس الدورة', 'Course lessons')}</h3>
+            {(() => {
+              // What is ready and what is still being prepared — the course
+              // opens either way, and says so plainly.
+              const soonCount = lessons.length - openLessons.length;
+              const noVideo = lessons.filter(missingVideo).length;
+              if (soonCount === 0 && noVideo === 0) return null;
+              return (
+                <p className="muted ac-readiness">
+                  {t(`${openLessons.length} من ${lessons.length} دروس جاهزة`, `${openLessons.length} of ${lessons.length} lessons ready`)}
+                  {soonCount > 0 && t(` · ${soonCount} قيد التحضير`, ` · ${soonCount} being prepared`)}
+                  {noVideo > 0 && t(` · ${noVideo} بلا فيديو بعد (تُدرس من الملخص والمصادر)`, ` · ${noVideo} without a video yet (study from the summary and sources)`)}
+                </p>
+              );
+            })()}
             {courseModules.map((module, moduleIndex) => (
               <div className="ac-module" key={module.id}>
                 {courseModules.length > 1 && (
@@ -317,7 +338,8 @@ export default async function CoursePage({
                       )}
                       <div className="lesson-meta">
                         <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
-                        {soon && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
+                        {soon && <span className="status-pill status-pending">{t('قيد التحضير', 'Being prepared')}</span>}
+                        {missingVideo(lesson) && <span className="status-pill status-muted lesson-gap">{t('الفيديو يُضاف قريباً', 'Video coming soon')}</span>}
                         {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
                         {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}
                       </div>

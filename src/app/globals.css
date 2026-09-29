@@ -4313,6 +4313,14 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .ac-stop-no { font-size: 0.76rem; color: var(--ink-soft); font-weight: 600; }
 .ac-stop-card strong { font-size: 1rem; }
 .ac-stop-desc { font-size: 0.86rem; color: var(--ink-soft); }
+/* How much of a course is ready (0118): full, partial, or still being prepared. */
+.ac-stop-ready { font-size: 0.76rem; font-weight: 600; color: var(--ok-ink); }
+.ac-stop-ready.is-partial { color: var(--warn-ink); }
+.ac-stop-ready.is-empty { color: var(--ink-faint); }
+.ac-stop-card.is-outline { border-style: dashed; background: transparent; box-shadow: none; cursor: default; }
+.ac-stop-card.is-outline strong { color: var(--ink-soft); }
+.lesson-gap { font-size: 0.72rem; }
+.ac-readiness { font-size: 0.8rem; margin: 2px 0 10px; }
 .ac-stop-go { display: inline-flex; align-items: center; gap: 6px; font-size: 0.84rem; font-weight: 700; color: var(--royal-dark); margin-top: 2px; }
 [dir="rtl"] .ac-stop-go .icon, [dir="rtl"] .ac-cover .icon-arrow { transform: scaleX(-1); }
 

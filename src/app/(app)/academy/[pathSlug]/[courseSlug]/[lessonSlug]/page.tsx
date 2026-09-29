@@ -206,7 +206,13 @@ export default async function LessonPage({
         )}
         {soon && !preview && (
           <p className="notice" style={{ marginTop: 10 }}>
-            {t('هذا الدرس «قريباً» — يُفتح للإكمال حين يُنشر.', 'This lesson is «coming soon» — it can be completed once it is published.')}
+            {t('هذا الدرس قيد التحضير — اقرأ ما هو جاهز منه، ويُفتح للإكمال حين يُنشر.', 'This lesson is being prepared — read what is ready; it can be completed once it is published.')}
+          </p>
+        )}
+        {!soon && (lesson.kind === 'video' || lesson.kind === 'live') && (videos ?? []).length === 0 && (
+          <p className="notice" style={{ marginTop: 10 }}>
+            {t('فيديو هذا الدرس يُضاف قريباً. تقدر تدرسه الآن من الملخص والمصادر وتبدأ التكليف، وتكمله كالمعتاد.',
+               'This lesson’s video is coming soon. You can study it now from the summary and sources, start the assignment, and complete it as usual.')}
           </p>
         )}
         {canTick && (

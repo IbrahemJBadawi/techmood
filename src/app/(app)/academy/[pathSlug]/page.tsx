@@ -13,8 +13,15 @@ import { ProgressRing } from '../ProgressRing';
 import { schoolLook } from '../schools';
 import { SubmissionPanel } from '../SubmissionPanel';
 
-export default async function PathPage({ params }: { params: Promise<{ pathSlug: string }> }) {
+export default async function PathPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ pathSlug: string }>;
+  searchParams: Promise<{ join?: string }>;
+}) {
   const { pathSlug } = await params;
+  const { join } = await searchParams;
   const t = await getT();
   const supabase = await createClient();
 
@@ -46,15 +53,21 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
     .eq('path_id', path.id)
     .order('sort_order');
 
-  // A draft or switched-off course is not part of the path a learner sees;
-  // a «قريباً» one is shown, and opens when it is published (0078).
+  // The path as a learner sees it (0078, 0118): open and «coming soon» courses
+  // open; a course still being written (draft) is listed as «being prepared»,
+  // by title only, so the learner knows the path is not finished rather than
+  // wondering where its required courses went; a switched-off course is gone.
   const courses = (pathCourses ?? [])
-    .map((row) => ({
-      ...(row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null; status: string; author_id: string | null }),
-      isRequired: row.is_required,
-    }))
-    .filter((course) => course.status === 'published' || course.status === 'planned'
-      || (course.status === 'draft' && course.author_id === user.id));
+    .map((row) => {
+      const course = row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null; status: string; author_id: string | null };
+      return {
+        ...course,
+        isRequired: row.is_required,
+        // a draft the viewer did not write: shown, not opened
+        outline: course.status === 'draft' && course.author_id !== user.id,
+      };
+    })
+    .filter((course) => course.status !== 'archived');
 
   // Completion is asked of the database so the UI and the certificate rule can
   // never disagree about what "complete" means.
@@ -62,11 +75,26 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
     courses.map(async (course) => {
       // A draft has no open work yet, so it would read as "complete" — the
       // author previewing it sees the path as a learner starting it would.
-      if (preview) return { courseId: course.id, complete: false };
+      if (preview || course.outline) return { courseId: course.id, complete: false };
       const { data } = await supabase.rpc('is_course_complete', { p_profile: user.id, p_course: course.id });
       return { courseId: course.id, complete: data === true };
     }),
   );
+
+  // How ready each course is: its lessons that are open now, of all it will
+  // have. A course with lessons still being prepared can still be entered.
+  const { data: courseLessons } = courses.length
+    ? await supabase.from('modules').select('course_id, lessons(status)').in('course_id', courses.map((course) => course.id))
+    : { data: [] };
+  const readiness = new Map<string, { open: number; total: number }>();
+  for (const row of courseLessons ?? []) {
+    const lessons = ((row.lessons as unknown as { status: string }[] | null) ?? [])
+      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned');
+    const current = readiness.get(row.course_id) ?? { open: 0, total: 0 };
+    current.total += lessons.length;
+    current.open += lessons.filter((lesson) => lesson.status === 'published').length;
+    readiness.set(row.course_id, current);
+  }
 
   const [{ data: pathCompleteRaw }, { data: pathSkills }] = await Promise.all([
     supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id }),
@@ -132,6 +160,13 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
           {t('معاينة: هكذا يظهر مسارك في الأكاديمية بعد اعتماده. لا يراه غيرك الآن.',
              'Preview: this is how your path appears in the academy once approved. Nobody else sees it yet.')}
           {' '}<Link href={`/studio/paths/${path.id}`}>{t('عد للاستوديو', 'Back to the studio')}</Link>
+        </p>
+      )}
+
+      {join === 'failed' && (
+        <p className="notice notice-danger" style={{ marginTop: 16 }}>
+          {t('تعذّر الالتحاق بهذا المسار الآن. أعد المحاولة، وإن تكرر فأخبرنا من «المساعدة والبلاغات».',
+             'Joining this path failed. Try again; if it keeps failing, tell us in Help & reports.')}
         </p>
       )}
 
@@ -202,7 +237,27 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
             {courses.map((course, index) => {
               const complete = completion.find((item) => item.courseId === course.id)?.complete;
               const planned = course.status === 'planned';
-              const state = complete ? 'is-done' : index === currentIndex ? 'is-now' : planned ? 'is-soon' : '';
+              const state = complete ? 'is-done' : index === currentIndex ? 'is-now' : planned || course.outline ? 'is-soon' : '';
+              if (course.outline) {
+                // Being written: its place in the path, not a page to open yet.
+                return (
+                  <li className={`ac-stop ${state}`} key={course.id}>
+                    <span className="ac-stop-node" aria-hidden="true"><Icon name="lock" size={18} /></span>
+                    <div className="ac-stop-card is-outline">
+                      <span className="ac-stop-head">
+                        <span className="ac-stop-no">{t(`الدورة ${index + 1} من ${courses.length}`, `Course ${index + 1} of ${courses.length}`)}</span>
+                        <span className="status-pill status-pending">{t('قيد التحضير', 'Being prepared')}</span>
+                      </span>
+                      <strong>{course.title_ar}</strong>
+                      <span className="ac-stop-ready is-empty">
+                        {course.isRequired
+                          ? t('دورة مطلوبة تُكتب الآن — تُفتح هنا حين تجهز دروسها.', 'A required course being written — it opens here when its lessons are ready.')
+                          : t('دورة اختيارية تُكتب الآن.', 'An elective being written.')}
+                      </span>
+                    </div>
+                  </li>
+                );
+              }
               return (
                 <li className={`ac-stop ${state}`} key={course.id}>
                   <span className="ac-stop-node" aria-hidden="true">
@@ -221,6 +276,20 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
                     </span>
                     <strong>{course.title_ar}</strong>
                     {course.description_ar && <span className="ac-stop-desc">{course.description_ar}</span>}
+                    {(() => {
+                      // What is ready in this course, and what is still being prepared.
+                      const ready = readiness.get(course.id) ?? { open: 0, total: 0 };
+                      if (ready.total === 0) {
+                        return <span className="ac-stop-ready is-empty">{t('الدروس قيد التحضير', 'Lessons are being prepared')}</span>;
+                      }
+                      return (
+                        <span className={`ac-stop-ready${ready.open < ready.total ? ' is-partial' : ''}`}>
+                          {ready.open < ready.total
+                            ? t(`${ready.open} من ${ready.total} دروس جاهزة — الباقي قيد التحضير`, `${ready.open} of ${ready.total} lessons ready — the rest are being prepared`)
+                            : t(`${ready.total} دروس جاهزة`, `${ready.total} lessons ready`)}
+                        </span>
+                      );
+                    })()}
                     <span className="ac-stop-go">
                       {planned ? t('ما ستتعلمه', 'What it will teach') : complete ? t('راجع الدورة', 'Review') : t('افتح الدورة', 'Open the course')}
                       <Icon name="arrow" size={15} />
@@ -264,7 +333,10 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
               {pathComplete
                 ? t('اكتملت متطلبات المسار — يمكنك إصدار شهادته من صفحة الشهادات.',
                     'The path requirements are met — you can issue its certificate from the certificates page.')
-                : t('تُصدَر بعد اعتماد كل الأعمال المطلوبة في دورات المسار ومشروعه الجماعي.',
+                : !courses.some((course) => course.isRequired && course.status === 'published')
+                  ? t('تُصدَر حين تُفتح الدورات المطلوبة في هذا المسار وتُكملها — ما زالت قيد التحضير.',
+                      'Issued once this path’s required courses open and you complete them — they are still being prepared.')
+                  : t('تُصدَر بعد اعتماد كل الأعمال المطلوبة في دورات المسار ومشروعه الجماعي.',
                     'Issued once every required piece of work in the path\u2019s courses and its group project has been approved.')}
             </p>
             {pathComplete && (

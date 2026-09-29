@@ -9494,6 +9494,83 @@ reset request.jwt.claim.sub;
 
 update public.courses set status = 'published' where id = :'hidden_course';
 
+-- ===========================================================================
+-- 88. Joining a path is kept, and «complete» means something was done (0118)
+-- ===========================================================================
+-- A path whose only open course is an elective, and a course with no lessons.
+insert into public.courses (slug, title_ar, status) values ('t88-elective', 'اختيارية منشورة', 'published')
+returning id as t88_elective \gset
+insert into public.courses (slug, title_ar, status) values ('t88-empty', 'دورة بلا دروس', 'published')
+returning id as t88_empty \gset
+insert into public.courses (slug, title_ar, status) values ('t88-outline', 'مطلوبة لم تُكتب', 'draft')
+returning id as t88_outline \gset
+insert into public.modules (course_id, title_ar, sort_order) values (:'t88_elective', 'وحدة', 1)
+returning id as t88_module \gset
+insert into public.lessons (module_id, slug, title_ar, sort_order, kind, status)
+values (:'t88_module', 't88-elective-l1', 'درس أول', 1, 'reading', 'published')
+returning id as t88_lesson \gset
+insert into public.learning_paths (slug, school_id, title_ar, status, sort_order)
+values ('t88-path', (select id from public.schools order by sort_order limit 1), 'مسار اختبار 88', 'published', 999)
+returning id as t88_path \gset
+insert into public.learning_paths (slug, school_id, title_ar, status, sort_order)
+values ('t88-hidden', (select id from public.schools order by sort_order limit 1), 'مسار مخفي', 'draft', 1000)
+returning id as t88_hidden \gset
+insert into public.path_courses (path_id, course_id, is_required, sort_order) values
+  (:'t88_path', :'t88_outline', true, 1),
+  (:'t88_path', :'t88_elective', false, 2);
+-- sync_path_status may have closed it; it is open for this test
+update public.learning_paths set status = 'published' where id = :'t88_path';
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.enrol_in_path(:'t88_path');
+select public.enrol_in_path(:'t88_path');
+select public.assert(
+  (select count(*) from public.enrollments where profile_id = '77777777-7777-7777-7777-777777777777' and path_id = :'t88_path') = 1,
+  '88.1 joining a path is saved, and joining again changes nothing');
+select public.assert_rejects(
+  format($$select public.enrol_in_path(%L)$$, :'t88_hidden'),
+  '88.2 a hidden path cannot be joined', 'غير متاح');
+select public.assert(
+  not public.is_course_complete('77777777-7777-7777-7777-777777777777', :'t88_empty'),
+  '88.3 a course with no lessons is not «complete»');
+select public.assert(
+  not public.is_path_complete('77777777-7777-7777-7777-777777777777', :'t88_path'),
+  '88.4 nor is a path whose required course is not open yet');
+select public.assert_rejects(
+  format($$select public.issue_certificate('path', %L)$$, :'t88_path'),
+  '88.5 so no certificate is issued for it', 'لم تكتمل');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Going straight to a course: its first lesson joins its path.
+delete from public.enrollments where profile_id = '77777777-7777-7777-7777-777777777777' and path_id = :'t88_path';
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('77777777-7777-7777-7777-777777777777', :'t88_lesson', 'completed', now());
+select public.assert(
+  exists (select 1 from public.enrollments where profile_id = '77777777-7777-7777-7777-777777777777' and path_id = :'t88_path'),
+  '88.6 starting a course''s first lesson joins its path');
+reset role;
+reset request.jwt.claim.sub;
+
+-- Once the required course opens and is done, the path is complete.
+insert into public.modules (course_id, title_ar, sort_order) values (:'t88_outline', 'وحدة', 1)
+returning id as t88_module2 \gset
+insert into public.lessons (module_id, slug, title_ar, sort_order, kind, status)
+values (:'t88_module2', 't88-outline-l1', 'درس المطلوبة', 1, 'reading', 'published')
+returning id as t88_lesson2 \gset
+update public.courses set status = 'published' where id = :'t88_outline';
+select public.assert(
+  not public.is_path_complete('77777777-7777-7777-7777-777777777777', :'t88_path'),
+  '88.7 an open required course not yet studied keeps the path open');
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('77777777-7777-7777-7777-777777777777', :'t88_lesson2', 'completed', now());
+select public.assert(
+  public.is_path_complete('77777777-7777-7777-7777-777777777777', :'t88_path'),
+  '88.8 and doing it completes the path');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
