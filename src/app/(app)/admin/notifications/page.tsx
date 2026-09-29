@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDateTime } from '@/lib/i18n';
-import { NOTIFICATION_KIND, PRIORITY } from '@/lib/notifications';
+import { PRIORITY, kindLook } from '@/lib/notifications';
 import { roleLabel } from '@/lib/roles';
 
 import { BroadcastForm } from './BroadcastForm';
@@ -95,7 +95,7 @@ export default async function AdminNotificationsPage() {
                 <div style={{ minWidth: 0 }}>
                   <div className="row-between" style={{ gap: 10 }}>
                     <strong style={{ fontSize: '0.95rem' }}>
-                      {NOTIFICATION_KIND[draft.kind].icon} {draft.title_ar}
+                      {kindLook(draft.kind).icon} {draft.title_ar}
                     </strong>
                     <span className={`status-pill ${PRIORITY[draft.priority].className}`}>
                       {t(PRIORITY[draft.priority].label)}
@@ -146,7 +146,7 @@ export default async function AdminNotificationsPage() {
               {(log ?? []).filter((row) => row.sent_at).map((row) => (
                 <tr key={row.id}>
                   <td data-label={t('الإعلان', 'Announcement')}>
-                    {NOTIFICATION_KIND[row.kind].icon} {row.title_ar}
+                    {kindLook(row.kind).icon} {row.title_ar}
                   </td>
                   <td data-label={t('لمن', 'To')} className="muted">
                     {row.audience_role ? t(roleLabel(row.audience_role)) : t('الكل', 'Everybody')}

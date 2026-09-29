@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { DeviceSetup } from '@/components/DeviceSetup';
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
@@ -23,11 +24,15 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, display_name, techmood_id, avatar_url, headline, language')
-    .eq('id', user.id)
-    .single();
+  const [{ data: profile }, { data: pushKey }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, display_name, techmood_id, avatar_url, headline, language')
+      .eq('id', user.id)
+      .single(),
+    // The public half of the VAPID key, for turning notifications on (0100).
+    supabase.rpc('push_public_key'),
+  ]);
   if (!profile) redirect('/login');
 
   const name = profile.display_name ?? profile.full_name;
@@ -45,6 +50,11 @@ export default async function SettingsPage() {
         </div>
         <Link className="btn btn-ghost btn-sm" href={`/u/${profile.techmood_id}`}>{t('ملفي العام', 'Public profile')}</Link>
       </section>
+
+      {/* Always here: install on the home screen, notifications on this device. */}
+      <div className="section-block">
+        <DeviceSetup variant="settings" publicKey={(pushKey as string | null) ?? null} />
+      </div>
 
       <ul className="st-group section-block">
         {SETTINGS_PAGES.map((page) => (

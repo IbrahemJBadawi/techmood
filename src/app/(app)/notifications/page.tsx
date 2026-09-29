@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate, intlTag } from '@/lib/i18n';
 import { Icon } from '@/components/Icon';
-import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY } from '@/lib/notifications';
+import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY, kindLook } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from '../shell/actions';
@@ -145,7 +145,7 @@ export default async function NotificationsPage({
             <h3 className="nt-day">{group.label}</h3>
             <ul className="nt-list">
               {group.rows.map((item) => {
-                const look = NOTIFICATION_KIND[item.kind];
+                const look = kindLook(item.kind);
                 const body = (
                   <>
                     <span className="nt-icon" style={{ background: `color-mix(in srgb, ${KIND_COLOR[item.kind] ?? '#5B6B7C'} 14%, transparent)` }} aria-hidden="true">

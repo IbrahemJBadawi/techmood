@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
-import { NOTIFICATION_KIND } from '@/lib/notifications';
+import { kindLook } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
 import { saveNotificationPreferences, type PreferenceState } from './actions';
@@ -48,7 +48,7 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
           {editable.map((row) => (
             <tr key={row.kind}>
               <td data-label={t('النوع', 'Category')}>
-                <strong>{NOTIFICATION_KIND[row.kind].icon} {row.title_ar}</strong>
+                <strong>{kindLook(row.kind).icon} {row.title_ar}</strong>
                 {row.detail_ar && (
                   <p className="muted" style={{ fontSize: '0.78rem' }}>{row.detail_ar}</p>
                 )}
@@ -77,7 +77,7 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
           {mandatory.map((row) => (
             <tr key={row.kind}>
               <td data-label={t('النوع', 'Category')}>
-                <strong>{NOTIFICATION_KIND[row.kind].icon} {row.title_ar}</strong>
+                <strong>{kindLook(row.kind).icon} {row.title_ar}</strong>
                 {row.detail_ar && (
                   <p className="muted" style={{ fontSize: '0.78rem' }}>{row.detail_ar}</p>
                 )}

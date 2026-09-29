@@ -63,7 +63,7 @@ export function SupportComposer({
       {children}
       <div className="field">
         <label htmlFor="support-file">{t('📎 مرفق (صورة تحويل، لقطة شاشة، ملف) — اختياري', '📎 Attachment (transfer receipt, screenshot, file) — optional')}</label>
-        <input id="support-file" name="file" type="file" accept="image/*,application/pdf" />
+        <input id="support-file" name="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,application/pdf" />
       </div>
       {uploadError && <p className="notice notice-danger">{uploadError}</p>}
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

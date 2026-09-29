@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { formatDate } from '@/lib/i18n';
-import { NOTIFICATION_KIND } from '@/lib/notifications';
+import { kindLook } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from './actions';
@@ -69,7 +69,7 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
               const body = (
                 <>
                   <strong dir="rtl">
-                    <span aria-hidden="true">{NOTIFICATION_KIND[item.kind].icon} </span>
+                    <span aria-hidden="true">{kindLook(item.kind).icon} </span>
                     {item.title_ar}
                   </strong>
                   {item.body_ar && <span className="muted" dir="rtl">{item.body_ar}</span>}

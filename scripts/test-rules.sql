@@ -5493,12 +5493,14 @@ select public.assert(
   and (select count(*) from public.notification_categories where is_mandatory) = 3,
   '51.1 every category is named, and three of them are nobody''s to silence');
 
-set role authenticated;
-set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+-- wants_notification is the engine's own question, asked as the platform (0116).
 select public.assert(
   public.wants_notification('11111111-1111-1111-1111-111111111111', 'booking', 'email')
   and not public.wants_notification('11111111-1111-1111-1111-111111111111', 'message', 'email'),
   '51.2 a person who never opened the settings still gets the category''s default');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
 -- Silencing what is theirs to silence.
 insert into public.notification_preferences (profile_id, kind, in_app, email)
@@ -7514,12 +7516,14 @@ select public.admin_case_action(:'case2', 'suspend_account', 'مخالفة شر�
 reset role;
 reset request.jwt.claim.sub;
 
-set role authenticated;
-set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+-- is_restricted is asked by the functions that enforce it, as the platform (0116).
 select public.assert(
   public.is_restricted('77777777-7777-7777-7777-777777777777', 'booking')
   and public.is_restricted('77777777-7777-7777-7777-777777777777', 'withdrawals'),
   '62.9 a suspended account loses every restricted feature at once');
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 
 select (public.open_ticket('account', 'اعتراض', 'أعترض على إيقاف حسابي وأطلب المراجعة')).id as appeal \gset
 select public.assert(
@@ -8782,6 +8786,7 @@ select public.assert_rejects(
     values ('11111111-1111-1111-1111-111111111111', 'bank_of_palestine', 'طالب تجربة', '0599000111')$$,
   '76.5 a bank account needs an account number or an IBAN', 'IBAN');
 insert into public.payout_accounts (profile_id, method_key, holder_name, iban)
+-- The IBAN is the published example for Palestine in the SWIFT IBAN registry, not a real account.
 values ('11111111-1111-1111-1111-111111111111', 'bank_of_palestine', ' طالب تجربة ', 'ps92 palS 0000 0000 0400 1234 5670 2')
 returning id as bop_acct, iban as bop_iban \gset
 insert into public.payout_accounts (profile_id, method_key, holder_name, wallet_number)
@@ -9374,6 +9379,74 @@ select public.assert(
   (select status from public.learning_paths where id = :'s_path') = 'published'
   and (select author_id from public.learning_paths where id = :'s_path') = '33333333-3333-3333-3333-333333333333',
   '85.14 an approved path with a ready course opens in the academy, under its author''s name');
+
+-- ===========================================================================
+-- 86. Security hardening before launch (0116)
+-- ===========================================================================
+-- A company that chose not to be public (startups are public by default).
+update public.startups set is_public = false where id = :'startup2';
+insert into public.roadmap_items (startup_id, title_ar, year, quarter, created_by)
+values (:'startup2', 'خطة داخلية لا تُنشر', 2027, 1, '22222222-2222-2222-2222-222222222222');
+
+set role anon;
+select public.assert(
+  (select count(*) from public.roadmap(:'startup2')) = 0,
+  '86.1 a signed-out visitor cannot read a private company''s roadmap');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(
+  (select count(*) from public.roadmap(:'startup2')) = 0,
+  '86.2 nor can a signed-in outsider');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.roadmap(:'startup2') where source = 'item') >= 1,
+  '86.3 the company''s founder still reads the whole roadmap');
+select public.assert_rejects(
+  format($$select public.award_team_xp(%L, 'task_completed', 'x', gen_random_uuid(), null)$$,
+         (select id from public.teams limit 1)),
+  '86.4 nobody hands a team XP through the API', 'permission denied');
+select public.assert_rejects(
+  $$select public.is_restricted('11111111-1111-1111-1111-111111111111', 'everything')$$,
+  '86.5 whether someone is restricted is not asked through the API', 'permission denied');
+select public.assert_rejects(
+  $$select public.wants_notification('11111111-1111-1111-1111-111111111111', 'system', 'email')$$,
+  '86.6 nor another person''s notification choices', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert_rejects(
+  $$insert into public.notifications (profile_id, kind, title_ar) values ('11111111-1111-1111-1111-111111111111', 'system', 'x')$$,
+  '86.7 a signed-out visitor holds no write grant on any table', 'permission denied');
+reset role;
+
+select public.assert(
+  not exists (select 1 from information_schema.role_table_grants
+               where table_schema = 'public' and grantee in ('anon', 'authenticated') and privilege_type = 'TRUNCATE'),
+  '86.8 no client role may TRUNCATE a table');
+
+-- The assistant's daily limit (0116): three for the test, then refused.
+update public.platform_settings set value = '3' where key = 'ai_daily_messages';
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.start_ai_thread('حد يومي', 'general', 'platform', null, null) as cap_thread \gset
+select public.ai_say(:'cap_thread', 'user', 'سؤال ' || n) from generate_series(1, 3) n;
+select public.ai_say(:'cap_thread', 'assistant', 'جواب لا يُحسب');
+select public.assert_rejects(
+  format($$select public.ai_say(%L, 'user', 'سؤال رابع')$$, :'cap_thread'),
+  '86.9 a person''s questions to the assistant stop at the day''s limit', 'حدّ أسئلة المساعد');
+select public.assert_rejects(
+  format($$insert into public.ai_messages (thread_id, role, content) values (%L, 'user', 'مباشرة')$$, :'cap_thread'),
+  '86.10 and a direct insert does not go around it', 'حدّ أسئلة المساعد');
+reset role;
+reset request.jwt.claim.sub;
+update public.platform_settings set value = '40' where key = 'ai_daily_messages';
 
 \echo ''
 \echo '================================================'

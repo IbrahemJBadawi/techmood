@@ -1,11 +1,16 @@
 'use client';
 
-import { savePushSubscription } from '@/app/(app)/settings/notifications/actions';
+import { removePushSubscription, savePushSubscription } from '@/app/(app)/settings/notifications/actions';
 
 /**
- * Turning device notifications on (0100), shared by the Settings switch and
- * the app-shell suggestion: the browser asks the person, gives a
- * subscription, and TechMood keeps it for this device only.
+ * Device notifications (0100), used by DeviceSetup on Settings and on the home
+ * page: the browser asks the person, gives a subscription, and TechMood keeps
+ * it for this device only (push_subscriptions). The daily reminders (0114) and
+ * every category the person left on «device» reach them through it.
+ *
+ * Needs the public VAPID key (platform_settings, read with push_public_key());
+ * without it every device reads as 'unsupported'. The private key lives only
+ * in Supabase Vault and is used by the push-dispatch Edge Function.
  */
 
 export type PushStatus = 'loading' | 'unsupported' | 'denied' | 'off' | 'on';
@@ -51,4 +56,15 @@ export async function turnPushOn(publicKey: string): Promise<{ status: PushStatu
     userAgent: navigator.userAgent,
   });
   return result.error ? { status: 'off', error: result.error } : { status: 'on' };
+}
+
+/** Stops notifications on this device: forgets the subscription on both sides. */
+export async function turnPushOff(): Promise<PushStatus> {
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (subscription) {
+    await removePushSubscription(subscription.endpoint);
+    await subscription.unsubscribe();
+  }
+  return 'off';
 }

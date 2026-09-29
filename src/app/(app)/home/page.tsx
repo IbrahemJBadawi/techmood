@@ -7,6 +7,8 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ACTIVE_ROLE_COOKIE, defaultRole } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
+import { DeviceSetup } from '@/components/DeviceSetup';
+
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
 import { parseLeague } from './student/League';
@@ -24,13 +26,15 @@ export default async function HomePage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: profile }, { data: roles }] = await Promise.all([
+  const [{ data: profile }, { data: roles }, { data: pushKey }] = await Promise.all([
     supabase
       .from('profiles')
       .select('full_name, display_name, techmood_id, avatar_url, primary_role')
       .eq('id', user.id)
       .single(),
     supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
+    // The public half of the VAPID key, for turning notifications on (0100).
+    supabase.rpc('push_public_key'),
   ]);
 
   if (!profile) redirect('/login');
@@ -59,6 +63,9 @@ export default async function HomePage({
           {t('. بقية أدوارك تعمل كالمعتاد.', '. Your other roles carry on as normal.')}
         </p>
       )}
+
+      {/* Install + notifications, until both are on for this device. */}
+      <DeviceSetup variant="home" publicKey={(pushKey as string | null) ?? null} />
 
       {/*
         The home page is the workspace of the role you are browsing as. For a

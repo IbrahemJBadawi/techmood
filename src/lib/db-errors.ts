@@ -16,6 +16,8 @@ import type { T } from '@/lib/i18n';
  * language is more useful than hiding it in the right one.
  */
 const PHRASES: { match: string; en: string }[] = [
+  // the assistant's daily limit (0116)
+  { match: 'بلغت حدّ أسئلة المساعد',         en: 'You have reached today\u2019s limit of questions to the assistant. It resets tomorrow.' },
   // teams (0113)
   { match: 'قائد الفريق فقط من يحجز جلسات الفريق', en: 'Only the team leader books the team\u2019s sessions.' },
   { match: 'بين جلسة وأخرى ثلاثة أيام',       en: 'Sessions are at least three days apart — the team already has one close to that day.' },

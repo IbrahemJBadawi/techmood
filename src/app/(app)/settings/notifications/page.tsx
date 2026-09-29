@@ -4,9 +4,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
-import { InstallApp } from '@/components/InstallApp';
+import { DeviceSetup } from '@/components/DeviceSetup';
 
-import { DevicePush } from './DevicePush';
 
 import { PreferencesForm, type Category } from './PreferencesForm';
 
@@ -54,13 +53,9 @@ export default async function NotificationSettingsPage() {
         </p>
       </section>
 
-      <section className="section-block">
-        <h3 style={{ fontSize: '0.98rem', marginBottom: 8 }}>{t('TechMood على هاتفك', 'TechMood on your phone')}</h3>
-        <InstallApp variant="inline" />
-        <div style={{ marginTop: 10 }}>
-          <DevicePush publicKey={pushKey ?? null} />
-        </div>
-      </section>
+      <div className="section-block">
+        <DeviceSetup variant="settings" publicKey={pushKey ?? null} />
+      </div>
 
       <section className="panel section-block">
         <PreferencesForm categories={rows} />

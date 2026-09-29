@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
-import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY } from '@/lib/notifications';
+import { BROADCAST_KINDS, NOTIFICATION_KIND, PRIORITY } from '@/lib/notifications';
 import { SELECTABLE_ROLES } from '@/lib/roles';
 import type { NotifyPriority } from '@/lib/database.types';
 
@@ -25,7 +25,7 @@ export function BroadcastForm() {
         <div className="field">
           <label htmlFor="kind">{t('النوع', 'Category')}</label>
           <select id="kind" name="kind" defaultValue="system">
-            {NOTIFICATION_ORDER.map((kind) => (
+            {BROADCAST_KINDS.map((kind) => (
               <option key={kind} value={kind}>{t(NOTIFICATION_KIND[kind].label)}</option>
             ))}
           </select>

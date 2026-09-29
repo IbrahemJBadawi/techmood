@@ -58,7 +58,9 @@ export async function ProfileCard({
 
       <div className="identity-head">
         {card.avatar_url ? (
-          <Image className="identity-avatar" src={card.avatar_url} alt="" width={128} height={128} />
+          // unoptimized: the photo may come from Supabase Storage or from the
+          // sign-in provider (Google), and is already small.
+          <Image className="identity-avatar" src={card.avatar_url} alt="" width={128} height={128} unoptimized />
         ) : (
           <span className="identity-avatar identity-initial" aria-hidden>{initial}</span>
         )}

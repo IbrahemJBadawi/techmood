@@ -3818,16 +3818,18 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   .ai-fab, .ai-panel { display: none !important; }
 }
 
-/* The quiet "add to home screen" suggestion (PWA). */
-.install-banner {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  border: 1px solid var(--line); border-inline-start: 3px solid var(--royal);
-  background: var(--sky-tint); border-radius: var(--radius-s);
-  padding: 10px 12px; margin-bottom: 16px; font-size: 0.86rem; color: var(--ink);
-}
-.push-banner { border-inline-start-color: var(--xp, var(--royal)); }
-.push-banner-icon { font-size: 1.15rem; line-height: 1; }
-.push-banner-error { display: block; margin-top: 4px; color: var(--danger-ink); font-size: 0.8rem; }
+/* This device: installed on the home screen, notifications on (DeviceSetup). */
+.device-setup h3 { font-size: 0.98rem; }
+.device-setup-home { border-inline-start: 3px solid var(--royal); }
+.device-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.device-row { display: flex; align-items: center; gap: 12px; }
+.device-row + .device-row { padding-top: 10px; border-top: 1px solid var(--line); }
+.device-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 10px; background: var(--sky-tint); color: var(--royal); }
+.device-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.device-text strong { font-size: 0.9rem; }
+.device-text .muted { font-size: 0.8rem; line-height: 1.5; }
+.device-row .btn, .device-row .status-pill { flex: none; }
 
 /* Where am I: the role being browsed, under the logo. */
 .sidebar-role { margin: 0 14px 12px; padding: 8px 10px; border-radius: var(--radius-s);

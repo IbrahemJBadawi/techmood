@@ -23,7 +23,17 @@ export const NOTIFICATION_KIND: Record<NotificationKind, { label: Text; icon: st
   security:    { label: { ar: 'الأمان والحساب',   en: 'Account' },        icon: '🛡️' },
   system:      { label: { ar: 'إعلانات المنصة',   en: 'Announcements' },  icon: '📣' },
   support:     { label: { ar: 'الدعم والبلاغات',  en: 'Support' },        icon: '🛟' },
+  reminder:    { label: { ar: 'التذكيرات اليومية', en: 'Daily reminders' }, icon: '🔔' },
 };
+
+/**
+ * The look of a kind, never undefined: a kind added to the database before
+ * this file (a new enum value) still renders, as a plain bell, instead of
+ * crashing the page that lists it.
+ */
+export function kindLook(kind: string): { label: Text; icon: string } {
+  return NOTIFICATION_KIND[kind as NotificationKind] ?? { label: { ar: 'إشعار', en: 'Notification' }, icon: '🔔' };
+}
 
 /**
  * Priority is not decoration: it is how the engine decided the message should
@@ -36,7 +46,12 @@ export const PRIORITY: Record<NotifyPriority, { label: Text; className: string }
   info:      { label: { ar: 'للعلم',  en: 'For info' },  className: 'status-muted' },
 };
 
+/** Every kind, in the order the notifications page offers them as filters. */
 export const NOTIFICATION_ORDER: NotificationKind[] = [
   'academy', 'evaluation', 'booking', 'team', 'work', 'project',
   'message', 'certificate', 'payment', 'role_review', 'security', 'system',
+  'support', 'reminder',
 ];
+
+/** The kinds an admin may send an announcement as (not support replies or the daily reminders). */
+export const BROADCAST_KINDS: NotificationKind[] = NOTIFICATION_ORDER.filter((kind) => kind !== 'support' && kind !== 'reminder');

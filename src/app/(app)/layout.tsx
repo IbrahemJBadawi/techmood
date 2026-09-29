@@ -17,8 +17,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
-import { InstallApp } from '@/components/InstallApp';
-import { EnablePush } from '@/components/EnablePush';
+import { DeviceBoot } from '@/components/DeviceSetup';
 import { MobileTabBar } from './shell/MobileNav';
 import { roleInScope } from '@/lib/scope';
 
@@ -30,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [
     { data: profile }, { data: roles }, { data: notifications }, { data: restrictions }, { data: mentorApplication },
-    { count: unreadCount }, { data: pushKey },
+    { count: unreadCount },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -55,8 +54,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('id', { count: 'exact', head: true })
       .eq('profile_id', user.id)
       .eq('is_read', false),
-    // The device-notification suggestion needs the public half of the VAPID key (0100).
-    supabase.rpc('push_public_key'),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -181,8 +178,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {' — '}<Link href="/support">{t('المساعدة والبلاغات', 'Help & reports')}</Link>
               </p>
             )}
-            <InstallApp />
-            <EnablePush publicKey={(pushKey as string | null) ?? null} />
+            {/* Service worker + the browser's install offer, caught on whatever page
+                opens first. The install and notification buttons themselves live
+                on the home page and in Settings (DeviceSetup). */}
+            <DeviceBoot />
             {application && (
               <p className={`notice ${application.status === 'needs_more_info' ? 'notice-warn' : application.status === 'rejected' ? 'notice-danger' : ''}`}
                  style={{ marginBottom: 16 }}>

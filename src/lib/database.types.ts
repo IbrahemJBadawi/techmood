@@ -149,7 +149,8 @@ export type OrgKind = 'startup' | 'company';
 
 export type NotificationKind =
   | 'evaluation' | 'academy' | 'booking' | 'payment' | 'team' | 'work' | 'project'
-  | 'message' | 'certificate' | 'role_review' | 'security' | 'system' | 'support';
+  | 'message' | 'certificate' | 'role_review' | 'security' | 'system' | 'support'
+  | 'reminder'; // the daily reminders (0114)
 
 /** Help & Reports (0082–0083). */
 export type TicketCategory =
