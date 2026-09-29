@@ -7,6 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TICKET_CATEGORY, TICKET_STATUS } from '@/lib/support';
 import type { Text } from '@/lib/i18n';
 import type { TicketCategory, TicketStatus } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المساعدة والبلاغات — TechMood', 'Help & reports — TechMood');
 
@@ -40,7 +41,7 @@ export default async function SupportCenterPage() {
     supabase.rpc('my_tickets'),
     supabase.from('kb_articles').select('slug, title_ar, title_en').eq('status', 'published').order('sort_order').limit(12),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium' });
 
   const list = tickets ?? [];
   const open = list.filter((ticket) => !['resolved', 'rejected', 'closed'].includes(ticket.status));

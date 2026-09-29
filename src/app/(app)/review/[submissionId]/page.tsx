@@ -8,6 +8,7 @@ import { type Text } from '@/lib/i18n';
 import { EvidenceKind } from '@/lib/database.types';
 
 import { EvaluationForm } from '../EvaluationForm';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
   github:    { ar: 'المستودع',        en: 'Repository' },
@@ -165,7 +166,7 @@ export default async function ReviewSubmissionPage({
                     {index === 0 && <span className="badge-pill" style={{ marginInlineStart: 8 }}>{t('الأحدث', 'Latest')}</span>}
                   </strong>
                   <span className="muted eng" style={{ fontSize: '0.76rem' }}>
-                    {new Date(version.submitted_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                    {new Date(version.submitted_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                   </span>
                 </div>
 
@@ -219,7 +220,7 @@ export default async function ReviewSubmissionPage({
                       <span className={`status-pill ${decision.className}`}>{t(decision.text)}</span>
                       <span className="muted eng" style={{ fontSize: '0.74rem' }}>
                         v{version?.version ?? '?'} ·{' '}
-                        {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                        {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                         {evaluation.evaluator_id === user.id ? t(' · أنت', ' · you') : ''}
                       </span>
                     </div>

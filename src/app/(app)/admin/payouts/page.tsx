@@ -9,6 +9,7 @@ import { PAYOUT_STATUS } from '@/lib/wallet';
 
 import { reviewPayout, startTransfer } from './actions';
 import { PayoutProof } from './PayoutProof';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('السحوبات — إدارة TechMood', 'Payouts — TechMood admin');
 
@@ -130,7 +131,7 @@ export default async function AdminPayoutsPage() {
                   </div>
                   <div className="summary-row">
                     <span className="muted">{t('تاريخ الطلب', 'Requested on')}</span>
-                    <span className="date">{new Date(request.created_at).toLocaleDateString('ar-EG-u-nu-latn')}</span>
+                    <span className="date">{new Date(request.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}</span>
                   </div>
                 </div>
 
@@ -191,7 +192,7 @@ export default async function AdminPayoutsPage() {
                   </td>
                   <td className="eng">{request.paid_reference ?? '—'}</td>
                   <td className="date">
-                    {request.reviewed_at ? new Date(request.reviewed_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
+                    {request.reviewed_at ? new Date(request.reviewed_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE }) : '—'}
                   </td>
                 </tr>
               ))}

@@ -8,6 +8,7 @@ import { RatingExtras } from '@/components/RatingExtras';
 import { SESSION_CRITERION as LABEL } from '@/lib/criteria';
 
 import { rateSession, type RateState } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 
 /**
@@ -44,7 +45,7 @@ export function RatingForm({
         {dueAt && (
           <>
             {' '}{t('آخر موعد للتقييم:', 'Last day to rate:')}{' '}
-            <span className="date">{new Date(dueAt).toLocaleDateString('en-GB')}</span>.
+            <span className="date">{new Date(dueAt).toLocaleDateString('en-GB', { timeZone: PLATFORM_TIME_ZONE })}</span>.
           </>
         )}
       </p>

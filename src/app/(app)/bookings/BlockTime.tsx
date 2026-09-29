@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { blockTime, unblockTime, type HubState } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export type Block = { id: string; starts_at: string; ends_at: string; reason: string | null };
 
@@ -29,11 +30,11 @@ export function BlockTime({ blocks }: { blocks: Block[] }) {
           {blocks.map((block) => (
             <li className="row-between" key={block.id} style={{ fontSize: '0.86rem' }}>
               <span>
-                {new Date(block.starts_at).toLocaleString('ar-EG-u-nu-latn', {
+                {new Date(block.starts_at).toLocaleString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE,
                   day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
                 })}
                 {' — '}
-                {new Date(block.ends_at).toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(block.ends_at).toLocaleTimeString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' })}
                 {block.reason && <span className="muted"> · {block.reason}</span>}
               </span>
               <form action={unblockTime}>

@@ -6,6 +6,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { cancelMeeting, scheduleMeeting, type MeetingState } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export type Meeting = {
   id: string;
@@ -51,7 +52,7 @@ export function Meetings({ projectId, meetings }: { projectId: string; meetings:
             <li key={meeting.id}>
               <span>
                 <strong>{meeting.topic_ar ?? t('اجتماع', 'Meeting')}</strong>
-                <span className="muted eng"> · {new Date(meeting.start_at).toLocaleString()}</span>
+                <span className="muted eng"> · {new Date(meeting.start_at).toLocaleString('en-GB', { timeZone: PLATFORM_TIME_ZONE })}</span>
               </span>
               <span className="row-actions">
                 <Link className="btn btn-primary btn-sm" href={`/sessions/${meeting.id}`}>
@@ -112,7 +113,7 @@ export function Meetings({ projectId, meetings }: { projectId: string; meetings:
               <li key={meeting.id}>
                 <span>{meeting.topic_ar ?? t('اجتماع', 'Meeting')}</span>
                 <span className="muted eng">
-                  {new Date(meeting.start_at).toLocaleDateString()} · {meeting.status}
+                  {new Date(meeting.start_at).toLocaleDateString('en-GB', { timeZone: PLATFORM_TIME_ZONE })} · {meeting.status}
                   {meeting.attended > 0 && ` · ${meeting.attended} ${t('حضروا', 'attended')}`}
                 </span>
               </li>

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ESCALATION, TICKET_CATEGORY, TICKET_PRIORITY, TICKET_STATUS } from '@/lib/support';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الدعم والبلاغات — إدارة TechMood', 'Support & reports — TechMood admin');
 
@@ -35,7 +36,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
     supabase.rpc('admin_tickets', { p_filter: filter }),
     supabase.rpc('admin_cases', { p_filter: 'open' }),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium' });
 
   return (
     <>

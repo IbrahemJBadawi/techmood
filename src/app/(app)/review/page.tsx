@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المراجعة — TechMood', 'Review — TechMood');
 
@@ -139,7 +140,7 @@ export default async function ReviewQueuePage() {
                   </td>
                   <td>{KIND_LABELS[assignment?.kind ?? ''] ? t(KIND_LABELS[assignment?.kind ?? '']) : '—'}</td>
                   <td className="eng">v{row.current_version}</td>
-                  <td className="date">{new Date(row.updated_at).toLocaleDateString('ar-EG-u-nu-latn')}</td>
+                  <td className="date">{new Date(row.updated_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}</td>
                   <td><span className={`status-pill ${status.className}`}>{t(status.text)}</span></td>
                   <td>
                     <Link className="btn btn-primary btn-sm" href={`/review/${row.id}`}>{t('راجِع', 'Review')}</Link>

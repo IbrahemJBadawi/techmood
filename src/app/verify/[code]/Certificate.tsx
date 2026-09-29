@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Outfit } from 'next/font/google';
 
 import type { VerifiedCertificate } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 /**
  * The certificate has its own typeface.
@@ -41,7 +42,7 @@ export function Certificate({
   certificate: VerifiedCertificate;
   qrDataUrl: string;
 }) {
-  const issued = new Date(certificate.issued_at).toLocaleDateString('en-GB', {
+  const issued = new Date(certificate.issued_at).toLocaleDateString('en-GB', { timeZone: PLATFORM_TIME_ZONE,
     day: 'numeric', month: 'long', year: 'numeric',
   });
 

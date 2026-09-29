@@ -13,6 +13,7 @@ import { ProgressRing } from '../../academy/ProgressRing';
 import { TeamNav } from './TeamNav';
 import { TeamSessions } from './TeamSessions';
 import { AiSurface } from '@/components/AiSurface';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function TeamOverviewPage({
   params,
@@ -208,7 +209,7 @@ export default async function TeamOverviewPage({
                     {entry.subject_ar && <span className="muted"> «{entry.subject_ar}»</span>}
                     <br />
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                      {new Date(entry.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                      {new Date(entry.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </span>
                 </li>

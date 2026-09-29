@@ -7,6 +7,7 @@ import {
   timeOf, TONE_LABEL, WEEKDAYS, type CalendarView,
 } from '@/lib/calendar';
 import type { Database } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 type Entry = Database['public']['Functions']['my_calendar']['Returns'][number];
 
@@ -17,7 +18,7 @@ function href(params: Record<string, string | undefined>) {
 }
 
 function monthTitle(locale: Locale, anchor: Date) {
-  return anchor.toLocaleDateString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
+  return anchor.toLocaleDateString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE,
     month: 'long',
     year: 'numeric',
   });

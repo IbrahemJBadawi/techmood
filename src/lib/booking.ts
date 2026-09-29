@@ -1,5 +1,6 @@
 import { intlTag, type Locale, type Text } from '@/lib/i18n';
 import type { BookingStatus, PaymentStatus, SlotState } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 /**
  * Booking, payment and slot are three separate state machines on purpose, so
@@ -51,8 +52,8 @@ export function formatSlot(iso: string, locale: Locale = 'ar') {
   const date = new Date(iso);
   const tag = locale === 'ar' ? 'ar-EG-u-nu-latn' : intlTag(locale);
   return {
-    date: date.toLocaleDateString(tag, { weekday: 'long', day: 'numeric', month: 'long' }),
-    time: date.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' }),
+    date: date.toLocaleDateString(tag, { timeZone: PLATFORM_TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long' }),
+    time: date.toLocaleTimeString(tag, { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' }),
   };
 }
 

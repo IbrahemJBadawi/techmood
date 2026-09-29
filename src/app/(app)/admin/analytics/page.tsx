@@ -4,6 +4,7 @@ import { BarList, ColumnChart } from '@/components/Charts';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TICKET_CATEGORY } from '@/lib/support';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('التحليلات — إدارة TechMood', 'Analytics — TechMood admin');
 
@@ -31,7 +32,7 @@ export default async function AdminAnalyticsPage() {
   const series = (key: 'signups' | 'active_people' | 'enrolments' | 'certificates' | 'sessions_completed' | 'tickets_opened') =>
     (weeks ?? []).map((row) => ({ label: label(row.week), value: row[key] }));
   const table = t('عرض الأرقام', 'Show the numbers');
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'short', timeStyle: 'short' });
 
   return (
     <>

@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/i18n';
 
 import { TeamNav } from '../TeamNav';
 import { InviteForm } from './InviteForm';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function TeamMembersPage({
   params,
@@ -108,7 +109,7 @@ export default async function TeamMembersPage({
                     <span className="id-chip">{profileById.get(invite.invitee_id ?? '')?.techmood_id}</span>
                   </td>
                   <td>{invite.responsibility_ar ?? '—'}</td>
-                  <td className="date">{new Date(invite.expires_at).toLocaleDateString('ar-EG-u-nu-latn')}</td>
+                  <td className="date">{new Date(invite.expires_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}</td>
                 </tr>
               ))}
             </tbody>

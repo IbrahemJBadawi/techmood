@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { setAdmin } from '../sections-actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المشرفون والصلاحيات — إدارة TechMood', 'Admins & permissions — TechMood admin');
 
@@ -36,8 +37,8 @@ export default async function AdminPermissionsPage({ searchParams }: { searchPar
     supabase.rpc('admin_team'),
     supabase.rpc('admin_audit_trail', { p_action: audit || null, p_limit: 200 }),
   ]);
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'short', timeStyle: 'short' });
 
   return (
     <>

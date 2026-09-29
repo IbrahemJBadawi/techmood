@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { scheduleTeamMeeting, type TeamState } from '../../actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 /**
  * The leader sets aside time for the team itself (0113). No mentor, no payment,
@@ -16,7 +17,7 @@ export function MeetingForm({ teamId, blockedDays = [] }: { teamId: string; bloc
   const t = useT();
   const [state, formAction, pending] = useActionState(scheduleTeamMeeting, undefined as TeamState);
   const [day, setDay] = useState('');
-  const [today] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const [today] = useState(() => new Intl.DateTimeFormat('en-CA', { timeZone: PLATFORM_TIME_ZONE }).format(new Date()));
   const tooClose = day !== '' && blockedDays.includes(day);
 
   return (

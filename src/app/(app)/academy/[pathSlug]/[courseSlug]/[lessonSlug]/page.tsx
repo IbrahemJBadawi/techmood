@@ -71,6 +71,13 @@ export default async function LessonPage({
   // its author and by admins: drafts included, nothing can be completed.
   const { data: isAdmin } = course.status === 'draft' ? await supabase.rpc('is_admin') : { data: false };
   const preview = course.status === 'draft' && (course.author_id === user.id || isAdmin === true);
+  // A hidden (draft) or switched-off (archived) course is closed lesson by
+  // lesson too, exactly as its course page is — not only on the map.
+  if (course.status === 'draft' && !preview) notFound();
+  if (course.status === 'archived') {
+    const { data: admin } = await supabase.rpc('is_admin');
+    if (admin !== true) notFound();
+  }
   const path = pathRow ?? (preview ? { id: '', slug: pathSlug, title_ar: 'معاينة', title_en: 'Preview' } : null);
   if (!path) notFound();
 

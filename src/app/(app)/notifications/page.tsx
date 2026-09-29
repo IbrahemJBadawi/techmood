@@ -9,6 +9,7 @@ import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY, kindLook } from '@/lib
 import type { NotificationKind } from '@/lib/database.types';
 
 import { markNotificationsRead } from '../shell/actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الإشعارات — TechMood', 'Notifications — TechMood');
 
@@ -73,7 +74,7 @@ export default async function NotificationsPage({
     return formatDate(locale, iso);
   };
   const timeOf = (iso: string) =>
-    new Intl.DateTimeFormat(intlTag(locale), { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+    new Intl.DateTimeFormat(intlTag(locale), { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
   const groups: { label: string; rows: NonNullable<typeof items> }[] = [];
   for (const item of items ?? []) {

@@ -7,6 +7,7 @@ import { BOOKING_STATUS, PAYMENT_STATUS, money } from '@/lib/booking';
 import { ENTRY_LABEL, TONE_LABEL } from '@/lib/calendar';
 import type { Database } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 type Entry = Database['public']['Functions']['my_calendar']['Returns'][number];
 
@@ -66,7 +67,7 @@ export async function Preview({ entry }: { entry: Entry }) {
       {entry.starts_at ? (
         <p className="muted" style={{ fontSize: '0.84rem' }}>
           {formatDateTime(locale, entry.starts_at)}
-          {entry.ends_at && ` — ${new Date(entry.ends_at).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}`}
+          {entry.ends_at && ` — ${new Date(entry.ends_at).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' })}`}
         </p>
       ) : (
         <p className="muted" style={{ fontSize: '0.84rem' }}>{entry.detail_ar}</p>

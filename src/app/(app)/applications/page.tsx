@@ -6,6 +6,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { APPLICATION_STAGE, OPPORTUNITY_KIND, compensationLabel } from '@/lib/marketplace';
 import { Opportunity } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('طلباتي — TechMood', 'My applications — TechMood');
 
@@ -71,7 +72,7 @@ export default async function MyApplicationsPage() {
                   <td>{opportunity ? t(OPPORTUNITY_KIND[opportunity.kind].label) : '—'}</td>
                   <td className="eng">{opportunity ? compensationLabel(t.locale, opportunity) : '—'}</td>
                   <td><span className={`status-pill ${stage.className}`}>{t(stage.text)}</span></td>
-                  <td className="date">{new Date(application.created_at).toLocaleDateString('ar-EG-u-nu-latn')}</td>
+                  <td className="date">{new Date(application.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}</td>
                   <td>
                     {opportunity && (
                       <Link className="btn btn-ghost btn-sm" href={`/marketplace/${opportunity.id}`}>{t('عرض', 'View')}</Link>

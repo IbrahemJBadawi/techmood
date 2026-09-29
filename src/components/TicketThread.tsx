@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { TICKET_EVENT } from '@/lib/support';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 /**
  * A ticket's timeline and conversation, as whoever is reading may see them —
@@ -24,7 +25,7 @@ export async function TicketThread({ ticketId, viewer = 'reporter' }: { ticketId
     if (data?.signedUrl) files.set(row.id, data.signedUrl);
   }));
 
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'short', timeStyle: 'short' });
   const who = (kind: string) =>
     kind === 'assistant' ? t('🤖 مساعد تكمود (رد آلي)', '🤖 TechMood assistant (automated)')
       : kind === 'admin' ? t('🛟 فريق الدعم', '🛟 Support team')

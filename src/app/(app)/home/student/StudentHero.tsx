@@ -4,6 +4,7 @@ import { Avatar } from '../../shell/ProfileMenu';
 import { levelInfo } from '@/lib/xp';
 import { getT } from '@/lib/i18n.server';
 import type { T, Text } from '@/lib/i18n';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export type ActivityDay = { on_date: string; sources: string[] };
 
@@ -50,7 +51,7 @@ export async function StudentHero({
 }) {
   const t: T = await getT();
   const level = levelInfo(totalXp);
-  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: PLATFORM_TIME_ZONE }).format(new Date()));
   const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : t('مساء الخير', hour < 18 ? 'Good afternoon' : 'Good evening');
   const firstName = name.trim().split(/\s+/)[0];
 

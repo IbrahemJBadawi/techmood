@@ -17,6 +17,8 @@
  * Those are data, and `contentText` below says plainly what to do when a row
  * has no English of its own.
  */
+
+import { PLATFORM_TIME_ZONE } from './zoned';
 export type Locale = 'ar' | 'en';
 
 /** A label that a library module carries in both languages. */
@@ -76,14 +78,14 @@ export function intlTag(locale: Locale) {
 export function formatDate(locale: Locale, value: string | Date) {
   const date = typeof value === 'string' ? new Date(value) : value;
   return new Intl.DateTimeFormat(intlTag(locale), {
-    year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: PLATFORM_TIME_ZONE, year: 'numeric', month: 'short', day: 'numeric',
   }).format(date);
 }
 
 export function formatDateTime(locale: Locale, value: string | Date) {
   const date = typeof value === 'string' ? new Date(value) : value;
   return new Intl.DateTimeFormat(intlTag(locale), {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: PLATFORM_TIME_ZONE, year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   }).format(date);
 }
 

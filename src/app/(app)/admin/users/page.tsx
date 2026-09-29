@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLES, ROLE_BY_VALUE } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المستخدمون — إدارة TechMood', 'Users — TechMood admin');
 
@@ -20,7 +21,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
   if (!isAdmin) redirect('/home');
 
   const { data: users } = await supabase.rpc('admin_users', { p_role: role, p_query: params.q ?? null, p_limit: 200 });
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium' });
 
   return (
     <>

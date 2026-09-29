@@ -11,6 +11,7 @@ import { IS_MVP } from '@/lib/scope';
 import { Composer } from './Composer';
 import { Reactions } from './Reactions';
 import { markRead } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الرسائل — TechMood', 'Messages — TechMood');
 
@@ -51,11 +52,11 @@ function dayLabel(iso: string, locale: 'ar' | 'en') {
   const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
   if (same(day, today)) return locale === 'ar' ? 'اليوم' : 'Today';
   if (same(day, yesterday)) return locale === 'ar' ? 'أمس' : 'Yesterday';
-  return day.toLocaleDateString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long' });
+  return day.toLocaleDateString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE, day: 'numeric', month: 'long' });
 }
 
 function timeLabel(iso: string, locale: 'ar' | 'en') {
-  return new Date(iso).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' });
 }
 
 /** Channel posts are TechMood's own, so their links open; nobody else's do. */

@@ -6,6 +6,7 @@ import { ROLE_BY_VALUE, roleLabel } from '@/lib/roles';
 import { getT } from '@/lib/i18n.server';
 import type { Database, UserRole } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 type Tile = { value: number | string; label: string; href: string };
 
@@ -173,7 +174,7 @@ export async function RoleDashboard({ role, userId, name }: { role: UserRole; us
     cta = { href: '/admin/role-requests', label: t('ابدأ بالطلبات', 'Start with the requests') };
   }
 
-  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: 'Asia/Jerusalem' }).format(new Date()));
+  const hour = Number(new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, timeZone: PLATFORM_TIME_ZONE }).format(new Date()));
   const greeting = hour < 12 ? t('صباح الخير', 'Good morning') : t('مساء الخير', hour < 18 ? 'Good afternoon' : 'Good evening');
   const firstName = name.trim().split(/\s+/)[0];
   // The tile that asks something of you comes first and is coloured; a zero stays quiet.

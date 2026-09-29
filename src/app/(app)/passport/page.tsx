@@ -8,6 +8,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { levelInfo } from '@/lib/xp';
 import { AiSurface } from '@/components/AiSurface';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('جواز المهارات — TechMood', 'Skills passport — TechMood');
 
@@ -191,7 +192,7 @@ export default async function PassportPage() {
                       <span className="txn-icon is-in" aria-hidden="true"><Icon name="star" size={18} /></span>
                       <span className="txn-main">
                         <strong>{XP_SOURCE_LABELS[event.source] ? t(XP_SOURCE_LABELS[event.source]) : event.source}</strong>
-                        <span className="txn-meta">{new Date(event.created_at).toLocaleDateString(t.locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB')}</span>
+                        <span className="txn-meta">{new Date(event.created_at).toLocaleDateString(t.locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE })}</span>
                       </span>
                       <span className="txn-side"><span className="eng txn-amount is-in">+{event.xp} XP</span></span>
                     </div>

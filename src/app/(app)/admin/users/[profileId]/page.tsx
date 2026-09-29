@@ -9,6 +9,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 import { ROLE_BY_VALUE } from '@/lib/roles';
 import { TICKET_CATEGORY, TICKET_STATUS } from '@/lib/support';
 import type { Text } from '@/lib/i18n';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('مستخدم — إدارة TechMood', 'User — TechMood admin');
 
@@ -64,8 +65,8 @@ export default async function AdminUserPage({
   ]);
   if (!person || !summary) notFound();
 
-  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
-  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'short', timeStyle: 'short' });
+  const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium' });
+  const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'short', timeStyle: 'short' });
   const approvedRoles = summary.roles.filter((row) => row.status === 'approved');
 
   return (

@@ -10,6 +10,7 @@ import { addChecklistItem, addTaskComment, toggleChecklistItem } from '../../../
 import { MoveTask } from '../MoveTask';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function TaskDetailPage({
   params,
@@ -130,7 +131,7 @@ export default async function TaskDetailPage({
                   <div className="row-between">
                     <strong style={{ fontSize: '0.86rem' }}>{nameById.get(comment.author_id) ?? '—'}</strong>
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                      {new Date(comment.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                      {new Date(comment.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </div>
                   <p style={{ fontSize: '0.87rem', marginTop: 5 }}>{comment.body_ar}</p>

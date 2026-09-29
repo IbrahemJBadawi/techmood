@@ -29,7 +29,7 @@ expressed directly as tokens in `src/app/globals.css`.
 
 ```bash
 npm install
-cp .env.example .env.local        # fill in your Supabase URL + anon key
+cp .env.template .env.local       # fill in your Supabase URL + anon key
 
 # create the schema in your Supabase project
 npx supabase link --project-ref <your-project-ref>
@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 997 business-rule assertions
+scripts/test.sh                   # 1001 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -165,19 +165,27 @@ database constraint with a test, not a UI convention:
 src/
   app/
     (auth)/          login, signup, role requests
-    (app)/           the signed-in shell: home, passport, academy, certificates, admin
+    (app)/           the signed-in shell: home, academy, studio (mentors' courses),
+                     teams, bookings, sessions, messages, wallet, support, settings, admin
+    u/[techmoodId]/  public profile and member card
     verify/[code]/   public certificate verification (the QR target)
+  components/        shared UI (DeviceSetup = install + notifications, ActionForm, …)
   lib/
     supabase/        browser, server and proxy clients
-    database.types.ts
+    database.types.ts  hand-kept types for tables and RPCs — update with each migration
+    db-errors.ts     English wording for the database's Arabic error messages
+    zoned.ts         Palestine's clock: every date/time is shown and read in Asia/Jerusalem
 supabase/
-  migrations/        0001-0065, applied in order
+  migrations/        0001-0117, applied in order (see docs/HANDOVER.md for how to add one)
+  functions/         Edge Functions: push-dispatch, email-dispatch
   seed.sql           generated — edit scripts/build-seed.py instead
 scripts/
   validate-migrations.sh, test.sh, test-rules.sql, build-seed.py, local-shim.sql
 docs/
+  HANDOVER.md        start here: how the code is organised and how to change it safely
   audit-phase-1.md   the prototype audit this rebuild answers
   architecture.md    schema and authorization model
+  master-plan.md     the product plan and where each part stands
 ```
 
 ---
@@ -302,7 +310,9 @@ pushed to Supabase — nothing to run by hand:
 | `techmood-session-evaluations` | hourly (:17) | `session_evaluation_housekeeping()` — an owed evaluation missed a week after the session: release the held share, mark it, tell the mentor and admins |
 | `techmood-mentor-requests` | 10 min | `mentor_request_housekeeping()` |
 | `techmood-push-dispatch` | 1 min | `dispatch_push()` — wakes the `push-dispatch` Edge Function when device notifications are queued |
-| `techmood-daily-reminder` | daily 16:00 UTC | `daily_learning_reminder()` — one nudge to learners with a device and nothing studied that day |
+| `techmood-morning-digest` | daily 06:00 UTC (09:00 Palestine in summer) | `morning_digest()` — the day's sessions, tasks due and the week's league place, to everyone with a device |
+| `techmood-daily-reminder` | daily 16:00 UTC (19:00 in summer) | `daily_learning_reminder()` — the streak, to learners with a device and nothing done that day |
+| `techmood-email-dispatch` | 1 min | `dispatch_email()` — wakes the `email-dispatch` Edge Function when mail is queued and a Resend key is in Vault |
 
 Their last run is on Admin → Analytics. A database without pg_cron (or not the
 database pg_cron runs in) skips the migration with a notice; the functions stay
@@ -355,7 +365,9 @@ select cron.schedule('mentor-requests', '*/10 * * * *', $$select public.mentor_r
 ### The assistant's model provider
 
 `ANTHROPIC_API_KEY` is read server-side only and has no `NEXT_PUBLIC_` prefix on
-purpose. **No key is configured in this repository.** Without it the assistant's
+purpose. **No key is configured in this repository.** Each person may ask the
+assistant `ai_daily_messages` questions a day (platform setting, 40 to start;
+admins unlimited), enforced by a trigger on `ai_messages` (0116). Without it the assistant's
 threads, context, memory, proposals and confirmations all work and the panel
 says plainly that nothing is answering; with it, `src/lib/ai-claude.ts` is the
 one place that calls a model.

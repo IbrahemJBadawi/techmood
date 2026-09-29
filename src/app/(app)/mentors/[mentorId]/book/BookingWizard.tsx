@@ -9,6 +9,7 @@ import { useT } from '@/lib/i18n.client';
 import { IS_MVP } from '@/lib/scope';
 
 import { createBooking, type BookingState } from '../../actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
 type ReviewCandidate = { kind: string; id: string | null; label: string };
@@ -224,7 +225,7 @@ export function BookingWizard({
 
             <div className="date-tabs">
               {byDay.map(([day, items]) => {
-                const label = new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', {
+                const label = new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE,
                   weekday: 'short',
                   day: 'numeric',
                   month: 'short',

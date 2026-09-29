@@ -8,6 +8,7 @@ import { DOCUMENT_KINDS } from '@/lib/teams';
 import { TeamNav } from '../TeamNav';
 import { NewDocumentForm } from './NewDocumentForm';
 import { removeDocument } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function TeamDocumentsPage({
   params,
@@ -118,7 +119,7 @@ export default async function TeamDocumentsPage({
 
                   <p className="muted eng" style={{ fontSize: '0.74rem', marginTop: 10 }}>
                     {authorById.get(document.author_id) ?? '—'} ·{' '}
-                    {new Date(document.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                    {new Date(document.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                   </p>
                 </article>
               ))}

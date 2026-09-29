@@ -9,6 +9,7 @@ import { IS_MVP } from '@/lib/scope';
 
 import { ReceiptLink } from './ReceiptLink';
 import { reviewPayment } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المدفوعات — إدارة TechMood', 'Payments — TechMood admin');
 
@@ -165,7 +166,7 @@ export default async function AdminPaymentsPage() {
                   <div className="summary-row">
                     <span className="muted">{t('أُرسل في', 'Sent on')}</span>
                     <span className="date">
-                      {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG-u-nu-latn') : '—'}
+                      {payment.submitted_at ? new Date(payment.submitted_at).toLocaleString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE }) : '—'}
                     </span>
                   </div>
                   {booking && (
@@ -231,7 +232,7 @@ export default async function AdminPaymentsPage() {
                       </span>
                     </td>
                     <td className="date">
-                      {payment.verified_at ? new Date(payment.verified_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
+                      {payment.verified_at ? new Date(payment.verified_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE }) : '—'}
                     </td>
                   </tr>
                 );

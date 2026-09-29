@@ -9448,6 +9448,52 @@ reset role;
 reset request.jwt.claim.sub;
 update public.platform_settings set value = '40' where key = 'ai_daily_messages';
 
+-- ===========================================================================
+-- 87. A hidden course stays hidden wherever a link is made (0117)
+-- ===========================================================================
+-- The course a learner was last studying, then hidden by the admin.
+insert into public.enrollments (profile_id, path_id)
+select '11111111-1111-1111-1111-111111111111', pc.path_id
+  from public.path_courses pc join public.learning_paths lp on lp.id = pc.path_id
+ where lp.status = 'published'
+   and pc.course_id = (select m.course_id from public.lessons l join public.modules m on m.id = l.module_id
+                        where l.status = 'published' order by l.slug limit 1)
+ limit 1
+on conflict do nothing;
+insert into public.lesson_progress (profile_id, lesson_id, status, updated_at)
+select '11111111-1111-1111-1111-111111111111', l.id, 'in_progress', now() + interval '1 day'
+  from public.lessons l where l.status = 'published' order by l.slug limit 1
+on conflict (profile_id, lesson_id) do update set status = 'in_progress', updated_at = now() + interval '1 day';
+select m.course_id as hidden_course, c.slug as hidden_slug
+  from public.lessons l join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+ where l.status = 'published' order by l.slug limit 1 \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  exists (select 1 from public.continue_learning() where course_id = :'hidden_course'),
+  '87.1 the course a learner is studying is where «continue learning» leads');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.courses set status = 'draft' where id = :'hidden_course';
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  not exists (select 1 from public.continue_learning() where course_id = :'hidden_course'),
+  '87.2 once hidden, «continue learning» no longer leads into it');
+select public.assert(
+  not exists (select 1 from public.student_agenda(14) where link like '%/' || :'hidden_slug'),
+  '87.3 nor does the day''s agenda');
+select public.assert(
+  not exists (select 1 from public.student_agenda(14) where entry_kind = 'work' and link = '/academy'),
+  '87.4 and a piece of work on the agenda opens the work itself');
+reset role;
+reset request.jwt.claim.sub;
+
+update public.courses set status = 'published' where id = :'hidden_course';
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

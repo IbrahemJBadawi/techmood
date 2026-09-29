@@ -6,6 +6,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 
 import { reviewEntry } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('المعرض — إدارة TechMood', 'Exhibition — TechMood admin');
 
@@ -176,7 +177,7 @@ export default async function AdminExhibitionPage() {
                     </span>
                   </td>
                   <td className="date">
-                    {entry.published_at ? new Date(entry.published_at).toLocaleDateString('ar-EG-u-nu-latn') : '—'}
+                    {entry.published_at ? new Date(entry.published_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE }) : '—'}
                   </td>
                 </tr>
               ))}

@@ -9,6 +9,7 @@ import type { EvidenceKind, Evaluation, Submission } from '@/lib/database.types'
 
 import { requestReevaluation } from '../review/actions';
 import { submitWork, type ActionState } from './actions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
   github:    { ar: 'رابط المستودع (GitHub)',          en: 'Repository link (GitHub)' },
@@ -92,7 +93,7 @@ export function SubmissionPanel({
               <div className="row-between">
                 <Stars value={evaluation.stars} />
                 <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                  {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                  {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                 </span>
               </div>
               {evaluation.feedback_ar && (

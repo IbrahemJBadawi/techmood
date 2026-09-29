@@ -8,6 +8,7 @@ import { ORG_KIND, STARTUP_STAGES } from '@/lib/incubator';
 
 import { StartupNav } from './StartupNav';
 import { ApplyPanel } from './ApplyPanel';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function StartupOverviewPage({
   params,
@@ -174,7 +175,7 @@ export default async function StartupOverviewPage({
                     })()}
                     <br />
                     <span className="muted eng" style={{ fontSize: '0.74rem' }}>
-                      {new Date(entry.changed_at).toLocaleDateString('ar-EG-u-nu-latn')}
+                      {new Date(entry.changed_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </span>
                 </li>

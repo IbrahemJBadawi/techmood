@@ -26,7 +26,7 @@ function encode(buffer: ArrayBuffer | null) {
   return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function pushSupported(publicKey: string | null): boolean {
+function pushSupported(publicKey: string | null): boolean {
   return Boolean(publicKey)
     && typeof window !== 'undefined'
     && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;

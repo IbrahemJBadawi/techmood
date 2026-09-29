@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الدفعات — إدارة TechMood', 'Cohorts — TechMood admin');
 
@@ -20,7 +21,7 @@ export default async function AdminCohortsPage() {
   if (!isAdmin) redirect('/home');
 
   const { data: cohorts } = await supabase.rpc('admin_cohorts', { p_months: 12 });
-  const month = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { month: 'long', year: 'numeric' });
+  const month = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, month: 'long', year: 'numeric' });
 
   return (
     <>

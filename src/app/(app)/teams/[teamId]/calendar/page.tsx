@@ -8,6 +8,7 @@ import { CALENDAR_ENTRY } from '@/lib/teams';
 
 import { TeamNav } from '../TeamNav';
 import { TeamSessions } from '../TeamSessions';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 const WINDOW_BACK_DAYS = 14;
 const WINDOW_FORWARD_DAYS = 60;
@@ -60,7 +61,7 @@ export default async function TeamCalendarPage({
       <article className="panel" key={day} style={{ marginBottom: 12 }}>
         <div className="row-between">
           <strong style={{ fontSize: '0.92rem' }}>
-            {new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', {
+            {new Date(`${day}T12:00:00`).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE,
               weekday: 'long',
               day: 'numeric',
               month: 'long',
