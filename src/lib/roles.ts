@@ -399,6 +399,8 @@ const MVP_MAIN: NavGroup[] = [
       { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
       { href: '/exhibition', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
       { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
+      // Every member's own projects, headed for the exhibition or the market.
+      { href: '/projects', label: { ar: 'مشاريعي', en: 'My projects' }, icon: 'gallery' },
     ],
   },
   {

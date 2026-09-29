@@ -64,9 +64,14 @@ export default async function MarketPage({
         <section className="market-hero section-block">
           <h2>{t('سوق الطلاب', 'Student market')}</h2>
           <p className="muted">
-            {t('مشاريع طلاب وفرق مكتملة، تحقّقت منها TechMood قبل عرضها. رابط التسليم يصلك بعد تأكيد الدفع. لتبيع مشروعك: افتح صفحة المشروع بعد اكتماله واضغط «اعرضه للبيع».',
-               'Finished student and team projects, checked by TechMood before they are listed. The delivery link reaches you once the payment is confirmed. To sell yours: open the project’s page once it is complete and choose “Put it up for sale”.')}
+            {t('مشاريع مكتملة لأعضاء TechMood وفرقهم، تحقّقت منها TechMood قبل عرضها. رابط التسليم يصلك بعد تأكيد الدفع.',
+               'Finished projects by TechMood members and teams, checked by TechMood before they are listed. The delivery link reaches you once the payment is confirmed.')}
           </p>
+          {/* Any member, any role: add a project, complete it, put it up for sale. */}
+          <div className="tags-row" style={{ margin: '10px 0' }}>
+            <Link className="btn btn-primary btn-sm" href="/projects/new">{t('+ أضف مشروعك للبيع', '+ Add your project for sale')}</Link>
+            <Link className="btn btn-ghost btn-sm" href="/projects">{t('مشاريعي', 'My projects')}</Link>
+          </div>
           <form className="market-search" action="/marketplace">
             <input type="search" name="q" defaultValue={search ?? ''}
                    placeholder={t('ابحث عن مشروع…', 'Search for a project…')}

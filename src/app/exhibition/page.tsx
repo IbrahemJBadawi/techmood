@@ -61,6 +61,12 @@ export default async function ExhibitionPage() {
           {t('مشاريع بناها طلاب وفرق TechMood، قيّمها منتور معياراً معياراً، ثم اختار أصحابها عرضها. ليس ما بنيته فقط — بل ما تعلّمته وسلّمته وأثبتّه.',
              'Projects built by TechMood students and teams, judged by a mentor criterion by criterion, then put on the wall by the people who built them. Not just what you built — what you learned, delivered, and proved.')}
         </p>
+        {/* Any member adds a project; a visitor is asked to sign in first (the
+            proxy sends /projects/new to /login and back). */}
+        <div className="tags-row" style={{ justifyContent: 'center', marginTop: 16 }}>
+          <Link className="btn btn-primary btn-sm" href="/projects/new">{t('+ أضف مشروعك للمعرض', '+ Add your project to the exhibition')}</Link>
+          <Link className="btn btn-ghost btn-sm" href="/projects">{t('مشاريعي', 'My projects')}</Link>
+        </div>
       </section>
 
       <section className="stat-tiles" style={{ marginBottom: 28 }}>

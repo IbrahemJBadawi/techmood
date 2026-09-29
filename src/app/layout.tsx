@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
 
+import { DeviceBoot } from '@/components/DeviceSetup';
 import { LocaleProvider } from '@/lib/i18n.client';
 import { dirFor } from '@/lib/i18n';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -38,6 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
     // app/icon.png and app/apple-icon.png are picked up on their own; this is
     // the mark a link preview shows.
     openGraph: { title: 'TechMood Technology', description, images: ['/logo.png'] },
+    // «Add to Home Screen» on iPhone opens TechMood as its own app (no Safari
+    // bar), on every iOS version — not as a bookmark to the website.
+    appleWebApp: { capable: true, title: 'TechMood', statusBarStyle: 'default' },
   };
 }
 
@@ -66,7 +70,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
-        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+        <LocaleProvider locale={locale}>
+          {/* On every page — the landing page and sign-in included — so the
+              browser sees an installable app wherever a person installs from,
+              and offers «Install app» rather than a shortcut. */}
+          <DeviceBoot />
+          {children}
+        </LocaleProvider>
       </body>
     </html>
   );

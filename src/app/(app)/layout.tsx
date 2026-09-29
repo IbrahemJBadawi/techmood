@@ -17,7 +17,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Assistant } from './shell/Assistant';
 import { AssistantProvider } from './shell/AssistantProvider';
 import { LogoMark } from '@/components/Logo';
-import { DeviceBoot } from '@/components/DeviceSetup';
 import { MobileTabBar } from './shell/MobileNav';
 import { roleInScope } from '@/lib/scope';
 
@@ -178,10 +177,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 {' — '}<Link href="/support">{t('المساعدة والبلاغات', 'Help & reports')}</Link>
               </p>
             )}
-            {/* Service worker + the browser's install offer, caught on whatever page
-                opens first. The install and notification buttons themselves live
-                on the home page and in Settings (DeviceSetup). */}
-            <DeviceBoot />
+            {/* The service worker and install offer start in the root layout
+                (DeviceBoot); the buttons live on the home page and in Settings. */}
             {application && (
               <p className={`notice ${application.status === 'needs_more_info' ? 'notice-warn' : application.status === 'rejected' ? 'notice-danger' : ''}`}
                  style={{ marginBottom: 16 }}>

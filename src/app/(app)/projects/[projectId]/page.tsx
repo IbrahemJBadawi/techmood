@@ -4,13 +4,14 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate, type Text } from '@/lib/i18n';
-import type { ProjectStatus } from '@/lib/database.types';
+import type { ExhibitionStatus, ProjectStatus } from '@/lib/database.types';
 
 import { Stars } from '@/components/Stars';
 import { LikeButton } from '@/components/Social';
 import { money } from '@/lib/booking';
 
 import { recordProjectFile, setProjectStatus } from './actions';
+import { ExhibitionPanel } from './ExhibitionPanel';
 import { Meetings } from './Meetings';
 import { TeamSplit, type SplitRow } from './TeamSplit';
 import { escrowPayTo, type EscrowPayTo } from '@/lib/escrow-instructions';
@@ -54,7 +55,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, is_public, created_at')
+    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, is_public, created_at, tags')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -69,7 +70,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     supabase.from('project_milestones').select('id, title_ar, due_on, is_done')
       .eq('project_id', projectId).order('due_on', { nullsFirst: false }),
     supabase.from('project_evidence').select('id, kind, url, label, is_upload').eq('project_id', projectId),
-    supabase.from('exhibition_entries').select('id, status').eq('project_id', projectId).maybeSingle(),
+    supabase.from('exhibition_entries').select('id, status, entry_code, review_note_ar').eq('project_id', projectId).maybeSingle(),
   ]);
 
   // The money, the judgement and the shelf — all of it for this one project.
@@ -236,6 +237,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           </p>
         )}
       </section>
+
+      {/* The owner sends a finished project to the exhibition from here. */}
+      {isOwner && (
+        <ExhibitionPanel
+          projectId={projectId}
+          completed={project.status === 'completed' || project.status === 'sold'}
+          tags={(project.tags as string[] | null) ?? []}
+          entry={(entry as { id: string; entry_code: string; status: ExhibitionStatus; review_note_ar: string | null } | null) ?? null}
+        />
+      )}
 
       <div className="detail-grid pj-grid">
         <section>
@@ -409,12 +420,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               {t('واجهت مشكلة؟ ', 'Stuck on something? ')}
               <Link href="/mentors">{t('احجز جلسة مع منتور', 'Book a mentor')}</Link>
             </li>
-            {isOwner && project.status === 'completed' && !entry && (
-              <li>
-                {t('انتهى العمل — ', 'The work is done — ')}
-                <Link href="/exhibition">{t('اعرضه في المعرض بعد تقييمه', 'submit it to the exhibition')}</Link>
-              </li>
-            )}
             {entry && (
               <li>
                 {t('هذا العمل في المعرض. ', 'This work is in the exhibition. ')}

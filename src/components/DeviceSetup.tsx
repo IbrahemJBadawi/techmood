@@ -89,8 +89,9 @@ export function DeviceSetup({ publicKey, variant }: { publicKey: string | null; 
             : install.canPrompt
               ? t('يفتح كتطبيق بضغطة، بلا شريط المتصفح.', 'Opens like an app in one tap, without the browser bar.')
               : install.apple
-                ? t('على iPhone: اضغط زر المشاركة ⎋ ثم «إضافة إلى الشاشة الرئيسية».', 'On iPhone: tap Share ⎋, then “Add to Home Screen”.')
-                : t('من قائمة المتصفح ⋮ اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».', 'From the browser menu ⋮ choose “Install app” or “Add to Home screen”.')}
+                ? t('على iPhone من Safari: اضغط زر المشاركة ⎋ ثم «إضافة إلى الشاشة الرئيسية» — يفتح كتطبيق مستقل.', 'On iPhone in Safari: tap Share ⎋, then “Add to Home Screen” — it opens as its own app.')
+                // Chrome's «Add to Home screen» can make a plain shortcut; «Install app» makes the app.
+                : t('من قائمة المتصفح ⋮ اختر «تثبيت التطبيق» (وليس «إنشاء اختصار»).', 'From the browser menu ⋮ choose “Install app” (not “Create shortcut”).')}
         </span>
       </div>
       {install.installed
