@@ -183,7 +183,7 @@ export default async function LessonPage({
           <span className="id-chip">{code}</span>
           <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
         </div>
-        {lesson.summary_ar && <p className="muted lesson-summary">{lesson.summary_ar}</p>}
+        {lesson.summary_ar && <p className="muted lesson-summary lesson-text">{lesson.summary_ar}</p>}
         {soon && (
           <p className="notice" style={{ marginTop: 10 }}>
             {t('هذا الدرس «قريباً» — يُفتح للإكمال حين يُنشر.', 'This lesson is «coming soon» — it can be completed once it is published.')}
@@ -241,7 +241,7 @@ export default async function LessonPage({
                       {contentText(locale, video.title_ar, video.title_en)}
                     </a>
                     {video.duration_minutes && <span className="eng muted"> · {video.duration_minutes} min</span>}
-                    {video.description_ar && <p className="muted">{video.description_ar}</p>}
+                    {video.description_ar && <p className="muted lesson-text">{video.description_ar}</p>}
                   </li>
                 ))}
               </ul>
@@ -264,8 +264,8 @@ export default async function LessonPage({
           {lesson.case_study_ar && (
             <section className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>{t('دراسة حالة', 'Case study')}</h3>
-              <p style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.case_study_ar}</p>
-              {lesson.case_question_ar && <p className="quote">{lesson.case_question_ar}</p>}
+              <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.case_study_ar}</p>
+              {lesson.case_question_ar && <p className="quote lesson-text">{lesson.case_question_ar}</p>}
             </section>
           )}
 
@@ -296,7 +296,7 @@ export default async function LessonPage({
           {lesson.challenge_ar && (
             <section className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>{t('تحدٍّ إضافي — اختياري', 'An extra challenge — optional')}</h3>
-              <p style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.challenge_ar}</p>
+              <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.challenge_ar}</p>
             </section>
           )}
 

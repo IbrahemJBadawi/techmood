@@ -72,7 +72,7 @@ export function SubmissionPanel({
         <span className={`status-pill ${label.className}`}>{t(label.text)}</span>
       </div>
 
-      {brief && <p className="muted" style={{ fontSize: '0.85rem', marginTop: 8 }}>{brief}</p>}
+      {brief && <p className="muted lesson-text" style={{ fontSize: '0.85rem', marginTop: 8 }}>{brief}</p>}
 
       {evaluations.length > 0 && (
         <div style={{ marginTop: 14 }}>

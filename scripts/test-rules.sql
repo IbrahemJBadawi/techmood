@@ -599,8 +599,14 @@ select public.assert(
       and status = 'published') = 6,
   '10.1 all six prototype paths were carried over');
 
+-- Scoped to the prototype's own eighteen courses: the catalogue keeps
+-- growing (0112 added the bootcamps), and what this checks is that nothing of
+-- the prototype was lost.
 select public.assert(
-  (select count(*) from public.courses where status = 'published') = 18,
+  (select count(*) from public.courses where status = 'published' and slug in (
+     'business-model', 'cloud-foundations', 'containers', 'dashboards', 'data-excel', 'generative-ai',
+     'html-css', 'idea-to-opportunity', 'launch-measure', 'ml-foundations', 'modern-js', 'observability',
+     'product-design', 'python-for-ai', 'react', 'sql-analysis', 'user-research', 'validation')) = 18,
   '10.2 all eighteen published courses were carried over');
 
 -- Counted inside published courses: the prototype's lessons are the published
@@ -610,7 +616,10 @@ select public.assert(
   (select count(*) from public.lessons l
      join public.modules m on m.id = l.module_id
      join public.courses c on c.id = m.course_id
-    where c.status = 'published') = 36,
+    where c.status = 'published' and c.slug in (
+      'business-model', 'cloud-foundations', 'containers', 'dashboards', 'data-excel', 'generative-ai',
+      'html-css', 'idea-to-opportunity', 'launch-measure', 'ml-foundations', 'modern-js', 'observability',
+      'product-design', 'python-for-ai', 'react', 'sql-analysis', 'user-research', 'validation')) = 36,
   '10.3 all thirty-six lessons were carried over');
 
 select public.assert(
@@ -2906,7 +2915,7 @@ select public.assert(
 
 -- Courses
 select public.assert(
-  (select count(*) from public.academy_courses()) = 18,
+  (select count(*) from public.academy_courses()) = (select count(*) from public.courses where status = 'published'),
   '23.10 every published course comes back as one row');
 
 select public.assert(
@@ -2978,7 +2987,12 @@ select public.assert(
   '24.5 the map holds fifty paths');
 
 select public.assert(
-  (select count(*) from public.learning_paths where status = 'planned') = 34
+  (select count(*) from public.learning_paths where status = 'planned') =
+  (select count(*) from public.learning_paths p
+    where p.status in ('planned', 'published')
+      and not exists (select 1 from public.path_courses pc
+                        join public.courses c on c.id = pc.course_id
+                       where pc.path_id = p.id and c.status = 'published'))
   and not exists (
     select 1 from public.learning_paths p
      where p.status = 'planned'
@@ -3020,8 +3034,8 @@ select public.assert(
 -- used to be the example; since 0078 it is open because it carries the
 -- published SQL course, so the roadmap no longer lists it.)
 select public.assert(
-  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'python') = 4
-  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'python') = 3,
+  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'java') = 4
+  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'java') = 2,
   '24.11 a path''s depth is what it requires, its breadth what it carries');
 
 select public.assert(
@@ -3030,7 +3044,7 @@ select public.assert(
   '24.12 the roadmap returns every announced path');
 
 select public.assert(
-  (select school_slug from public.academy_roadmap() where slug = 'icdl') = 'digital-admin',
+  (select school_slug from public.academy_roadmap() where slug = 'digital-workplace') = 'digital-admin',
   '24.13 a path belongs to the school the document put it in');
 
 -- A published course shared between paths opens every path that carries it
@@ -3186,8 +3200,8 @@ select public.assert(
 -- The trap this engine had to avoid: is_course_complete() says "nothing left
 -- to do", and an outline has nothing to do the day it is written.
 select public.assert(
-  (select is_open from public.career_goal_plan('data-analyst') where sort_order = 1) = false
-  and (select is_done from public.career_goal_plan('data-analyst') where sort_order = 1) = false,
+  (select is_open from public.career_goal_plan('data-analyst') where sort_order = 3) = false
+  and (select is_done from public.career_goal_plan('data-analyst') where sort_order = 3) = false,
   '26.3 a step pointing at an outline is neither open nor finished');
 
 select public.assert(
@@ -9032,6 +9046,67 @@ select public.assert(
   (select count(*) = 1 from public.email_config()),
   '81.8 the sender (service role) reads its configuration');
 reset role;
+
+-- ---------------------------------------------------------------------------
+-- 82. The bootcamps as academy content (0112)
+-- ---------------------------------------------------------------------------
+\echo '82. bootcamp content'
+
+select public.assert(
+  (select count(*) from public.courses where status = 'published' and slug in (
+     'python-bootcamp', 'laravel', 'flutter', 'uiux-bootcamp', 'data-analytics-bootcamp', 'ai-bootcamp',
+     'ai-bootcamp-electives', 'frontend-bootcamp', 'csharp', 'performance-marketing', 'personal-branding',
+     'computer-essentials', 'internet-basics', 'word', 'excel-basics', 'powerpoint', 'access', 'cloud-basics')) = 18,
+  '82.1 every bootcamp course is loaded and open');
+select public.assert(
+  (select count(*) from public.lessons l join public.modules m on m.id = l.module_id
+     join public.courses c on c.id = m.course_id where c.slug = 'python-bootcamp') = 25
+  and not exists (select 1 from public.lessons l join public.modules m on m.id = l.module_id
+     join public.courses c on c.id = m.course_id where c.slug = 'python-bootcamp' and l.slug is null),
+  '82.2 a course keeps every lesson, each with its address');
+select count(*) as lessons_before from public.lessons \gset
+select public.import_course(jsonb_build_object('slug', 'python-bootcamp', 'title_ar', 'x', 'level', 'beginner',
+  'modules', jsonb_build_array(jsonb_build_object('title_ar', 'x', 'lessons', jsonb_build_array(
+     jsonb_build_object('title_ar', 'x', 'kind', 'video'))))));
+select public.assert(
+  (select count(*) from public.lessons) = :lessons_before
+  and (select title_ar from public.courses where slug = 'python-bootcamp') <> 'x',
+  '82.3 importing a course that already has content changes nothing');
+select public.assert(
+  not exists (select 1 from public.assignments a join public.lessons l on l.id = a.lesson_id
+                join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+               where c.slug in ('python-bootcamp', 'laravel', 'csharp', 'performance-marketing')
+                 and (cardinality(a.required_evidence) <> 1
+                      or a.required_evidence && array['linkedin', 'youtube']::public.evidence_kind[])),
+  '82.4 a lesson''s work asks for one link — code or files — never a post or a video');
+select public.assert(
+  (select pc.is_required from public.path_courses pc join public.learning_paths p on p.id = pc.path_id
+     join public.courses c on c.id = pc.course_id where p.slug = 'genai' and c.slug = 'ai-bootcamp-electives') = false
+  and not exists (select 1 from public.assignments a join public.lessons l on l.id = a.lesson_id
+                    join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+                   where c.slug = 'ai-bootcamp-electives' and a.is_required),
+  '82.5 the AI electives are carried by the path without being required by it');
+select public.assert(
+  (select pc.sort_order from public.path_courses pc join public.courses c on c.id = pc.course_id
+     join public.learning_paths p on p.id = pc.path_id where p.slug = 'icdl' and c.slug = 'access')
+  = 1 + (select pc.sort_order from public.path_courses pc join public.courses c on c.id = pc.course_id
+     join public.learning_paths p on p.id = pc.path_id where p.slug = 'icdl' and c.slug = 'powerpoint'),
+  '82.6 Access sits right after PowerPoint in ICDL');
+select public.assert(
+  (select status from public.learning_paths where slug = 'python') = 'published'
+  and (select pc.sort_order from public.path_courses pc join public.courses c on c.id = pc.course_id
+         join public.learning_paths p on p.id = pc.path_id where p.slug = 'python' and c.slug = 'python-bootcamp') = 0,
+  '82.7 a bootcamp opens its path and comes first in it');
+select public.assert(
+  not exists (select 1 from public.lesson_videos where url !~ '^https://' or url like '%.invalid%'),
+  '82.8 every video is a real web address');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects($$select public.import_course('{}'::jsonb)$$,
+  '82.9 members cannot import content', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
 
 \echo ''
 \echo '================================================'

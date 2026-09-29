@@ -22,6 +22,16 @@ const LESSON_KIND_LABELS: Record<string, Text> = {
   live:     { ar: 'جلسة مباشرة',  en: 'Live session' },
 };
 
+const WORK_STATE: Record<string, { text: Text; pill: string }> = {
+  none:              { text: { ar: 'لم يُسلَّم بعد', en: 'Not handed in' }, pill: 'status-muted' },
+  draft:             { text: { ar: 'مسودة', en: 'Draft' }, pill: 'status-muted' },
+  submitted:         { text: { ar: 'بانتظار المراجعة', en: 'Awaiting review' }, pill: 'status-pending' },
+  under_review:      { text: { ar: 'قيد المراجعة', en: 'Under review' }, pill: 'status-pending' },
+  changes_requested: { text: { ar: 'مطلوب تعديل', en: 'Changes requested' }, pill: 'status-danger' },
+  approved:          { text: { ar: 'معتمد', en: 'Approved' }, pill: 'status-ok' },
+  rejected:          { text: { ar: 'مرفوض', en: 'Rejected' }, pill: 'status-danger' },
+};
+
 export default async function CoursePage({
   params,
 }: {
@@ -53,12 +63,19 @@ export default async function CoursePage({
     .eq('course_id', course.id)
     .order('sort_order');
 
-  const lessons = (modules ?? [])
-    .flatMap((module) => (module.lessons as unknown as { id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number; status: string }[]) ?? [])
-    // Hidden and switched-off lessons are not part of the course a learner
-    // sees (an admin previewing sees the same); «قريباً» lessons are (0078).
-    .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
-    .sort((a, b) => a.sort_order - b.sort_order);
+  type CourseLesson = { id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; summary_ar: string | null; sort_order: number; status: string };
+  // In teaching order: a lesson's sort_order counts within its module, so the
+  // module decides first. Hidden and switched-off lessons are not part of the
+  // course a learner sees (an admin previewing sees the same); «قريباً»
+  // lessons are (0078).
+  const courseModules = (modules ?? []).map((module) => ({
+    id: module.id,
+    title_ar: module.title_ar,
+    lessons: ((module.lessons as unknown as CourseLesson[]) ?? [])
+      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
+      .sort((a, b) => a.sort_order - b.sort_order),
+  })).filter((module) => module.lessons.length > 0);
+  const lessons = courseModules.flatMap((module) => module.lessons);
 
   const lessonIds = lessons.map((lesson) => lesson.id);
 
@@ -131,6 +148,10 @@ export default async function CoursePage({
   const typedAssignments = (assignments ?? []) as Assignment[];
   const courseProject = typedAssignments.find((assignment) => assignment.kind === 'course_project');
   const courseTask = typedAssignments.find((assignment) => assignment.kind === 'course_task');
+  // A lesson's work, in the order of the lessons it belongs to.
+  const lessonWork = lessons.flatMap((lesson) => typedAssignments
+    .filter((assignment) => assignment.kind === 'lesson_assignment' && assignment.lesson_id === lesson.id)
+    .map((assignment) => ({ assignment, lesson })));
 
   const submissionFor = (assignmentId: string) =>
     ((submissions ?? []) as Submission[]).find((submission) => submission.assignment_id === assignmentId) ?? null;
@@ -234,66 +255,81 @@ export default async function CoursePage({
         <section>
           <div className="panel section-block ac-lessons" style={{ '--hue': look.color } as React.CSSProperties}>
             <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{t('دروس الدورة', 'Course lessons')}</h3>
-            {lessons.map((lesson) => {
-              const done = completedLessons.has(lesson.id);
-              const soon = lesson.status !== 'published';
-              return (
-                <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}`} key={lesson.id}>
-                  {soon ? (
-                    <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}><Icon name="lock" size={14} /></span>
-                  ) : (
-                  <form action={toggleLesson}>
-                    <input type="hidden" name="lesson_id" value={lesson.id} />
-                    <input type="hidden" name="completed" value={String(done)} />
-                    <input type="hidden" name="revalidate" value={revalidate} />
-                    <button
-                      className={`lstat${done ? ' completed' : ''}`}
-                      type="submit"
-                      aria-label={done
-                        ? t(`إلغاء إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as not done`)
-                        : t(`إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as done`)}
-                    >
-                      ✓
-                    </button>
-                  </form>
-                  )}
-                  <div className="lesson-info">
-                    <Link className="lesson-open" href={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`}>
-                      {lesson.title_ar}
-                    </Link>
-                    {lesson.summary_ar && (
-                      <p className="muted" style={{ fontSize: '0.82rem', marginTop: 4 }}>{lesson.summary_ar}</p>
+            {courseModules.map((module, moduleIndex) => (
+              <div className="ac-module" key={module.id}>
+                {courseModules.length > 1 && (
+                  <p className="ac-module-title">
+                    <span className="ac-module-n">{moduleIndex + 1}</span>
+                    {module.title_ar}
+                    <span className="muted">{t(`${module.lessons.length} دروس`, `${module.lessons.length} lessons`)}</span>
+                  </p>
+                )}
+              {module.lessons.map((lesson) => {
+                const done = completedLessons.has(lesson.id);
+                const soon = lesson.status !== 'published';
+                return (
+                  <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}`} key={lesson.id}>
+                    {soon ? (
+                      <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}><Icon name="lock" size={14} /></span>
+                    ) : (
+                    <form action={toggleLesson}>
+                      <input type="hidden" name="lesson_id" value={lesson.id} />
+                      <input type="hidden" name="completed" value={String(done)} />
+                      <input type="hidden" name="revalidate" value={revalidate} />
+                      <button
+                        className={`lstat${done ? ' completed' : ''}`}
+                        type="submit"
+                        aria-label={done
+                          ? t(`إلغاء إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as not done`)
+                          : t(`إكمال ${lesson.title_ar}`, `Mark ${lesson.title_en ?? lesson.title_ar} as done`)}
+                      >
+                        ✓
+                      </button>
+                    </form>
                     )}
-                    <div className="lesson-meta">
-                      <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
-                      {soon && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
-                      {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
-                      {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}
+                    <div className="lesson-info">
+                      <Link className="lesson-open" href={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`}>
+                        {lesson.title_ar}
+                      </Link>
+                      {lesson.summary_ar && (
+                        <p className="muted lesson-row-summary">{lesson.summary_ar}</p>
+                      )}
+                      <div className="lesson-meta">
+                        <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
+                        {soon && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
+                        {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
+                        {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+              </div>
+            ))}
           </div>
 
-          {typedAssignments
-            .filter((assignment) => assignment.kind === 'lesson_assignment')
-            .map((assignment) => {
-              const submission = submissionFor(assignment.id);
-              return (
-                <SubmissionPanel
-                  key={assignment.id}
-                  assignmentId={assignment.id}
-                  title={assignment.title_ar}
-                  brief={assignment.brief_ar}
-                  requiredEvidence={assignment.required_evidence}
-                  submission={submission}
-                  evaluations={evaluationsFor(submission?.id)}
-                  hasOpenReevaluation={hasOpenReevaluation(submission?.id)}
-                  revalidatePath={revalidate}
-                />
-              );
-            })}
+          {lessonWork.length > 0 && (
+            <div className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('تكليفات الدروس', 'Lesson assignments')}</h3>
+              <p className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+                {t('يُسلَّم كل تكليف من صفحة درسه. هنا ترى أين وصلت في كل واحد.',
+                   'Each assignment is handed in from its lesson. Here you see where each one stands.')}
+              </p>
+              <ul className="ac-work">
+                {lessonWork.map(({ assignment, lesson }) => {
+                  const state = submissionFor(assignment.id)?.status ?? 'none';
+                  const label = WORK_STATE[state] ?? WORK_STATE.none;
+                  return (
+                    <li key={assignment.id}>
+                      <Link href={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`}>{assignment.title_ar}</Link>
+                      {!assignment.is_required && <span className="tag">{t('اختياري', 'Optional')}</span>}
+                      <span className={`status-pill ${label.pill}`}>{t(label.text)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </section>
 
         <aside>

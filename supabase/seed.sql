@@ -5015,3 +5015,43 @@ on conflict do nothing;
 select public.backfill_course_levels();
 
 commit;
+
+-- The bootcamps (0112) are loaded by a migration, which runs before this seed
+-- on a fresh database, so the paths they belong to do not exist yet when they
+-- arrive. Link them here the way the migration does on a seeded database:
+-- a required bootcamp first in its path, the AI electives last and optional,
+-- and Access after PowerPoint in ICDL.
+insert into public.path_courses (path_id, course_id, is_required, sort_order)
+select p.id, c.id, x.required,
+       case when x.required then 0
+            else (select coalesce(max(pc.sort_order), 0) + 1 from public.path_courses pc where pc.path_id = p.id) end
+  from (values
+  ('python', 'python-bootcamp', true),
+  ('ui-ux', 'uiux-bootcamp', true),
+  ('data', 'data-analytics-bootcamp', true),
+  ('genai', 'ai-bootcamp', true),
+  ('genai', 'ai-bootcamp-electives', false),
+  ('web', 'frontend-bootcamp', true),
+  ('digital-marketing', 'performance-marketing', true)
+  ) as x(path_slug, course_slug, required)
+  join public.learning_paths p on p.slug = x.path_slug
+  join public.courses c on c.slug = x.course_slug
+on conflict (path_id, course_id) do nothing;
+
+do $access$
+declare
+  v_path  uuid := (select id from public.learning_paths where slug = 'icdl');
+  v_after integer;
+begin
+  if v_path is null or not exists (select 1 from public.courses where slug = 'access')
+     or exists (select 1 from public.path_courses pc join public.courses c on c.id = pc.course_id
+                 where pc.path_id = v_path and c.slug = 'access') then
+    return;
+  end if;
+  select pc.sort_order into v_after from public.path_courses pc join public.courses c on c.id = pc.course_id
+   where pc.path_id = v_path and c.slug = 'powerpoint';
+  update public.path_courses set sort_order = sort_order + 1 where path_id = v_path and sort_order > coalesce(v_after, 0);
+  insert into public.path_courses (path_id, course_id, is_required, sort_order)
+  select v_path, id, true, coalesce(v_after, 0) + 1 from public.courses where slug = 'access';
+end
+$access$;
