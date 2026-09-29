@@ -9571,6 +9571,28 @@ select public.assert(
   public.is_path_complete('77777777-7777-7777-7777-777777777777', :'t88_path'),
   '88.8 and doing it completes the path');
 
+-- ===========================================================================
+-- 89. Choosing a career goal joins its first path (0119)
+-- ===========================================================================
+select g.slug as g89_goal, public.goal_first_path(g.id) as g89_path
+  from public.career_goals g
+ where g.status = 'published' and public.goal_first_path(g.id) is not null
+ order by g.slug limit 1 \gset
+delete from public.enrollments where profile_id = '84848484-8484-8484-8484-848484848484';
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.choose_career_goal(:'g89_goal');
+select public.assert(
+  exists (select 1 from public.enrollments where profile_id = '84848484-8484-8484-8484-848484848484' and path_id = :'g89_path'),
+  '89.1 choosing a career goal puts the learner on its first open path');
+select public.choose_career_goal(:'g89_goal');
+select public.assert(
+  (select count(*) from public.enrollments where profile_id = '84848484-8484-8484-8484-848484848484' and path_id = :'g89_path') = 1,
+  '89.2 and choosing it again changes nothing');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

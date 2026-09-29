@@ -157,7 +157,11 @@ export async function chooseGoal(formData: FormData) {
   const slug = String(formData.get('goal') ?? '');
   await supabase.rpc('choose_career_goal', { p_goal: slug });
 
+  // Choosing a goal also joins its first path (0119): the academy and home
+  // page change with it.
   revalidatePath(String(formData.get('revalidate') ?? '/academy/goals'));
+  revalidatePath('/academy');
+  revalidatePath('/home');
 }
 
 export async function clearGoal(formData: FormData) {
