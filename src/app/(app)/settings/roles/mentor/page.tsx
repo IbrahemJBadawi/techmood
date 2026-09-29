@@ -50,8 +50,8 @@ export default async function MentorApplicationPage() {
       <section className="section-block">
         <h1 style={{ fontSize: '1.2rem', marginBottom: 6 }}>{t('التقدّم كمنتور', 'Apply as a mentor')}</h1>
         <p className="muted" style={{ fontSize: '0.9rem', maxWidth: 680 }}>
-          {t('ابدأ بالأساسيات، وخلال المراجعة تستخدم TechMood كطالب بكل خدماته. أضف أدلة (سيرة، شهادات، أعمال) متى شئت — تقوّي طلبك. عند القبول تبدأ من المستوى الأول (جلسة 15$: 10$ لك و5$ للمنصة) وترتقي بجلسات وتقييمات حقيقية. وإن لم يُقبل الطلب تبقى طالباً كما أنت، مع السبب.',
-             'Start with the basics; while it is reviewed you use TechMood as a learner, with every service. Add evidence (CV, certificates, work) whenever you like — it strengthens your application. Once approved you start at level 1 (a 15$ session: 10$ to you, 5$ to the platform) and move up on real sessions and ratings. If it is not accepted, you stay a learner as you were, with the reason.')}
+          {t('ابدأ بالأساسيات، وخلال المراجعة تستخدم TechMood كطالب بكل خدماته. أضف أدلة (سيرة، شهادات، أعمال) متى شئت — تقوّي طلبك. عند القبول تبدأ من مستوى Peer / Junior (نطاق 10$–30$ للساعة) ما لم تضعك الإدارة أعلى حسب خبرتك، وتطلب الترقية لاحقاً فتراجعها الإدارة. وإن لم يُقبل الطلب تبقى طالباً كما أنت، مع السبب.',
+             'Start with the basics; while it is reviewed you use TechMood as a learner, with every service. Add evidence (CV, certificates, work) whenever you like — it strengthens your application. Once approved you start at Peer / Junior (a $10–30 hourly range) unless TechMood places you higher for your experience, and later request upgrades that TechMood reviews. If it is not accepted, you stay a learner as you were, with the reason.')}
         </p>
       </section>
 

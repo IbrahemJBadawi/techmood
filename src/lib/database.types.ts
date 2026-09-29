@@ -59,7 +59,9 @@ export type EvidenceKind =
 
 export type CertificateKind = 'course' | 'path';
 export type CertificateStatus = 'active' | 'revoked';
-export type MentorLevel = 'L1' | 'L2' | 'L3' | 'L4' | 'L5' | 'L6';
+// The enum still has L4–L6 (Postgres cannot drop enum values); 0120 lets a
+// mentor and a level row hold only these three.
+export type MentorLevel = 'L1' | 'L2' | 'L3';
 /** What a finished course is rated on (0080). */
 export type CourseCriterion = 'content' | 'clarity' | 'practice' | 'pace' | 'usefulness';
 /** Why a mentor is not taking requests: their choice, a holiday, or unanswered requests (0077). */
@@ -1311,7 +1313,7 @@ export type Database = {
       xp_levels: Table<{ min_xp: number; title_ar: string; sort_order: number }>;
       level_upgrade_questions: Table<{
         key: string; question_ar: string; hint_ar: string | null; min_chars: number;
-        sort_order: number; is_active: boolean;
+        sort_order: number; is_active: boolean; needs_link: boolean;
       }>;
       xp_rules: Table<{ source: XpSource; base_xp: number; per_star_xp: number; description_ar: string | null }>;
       schools: Table<{ id: string; slug: string; name_ar: string; name_en: string | null; sort_order: number }>;
@@ -1525,6 +1527,7 @@ export type Database = {
         level: MentorLevel; session_price_usd: number; platform_share_usd: number;
         mentor_share_usd: number; min_sessions: number; min_rating: number; sort_order: number;
         min_session_usd: number; max_session_usd: number; commission_pct: number;
+        title: string; badge: string; fits_ar: string | null; fits_en: string | null;
       }>;
     };
     Views: {
@@ -2760,21 +2763,33 @@ export type Database = {
       my_level_progress: {
         Args: Record<string, never>;
         Returns: {
-          current_level: MentorLevel | null; next_level: MentorLevel | null;
-          sessions_count: number | null; sessions_needed: number | null;
-          rating_avg: number | null; rating_needed: number | null; eligible: boolean;
+          current_level: MentorLevel | null; current_title: string | null;
+          next_level: MentorLevel | null; next_title: string | null;
+          sessions_count: number | null; sessions_guide: number | null;
+          rating_avg: number | null; rating_guide: number | null;
+          /** the next level's usual sessions and rating are met — a guide, not a gate */
+          meets_guide: boolean;
+          /** may send a request now */
+          eligible: boolean;
+          /** after a decline, when asking opens again */
+          opens_at: string | null;
           pending_request: string | null; last_status: 'pending' | 'approved' | 'declined' | 'withdrawn' | null;
           last_note: string | null;
         }[];
       };
       submit_level_upgrade: { Args: { p_answers: Record<string, string> }; Returns: string };
       review_level_upgrade: { Args: { p_request: string; p_approve: boolean; p_note?: string | null }; Returns: undefined };
+      admin_place_mentor: { Args: { p_mentor: string; p_level: MentorLevel; p_note: string }; Returns: undefined };
       admin_level_upgrades: {
         Args: Record<string, never>;
         Returns: {
-          id: string; mentor_id: string; mentor_name: string; from_level: MentorLevel; to_level: MentorLevel;
+          id: string; mentor_id: string; mentor_name: string;
+          from_level: MentorLevel; from_title: string | null; to_level: MentorLevel; to_title: string | null;
           answers: Record<string, string>; sessions_at_request: number; rating_at_request: number | null;
-          sessions_now: number; rating_now: number | null; created_at: string;
+          sessions_now: number; rating_now: number | null; sessions_guide: number | null; rating_guide: number | null;
+          years_experience: number | null; domains: string[] | null; headline_ar: string | null;
+          experience_ar: string | null; portfolio_url: string | null; linkedin_url: string | null;
+          created_at: string;
         }[];
       };
       invoice_issuer: { Args: Record<string, never>; Returns: { name: string; details: string }[] };

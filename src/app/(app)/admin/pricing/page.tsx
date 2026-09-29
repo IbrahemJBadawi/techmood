@@ -6,6 +6,10 @@ import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
+import type { MentorLevel } from '@/lib/database.types';
+import { MENTOR_LEVEL_LOOK, mentorLevelLabel } from '@/lib/mentor-levels';
+
+import { placeMentorLevel } from '../sections-actions';
 
 import { refundBooking, saveLevel, saveSetting, saveTier, settleAttendance, switchMentor } from './actions';
 
@@ -22,6 +26,7 @@ const SETTINGS: { key: string; label: Text; unit: Text }[] = [
   { key: 'booking_min_notice_hours',    label: { ar: 'أقل مدة قبل موعد الجلسة للحجز', en: 'Minimum notice for a booking' }, unit: { ar: 'ساعة', en: 'hours' } },
   { key: 'booking_reservation_minutes', label: { ar: 'مدة حجز الموعد ريثما يدفع الطالب', en: 'How long a slot is held for payment' }, unit: { ar: 'دقيقة', en: 'minutes' } },
   { key: 'payout_minimum_usd',          label: { ar: 'أقل مبلغ للسحب', en: 'Minimum withdrawal' }, unit: { ar: 'دولار', en: 'USD' } },
+  { key: 'level_upgrade_cooldown_days', label: { ar: 'الانتظار بعد رفض طلب ترقية مستوى', en: 'Wait after a declined level upgrade' }, unit: { ar: 'يوماً', en: 'days' } },
 ];
 
 const PAUSE_LABEL: Record<string, Text> = {
@@ -160,14 +165,14 @@ export default async function AdminPricingPage() {
       <section className="section-block">
         <h3 className="academy-heading">{t('مستويات المنتورز', 'Mentor levels')}</h3>
         <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
-          {t('الأسعار لساعة كاملة. تخفيض السقف يُنزل أي سعر خاص أعلى منه إلى السقف فوراً.',
-             'Prices are for a full hour. Lowering a ceiling brings any higher own price down to it at once.')}
+          {t('المستوى يحدد نطاق السعر المسموح به لساعة كاملة، والمنتور يحدد سعره داخله. تخفيض السقف يُنزل أي سعر خاص أعلى منه إلى السقف فوراً.',
+             'A level sets the allowed price range for a full hour; the mentor names their own price inside it. Lowering a ceiling brings any higher own price down to it at once.')}
         </p>
         <div className="stack">
           {(levels ?? []).map((level) => (
             <ActionForm action={saveLevel} className="admin-inline-form panel" key={level.level} submitLabel={t('احفظ', 'Save')}>
               <input type="hidden" name="level" value={level.level} />
-              <strong className="eng" style={{ minWidth: 36 }}>{level.level}</strong>
+              <strong className="eng" style={{ minWidth: 150 }}>{level.badge} {level.title}</strong>
               <label className="muted" style={{ fontSize: '0.78rem' }}>{t('أدنى', 'Floor')}
                 <input name="min_usd" type="number" step="0.5" min={1} defaultValue={level.min_session_usd} style={{ width: 90 }} />
               </label>
@@ -181,7 +186,10 @@ export default async function AdminPricingPage() {
                 <input name="commission_pct" type="number" step="0.01" min={0} max={60} defaultValue={level.commission_pct} style={{ width: 80 }} />
               </label>
               <span className="muted" style={{ fontSize: '0.76rem' }}>
-                {t(`يُرقّى إليه بعد ${level.min_sessions} جلسة وتقييم ${level.min_rating}+`, `Reached after ${level.min_sessions} sessions and a ${level.min_rating}+ rating`)}
+                {Number(level.min_sessions) > 0
+                  ? t(`دليل للمراجعة (ليس شرطاً): ${level.min_sessions} جلسة وتقييم ${level.min_rating}+`,
+                      `Review guide (not a gate): ${level.min_sessions} sessions and a ${level.min_rating}+ rating`)
+                  : t('يبدأ منه كل منتور جديد ما لم تحدّد الإدارة غيره', 'Where a new mentor starts unless TechMood places them higher')}
               </span>
             </ActionForm>
           ))}
@@ -274,7 +282,18 @@ export default async function AdminPricingPage() {
                   {nameOf.get(mentor.profile_id)?.full_name ?? '—'}{' '}
                   <span className="id-chip">{nameOf.get(mentor.profile_id)?.techmood_id}</span>
                 </td>
-                <td className="eng">{mentor.level}</td>
+                <td>
+                  {/* Placing a mentor directly: at approval or as a correction (0120). */}
+                  <ActionForm action={placeMentorLevel} className="admin-inline-form" variant="ghost" submitLabel={t('حدّد', 'Set')}>
+                    <input type="hidden" name="mentor_id" value={mentor.profile_id} />
+                    <select name="level" defaultValue={mentor.level} aria-label={t('المستوى', 'Level')}>
+                      {(Object.keys(MENTOR_LEVEL_LOOK) as MentorLevel[]).map((code) => (
+                        <option key={code} value={code}>{mentorLevelLabel(code)}</option>
+                      ))}
+                    </select>
+                    <input name="note" required minLength={10} placeholder={t('السبب — يصل للمنتور', 'Reason — the mentor reads it')} style={{ width: 180 }} />
+                  </ActionForm>
+                </td>
                 <td>
                   {mentor.is_accepting
                     ? <span className="status-pill status-ok">{t('يستقبل', 'Taking requests')}</span>

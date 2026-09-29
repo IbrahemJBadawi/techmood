@@ -6,7 +6,7 @@ import type { ActionFormState } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
-import type { ContentStatus, TicketCategory } from '@/lib/database.types';
+import type { ContentStatus, MentorLevel, TicketCategory } from '@/lib/database.types';
 
 /**
  * Knowledge base and admin permissions. Each write is refused by the database
@@ -97,4 +97,23 @@ export async function reviewLevelUpgrade(_prev: ActionFormState, formData: FormD
   revalidatePath('/admin/levels');
   if (error) return { error: dbError(t, error.message) };
   return { ok: approve ? t('رُقّي المنتور.', 'The mentor moved up.') : t('وصل المنتور السبب.', 'The mentor has the reason.') };
+}
+
+/**
+ * Placing a mentor at a level directly — at approval (a person with years in
+ * the field need not start at Peer / Junior) or as a correction. The reason is
+ * required, reaches the mentor, and is kept in the audit log (0120).
+ */
+export async function placeMentorLevel(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_place_mentor', {
+    p_mentor: text(formData, 'mentor_id'),
+    p_level: text(formData, 'level') as MentorLevel,
+    p_note: text(formData, 'note'),
+  });
+  revalidatePath('/admin/levels');
+  revalidatePath('/admin/pricing');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('حُدّد المستوى ووصل المنتور السبب ونطاق سعره الجديد.', 'Level set; the mentor has the reason and their new price range.') };
 }

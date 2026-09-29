@@ -38,7 +38,7 @@ export default async function MentorPricingPage() {
     supabase.rpc('mentor_price_list', { p_mentor: user.id }),
     supabase
       .from('mentor_levels')
-      .select('level, min_session_usd, max_session_usd, session_price_usd, commission_pct')
+      .select('level, title, badge, min_session_usd, max_session_usd, session_price_usd, commission_pct')
       .eq('level', mentor?.level ?? 'L1')
       .single(),
   ]);
@@ -50,8 +50,9 @@ export default async function MentorPricingPage() {
       <section className="section-block" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('أسعاري وجلساتي', 'My prices and sessions')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6, maxWidth: '70ch' }}>
-          {t(`مستواك ${level?.level ?? ''}: سعر الساعة من ${level?.min_session_usd ?? '—'} إلى ${level?.max_session_usd ?? '—'} دولاراً، ونسبة تكمود ${level?.commission_pct ?? '—'}%. الجلسات الأقصر تُحسب بنسبة مدتها. ارفع السعر أو اخفضه داخل هذا المدى؛ ويرتفع المدى مع ارتقاء مستواك.`,
-             `Your level ${level?.level ?? ''}: an hour is priced between $${level?.min_session_usd ?? '—'} and $${level?.max_session_usd ?? '—'}, and TechMood keeps ${level?.commission_pct ?? '—'}%. Shorter sessions are priced by their length. Raise or lower your price within the range; the range grows as your level does.`)}
+          {t(`مستواك ${level?.badge ?? ''} ${level?.title ?? ''}. المستوى يحدد نطاق السعر المسموح به: للساعة من ${level?.min_session_usd ?? '—'} إلى ${level?.max_session_usd ?? '—'} دولاراً، وأنت تحدد سعرك داخله حسب خبرتك ونوع الجلسة. نسبة تكمود ${level?.commission_pct ?? '—'}%، والجلسات الأقصر تُحسب بنسبة مدتها.`,
+             `Your level: ${level?.badge ?? ''} ${level?.title ?? ''}. A level sets the allowed price range: $${level?.min_session_usd ?? '—'} to $${level?.max_session_usd ?? '—'} an hour, and you name your own price inside it by your experience and the kind of session. TechMood keeps ${level?.commission_pct ?? '—'}%; shorter sessions are priced by their length.`)}
+          {' '}<Link href="/mentor-requests/level">{t('مستواي وطلب الترقية', 'My level and upgrade request')}</Link>
         </p>
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
           {t('جلسة الفريق أو الشركة تُحسب بالسعر نفسه لكل مقعد.', 'A team or company session is charged the same price per seat.')}

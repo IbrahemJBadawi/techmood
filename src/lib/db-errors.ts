@@ -16,6 +16,18 @@ import type { T } from '@/lib/i18n';
  * language is more useful than hiding it in the right one.
  */
 const PHRASES: { match: string; en: string }[] = [
+  // mentor levels and upgrades (0101, 0120)
+  { match: 'الترقية للمنتورز المعتمدين',     en: 'Level upgrades are for approved mentors.' },
+  { match: 'أنت في أعلى مستوى',              en: 'You are already at the top level.' },
+  { match: 'لديك طلب ترقية قيد المراجعة',    en: 'You already have an upgrade request under review.' },
+  { match: 'يمكنك إعادة طلب الترقية بعد',     en: 'You can ask again after the waiting period that follows a decline.' },
+  { match: 'أضف رابطاً واحداً على الأقل',     en: 'Add at least one link that opens to your works and projects.' },
+  { match: 'أجب عن:',                        en: 'Please answer every question in full (see the minimum length under each).' },
+  { match: 'سبب القرار مطلوب',               en: 'Write the reason for the decision — the mentor reads it.' },
+  { match: 'سبب تحديد المستوى مطلوب',        en: 'Write the reason for the level — the mentor reads it.' },
+  { match: 'مراجعة الترقيات للإدارة فقط',     en: 'Only TechMood reviews upgrades.' },
+  { match: 'تحديد المستوى للإدارة فقط',       en: 'Only TechMood sets a mentor\u2019s level.' },
+  { match: 'mentor_profiles_level_mvp',      en: 'There are three mentor levels: Peer / Junior, Professional, Senior / Specialist.' },
   // the assistant's daily limit (0116)
   { match: 'بلغت حدّ أسئلة المساعد',         en: 'You have reached today\u2019s limit of questions to the assistant. It resets tomorrow.' },
   // teams (0113)

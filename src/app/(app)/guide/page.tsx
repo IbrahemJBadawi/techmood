@@ -17,7 +17,7 @@ export default async function GuidePage() {
 
   const [{ data: levels }, { data: xpRules }, { data: xpLevels }, { data: questions }] = await Promise.all([
     supabase.from('mentor_levels')
-      .select('level, min_session_usd, session_price_usd, max_session_usd, commission_pct, min_sessions, min_rating, sort_order')
+      .select('level, title, badge, fits_ar, fits_en, min_session_usd, session_price_usd, max_session_usd, commission_pct, min_sessions, min_rating, sort_order')
       .order('sort_order'),
     supabase.from('xp_rules').select('source, base_xp, per_star_xp, description_ar'),
     supabase.from('xp_levels').select('min_xp, title_ar, sort_order').order('sort_order'),
@@ -50,7 +50,7 @@ export default async function GuidePage() {
           <li>{t('الطرفان يقيّمان بعضهما على معايير (الوضوح، الفائدة، الالتزام…)، والتقييم مغلق حتى يكتب الطرفان أو تمرّ مهلة الأسبوع.', 'Both sides rate each other on criteria (clarity, usefulness, commitment…); ratings stay sealed until both have written or the week has passed.')}</li>
           <li>{t('مهلة التقييم أسبوع من نهاية الجلسة، ثم يُغلق.', 'You have a week from the end of the session to rate; then it closes.')}</li>
           <li>{t('إن طلب الطالب مراجعة عمل، فتقييم المنتور المكتوب إلزامي، وتبقى حصته محجوزة حتى يكتبه. فوات المهلة يُسجَّل في أدائه.', 'If the learner asked for a review, the mentor’s written evaluation is required and their share is held until they write it. Missing the week is recorded against them.')}</li>
-          <li>{t('متوسط تقييم المنتور يحدّد أهليته للترقية، ويظهر في السوق والإرشاد.', 'A mentor’s average rating decides their eligibility to move up, and shows in mentoring and the market.')}</li>
+          <li>{t('متوسط تقييم المنتور يظهر في الإرشاد والسوق، وهو جزء مما تقرؤه الإدارة عند طلب الترقية — لا يرقّي أحداً وحده.', 'A mentor’s average rating shows in mentoring and the market, and is part of what TechMood reads on an upgrade request — it never moves anyone up on its own.')}</li>
         </ul>
       </section>
 
@@ -81,7 +81,8 @@ export default async function GuidePage() {
       <section className="panel section-block">
         <h3 style={{ fontSize: '1rem' }}>🧭 {t('مستويات المنتورز', 'Mentor levels')}</h3>
         <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
-          {t('كل منتور جديد يبدأ من المستوى الأول. نطاق السعر لساعة جلسة، ونسبة TechMood منه.', 'Every new mentor starts at level 1. Price range per session hour, and TechMood’s share of it.')}
+          {t('ثلاثة مستويات. المستوى يحدد نطاق السعر المسموح به لساعة الجلسة، والمنتور يحدد سعره داخله حسب خبرته ونوع الجلسة. يبدأ المنتور الجديد من Peer / Junior ما لم تحدّد الإدارة مستوى أعلى عند اعتماده.',
+             'Three levels. A level sets the allowed price range for a session hour; the mentor names their own price inside it by their experience and the kind of session. A new mentor starts at Peer / Junior unless TechMood places them higher on approval.')}
         </p>
         <table className="data" style={{ marginTop: 10 }}>
           <thead>
@@ -89,29 +90,28 @@ export default async function GuidePage() {
               <th>{t('المستوى', 'Level')}</th>
               <th>{t('نطاق السعر', 'Price range')}</th>
               <th>{t('نسبة المنصة', 'Platform share')}</th>
-              <th>{t('الجلسات المطلوبة', 'Sessions needed')}</th>
-              <th>{t('أقل تقييم', 'Minimum rating')}</th>
+              <th>{t('لمن', 'For whom')}</th>
             </tr>
           </thead>
           <tbody>
             {(levels ?? []).map((level) => (
               <tr key={level.level}>
-                <td className="eng">{level.level}</td>
-                <td className="eng">{money(level.min_session_usd)} – {money(level.max_session_usd)}</td>
+                <td className="eng" style={{ whiteSpace: 'nowrap' }}>{level.badge} {level.title}</td>
+                <td className="eng" style={{ whiteSpace: 'nowrap' }}>{money(level.min_session_usd)} – {money(level.max_session_usd)}</td>
                 <td className="eng">{Number(level.commission_pct)}%</td>
-                <td className="eng">{level.min_sessions}</td>
-                <td className="eng">{Number(level.min_rating) > 0 ? `★ ${level.min_rating}` : '—'}</td>
+                <td style={{ fontSize: '0.82rem' }}>{t(level.fits_ar ?? '', level.fits_en ?? level.fits_ar ?? '')}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <h4 style={{ fontSize: '0.92rem', marginTop: 14 }}>{t('كيف تترقّى', 'How to move up')}</h4>
         <ol className="guide-list">
-          <li>{t('تبلغ جلسات وتقييم المستوى التالي — يظهر تقدّمك في «مستواي».', 'Reach the next level’s sessions and rating — your progress shows in “My level”.')}</li>
+          <li>{t('من «مستواي» تضغط «طلب ترقية المستوى» — مستوى واحد في كل مرة: Peer / Junior ← Professional ← Senior / Specialist.', 'From “My level” you press “Request a level upgrade” — one level at a time: Peer / Junior → Professional → Senior / Specialist.')}</li>
           <li>{t('تجيب عن استبيان الترقية:', 'Answer the upgrade questionnaire:')}
             <ul>{(questions ?? []).map((q) => <li key={q.key}>{q.question_ar}</li>)}</ul>
           </li>
-          <li>{t('تقرأ الإدارة الإجابات مع أرقامك وتوافق أو تعتذر بسبب مكتوب. بالموافقة يتّسع نطاق أسعارك.', 'TechMood reads the answers with your numbers and approves or declines with a written reason. Approved, your price range widens.')}</li>
+          <li>{t('تراجع الإدارة الطلب على الصورة كاملة: الخبرة، التخصص، الأعمال والمشاريع، التقييمات، وسجل الجلسات — لا بعدد النجوم وحده. وتوافق أو تعتذر بسبب مكتوب يصلك. بالموافقة ينتقل نطاق السعر المسموح لك إلى نطاق المستوى الجديد.', 'TechMood reviews the request on the whole picture: experience, specialty, works and projects, ratings and the sessions record — never on stars alone — and approves or declines with a written reason you receive. Approved, your allowed price range becomes the new level’s.')}</li>
+          <li>{t('بعد الرفض تنتظر مدة قصيرة قبل أن تطلب من جديد، وترى الموعد في «مستواي».', 'After a decline there is a short wait before you can ask again; “My level” shows the date.')}</li>
         </ol>
         <Link className="btn btn-ghost btn-sm" href="/mentor-requests/level" style={{ marginTop: 10 }}>{t('مستواي', 'My level')}</Link>
       </section>
@@ -121,7 +121,7 @@ export default async function GuidePage() {
         <ul className="guide-list">
           <li>{t('كل عرض في السوق تراجعه الإدارة قبل ظهوره؛ العرض المرفوض يُحذف ويُسجَّل تنبيه على البائع.', 'Every market listing is checked before it shows; a refused one is removed and a warning is recorded on the seller.')}</li>
           <li>{t('رابط التسليم يبقى مخفياً حتى تتأكد TechMood من الدفع.', 'The delivery link stays hidden until TechMood confirms the payment.')}</li>
-          <li>{t('عمولة بيع المشروع 15%، وعمولة الجلسات 30% (33% في المستوى الأول).', 'Project sales carry a 15% commission; sessions 30% (33% at level 1).')}</li>
+          <li>{t('عمولة بيع المشروع 15%، وعمولة الجلسات 30% (33% في مستوى Peer / Junior).', 'Project sales carry a 15% commission; sessions 30% (33% at Peer / Junior).')}</li>
         </ul>
       </section>
     </>

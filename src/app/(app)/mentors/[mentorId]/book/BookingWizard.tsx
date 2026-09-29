@@ -10,6 +10,7 @@ import { IS_MVP } from '@/lib/scope';
 
 import { createBooking, type BookingState } from '../../actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { mentorLevelLabel } from '@/lib/mentor-levels';
 
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
 type ReviewCandidate = { kind: string; id: string | null; label: string };
@@ -364,7 +365,7 @@ export function BookingWizard({
 
             <div className="summary-rows">
               <div className="summary-row"><span className="muted">{t('المنتور', 'Mentor')}</span><span>{mentorName}</span></div>
-              <div className="summary-row"><span className="muted">{t('المستوى', 'Level')}</span><span className="eng">{mentorLevel}</span></div>
+              <div className="summary-row"><span className="muted">{t('المستوى', 'Level')}</span><span className="eng">{mentorLevelLabel(mentorLevel)}</span></div>
               <div className="summary-row">
                 <span className="muted">{t('الجلسة', 'Session')}</span>
                 <span>{selectedType?.name_ar ?? '—'}</span>

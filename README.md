@@ -84,7 +84,7 @@ The business rules are tested against a real PostgreSQL instance — no mocks.
 
 ```bash
 scripts/validate-migrations.sh    # every migration applies cleanly, in order
-scripts/test.sh                   # 1011 business-rule assertions
+scripts/test.sh                   # 1022 business-rule assertions
 ```
 
 Both take psql connection arguments, e.g. `scripts/test.sh -h localhost -U postgres`.
@@ -120,8 +120,12 @@ database constraint with a test, not a UI convention:
 5b. **The price is read from the mentor's level in the database.** Bookings are
    created by `create_booking_request()` and clients hold no INSERT policy, so
    nobody books a $100 session for $0.
-6. **Mentor prices come from the published L1–L6 ladder**, and the platform and
-   mentor shares must always sum to the session price.
+6. **Three mentor levels, each an allowed price range** (Peer / Junior $10–30,
+   Professional $25–75, Senior / Specialist $50–150 an hour). The level sets the
+   range, the mentor names their own price inside it, and the platform and
+   mentor shares always sum to the price. Moving up is a written request an
+   admin decides on experience, specialty, works, ratings and sessions — never
+   stars alone (0120).
 7. **Availability is capped at 5 hours a day**, and a session needs 3 days'
    notice so a human can verify the payment.
 8. **Payment proof is private** to the payer and admins — not the mentor.

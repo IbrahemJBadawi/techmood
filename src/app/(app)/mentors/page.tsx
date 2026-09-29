@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
+import { mentorLevelLabel } from '@/lib/mentor-levels';
 
 export const generateMetadata = localizedTitle('المنتورز — TechMood', 'Mentors — TechMood');
 
@@ -72,8 +73,8 @@ export default async function MentorsPage() {
                   <span className="mn-card-id">
                     <strong>{name}</strong>
                     <span className="mn-headline">{mentor.headline_ar ?? profile?.headline ?? t('منتور', 'Mentor')}</span>
+                    <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span>
                   </span>
-                  <span className="mn-level eng">{mentor.level}</span>
                 </span>
 
                 <span className="mn-rating">

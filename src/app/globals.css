@@ -4680,7 +4680,9 @@ a.txn:hover { background: var(--bg-deep); }
   padding: 3px 9px; border-radius: 999px;
   background: color-mix(in srgb, var(--mentor) 14%, transparent); color: var(--mentor-ink);
   vertical-align: middle;
+  white-space: nowrap;
 }
+.mn-card-id .mn-level { justify-self: start; margin-top: 2px; }
 .mn-rating { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.84rem; }
 .mn-rating .eng { font-weight: 700; }
 .mn-domains { display: flex; flex-wrap: wrap; gap: 6px; }

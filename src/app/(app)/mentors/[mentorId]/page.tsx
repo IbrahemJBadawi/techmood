@@ -12,6 +12,7 @@ import { money } from '@/lib/booking';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { FeedbackSummary } from '@/components/FeedbackSummary';
+import { mentorLevelLabel } from '@/lib/mentor-levels';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -107,7 +108,7 @@ export default async function MentorProfilePage({
         </div>
 
         <div className="pp-identity">
-          <h2>{profile?.full_name} <span className="mn-level eng">{mentor.level}</span></h2>
+          <h2>{profile?.full_name} <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span></h2>
           {mentor.headline_ar && <p className="pp-headline">{mentor.headline_ar}</p>}
           <div className="mn-rating">
             <Stars value={mentor.rating_avg ?? 0} />

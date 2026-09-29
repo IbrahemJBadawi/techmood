@@ -632,8 +632,10 @@ select public.assert(
   '10.5 every mentor level splits its price consistently');
 
 select public.assert(
-  (select session_price_usd from public.mentor_levels where level = 'L6') = 100.00,
-  '10.6 the published L1-L6 price ladder is loaded');
+  (select string_agg(title || ' ' || min_session_usd || '-' || max_session_usd, ' | ' order by sort_order)
+     from public.mentor_levels)
+    = 'Peer / Junior 10.00-30.00 | Professional 25.00-75.00 | Senior / Specialist 50.00-150.00',
+  '10.6 the MVP ladder is three levels, each an allowed price range: 10$ to 150$ an hour');
 
 -- ===========================================================================
 -- 11. Mentor review workflow and re-evaluation
@@ -6789,16 +6791,16 @@ reset request.jwt.claim.sub;
 -- The level is the admin's to set (0028), so the fixture sets it as the admin.
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
 update public.mentor_profiles
-   set level = 'L3', daily_session_limit = 5, buffer_minutes = 0
+   set level = 'L2', daily_session_limit = 5, buffer_minutes = 0
  where profile_id = '33333333-3333-3333-3333-333333333333';
 reset request.jwt.claim.sub;
 
 select public.assert(
   (select min_session_usd || '-' || session_price_usd || '-' || max_session_usd || '@' || commission_pct
-     from public.mentor_levels where level = 'L3') = '25.00-35.00-50.00@30.00'
-  and (select platform_share_usd from public.mentor_levels where level = 'L3') = 10.50
+     from public.mentor_levels where level = 'L2') = '25.00-40.00-75.00@30.00'
+  and (select platform_share_usd from public.mentor_levels where level = 'L2') = 12.00
   and (select string_agg(level || '@' || commission_pct, ',' order by sort_order) from public.mentor_levels)
-      = 'L1@33.33,L2@30.00,L3@30.00,L4@30.00,L5@30.00,L6@30.00'
+      = 'L1@33.33,L2@30.00,L3@30.00'
   and (select platform_share_usd || '/' || mentor_share_usd from public.mentor_levels where level = 'L1') = '5.00/10.00'
   and (select min(min_session_usd) || '-' || max(max_session_usd) from public.mentor_levels) = '10.00-150.00',
   '58.1 every level has a band and a percentage: 10$ to 150$, 30% to TechMood, and a new mentor''s 15$ is 5$ + 10$');
@@ -6807,20 +6809,20 @@ select public.assert(
   (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
      from public.session_quote('33333333-3333-3333-3333-333333333333',
                                (select id from public.session_types where slug = 'career_guidance')))
-    = '35.00/10.50/24.50',
+    = '40.00/12.00/28.00',
   '58.2 a mentor who never set a price charges the level''s default, split by the percentage');
 
 select public.assert(
   (select min_usd || '-' || default_usd || '-' || max_usd
      from public.session_quote('33333333-3333-3333-3333-333333333333',
                                (select id from public.session_types where slug = 'portfolio_review')))
-    = '18.75-26.25-37.50',
+    = '18.75-30.00-56.25',
   '58.3 a 45-minute session is priced for 45 minutes, band and all');
 
 set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
 select public.assert_rejects(
-  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 60)$$,
+  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 80)$$,
   '58.4 a mentor cannot price above their level''s ceiling',
   'خارج حدود مستواك');
 
@@ -6880,7 +6882,7 @@ select public.assert(
 -- The admin narrows the band; a price set before is held to it, not charged outside it.
 set role authenticated;
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
-select public.save_mentor_level('L3', 35, 25, 40, 28.57);
+select public.save_mentor_level('L2', 35, 25, 40, 30);
 reset role;
 reset request.jwt.claim.sub;
 
@@ -6891,7 +6893,7 @@ select public.assert(
 
 set role authenticated;
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
-select public.save_mentor_level('L3', 35, 25, 50, 28.57);
+select public.save_mentor_level('L2', 40, 25, 75, 30);
 select public.assert_rejects(
   $$select public.save_platform_setting('no_such_setting', '1')$$,
   '58.11 a setting that does not exist is not invented by saving it',
@@ -8374,33 +8376,33 @@ select public.assert(
   '71.10 one nudge a day to a learner with a device and nothing studied — not two');
 
 -- ===========================================================================
--- 72. Moving up a level: earned by numbers, then asked for in writing
+-- 72. Moving up a level: asked for in writing, decided by the admin (0101, 0120)
 -- ===========================================================================
 set role authenticated;
 set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
 select public.assert(
-  (select current_level = 'L1' and next_level = 'L2' and not eligible from public.my_level_progress()),
-  '72.1 a mentor sees where they stand against the next level');
+  (select current_title = 'Peer / Junior' and next_title = 'Professional'
+          and eligible and not meets_guide from public.my_level_progress()),
+  '72.1 a mentor sees their level by name, the next one, and may ask before the guide numbers are met');
 select public.assert_rejects(
-  $$select public.submit_level_upgrade('{}'::jsonb)$$,
-  '72.2 and cannot ask before the numbers are met',
-  'لم تبلغ متطلبات');
-reset role;
-reset request.jwt.claim.sub;
-
-update public.mentor_profiles set sessions_count = 25, rating_avg = 4.6
- where profile_id = '88888888-8888-8888-8888-888888888888';
-
-set role authenticated;
-set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
-select public.assert_rejects(
-  $$select public.submit_level_upgrade('{"impact":"جيد"}'::jsonb)$$,
-  '72.3 the questionnaire is answered properly, not in a word',
+  $$select public.submit_level_upgrade('{"experience":"جيد"}'::jsonb)$$,
+  '72.2 the questionnaire is answered properly, not in a word',
   'أجب عن');
+select public.assert_rejects(
+  $$select public.submit_level_upgrade(jsonb_build_object(
+    'experience', repeat('سبع سنوات مطوّر واجهات في شركتين، وقائد فريق في الثانية. ', 2),
+    'depth', repeat('هندسة الواجهات وأداؤها؛ نشرت مقالين وراجعت عشرات المشاريع. ', 2),
+    'works', 'مشاريع كثيرة على حسابي في جيتهب',
+    'impact', repeat('متعلّمة انتقلت من مشروع غير مكتمل إلى مشروع منشور. ', 2),
+    'feedback', 'طلبوا أمثلة أكثر، فصرت أجهّز مثالاً قبل كل جلسة.',
+    'availability', 'ست ساعات أسبوعياً مساءً'))$$,
+  '72.3 the works are shown with a link that opens, not described',
+  'أضف رابطاً');
 select public.submit_level_upgrade(jsonb_build_object(
-  'impact', repeat('متعلّمة انتقلت من مشروع غير مكتمل إلى مشروع منشور بعد ثلاث جلسات. ', 3),
-  'reviews', repeat('أسمّي ما نجح ثم ما يلزم تحسينه ثم خطوة تالية واضحة ومحددة بزمن. ', 3),
-  'depth', repeat('تعمّقت في هندسة الواجهات؛ الدليل مستودعان ومقال منشور. ', 2),
+  'experience', repeat('سبع سنوات مطوّر واجهات في شركتين، وقائد فريق في الثانية. ', 2),
+  'depth', repeat('هندسة الواجهات وأداؤها؛ نشرت مقالين وراجعت عشرات المشاريع. ', 2),
+  'works', 'https://github.com/example/portfolio و https://example.dev',
+  'impact', repeat('متعلّمة انتقلت من مشروع غير مكتمل إلى مشروع منشور. ', 2),
   'feedback', 'طلبوا أمثلة أكثر، فصرت أجهّز مثالاً قبل كل جلسة.',
   'availability', 'ست ساعات أسبوعياً مساءً')) as upgrade72 \gset
 select public.assert_rejects(
@@ -8413,26 +8415,85 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
 select public.assert(
-  (select sessions_now = 25 and rating_now = 4.6 from public.admin_level_upgrades() where id = :'upgrade72'),
-  '72.5 the admin reads the answers with the numbers beside them');
-select public.review_level_upgrade(:'upgrade72', true, 'تقييمات مكتوبة ممتازة');
+  (select sessions_now = 0 and sessions_guide = 20 and to_title = 'Professional'
+          and answers ->> 'works' like 'https://%'
+     from public.admin_level_upgrades() where id = :'upgrade72'),
+  '72.5 the admin reads the answers with the sessions, rating and the level''s guide beside them');
+select public.assert_rejects(
+  format($$select public.review_level_upgrade(%L, true)$$, :'upgrade72'),
+  '72.6 a decision without a reason is not a decision',
+  'سبب القرار');
+select public.review_level_upgrade(:'upgrade72', true, 'خبرة سبع سنوات وأعمال منشورة واضحة');
 reset role;
 reset request.jwt.claim.sub;
 
 select public.assert(
   (select level from public.mentor_profiles where profile_id = '88888888-8888-8888-8888-888888888888') = 'L2'
   and (select status from public.level_upgrade_requests where id = :'upgrade72') = 'approved'
-  and exists (select 1 from public.admin_audit_log where entity_id = :'upgrade72'),
-  '72.6 approved: the level — and with it the price band — moves up, on the record');
+  and exists (select 1 from public.admin_audit_log where entity_id = :'upgrade72')
+  and exists (select 1 from public.notifications
+               where profile_id = '88888888-8888-8888-8888-888888888888'
+                 and title_ar like '%Professional%' and body_ar like '%من 25.00 إلى 75.00%'),
+  '72.7 approved on experience and works, not on stars: the level — and its price range — moves up, on the record');
 
 set role authenticated;
 set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
 select public.assert_rejects(
-  $$select public.review_level_upgrade(gen_random_uuid(), true)$$,
-  '72.7 a mentor does not approve their own upgrade',
+  $$select public.review_level_upgrade(gen_random_uuid(), true, 'أوافق على نفسي')$$,
+  '72.8 a mentor does not approve their own upgrade',
   'للإدارة فقط');
+select public.submit_level_upgrade(jsonb_build_object(
+  'experience', repeat('سبع سنوات مطوّر واجهات في شركتين، وقائد فريق في الثانية. ', 2),
+  'depth', repeat('هندسة الواجهات وأداؤها؛ نشرت مقالين وراجعت عشرات المشاريع. ', 2),
+  'works', 'https://github.com/example/portfolio',
+  'impact', repeat('متعلّمة انتقلت من مشروع غير مكتمل إلى مشروع منشور. ', 2),
+  'feedback', 'طلبوا أمثلة أكثر، فصرت أجهّز مثالاً قبل كل جلسة.',
+  'availability', 'ست ساعات أسبوعياً مساءً')) as upgrade72b \gset
 reset role;
 reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_level_upgrade(:'upgrade72b', false, 'نحتاج سجلّ جلسات أطول على المنصة أولاً');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
+select public.assert(
+  (select not eligible and opens_at > now() + interval '29 days' and last_status = 'declined'
+          and last_note like 'نحتاج%' from public.my_level_progress()),
+  '72.9 after a decline the mentor reads the reason, and asking opens again after the wait');
+select public.assert_rejects(
+  $$select public.submit_level_upgrade('{}'::jsonb)$$,
+  '72.10 not before',
+  'بعد');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(
+  $$select public.admin_place_mentor('88888888-8888-8888-8888-888888888888', 'L3', 'قصير')$$,
+  '72.11 placing a mentor directly needs a reason too',
+  'سبب تحديد المستوى');
+select public.assert_rejects(
+  $$select public.set_mentor_level('88888888-8888-8888-8888-888888888888', 'L5')$$,
+  '72.12 and there is no fourth level to place anyone at',
+  'مستوى غير موجود');
+select public.admin_place_mentor('88888888-8888-8888-8888-888888888888', 'L3', 'متخصص بخبرة عشر سنوات في المجال');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select level from public.mentor_profiles where profile_id = '88888888-8888-8888-8888-888888888888') = 'L3'
+  and exists (select 1 from public.admin_audit_log
+               where entity_id = '88888888-8888-8888-8888-888888888888' and action = 'mentor_level_set'),
+  '72.13 the admin may place a mentor at Senior / Specialist directly, on the record');
+select public.assert_rejects(
+  $$update public.mentor_profiles set level = 'L6' where profile_id = '88888888-8888-8888-8888-888888888888'$$,
+  '72.14 nobody holds a level beyond the three',
+  'mentor_profiles_level_mvp');
 
 -- ===========================================================================
 -- 73. What a signed-out visitor may call is a list, not an accident
@@ -9592,6 +9653,38 @@ select public.assert(
   '89.2 and choosing it again changes nothing');
 reset role;
 reset request.jwt.claim.sub;
+
+-- ===========================================================================
+-- 90. Any member adds their own project, then shows it or sells it
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+insert into public.projects (title_ar, description_ar, owner_id, kind, tags)
+values ('تطبيق مواعيد لعيادة', 'نظام حجز بسيط', '84848484-8484-8484-8484-848484848484', 'personal', '{nextjs}')
+returning id as p90 \gset
+select public.assert_rejects(
+  format($$select public.submit_to_exhibition(%L, 'ملخص')$$, :'p90'),
+  '90.1 a member''s own project goes to the exhibition once it is finished, not before',
+  'المكتمل فقط');
+update public.projects set status = 'completed' where id = :'p90';
+select public.assert(
+  (select status from public.submit_to_exhibition(:'p90', 'نظام حجز مواعيد لعيادة أسنان', '{nextjs,supabase}')) = 'submitted',
+  '90.2 then any member — no team, no role — sends it to the exhibition for a mentor''s review');
+select public.list_project_for_sale(:'p90', 120, 'نظام حجز جاهز للعيادات', 'https://example.com/delivery');
+select public.assert(
+  exists (select 1 from public.project_listings where project_id = :'p90'),
+  '90.3 and may put the same finished project up for sale, reviewed before it shows');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+update public.projects set title_ar = 'ليس لي' where id = :'p90';
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select title_ar from public.projects where id = :'p90') = 'تطبيق مواعيد لعيادة',
+  '90.4 nobody else edits a member''s personal project');
 
 \echo ''
 \echo '================================================'
