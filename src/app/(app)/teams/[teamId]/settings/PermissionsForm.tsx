@@ -9,7 +9,6 @@ const PERMISSIONS: { key: string; label: Text; hint: Text; fallback: boolean }[]
   { key: 'members_assign_tasks', label: { ar: 'إسناد المهام',      en: 'Assign tasks' },          hint: { ar: 'تحديد مسؤول عن مهمة.',         en: 'Give a task an owner.' },                fallback: false },
   { key: 'members_invite',       label: { ar: 'دعوة أعضاء',        en: 'Invite members' },        hint: { ar: 'إرسال دعوات بـ TechMood ID.',   en: 'Send invitations by TechMood ID.' },     fallback: false },
   { key: 'members_manage_docs',  label: { ar: 'إدارة المستندات',   en: 'Manage documents' },      hint: { ar: 'إضافة وحذف مستندات الفريق.',    en: 'Add and remove the team\u2019s documents.' }, fallback: true },
-  { key: 'members_book_mentor',  label: { ar: 'حجز جلسات المنتور', en: 'Book mentor sessions' },  hint: { ar: 'حجز جلسة للفريق مع منتور.',     en: 'Book a session for the team.' },         fallback: false },
   { key: 'members_edit_project', label: { ar: 'تعديل المشاريع',    en: 'Edit projects' },         hint: { ar: 'إنشاء المشاريع وتغيير حالتها.', en: 'Create projects and change their state.' }, fallback: false },
 ];
 
@@ -51,6 +50,11 @@ export function PermissionsForm({
           </span>
         </label>
       ))}
+
+      <p className="muted" style={{ fontSize: '0.78rem', marginBottom: 12 }}>
+        {t('حجز جلسات المنتور وجلسات الفريق المجانية، وتسليم القيادة وإزالة الأعضاء، للقائد وحده. والعضو يستطيع دائماً أن يأخذ مهمة لنفسه.',
+           'Booking mentor sessions and the team\u2019s free sessions, handing over leadership and removing members are the leader\u2019s alone. A member can always take a task for themselves.')}
+      </p>
 
       <button className="btn btn-primary btn-sm">{t('احفظ الصلاحيات', 'Save permissions')}</button>
     </form>

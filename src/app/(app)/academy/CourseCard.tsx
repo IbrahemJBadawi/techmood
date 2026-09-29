@@ -30,6 +30,9 @@ export function CourseCard({ course }: { course: AcademyCourse }) {
 
       <div className="lcard-body">
         <h3>{courseTitle(t.locale, course)}</h3>
+        {course.author_name && (
+          <p className="lcard-author"><Icon name="mentor" size={13} />{t('من إعداد المنتور ', 'By mentor ')}{course.author_name}</p>
+        )}
         {course.description_ar && <p className="lcard-desc">{course.description_ar}</p>}
 
         <ul className="lcard-meta">

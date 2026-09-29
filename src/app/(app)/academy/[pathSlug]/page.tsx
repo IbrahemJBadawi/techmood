@@ -23,20 +23,26 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
 
   const { data: path } = await supabase
     .from('learning_paths')
-    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours, status, schools(slug, name_ar, name_en)')
+    .select('id, slug, title_ar, description_ar, tagline_ar, tags, estimated_hours, status, author_id, schools(slug, name_ar, name_en)')
     .eq('slug', pathSlug)
     .single();
 
   if (!path) notFound();
   // A path the admin hid or switched off is not on the map, nor behind its URL.
-  if (path.status === 'draft' || path.status === 'archived') {
+  // A mentor's path waiting in the studio (0115) is seen by its author only.
+  const isAuthor = Boolean(path.author_id) && path.author_id === user.id;
+  const preview = path.status === 'draft' && isAuthor;
+  if ((path.status === 'draft' || path.status === 'archived') && !preview) {
     const { data: isAdmin } = await supabase.rpc('is_admin');
     if (!isAdmin) notFound();
   }
+  const { data: author } = path.author_id
+    ? await supabase.from('profiles').select('id, full_name').eq('id', path.author_id).maybeSingle()
+    : { data: null };
 
   const { data: pathCourses } = await supabase
     .from('path_courses')
-    .select('is_required, sort_order, courses(id, slug, title_ar, description_ar, estimated_hours, status)')
+    .select('is_required, sort_order, courses(id, slug, title_ar, description_ar, estimated_hours, status, author_id)')
     .eq('path_id', path.id)
     .order('sort_order');
 
@@ -44,24 +50,30 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
   // a «قريباً» one is shown, and opens when it is published (0078).
   const courses = (pathCourses ?? [])
     .map((row) => ({
-      ...(row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null; status: string }),
+      ...(row.courses as unknown as { id: string; slug: string; title_ar: string; description_ar: string | null; estimated_hours: number | null; status: string; author_id: string | null }),
       isRequired: row.is_required,
     }))
-    .filter((course) => course.status === 'published' || course.status === 'planned');
+    .filter((course) => course.status === 'published' || course.status === 'planned'
+      || (course.status === 'draft' && course.author_id === user.id));
 
   // Completion is asked of the database so the UI and the certificate rule can
   // never disagree about what "complete" means.
   const completion = await Promise.all(
     courses.map(async (course) => {
+      // A draft has no open work yet, so it would read as "complete" — the
+      // author previewing it sees the path as a learner starting it would.
+      if (preview) return { courseId: course.id, complete: false };
       const { data } = await supabase.rpc('is_course_complete', { p_profile: user.id, p_course: course.id });
       return { courseId: course.id, complete: data === true };
     }),
   );
 
-  const [{ data: pathComplete }, { data: pathSkills }] = await Promise.all([
+  const [{ data: pathCompleteRaw }, { data: pathSkills }] = await Promise.all([
     supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id }),
     supabase.rpc('path_skills', { p_path: path.id }),
   ]);
+
+  const pathComplete = !preview && pathCompleteRaw === true;
 
   const [{ data: enrolment }, { data: pathConversation }] = await Promise.all([
     supabase
@@ -115,6 +127,14 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
     <>
       <Link className="btn btn-ghost btn-sm" href="/academy">{t('→ رجوع للأكاديمية', '← Back to the academy')}</Link>
 
+      {preview && (
+        <p className="notice" style={{ marginTop: 16 }}>
+          {t('معاينة: هكذا يظهر مسارك في الأكاديمية بعد اعتماده. لا يراه غيرك الآن.',
+             'Preview: this is how your path appears in the academy once approved. Nobody else sees it yet.')}
+          {' '}<Link href={`/studio/paths/${path.id}`}>{t('عد للاستوديو', 'Back to the studio')}</Link>
+        </p>
+      )}
+
       <section className="section-block ac-cover" style={{ marginTop: 16, '--hue': look.color } as React.CSSProperties}>
         <div className="ac-cover-top">
           <span className="ac-cover-icon"><Icon name={look.icon} size={26} /></span>
@@ -124,6 +144,11 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
           </div>
           <ProgressRing percent={percent} size={64} stroke={6} label={t('تقدّم المسار', 'Path progress')} />
         </div>
+        {author && (
+          <p className="ac-byline">
+            {t('من إعداد المنتور', 'By mentor')} <Link href={`/mentors/${author.id}`}>{author.full_name}</Link>
+          </p>
+        )}
         <p className="ac-cover-desc">{path.description_ar}</p>
         {path.tagline_ar && <p className="ac-cover-tagline">{path.tagline_ar}</p>}
 
@@ -145,7 +170,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
                 </Link>
               )}
             </>
-          ) : (
+          ) : preview ? null : (
             <form action={enrolInPath}>
               <input type="hidden" name="path_id" value={path.id} />
               <input type="hidden" name="revalidate" value={`/academy/${path.slug}`} />
@@ -233,7 +258,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
             />
           )}
 
-          <div className="panel">
+          {!preview && <div className="panel">
             <h3 style={{ fontSize: '0.98rem' }}>{t('شهادة المسار', 'Path certificate')}</h3>
             <p className="muted" style={{ fontSize: '0.84rem', marginTop: 8 }}>
               {pathComplete
@@ -247,7 +272,7 @@ export default async function PathPage({ params }: { params: Promise<{ pathSlug:
                 {t('إصدار الشهادة', 'Issue the certificate')}
               </Link>
             )}
-          </div>
+          </div>}
         </aside>
       </div>
     </>

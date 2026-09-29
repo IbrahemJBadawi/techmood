@@ -11,6 +11,7 @@ import { ACTIVITY_VERBS, SPRINT_STATUS, TEAM_KIND, TEAM_STATUS, isOverdue } from
 
 import { ProgressRing } from '../../academy/ProgressRing';
 import { TeamNav } from './TeamNav';
+import { TeamSessions } from './TeamSessions';
 import { AiSurface } from '@/components/AiSurface';
 
 export default async function TeamOverviewPage({
@@ -131,6 +132,8 @@ export default async function TeamOverviewPage({
           </table>
         </section>
       )}
+
+      <TeamSessions teamId={team.id} isLeader={isLeader} />
 
       <div className="detail-grid">
         <section className="panel">

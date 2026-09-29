@@ -9,8 +9,9 @@ import { contentText, plural } from '@/lib/i18n';
  * never hold a rule of its own: completion, percent and status are computed
  * once, in SQL, by the same helpers the path and course pages use.
  */
-export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number];
-export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number];
+// author_name: the mentor who wrote it in the studio (0115), added by the page.
+export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number] & { author_name?: string | null };
+export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number] & { author_name?: string | null };
 export type AcademyRoadmapPath = Database['public']['Functions']['academy_roadmap']['Returns'][number];
 
 export const STATUS_LABEL: Record<LearningStatus, Text> = {

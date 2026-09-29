@@ -55,6 +55,23 @@ export default async function MentorProfilePage({
   ]);
   const follow = followRows?.[0];
 
+  // The gallery (0115): what this mentor wrote in the studio and TechMood
+  // approved — open courses and paths, and the ones announced as coming.
+  const [{ data: galleryCourses }, { data: galleryPaths }] = await Promise.all([
+    supabase.from('courses')
+      .select('id, slug, title_ar, description_ar, status, path_courses(learning_paths(slug, status))')
+      .eq('author_id', mentorId).in('status', ['published', 'planned']).order('title_ar'),
+    supabase.from('learning_paths')
+      .select('id, slug, title_ar, tagline_ar, status')
+      .eq('author_id', mentorId).in('status', ['published', 'planned']).order('title_ar'),
+  ]);
+  const courseHref = (row: { slug: string; path_courses: unknown }) => {
+    const paths = ((row.path_courses as { learning_paths: { slug: string; status: string } | null }[] | null) ?? [])
+      .map((link) => link.learning_paths).filter((path) => path && path.status !== 'draft' && path.status !== 'archived');
+    return `/academy/${paths[0]?.slug ?? 'preview'}/${row.slug}`;
+  };
+  const hasGallery = (galleryCourses ?? []).length + (galleryPaths ?? []).length > 0;
+
   const sessionTypes = (offered ?? []).map(
     (row) => row.session_types as unknown as { id: string; name_ar: string; description_ar: string | null; duration_minutes: number },
   );
@@ -139,6 +156,44 @@ export default async function MentorProfilePage({
       )}
 
       <FeedbackSummary profileId={mentorId} isMentor />
+
+      {(hasGallery || user?.id === mentorId) && (
+        <section className="panel section-block">
+          <div className="row-between" style={{ flexWrap: 'wrap', gap: 8 }}>
+            <h3 style={{ fontSize: '0.98rem' }}>{t('دورات ومسارات من إعداده', 'Courses and paths by this mentor')}</h3>
+            {user?.id === mentorId && <Link className="btn btn-ghost btn-sm" href="/studio">{t('استوديو المحتوى', 'Content studio')}</Link>}
+          </div>
+          {!hasGallery ? (
+            <p className="muted" style={{ fontSize: '0.86rem', marginTop: 8 }}>
+              {t('لم يُنشر لك محتوى بعد. اكتب دورتك الأولى في الاستوديو، وحين تُعتمد تظهر هنا وفي الأكاديمية باسمك.',
+                 'Nothing of yours is published yet. Write your first course in the studio; once approved it shows here and in the academy under your name.')}
+            </p>
+          ) : (
+            <ul className="mn-gallery">
+              {(galleryPaths ?? []).map((path) => (
+                <li key={path.id}>
+                  <Link href={`/academy/${path.slug}`}>
+                    <span className="kicker">{t('مسار', 'Path')}</span>
+                    <strong>{path.title_ar}</strong>
+                    {path.tagline_ar && <span className="muted">{path.tagline_ar}</span>}
+                    {path.status === 'planned' && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
+                  </Link>
+                </li>
+              ))}
+              {(galleryCourses ?? []).map((course) => (
+                <li key={course.id}>
+                  <Link href={courseHref(course)}>
+                    <span className="kicker">{t('دورة', 'Course')}</span>
+                    <strong>{course.title_ar}</strong>
+                    {course.description_ar && <span className="muted">{course.description_ar}</span>}
+                    {course.status === 'planned' && <span className="status-pill status-pending">{t('قريباً', 'Coming soon')}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <div className="detail-grid">
         <section className="panel">

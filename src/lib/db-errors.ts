@@ -16,6 +16,18 @@ import type { T } from '@/lib/i18n';
  * language is more useful than hiding it in the right one.
  */
 const PHRASES: { match: string; en: string }[] = [
+  // teams (0113)
+  { match: 'قائد الفريق فقط من يحجز جلسات الفريق', en: 'Only the team leader books the team\u2019s sessions.' },
+  { match: 'بين جلسة وأخرى ثلاثة أيام',       en: 'Sessions are at least three days apart — the team already has one close to that day.' },
+  { match: 'بلغ فريقك حدّ جلستين',            en: 'Your team already has its two sessions that week.' },
+  { match: 'جلسة الفريق ثلاث ساعات',          en: 'A team session is three hours at most.' },
+  { match: 'لا يُحجز اجتماع في وقت مضى',      en: 'A session cannot be booked in the past.' },
+  { match: 'إنشاء المهام في هذا الفريق للقائد', en: 'In this team only the leader creates tasks.' },
+  { match: 'إسناد المهام لغيرك',              en: 'In this team only the leader assigns tasks to others — you can take a task yourself.' },
+  { match: 'تُسند المهمة لعضو في الفريق',     en: 'A task can only be given to someone in the team.' },
+  { match: 'يحذف المهمة كاتبها',              en: 'A task is deleted by whoever wrote it, or by the leader.' },
+  { match: 'سلّم قيادة الفريق',               en: 'Hand the team over to another member before leaving it.' },
+  { match: 'الأدوار تتغيّر بتسليم القيادة',    en: 'Roles change only by handing over leadership.' },
   // roles
   { match: 'دور الإدارة لا يُطلب',          en: 'The admin role is not requested — it is granted by another admin.' },
   { match: 'دور الطالب مفعّل تلقائياً',      en: 'The student role is active on every account automatically.' },

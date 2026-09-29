@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { localToUtc } from '@/lib/zoned';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import type { TaskColumn, TeamKind } from '@/lib/database.types';
@@ -79,7 +80,7 @@ export async function createTask(_prev: TeamState, formData: FormData): Promise<
     created_by: user.id,
   });
 
-  if (error) return { error: t('تعذّر إضافة المهمة — تأكد من صلاحياتك في الفريق.', 'The task could not be added — check your permissions in this team.') };
+  if (error) return { error: dbError(t, error.message) };
 
   revalidatePath(`/teams/${teamId}/tasks`);
   revalidatePath(`/teams/${teamId}`);
@@ -226,8 +227,8 @@ export async function scheduleTeamMeeting(_prev: TeamState, formData: FormData):
 
   if (!date || !time) return { error: t('اختر اليوم والساعة.', 'Pick the day and the hour.') };
 
-  const start = new Date(`${date}T${time}`);
-  if (Number.isNaN(start.getTime())) return { error: t('الموعد غير صالح.', 'That is not a valid time.') };
+  const start = localToUtc(date, time);
+  if (!start) return { error: t('الموعد غير صالح.', 'That is not a valid time.') };
 
   const end = new Date(start.getTime() + Math.min(180, Math.max(15, minutes)) * 60000);
 
@@ -240,5 +241,15 @@ export async function scheduleTeamMeeting(_prev: TeamState, formData: FormData):
   revalidatePath(`/teams/${teamId}/calendar`);
   if (error) return { error: dbError(t, error.message) };
 
-  return { ok: t('حُجز اجتماع الفريق، وسيصل الجميع إشعار به.', 'The meeting is booked, and everybody in the team has been told.') };
+  revalidatePath(`/teams/${teamId}`);
+  return { ok: t('حُجزت جلسة الفريق، ووصل كل الأعضاء إشعار بها.', 'The team session is booked, and every member has been told.') };
+}
+
+/** The leader calls off a session that has not started; its place is free again. */
+export async function cancelTeamSession(formData: FormData) {
+  const supabase = await createClient();
+  const teamId = String(formData.get('team_id') ?? '');
+  await supabase.rpc('cancel_internal_session', { p_session: String(formData.get('session_id') ?? '') });
+  revalidatePath(`/teams/${teamId}`);
+  revalidatePath(`/teams/${teamId}/calendar`);
 }

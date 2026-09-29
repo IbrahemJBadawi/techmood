@@ -758,7 +758,16 @@ export type LearningPath = {
   status: ContentStatus;
   estimated_hours: number | null;
   sort_order: number;
+  author_id: string | null;
+  review_state: StudioReviewState;
+  review_note_ar: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 }
+
+/** Where a mentor's course or path stands in review (0115); 'none' is TechMood's own. */
+export type StudioReviewState = 'none' | 'editing' | 'submitted' | 'changes_requested' | 'approved';
 
 export type Course = {
   id: string;
@@ -769,6 +778,12 @@ export type Course = {
   status: ContentStatus;
   estimated_hours: number | null;
   level: CourseLevel;
+  author_id: string | null;
+  review_state: StudioReviewState;
+  review_note_ar: string | null;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
 }
 
 export type Lesson = {
@@ -1605,6 +1620,43 @@ export type Database = {
       schedule_internal_session: {
         Args: { p_team: string; p_start: string; p_end: string; p_members?: string[] | null };
         Returns: { id: string; session_code: string; start_at: string; end_at: string };
+      };
+      studio_create_course: {
+        Args: { p_title_ar: string; p_title_en?: string | null; p_description_ar?: string | null; p_level?: CourseLevel };
+        Returns: string;
+      };
+      studio_update_course: {
+        Args: { p_course: string; p_title_ar: string; p_title_en: string | null; p_description_ar: string | null; p_level: CourseLevel; p_estimated_hours?: number | null };
+        Returns: undefined;
+      };
+      studio_delete_course: { Args: { p_course: string }; Returns: undefined };
+      studio_add_module: { Args: { p_course: string; p_title_ar: string }; Returns: string };
+      studio_update_module: { Args: { p_module: string; p_title_ar: string }; Returns: undefined };
+      studio_delete_module: { Args: { p_module: string }; Returns: undefined };
+      studio_move_module: { Args: { p_module: string; p_direction: number }; Returns: undefined };
+      studio_save_lesson: { Args: { p_module: string; p_lesson: string | null; p: Record<string, unknown> }; Returns: string };
+      studio_delete_lesson: { Args: { p_lesson: string }; Returns: undefined };
+      studio_move_lesson: { Args: { p_lesson: string; p_direction: number }; Returns: undefined };
+      studio_create_path: {
+        Args: { p_title_ar: string; p_title_en: string | null; p_school: string; p_tagline_ar?: string | null; p_description_ar?: string | null; p_tags?: string[] };
+        Returns: string;
+      };
+      studio_update_path: {
+        Args: { p_path: string; p_title_ar: string; p_title_en: string | null; p_school: string; p_tagline_ar: string | null; p_description_ar: string | null; p_tags: string[] };
+        Returns: undefined;
+      };
+      studio_set_path_courses: { Args: { p_path: string; p_courses: string[]; p_optional?: string[] }; Returns: undefined };
+      studio_delete_path: { Args: { p_path: string }; Returns: undefined };
+      studio_submit: { Args: { p_kind: string; p_id: string }; Returns: undefined };
+      studio_withdraw: { Args: { p_kind: string; p_id: string }; Returns: undefined };
+      review_studio_item: { Args: { p_kind: string; p_id: string; p_approve: boolean; p_note?: string | null }; Returns: undefined };
+      team_session_allowance: {
+        Args: { p_team: string };
+        Returns: { week_start: string; used: number; remaining: number; sessions: unknown }[];
+      };
+      cancel_internal_session: {
+        Args: { p_session: string };
+        Returns: undefined;
       };
       session_attendance: {
         Args: { p_session: string };

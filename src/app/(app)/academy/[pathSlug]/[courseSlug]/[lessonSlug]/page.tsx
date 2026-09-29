@@ -61,11 +61,18 @@ export default async function LessonPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: course }, { data: path }] = await Promise.all([
-    supabase.from('courses').select('id, slug, title_ar, title_en').eq('slug', courseSlug).single(),
-    supabase.from('learning_paths').select('id, slug, title_ar, title_en').eq('slug', pathSlug).single(),
+  const [{ data: course }, { data: pathRow }] = await Promise.all([
+    supabase.from('courses').select('id, slug, title_ar, title_en, status, author_id').eq('slug', courseSlug).single(),
+    supabase.from('learning_paths').select('id, slug, title_ar, title_en').eq('slug', pathSlug).maybeSingle(),
   ]);
-  if (!course || !path) notFound();
+  if (!course) notFound();
+
+  // A course still being written (the mentor's studio, 0115) is previewed by
+  // its author and by admins: drafts included, nothing can be completed.
+  const { data: isAdmin } = course.status === 'draft' ? await supabase.rpc('is_admin') : { data: false };
+  const preview = course.status === 'draft' && (course.author_id === user.id || isAdmin === true);
+  const path = pathRow ?? (preview ? { id: '', slug: pathSlug, title_ar: 'معاينة', title_en: 'Preview' } : null);
+  if (!path) notFound();
 
   // Every lesson of the course, in teaching order: the current one, and the
   // one after it, come from the same list — there is no "next lesson" column.
@@ -77,7 +84,7 @@ export default async function LessonPage({
 
   const lessons = (modules ?? [])
     .flatMap((module) => ((module.lessons as unknown as LessonRow[]) ?? [])
-      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
+      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned' || (preview && lesson.status === 'draft'))
       .map((lesson) => ({ lesson, moduleOrder: module.sort_order })))
     .sort((a, b) => a.moduleOrder - b.moduleOrder || a.lesson.sort_order - b.lesson.sort_order)
     .map((entry) => entry.lesson);
@@ -96,7 +103,7 @@ export default async function LessonPage({
   ] = await Promise.all([
     supabase.from('lesson_videos').select('id, lesson_id, title_ar, title_en, description_ar, url, duration_minutes, sort_order').eq('lesson_id', lesson.id).order('sort_order'),
     supabase.from('lesson_resources').select('id, lesson_id, label, url, kind').eq('lesson_id', lesson.id),
-    supabase.from('assignments').select('id, kind, lesson_id, course_id, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work').eq('lesson_id', lesson.id).eq('status', 'published'),
+    supabase.from('assignments').select('id, kind, lesson_id, course_id, path_id, title_ar, brief_ar, required_evidence, is_required, is_group_work').eq('lesson_id', lesson.id).in('status', preview ? ['published', 'draft'] : ['published']),
     supabase.from('lesson_progress').select('status').eq('profile_id', user.id).eq('lesson_id', lesson.id).maybeSingle(),
     supabase.rpc('lesson_board', { p_lesson: lesson.id }),
   ]);
@@ -114,7 +121,7 @@ export default async function LessonPage({
   const credential = credentialRows?.[0] ?? null;
   // A «قريباً» lesson is shown but cannot be finished until it is published (0078).
   const soon = lesson.status !== 'published';
-  const canTick = !soon && (!credential || (credential.verified && credential.applied) || credential.completed);
+  const canTick = !preview && !soon && (!credential || (credential.verified && credential.applied) || credential.completed);
 
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
@@ -184,7 +191,13 @@ export default async function LessonPage({
           <AskAI prompt={`اشرح لي فكرة درس «${lesson.title_ar}» بكلمات أبسط ومثال واحد.`} />
         </div>
         {lesson.summary_ar && <p className="muted lesson-summary lesson-text">{lesson.summary_ar}</p>}
-        {soon && (
+        {preview && (
+          <p className="notice notice-warn" style={{ marginTop: 10 }}>
+            {t('معاينة — هكذا سيرى المتعلم هذا الدرس بعد نشر الدورة. لا يُكمَل ولا يُسلَّم شيء في المعاينة.',
+               'Preview — this is how a learner will see the lesson once the course is published. Nothing can be completed or handed in here.')}
+          </p>
+        )}
+        {soon && !preview && (
           <p className="notice" style={{ marginTop: 10 }}>
             {t('هذا الدرس «قريباً» — يُفتح للإكمال حين يُنشر.', 'This lesson is «coming soon» — it can be completed once it is published.')}
           </p>
@@ -281,15 +294,25 @@ export default async function LessonPage({
                   </ul>
                 </section>
               )}
-              <SubmissionPanel
-                assignmentId={assignment.id}
-                title={assignment.title_ar}
-                brief={assignment.brief_ar}
-                requiredEvidence={assignment.required_evidence}
-                submission={submission}
-                evaluations={evaluations}
-                revalidatePath={here}
-              />
+              {preview ? (
+                <section className="panel section-block">
+                  <h3 style={{ fontSize: '0.98rem' }}>{assignment.title_ar}</h3>
+                  {assignment.brief_ar && <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{assignment.brief_ar}</p>}
+                  <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+                    {t('هنا يسلّم المتعلم عمله بعد النشر.', 'This is where the learner hands in their work once published.')}
+                  </p>
+                </section>
+              ) : (
+                <SubmissionPanel
+                  assignmentId={assignment.id}
+                  title={assignment.title_ar}
+                  brief={assignment.brief_ar}
+                  requiredEvidence={assignment.required_evidence}
+                  submission={submission}
+                  evaluations={evaluations}
+                  revalidatePath={here}
+                />
+              )}
             </>
           )}
 

@@ -275,6 +275,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'المنصة', en: 'Platform' },
       items: [
         { href: '/mentors', label: { ar: 'صفحتي كمنتور', en: 'My mentor page' }, icon: 'mentor' },
+        { href: '/studio', label: { ar: 'استوديو المحتوى', en: 'Content studio' }, icon: 'academy' },
         { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
       ],
     },
@@ -353,6 +354,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الأكاديمية والمنتورز', en: 'Academy & mentors' },
       items: [
         { href: '/admin/academy', label: { ar: 'المسارات والدورات', en: 'Paths & courses' }, icon: 'academy' },
+        { href: '/admin/studio', label: { ar: 'محتوى المنتورز', en: 'Mentor content' }, icon: 'academy' },
         { href: '/admin/cohorts', label: { ar: 'الدفعات', en: 'Cohorts' }, icon: 'team' },
         { href: '/admin/role-requests', label: { ar: 'طلبات الأدوار', en: 'Role requests' }, icon: 'application' },
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
@@ -434,6 +436,7 @@ const MVP_ROLE_NAV: Partial<Record<UserRole, NavGroup[]>> = {
         { href: '/review', label: { ar: 'مراجعة الأعمال', en: 'Review work' }, icon: 'review' },
         { href: '/review/exhibition', label: { ar: 'تقييم المشاريع', en: 'Judge projects' }, icon: 'gallery' },
         { href: '/review/credentials', label: { ar: 'توثيق الشهادات', en: 'Verify credentials' }, icon: 'certificate' },
+        { href: '/studio', label: { ar: 'دوراتي ومساراتي', en: 'My courses & paths' }, icon: 'academy' },
         { href: '/wallet', label: { ar: 'أرباحي', en: 'My earnings' }, icon: 'wallet' },
         { href: '/mentor-requests/pricing', label: { ar: 'أسعاري', en: 'My prices' }, icon: 'chart' },
         { href: '/mentor-requests/level', label: { ar: 'مستواي', en: 'My level' }, icon: 'star' },

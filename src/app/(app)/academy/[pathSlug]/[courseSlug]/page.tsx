@@ -46,16 +46,21 @@ export default async function CoursePage({
 
   const { data: course } = await supabase
     .from('courses')
-    .select('id, slug, title_ar, description_ar, estimated_hours, status')
+    .select('id, slug, title_ar, description_ar, estimated_hours, status, author_id')
     .eq('slug', courseSlug)
     .single();
 
   if (!course) notFound();
-  // Drafts and switched-off courses are not a learner's to open.
-  if (course.status === 'draft' || course.status === 'archived') {
+  // Drafts and switched-off courses are not a learner's to open; a draft is
+  // previewed by the mentor writing it (0115) and by admins.
+  const preview = course.status === 'draft' && course.author_id === user.id;
+  if ((course.status === 'draft' || course.status === 'archived') && !preview) {
     const { data: isAdmin } = await supabase.rpc('is_admin');
     if (!isAdmin) notFound();
   }
+  const { data: author } = course.author_id
+    ? await supabase.from('profiles').select('id, full_name, display_name').eq('id', course.author_id).maybeSingle()
+    : { data: null };
 
   const { data: modules } = await supabase
     .from('modules')
@@ -72,7 +77,9 @@ export default async function CoursePage({
     id: module.id,
     title_ar: module.title_ar,
     lessons: ((module.lessons as unknown as CourseLesson[]) ?? [])
-      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned')
+      .filter((lesson) => lesson.status === 'published' || lesson.status === 'planned' || (course.status === 'draft' && lesson.status === 'draft'))
+      // Previewing a draft course, its draft lessons open as they will once approved.
+      .map((lesson) => (course.status === 'draft' && lesson.status === 'draft' ? { ...lesson, status: 'published' } : lesson))
       .sort((a, b) => a.sort_order - b.sort_order),
   })).filter((module) => module.lessons.length > 0);
   const lessons = courseModules.flatMap((module) => module.lessons);
@@ -117,10 +124,12 @@ export default async function CoursePage({
   const { data: credentialRows } = await supabase.rpc('course_credential_progress', { p_course: course.id });
   const credentials = credentialRows?.[0];
 
-  const { data: isComplete } = await supabase.rpc('is_course_complete', {
+  // A draft has no open work, so it would read as complete; not in preview.
+  const { data: completeRaw } = await supabase.rpc('is_course_complete', {
     p_profile: user.id,
     p_course: course.id,
   });
+  const isComplete = !preview && completeRaw === true;
 
   const [{ data: ratingRows }, { data: myRating }] = await Promise.all([
     supabase.rpc('course_rating', { p_course: course.id }),
@@ -174,9 +183,21 @@ export default async function CoursePage({
           <div className="ac-cover-titles">
             {pathRow?.title_ar && <p className="ac-cover-school">{pathRow.title_ar}</p>}
             <h2>{course.title_ar}</h2>
+            {author && (
+              <p className="ac-byline">
+                {t('من إعداد المنتور', 'By mentor')}{' '}
+                <Link href={`/mentors/${author.id}`}>{author.display_name || author.full_name}</Link>
+              </p>
+            )}
           </div>
           <ProgressRing percent={isComplete ? 100 : lessonPercent} size={64} stroke={6} label={t('تقدّم الدورة', 'Course progress')} />
         </div>
+        {preview && (
+          <p className="notice notice-warn" style={{ margin: '10px 0 0' }}>
+            {t('معاينة لدورتك قبل النشر — لا يراها غيرك وغير الإدارة.', 'A preview of your course before it is published — only you and the admins see it.')}{' '}
+            <Link href={`/studio/courses/${course.id}`}>{t('ارجع للاستوديو', 'Back to the studio')}</Link>
+          </p>
+        )}
         <p className="ac-cover-desc">{course.description_ar}</p>
 
         <ul className="ac-cover-meta">

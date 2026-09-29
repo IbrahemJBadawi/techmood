@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { localToUtc } from '@/lib/zoned';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import { applyPayerAccount } from '@/lib/payer';
@@ -157,9 +158,9 @@ export async function blockTime(_prev: HubState, formData: FormData): Promise<Hu
   const to = String(formData.get('to') ?? '');
   if (!date || !from || !to) return { error: t('اختر اليوم والساعات.', 'Pick the day and the hours.') };
 
-  const starts = new Date(`${date}T${from}`);
-  const ends = new Date(`${date}T${to}`);
-  if (Number.isNaN(starts.getTime()) || ends <= starts) {
+  const starts = localToUtc(date, from);
+  const ends = localToUtc(date, to);
+  if (!starts || !ends || ends <= starts) {
     return { error: t('وقت النهاية يجب أن يكون بعد البداية.', 'The end time has to come after the start.') };
   }
 

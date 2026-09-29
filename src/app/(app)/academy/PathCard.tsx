@@ -35,6 +35,9 @@ export function PathCard({ path }: { path: AcademyPath }) {
           <h3>{pathTitle(t.locale, path)}</h3>
           {started && <ProgressRing percent={path.percent} size={46} label={t('تقدّم المسار', 'Path progress')} />}
         </div>
+        {path.author_name && (
+          <p className="lcard-author"><Icon name="mentor" size={13} />{t('من إعداد المنتور ', 'By mentor ')}{path.author_name}</p>
+        )}
         {path.description_ar && <p className="lcard-desc">{path.description_ar}</p>}
 
         <ul className="lcard-meta">

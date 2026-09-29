@@ -67,8 +67,22 @@ export default async function AcademyPage() {
     nextStep = ((planRows ?? []) as GoalStep[]).find((step) => !step.is_done && step.is_open) ?? null;
   }
 
-  const paths = (pathRows ?? []) as AcademyPath[];
-  const courses = (courseRows ?? []) as AcademyCourse[];
+  // What mentors wrote in the studio carries their name (0115). TechMood's own
+  // catalogue has no author, so most learners cost two small queries here.
+  const [{ data: authoredPaths }, { data: authoredCourses }] = await Promise.all([
+    supabase.from('learning_paths').select('id, author_id').not('author_id', 'is', null),
+    supabase.from('courses').select('id, author_id').not('author_id', 'is', null),
+  ]);
+  const authorIds = [...new Set([...(authoredPaths ?? []), ...(authoredCourses ?? [])].map((row) => row.author_id as string))];
+  const { data: authorRows } = authorIds.length
+    ? await supabase.from('profiles').select('id, full_name').in('id', authorIds)
+    : { data: [] };
+  const nameOf = new Map((authorRows ?? []).map((row) => [row.id, row.full_name]));
+  const pathAuthor = new Map((authoredPaths ?? []).map((row) => [row.id, nameOf.get(row.author_id as string) ?? null]));
+  const courseAuthor = new Map((authoredCourses ?? []).map((row) => [row.id, nameOf.get(row.author_id as string) ?? null]));
+
+  const paths = ((pathRows ?? []) as AcademyPath[]).map((path) => ({ ...path, author_name: pathAuthor.get(path.id) ?? null }));
+  const courses = ((courseRows ?? []) as AcademyCourse[]).map((course) => ({ ...course, author_name: courseAuthor.get(course.id) ?? null }));
   const roadmap = (roadmapRows ?? []) as AcademyRoadmapPath[];
   const schools = schoolRows ?? [];
   const resume = ((resumeRows as Resume[] | null) ?? [])[0] ?? null;

@@ -4101,38 +4101,55 @@ select public.assert(
   and (select status from public.video_sessions where id = :'vsession') = 'completed',
   '35.13 a session whose time has passed is closed, and one nobody attended reads as a no-show');
 
--- A team's own time: free, and limited to the team rather than to each member.
--- All of these fall in next week, so the result does not depend on the day the
--- suite runs (0079: the limit counts the week the meeting is booked into).
+-- A team's own time (0113): free, booked by its leader, two a week and three
+-- days apart. All of these fall in next week (its Monday is +7 days), so the
+-- result does not depend on the day the suite runs. The team's leader is 2222
+-- since the handover in section 20.
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
-select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '8 days 10 hours', date_trunc('week', now()) + interval '8 days 11 hours')).id as internal1 \gset
-select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '9 days 10 hours', date_trunc('week', now()) + interval '9 days 11 hours')).id as internal2 \gset
-
 select public.assert_rejects(
-  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '10 days 10 hours', date_trunc('week', now()) + interval '10 days 11 hours')$$, :'team'),
-  '35.14 a team gets two internal sessions a week, and the limit is the team''s',
-  'حدّ اجتماعين');
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '7 days 10 hours', date_trunc('week', now()) + interval '7 days 11 hours')$$, :'team'),
+  '35.14 a member who is not the leader cannot book the team''s sessions',
+  'قائد الفريق فقط');
 reset role;
 reset request.jwt.claim.sub;
 
--- Another member of the same team hits the same wall: the limit is not per person.
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '7 days 10 hours', date_trunc('week', now()) + interval '7 days 11 hours')).id as internal1 \gset
 select public.assert_rejects(
-  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '11 days 10 hours', date_trunc('week', now()) + interval '11 days 11 hours')$$, :'team'),
-  '35.15 a second member cannot spend the same week again',
-  'حدّ اجتماعين');
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '8 days 10 hours', date_trunc('week', now()) + interval '8 days 11 hours')$$, :'team'),
+  '35.15 two sessions are at least three days apart',
+  'ثلاثة أيام');
+select (public.schedule_internal_session(:'team', date_trunc('week', now()) + interval '10 days 10 hours', date_trunc('week', now()) + interval '10 days 11 hours')).id as internal2 \gset
+select public.assert_rejects(
+  format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '13 days 10 hours', date_trunc('week', now()) + interval '13 days 11 hours')$$, :'team'),
+  '35.16 and a team gets two free sessions a week',
+  'جلستين في الأسبوع');
+select public.assert(
+  not exists (select 1 from public.video_session_participants vp
+                join public.team_members tm on tm.profile_id = vp.profile_id and tm.team_id = :'team'
+               where vp.session_id = :'internal1' and tm.role = 'mentor')
+  and not exists (select 1 from public.video_session_participants vp
+                   where vp.session_id = :'internal1'
+                     and not exists (select 1 from public.team_members tm where tm.team_id = :'team' and tm.profile_id = vp.profile_id)),
+  '35.17 a team session seats the team''s members and nobody else');
+select public.assert(
+  (select remaining from public.team_session_allowance(:'team') order by week_start desc limit 1) = 0,
+  '35.18 the team page reads how many sessions are left in a week');
+select public.cancel_internal_session(:'internal2');
+select public.assert(
+  (select remaining from public.team_session_allowance(:'team') order by week_start desc limit 1) = 1,
+  '35.19 the leader can call a session off, and its place is free again');
 reset role;
 reset request.jwt.claim.sub;
 
--- 7777 joined a team back in section 26, so the outsider here is 8888.
 set role authenticated;
 set request.jwt.claim.sub = '88888888-8888-8888-8888-888888888888';
 select public.assert_rejects(
   format($$select public.schedule_internal_session(%L, date_trunc('week', now()) + interval '12 days 10 hours', date_trunc('week', now()) + interval '12 days 11 hours')$$, :'team'),
-  '35.16 and somebody outside the team cannot book its room at all',
-  'أعضاء الفريق فقط');
+  '35.20 and somebody outside the team cannot book its room at all',
+  'قائد الفريق فقط');
 reset role;
 reset request.jwt.claim.sub;
 
@@ -5470,7 +5487,9 @@ reset request.jwt.claim.sub;
 -- 11111111 has been notified by half the platform by now; those rows are the
 -- fixture.
 select public.assert(
-  (select count(*) from public.notification_categories) = 12
+  -- twelve, and 0114's daily reminders (a reply to your own ticket has no
+  -- category: it always arrives)
+  (select count(*) from public.notification_categories) = 13
   and (select count(*) from public.notification_categories where is_mandatory) = 3,
   '51.1 every category is named, and three of them are nobody''s to silence');
 
@@ -8328,14 +8347,26 @@ select '55555555-5555-5555-5555-555555555555', lp.id from public.learning_paths 
  where lp.slug = 'genai'
    and not exists (select 1 from public.enrollments e
                     where e.profile_id = '55555555-5555-5555-5555-555555555555' and e.path_id = lp.id);
-update public.lesson_progress set updated_at = now() - interval '2 days'
+update public.lesson_progress set updated_at = now() - interval '2 days', completed_at = now() - interval '2 days'
  where profile_id = '55555555-5555-5555-5555-555555555555';
+-- Joining a path counts as today's step (the streak rule, 0110); this one was
+-- joined two days ago, so today is still empty (0114).
+update public.enrollments set enrolled_at = now() - interval '2 days'
+ where profile_id = '55555555-5555-5555-5555-555555555555';
+update public.submissions set created_at = now() - interval '2 days'
+ where profile_id = '55555555-5555-5555-5555-555555555555';
+update public.assessment_attempts set created_at = now() - interval '2 days'
+ where profile_id = '55555555-5555-5555-5555-555555555555';
+update public.bookings set completed_at = now() - interval '2 days'
+ where student_id = '55555555-5555-5555-5555-555555555555' and completed_at is not null;
+update public.team_tasks set completed_at = now() - interval '2 days'
+ where assignee_id = '55555555-5555-5555-5555-555555555555' and completed_at is not null;
 select public.daily_learning_reminder() as nudged_first \gset
 select public.daily_learning_reminder() as nudged_again \gset
 select public.assert(
   :nudged_first >= 1 and :nudged_again = 0
   and (select count(*) from public.notifications
-        where profile_id = '55555555-5555-5555-5555-555555555555' and metadata ->> 'reminder' = 'daily') = 1,
+        where profile_id = '55555555-5555-5555-5555-555555555555' and metadata ->> 'reminder' = 'evening') = 1,
   '71.10 one nudge a day to a learner with a device and nothing studied — not two');
 
 -- ===========================================================================
@@ -9107,6 +9138,242 @@ select public.assert_rejects($$select public.import_course('{}'::jsonb)$$,
   '82.9 members cannot import content', 'permission denied');
 reset role;
 reset request.jwt.claim.sub;
+
+-- ---------------------------------------------------------------------------
+-- 83. Every role in a team does what it is meant to (0113)
+-- ---------------------------------------------------------------------------
+\echo '83. team roles'
+
+select public.assert(
+  (select leader_id from public.teams where id = :'team') = '22222222-2222-2222-2222-222222222222'
+  and exists (select 1 from public.team_members where team_id = :'team' and profile_id = '11111111-1111-1111-1111-111111111111'),
+  '83.0 fixture: 2222 leads the team and 1111 is a member');
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$insert into public.team_members (team_id, profile_id, role) values (%L, '88888888-8888-8888-8888-888888888888', 'member')$$, :'team'),
+  '83.1 a leader cannot write a stranger into the team — people join by invitation or request',
+  'row-level security');
+select public.assert_rejects(
+  format($$update public.team_members set role = 'leader' where team_id = %L and profile_id = '11111111-1111-1111-1111-111111111111'$$, :'team'),
+  '83.2 a role changes only through the leadership handover — no second leader',
+  'تسليم القيادة');
+select public.assert_rejects(
+  format($$delete from public.team_members where team_id = %L and profile_id = '22222222-2222-2222-2222-222222222222'$$, :'team'),
+  '83.3 the leader hands the team over before leaving it',
+  'سلّم قيادة الفريق');
+select public.assert_rejects(
+  format($$insert into public.team_tasks (team_id, title_ar, column_key, assignee_id, created_by) values (%L, 'مهمة لغريب', 'todo', '88888888-8888-8888-8888-888888888888', '22222222-2222-2222-2222-222222222222')$$, :'team'),
+  '83.4 a task is only ever given to someone in the team',
+  'لعضو في الفريق');
+insert into public.team_tasks (team_id, title_ar, column_key, created_by)
+values (:'team', 'مهمة القائد', 'todo', '22222222-2222-2222-2222-222222222222')
+returning id as leader_task \gset
+insert into public.team_permissions (team_id, members_create_tasks, members_assign_tasks)
+values (:'team', true, false)
+on conflict (team_id) do update set members_create_tasks = true, members_assign_tasks = false;
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$insert into public.team_tasks (team_id, title_ar, column_key, assignee_id, created_by) values (%L, 'لغيري', 'todo', '22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111')$$, :'team'),
+  '83.5 by default a member cannot assign work to somebody else',
+  'إسناد المهام');
+insert into public.team_tasks (team_id, title_ar, column_key, assignee_id, created_by)
+values (:'team', 'آخذها لنفسي', 'todo', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111')
+returning id as my_task \gset
+select public.assert(:'my_task' is not null, '83.6 but may always take a task for themselves');
+select public.assert_rejects(
+  format($$delete from public.team_tasks where id = %L$$, :'leader_task'),
+  '83.7 a member cannot delete a task somebody else wrote',
+  'كاتبها أو قائد الفريق');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.team_permissions (team_id, members_create_tasks)
+values (:'team', false)
+on conflict (team_id) do update set members_create_tasks = false;
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$insert into public.team_tasks (team_id, title_ar, column_key, created_by) values (%L, 'ممنوعة', 'todo', '11111111-1111-1111-1111-111111111111')$$, :'team'),
+  '83.8 when the leader keeps task creation, members cannot create tasks',
+  'للقائد فقط');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ---------------------------------------------------------------------------
+-- 84. Daily reminders on the device (0114)
+-- ---------------------------------------------------------------------------
+\echo '84. daily reminders'
+
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('84848484-8484-8484-8484-848484848484', 'streak@example.com', '{"full_name":"Streak Keeper"}');
+insert into public.push_subscriptions (profile_id, endpoint, p256dh, auth) values
+  ('11111111-1111-1111-1111-111111111111', 'https://push.example.com/1111', 'k', 'a'),
+  ('84848484-8484-8484-8484-848484848484', 'https://push.example.com/8484', 'k', 'a');
+-- Something finished yesterday, nothing today: a one-day streak about to break.
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at, updated_at)
+select '84848484-8484-8484-8484-848484848484', l.id, 'completed', now() - interval '1 day', now() - interval '1 day'
+  from public.lessons l where l.status = 'published'
+   and not exists (select 1 from public.lesson_credentials lc where lc.lesson_id = l.id)
+ limit 1;
+
+select public.morning_digest() as mornings \gset
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '11111111-1111-1111-1111-111111111111'
+            and kind = 'reminder' and metadata ->> 'reminder' = 'morning' and body_ar like '%دوري الأسبوع%'),
+  '84.1 the morning reminder tells a learner where they stand in this week''s league');
+select public.assert(
+  not exists (select 1 from public.notifications where profile_id = '33333333-3333-3333-3333-333333333333'
+                and metadata ->> 'reminder' = 'morning'),
+  '84.2 somebody with no device gets no reminder');
+select public.assert(public.morning_digest() = 0, '84.3 and it comes once a day');
+
+select public.daily_learning_reminder();
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '84848484-8484-8484-8484-848484848484'
+            and kind = 'reminder' and metadata ->> 'reminder' = 'evening' and title_ar like '%حماستك 1%'),
+  '84.4 the evening reminder names the streak that is about to break');
+select public.assert(public.daily_learning_reminder() = 0, '84.5 and it comes once a day too');
+
+select public.assert(
+  exists (select 1 from public.notification_categories where kind = 'reminder' and not is_mandatory),
+  '84.6 daily reminders are a category a person can silence');
+insert into public.notification_preferences (profile_id, kind, in_app, email, push)
+values ('84848484-8484-8484-8484-848484848484', 'reminder', true, false, false)
+on conflict (profile_id, kind) do update set push = false;
+select public.assert(
+  not public.wants_notification('84848484-8484-8484-8484-848484848484', 'reminder', 'push'),
+  '84.7 and silencing it keeps it off the device');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects($$select public.morning_digest()$$, '84.8 members cannot send reminders', 'permission denied');
+select public.assert_rejects($$select * from public.week_league_rank('11111111-1111-1111-1111-111111111111')$$,
+  '84.9 nor read anybody''s league position through the reminder''s helper', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- ---------------------------------------------------------------------------
+-- 85. The mentor's studio (0115)
+-- ---------------------------------------------------------------------------
+\echo '85. mentor studio'
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects($$select public.studio_create_course('دورة طالب', 'Student course')$$,
+  '85.1 the studio is for approved mentors', 'للمنتورز المعتمدين');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.studio_create_course('أساسيات Git للفرق', 'Git for Teams', 'التعاون على الكود بـ Git وGitHub.', 'beginner') as s_course \gset
+select public.studio_add_module(:'s_course', 'البداية') as s_module \gset
+select public.studio_save_lesson(:'s_module', null, jsonb_build_object(
+  'title_ar', 'أول مستودع', 'title_en', 'Your first repository', 'kind', 'video',
+  'summary_ar', 'ننشئ مستودعاً ونرفع أول تعديل.',
+  'outcomes_ar', jsonb_build_array('إنشاء مستودع', 'أول commit'),
+  'videos', jsonb_build_array(jsonb_build_object('title_ar', 'الشرح', 'url', 'https://youtu.be/example1')),
+  'resources', jsonb_build_array(jsonb_build_object('label', 'توثيق Git', 'url', 'https://git-scm.com/doc')),
+  'case_study_ar', 'فريق يفقد عمله لأن أحدهم كتب فوق ملف زميله.',
+  'assignment', jsonb_build_object('brief_ar', 'أنشئ مستودعاً وارفع ملف README.', 'required_evidence', jsonb_build_array('github'))
+)) as s_lesson \gset
+select public.assert(
+  (select count(*) from public.lesson_videos where lesson_id = :'s_lesson') = 1
+  and (select count(*) from public.lesson_resources where lesson_id = :'s_lesson') = 1
+  and (select required_evidence from public.assignments where lesson_id = :'s_lesson') = '{github}'
+  and (select slug from public.lessons where id = :'s_lesson') like (select slug from public.courses where id = :'s_course') || '-l1',
+  '85.2 a mentor writes a lesson in the TechMood shape: videos, sources, case and one assignment');
+select public.assert(
+  (select count(*) from public.lessons where id = :'s_lesson') = 1,
+  '85.3 the author reads their own draft');
+select public.assert_rejects(
+  format($$select public.studio_save_lesson(%L, null, '{"title_ar":"رابط سيئ","videos":[{"url":"javascript:alert(1)"}]}'::jsonb)$$, :'s_module'),
+  '85.4 every link is a web address', 'https://');
+select public.studio_create_course('دورة فارغة', 'Empty') as s_empty \gset
+select public.assert_rejects(format($$select public.studio_submit('course', %L)$$, :'s_empty'),
+  '85.5 an empty course is not sent for review', 'درس واحد على الأقل');
+select public.studio_submit('course', :'s_course');
+select public.assert_rejects(
+  format($$select public.studio_update_course(%L, 'عنوان آخر', null, null, 'beginner')$$, :'s_course'),
+  '85.6 what is under review is not edited', 'للمراجعة');
+select public.studio_create_path('مسار التعاون البرمجي', 'Collaborative Coding', 'software-engineering',
+  'اعمل مع فريق كالمحترفين', 'Git والمراجعات والعمل الجماعي.', array['Git', 'Teams']) as s_path \gset
+select public.studio_set_path_courses(:'s_path', array[:'s_course'::uuid]);
+select public.studio_submit('path', :'s_path');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.lessons where id = :'s_lesson') = 0
+  and (select count(*) from public.assignments where lesson_id = :'s_lesson') = 0,
+  '85.7 nobody else reads a draft lesson or its assignment');
+select public.assert_rejects(format($$select public.review_studio_item('course', %L, true)$$, :'s_course'),
+  '85.8 only an admin reviews', 'للإدارة');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(format($$select public.studio_add_module(%L, 'وحدة دخيلة')$$, :'s_empty'),
+  '85.9 a mentor cannot touch another mentor''s course', 'ليست من إعدادك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(format($$select public.review_studio_item('path', %L, false, '')$$, :'s_path'),
+  '85.10 asking for changes says what to change', 'ما المطلوب تعديله');
+select public.review_studio_item('path', :'s_path', false, 'أضف وصفاً أوضح لمن يناسب المسار.');
+select public.review_studio_item('course', :'s_course', true);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select review_state from public.learning_paths where id = :'s_path') = 'changes_requested'
+  and exists (select 1 from public.notifications where profile_id = '33333333-3333-3333-3333-333333333333'
+                and entity_id = :'s_path' and body_ar like '%وصفاً أوضح%'),
+  '85.11 the author hears what the reviewer asked for');
+select public.assert(
+  (select status from public.courses where id = :'s_course') = 'published'
+  and (select status from public.lessons where id = :'s_lesson') = 'published'
+  and (select status from public.assignments where lesson_id = :'s_lesson') = 'published'
+  and (select author_id from public.courses where id = :'s_course') = '33333333-3333-3333-3333-333333333333',
+  '85.12 an approved course opens with its lessons and work, under its author''s name');
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  format($$select public.studio_update_course(%L, 'تعديل بعد النشر', null, null, 'beginner')$$, :'s_course'),
+  '85.13 a published course is not edited in place', 'منشورة');
+select public.studio_update_path(:'s_path', 'مسار التعاون البرمجي', 'Collaborative Coding', 'software-engineering',
+  'اعمل مع فريق كالمحترفين', 'لمن بدأ البرمجة ويريد العمل ضمن فريق: Git والمراجعات.', array['Git']);
+select public.studio_submit('path', :'s_path');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_studio_item('path', :'s_path', true);
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select status from public.learning_paths where id = :'s_path') = 'published'
+  and (select author_id from public.learning_paths where id = :'s_path') = '33333333-3333-3333-3333-333333333333',
+  '85.14 an approved path with a ready course opens in the academy, under its author''s name');
 
 \echo ''
 \echo '================================================'
