@@ -931,6 +931,8 @@ export type Evaluation = {
   score: number | null;
   feedback_ar: string | null;
   created_at: string;
+  /** The mentor who wrote it, when the query embeds it (shown to the learner). */
+  evaluator?: { full_name: string; display_name: string | null; techmood_id: string; avatar_url: string | null } | null;
 }
 
 export type ReevaluationRequest = {
@@ -2119,6 +2121,9 @@ export type Database = {
       delete_project_comment: { Args: { p_comment: string }; Returns: undefined };
       showcase_project: { Args: { p_code: string }; Returns: ShowcasePage[] };
       can_edit_showcase: { Args: { p_project: string }; Returns: boolean };
+      // lessons open in order (0124)
+      lesson_unlocked: { Args: { p_lesson: string; p_profile?: string | null }; Returns: boolean };
+      course_lesson_locks: { Args: { p_course: string }; Returns: { lesson_id: string; unlocked: boolean; previous_id: string | null }[] };
       showcase_reviews: {
         Args: { p_project: string };
         Returns: { stars: number; comment_ar: string | null; buyer_name: string | null; created_at: string }[];

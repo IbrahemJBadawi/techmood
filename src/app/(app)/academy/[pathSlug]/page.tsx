@@ -134,7 +134,7 @@ export default async function PathPage({
     ? await Promise.all([
         supabase
           .from('evaluations')
-          .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
+          .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at, evaluator:evaluator_id(full_name, display_name, techmood_id, avatar_url)')
           .eq('submission_id', projectSubmission.id)
           .order('created_at', { ascending: true }),
         supabase.from('reevaluation_requests').select('submission_id')
@@ -320,7 +320,7 @@ export default async function PathPage({
               brief={null}
               requiredEvidence={groupProject.required_evidence}
               submission={(projectSubmission ?? null) as Submission | null}
-              evaluations={(projectEvaluations ?? []) as Evaluation[]}
+              evaluations={(projectEvaluations ?? []) as unknown as Evaluation[]}
               revalidatePath={`/academy/${path.slug}`}
               hasOpenReevaluation={Boolean(projectReevaluation)}
               isProject

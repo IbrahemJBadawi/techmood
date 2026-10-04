@@ -5954,3 +5954,35 @@ input[type="file"]::file-selector-button:hover { border-color: var(--royal); col
 .pp-primary-link.is-behance { background: #1769FF; }
 .pp-primary-link.is-youtube { background: #E62117; }
 .pp-primary-link.is-cv { background: var(--royal-fill); }
+.sc-evaluator { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; margin-bottom: 4px; }
+/* lesson video player */
+.lp { display: grid; gap: 10px; }
+.lp-stage { position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius-m); overflow: hidden; background: #000; }
+.lp-stage iframe, .lp-stage video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.lp-external { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 700; text-decoration: none; background: linear-gradient(135deg, #0b1b2b, #1e3a5f); }
+.lp-meta { display: grid; gap: 4px; }
+.lp-open { font-size: 0.8rem; }
+.lp-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.lp-list button {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: start; padding: 8px 10px;
+  border-radius: var(--radius-s); border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer;
+}
+.lp-list button.is-active { border-color: var(--royal); background: var(--sky-tint); }
+.lp-num { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--bg-deep); font-size: 0.76rem; flex: none; }
+.lp-list button span:nth-child(2) { flex: 1; }
+.lesson-locked { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 32px 18px; }
+.lesson-lock-icon { font-size: 2.4rem; margin: 0; }
+.lesson-row.is-locked { opacity: 0.62; }
+/* «احجز جلسة» — opposite the assistant's button */
+.book-fab {
+  position: fixed; z-index: 59; inset-block-end: 22px; inset-inline-start: 22px;
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px;
+  background: var(--mentor); color: #fff; font-weight: 800; text-decoration: none;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--mentor) 40%, transparent);
+}
+.book-fab:hover { filter: brightness(1.06); }
+/* clear of the sidebar: 240px wide above 1023px, 76px between 761 and 1023, gone below */
+@media (min-width: 1024px) { .book-fab { inset-inline-start: calc(240px + 22px); } }
+@media (min-width: 761px) and (max-width: 1023px) { .book-fab { inset-inline-start: calc(76px + 16px); } }
+@media (max-width: 760px) { .book-fab { inset-block-end: calc(var(--tabbar-h) + 14px); inset-inline-start: 14px; padding: 10px 14px; } }
+@media print { .book-fab { display: none !important; } }

@@ -10054,6 +10054,44 @@ select public.assert(
   (select is_read_only from public.conversations where id = :'conv92'),
   '92.9 when the order ends the conversation closes, its history kept');
 
+-- ===========================================================================
+-- 93. Lessons open in order inside a course (0124)
+-- ===========================================================================
+-- a published course with three open lessons the student has not touched
+select c.id as c93 from public.courses c
+ where c.status = 'published'
+   and (select count(*) from public.lessons l join public.modules m on m.id = l.module_id
+         where m.course_id = c.id and l.status = 'published') >= 3
+   and not exists (select 1 from public.lesson_progress lp join public.lessons l on l.id = lp.lesson_id
+                     join public.modules m on m.id = l.module_id
+                    where m.course_id = c.id and lp.profile_id = '84848484-8484-8484-8484-848484848484')
+ order by c.slug limit 1 \gset
+select l.id as l93a from public.lessons l join public.modules m on m.id = l.module_id
+ where m.course_id = :'c93' and l.status = 'published' order by m.sort_order, l.sort_order, l.created_at limit 1 \gset
+select l.id as l93b from public.lessons l join public.modules m on m.id = l.module_id
+ where m.course_id = :'c93' and l.status = 'published' order by m.sort_order, l.sort_order, l.created_at offset 1 limit 1 \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert(
+  (select unlocked from public.course_lesson_locks(:'c93') where lesson_id = :'l93a')
+  and not (select unlocked from public.course_lesson_locks(:'c93') where lesson_id = :'l93b'),
+  '93.1 the first lesson is open, the second waits for it');
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+           values ('84848484-8484-8484-8484-848484848484', %L, 'completed', now())$$, :'l93b'),
+  '93.2 a lesson is not completed before the one before it',
+  'أكمل الدرس السابق أولاً');
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('84848484-8484-8484-8484-848484848484', :'l93a', 'completed', now());
+select public.assert(
+  public.lesson_unlocked(:'l93b'),
+  '93.3 finishing it opens the next');
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('84848484-8484-8484-8484-848484848484', :'l93b', 'completed', now());
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

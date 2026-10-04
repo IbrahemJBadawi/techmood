@@ -11,6 +11,7 @@ import { DeviceSetup } from '@/components/DeviceSetup';
 
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
+import { BookSessionFab } from '@/components/BookSessionFab';
 import { parseLeague } from './student/League';
 import { roleInScope } from '@/lib/scope';
 
@@ -75,6 +76,8 @@ export default async function HomePage({
       {active === 'student'
         ? <StudentHome userId={user.id} profile={profile} league={league} />
         : <RoleDashboard role={active} userId={user.id} name={profile.display_name ?? profile.full_name} />}
+      {/* A learner — a student or a mentee — books a session from here in one tap. */}
+      {(active === 'student' || active === 'mentee') && <BookSessionFab />}
     </>
   );
 }

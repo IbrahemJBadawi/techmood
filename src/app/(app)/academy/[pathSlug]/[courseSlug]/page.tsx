@@ -86,6 +86,10 @@ export default async function CoursePage({
 
   const lessonIds = lessons.map((lesson) => lesson.id);
 
+  // Lessons open in order (0124): which of them this member can open now.
+  const { data: lockRows } = course.status === 'draft' ? { data: [] } : await supabase.rpc('course_lesson_locks', { p_course: course.id });
+  const lockedLessons = new Set((lockRows ?? []).filter((row) => !row.unlocked).map((row) => row.lesson_id));
+
   const [{ data: progress }, { data: assignments }, { data: videoRows }] = await Promise.all([
     supabase.from('lesson_progress').select('lesson_id, status').eq('profile_id', user.id).in('lesson_id', lessonIds.length ? lessonIds : ['00000000-0000-0000-0000-000000000000']),
     supabase
@@ -115,7 +119,7 @@ export default async function CoursePage({
   const [{ data: evaluations }, { data: openReevaluations }] = await Promise.all([
     supabase
       .from('evaluations')
-      .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
+      .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at, evaluator:evaluator_id(full_name, display_name, techmood_id, avatar_url)')
       .in('submission_id', submissionIds.length ? submissionIds : ['00000000-0000-0000-0000-000000000000'])
       .order('created_at', { ascending: true }),
     supabase
@@ -174,7 +178,7 @@ export default async function CoursePage({
 
   const evaluationsFor = (submissionId: string | undefined) =>
     submissionId
-      ? ((evaluations ?? []) as Evaluation[]).filter((evaluation) => evaluation.submission_id === submissionId)
+      ? ((evaluations ?? []) as unknown as Evaluation[]).filter((evaluation) => evaluation.submission_id === submissionId)
       : [];
 
   const hasOpenReevaluation = (submissionId: string | undefined) =>
@@ -309,10 +313,12 @@ export default async function CoursePage({
               {module.lessons.map((lesson) => {
                 const done = completedLessons.has(lesson.id);
                 const soon = lesson.status !== 'published';
+                const locked = !done && lockedLessons.has(lesson.id);
                 return (
-                  <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}`} key={lesson.id}>
-                    {soon ? (
-                      <span className="lstat" aria-label={t('قريباً', 'Coming soon')} title={t('قريباً', 'Coming soon')}><Icon name="lock" size={14} /></span>
+                  <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}${locked ? ' is-locked' : ''}`} key={lesson.id}>
+                    {soon || locked ? (
+                      <span className="lstat" aria-label={soon ? t('قريباً', 'Coming soon') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}
+                            title={soon ? t('قريباً', 'Coming soon') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}><Icon name="lock" size={14} /></span>
                     ) : (
                     <form action={toggleLesson}>
                       <input type="hidden" name="lesson_id" value={lesson.id} />
@@ -339,6 +345,7 @@ export default async function CoursePage({
                       <div className="lesson-meta">
                         <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
                         {soon && <span className="status-pill status-pending">{t('قيد التحضير', 'Being prepared')}</span>}
+                        {locked && !soon && <span className="status-pill status-muted">🔒 {t('يُفتح بعد الدرس السابق', 'Opens after the previous lesson')}</span>}
                         {missingVideo(lesson) && <span className="status-pill status-muted lesson-gap">{t('الفيديو يُضاف قريباً', 'Video coming soon')}</span>}
                         {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
                         {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}

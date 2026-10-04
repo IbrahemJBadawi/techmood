@@ -91,6 +91,17 @@ export function SubmissionPanel({
                 marginTop: index === 0 ? 0 : 10,
               }}
             >
+              {/* Who evaluated it — the learner sees the mentor behind every judgement. */}
+              {evaluation.evaluator && (
+                <p className="sc-evaluator">
+                  {evaluation.evaluator.avatar_url
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={evaluation.evaluator.avatar_url} alt="" className="sc-avatar is-xs" />
+                    : <span className="sc-avatar is-xs is-initial">{(evaluation.evaluator.display_name ?? evaluation.evaluator.full_name).charAt(0)}</span>}
+                  {t('قيّمه المنتور ', 'Evaluated by mentor ')}
+                  <Link href={`/m/${evaluation.evaluator.techmood_id}`}>{evaluation.evaluator.display_name ?? evaluation.evaluator.full_name}</Link>
+                </p>
+              )}
               <div className="row-between">
                 <Stars value={evaluation.stars} />
                 <span className="muted eng" style={{ fontSize: '0.74rem' }}>

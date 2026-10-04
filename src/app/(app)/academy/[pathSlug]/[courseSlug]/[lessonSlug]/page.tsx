@@ -14,6 +14,7 @@ import { SubmissionPanel } from '../../../SubmissionPanel';
 import { CredentialPanel } from '../../../CredentialPanel';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { LessonPlayer } from '@/components/LessonPlayer';
 
 const KIND_LABEL: Record<string, Text> = {
   video:    { ar: 'فيديو',       en: 'Video' },
@@ -128,7 +129,12 @@ export default async function LessonPage({
   const credential = credentialRows?.[0] ?? null;
   // A «قريباً» lesson is shown but cannot be finished until it is published (0078).
   const soon = lesson.status !== 'published';
-  const canTick = !preview && !soon && (!credential || (credential.verified && credential.applied) || credential.completed);
+  // Lessons open in order inside a course (0124): until the one before is
+  // finished, this one shows only where it sits and the way back.
+  const { data: unlockedRow } = preview || soon ? { data: true } : await supabase.rpc('lesson_unlocked', { p_lesson: lesson.id });
+  const locked = unlockedRow === false;
+  const previousOpen = lessons.slice(0, index).reverse().find((item) => item.status === 'published') ?? null;
+  const canTick = !preview && !soon && !locked && (!credential || (credential.verified && credential.applied) || credential.completed);
 
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
@@ -145,10 +151,10 @@ export default async function LessonPage({
     if (submission) {
       const { data: rows } = await supabase
         .from('evaluations')
-        .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at')
+        .select('id, submission_id, version_id, evaluator_id, decision, stars, score, feedback_ar, created_at, evaluator:evaluator_id(full_name, display_name, techmood_id, avatar_url)')
         .eq('submission_id', submission.id)
         .order('created_at');
-      evaluations = (rows ?? []) as Evaluation[];
+      evaluations = (rows ?? []) as unknown as Evaluation[];
     }
   }
 
@@ -231,152 +237,160 @@ export default async function LessonPage({
         <CredentialPanel lessonId={lesson.id} state={credential} revalidate={here} />
       )}
 
-      <div className="detail-grid">
-        <section>
-          {(skills ?? []).length > 0 && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('ما يثبته هذا الدرس', 'What finishing this proves')}</h3>
-              <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-                {t('تُضاف هذه المهارات إلى ملفك موثّقة حين يعتمد المنتور تكليف هذا الدرس — لا قبل ذلك.',
-                   'These land on your profile as proven when a mentor approves this lesson\u2019s assignment — not before.')}
-              </p>
-              <div className="tags-row" style={{ marginTop: 10 }}>
-                {(skills ?? []).map((skill) => (
-                  <span className="tag" key={skill.slug}>{contentText(locale, skill.name_ar, skill.name_en)}</span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {lesson.outcomes_ar.length > 0 && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('ما ستتعلمه', 'What you will learn')}</h3>
-              <ul className="lesson-outcomes">
-                {lesson.outcomes_ar.map((outcome) => <li key={outcome}>{outcome}</li>)}
-              </ul>
-            </section>
-          )}
-
-          {(videos ?? []).length > 0 && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('الشرح والتطبيق', 'Walkthroughs')}</h3>
-              <ul className="lesson-links">
-                {((videos ?? []) as LessonVideo[]).map((video) => (
-                  <li key={video.id}>
-                    <a href={video.url} target="_blank" rel="noreferrer">
-                      {contentText(locale, video.title_ar, video.title_en)}
-                    </a>
-                    {video.duration_minutes && <span className="eng muted"> · {video.duration_minutes} min</span>}
-                    {video.description_ar && <p className="muted lesson-text">{video.description_ar}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {(resources ?? []).length > 0 && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('مصادر المراجعة', 'Review material')}</h3>
-              <ul className="lesson-links">
-                {(resources ?? []).map((resource) => (
-                  <li key={resource.id}>
-                    <a href={resource.url} target="_blank" rel="noreferrer">{resource.label}</a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {lesson.case_study_ar && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('دراسة حالة', 'Case study')}</h3>
-              <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.case_study_ar}</p>
-              {lesson.case_question_ar && <p className="quote lesson-text">{lesson.case_question_ar}</p>}
-            </section>
-          )}
-
-          {assignment && (
-            <>
-              {assignment.required_evidence.length > 0 && (
-                <section className="panel section-block">
-                  <h3 style={{ fontSize: '0.98rem' }}>{t('المطلوب تسليمه', 'What to hand in')}</h3>
-                  <ul className="lesson-outcomes">
-                    {assignment.required_evidence.map((kind) => (
-                      <li key={kind}>{EVIDENCE_LABEL[kind] ? t(EVIDENCE_LABEL[kind]) : kind}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {preview ? (
-                <section className="panel section-block">
-                  <h3 style={{ fontSize: '0.98rem' }}>{assignment.title_ar}</h3>
-                  {assignment.brief_ar && <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{assignment.brief_ar}</p>}
-                  <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
-                    {t('هنا يسلّم المتعلم عمله بعد النشر.', 'This is where the learner hands in their work once published.')}
-                  </p>
-                </section>
-              ) : (
-                <SubmissionPanel
-                  assignmentId={assignment.id}
-                  title={assignment.title_ar}
-                  brief={assignment.brief_ar}
-                  requiredEvidence={assignment.required_evidence}
-                  submission={submission}
-                  evaluations={evaluations}
-                  revalidatePath={here}
-                />
-              )}
-            </>
-          )}
-
-          {lesson.challenge_ar && (
-            <section className="panel section-block">
-              <h3 style={{ fontSize: '0.98rem' }}>{t('تحدٍّ إضافي — اختياري', 'An extra challenge — optional')}</h3>
-              <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.challenge_ar}</p>
-            </section>
-          )}
-
-          <section className="panel section-block">
-            <h3 style={{ fontSize: '0.98rem' }}>{t('أين يُحفَظ هذا العمل', 'Where this work lives')}</h3>
-            <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
-              {t('رتّب ملفاتك بهذا المسار حتى يبقى معرض أعمالك مقروءاً:',
-                 'Keep your files under this path so your portfolio stays readable:')}
-            </p>
-            <p className="copy-row"><span className="cv">{folder}</span></p>
-          </section>
-
-          {next ? (
-            <section className="panel section-block">
-              <p className="kicker">{t('الدرس التالي', 'Next lesson')}</p>
-              <h3 style={{ fontSize: '1rem', margin: '4px 0 10px' }}>
-                {contentText(locale, next.title_ar, next.title_en)}
-              </h3>
-              <Link className="btn btn-primary btn-sm" href={`/academy/${pathSlug}/${courseSlug}/${next.slug}`}>
-                {t('تابع', 'Continue')}
-              </Link>
-            </section>
-          ) : (
-            <section className="panel section-block">
-              <p className="kicker">{t('آخر درس في الدورة', 'The last lesson of the course')}</p>
-              <p className="muted" style={{ fontSize: '0.86rem', margin: '6px 0 10px' }}>
-                {t('يبقى مشروع الدورة ومهمتها التطبيقية — وهما ما تُبنى عليه الشهادة.',
-                   'The course task and project remain — and they are what the certificate is built on.')}
-              </p>
-              <Link className="btn btn-primary btn-sm" href={`/academy/${pathSlug}/${courseSlug}`}>
-                {t('ارجع للدورة', 'Back to the course')}
-              </Link>
-            </section>
+      {locked && (
+        <section className="panel section-block lesson-locked">
+          <p className="lesson-lock-icon" aria-hidden="true">🔒</p>
+          <h3>{t('هذا الدرس مقفل حتى تُكمل الدرس السابق', 'This lesson opens once you finish the one before it')}</h3>
+          <p className="muted">{t('الدروس داخل الدورة تُفتح بالترتيب — أكمل الدرس السابق وعلّمه كمكتمل.', 'Lessons inside a course open in order — finish the previous lesson and mark it done.')}</p>
+          {previousOpen && (
+            <Link className="btn btn-primary" href={`/academy/${pathSlug}/${courseSlug}/${previousOpen.slug}`}>
+              {t('الدرس السابق: ', 'Previous lesson: ')}{contentText(locale, previousOpen.title_ar, previousOpen.title_en)}
+            </Link>
           )}
         </section>
+      )}
 
-        <aside>
-          <LessonBoard steps={board ?? []} />
-          <Pomodoro suggestion={lesson.title_ar} refTable="lessons" refId={lesson.id} />
-          <div style={{ marginTop: 16 }}>
-            <ShareDraft text={shareDraft} />
-          </div>
-        </aside>
-      </div>
+      {!locked && (
+      <div className="detail-grid">
+          <section>
+            {(skills ?? []).length > 0 && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem' }}>{t('ما يثبته هذا الدرس', 'What finishing this proves')}</h3>
+                <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
+                  {t('تُضاف هذه المهارات إلى ملفك موثّقة حين يعتمد المنتور تكليف هذا الدرس — لا قبل ذلك.',
+                     'These land on your profile as proven when a mentor approves this lesson\u2019s assignment — not before.')}
+                </p>
+                <div className="tags-row" style={{ marginTop: 10 }}>
+                  {(skills ?? []).map((skill) => (
+                    <span className="tag" key={skill.slug}>{contentText(locale, skill.name_ar, skill.name_en)}</span>
+                  ))}
+                </div>
+              </section>
+            )}
+  
+            {lesson.outcomes_ar.length > 0 && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem' }}>{t('ما ستتعلمه', 'What you will learn')}</h3>
+                <ul className="lesson-outcomes">
+                  {lesson.outcomes_ar.map((outcome) => <li key={outcome}>{outcome}</li>)}
+                </ul>
+              </section>
+            )}
+  
+            {(videos ?? []).length > 0 && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('الشرح والتطبيق', 'Walkthroughs')}</h3>
+                <LessonPlayer videos={((videos ?? []) as LessonVideo[]).map((video) => ({
+                  id: video.id, title: contentText(locale, video.title_ar, video.title_en), url: video.url,
+                  minutes: video.duration_minutes, description: video.description_ar,
+                }))} />
+              </section>
+            )}
+  
+            {(resources ?? []).length > 0 && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem' }}>{t('مصادر المراجعة', 'Review material')}</h3>
+                <ul className="lesson-links">
+                  {(resources ?? []).map((resource) => (
+                    <li key={resource.id}>
+                      <a href={resource.url} target="_blank" rel="noreferrer">{resource.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+  
+            {lesson.case_study_ar && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem' }}>{t('دراسة حالة', 'Case study')}</h3>
+                <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.case_study_ar}</p>
+                {lesson.case_question_ar && <p className="quote lesson-text">{lesson.case_question_ar}</p>}
+              </section>
+            )}
+  
+            {assignment && (
+              <>
+                {assignment.required_evidence.length > 0 && (
+                  <section className="panel section-block">
+                    <h3 style={{ fontSize: '0.98rem' }}>{t('المطلوب تسليمه', 'What to hand in')}</h3>
+                    <ul className="lesson-outcomes">
+                      {assignment.required_evidence.map((kind) => (
+                        <li key={kind}>{EVIDENCE_LABEL[kind] ? t(EVIDENCE_LABEL[kind]) : kind}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {preview ? (
+                  <section className="panel section-block">
+                    <h3 style={{ fontSize: '0.98rem' }}>{assignment.title_ar}</h3>
+                    {assignment.brief_ar && <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{assignment.brief_ar}</p>}
+                    <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+                      {t('هنا يسلّم المتعلم عمله بعد النشر.', 'This is where the learner hands in their work once published.')}
+                    </p>
+                  </section>
+                ) : (
+                  <SubmissionPanel
+                    assignmentId={assignment.id}
+                    title={assignment.title_ar}
+                    brief={assignment.brief_ar}
+                    requiredEvidence={assignment.required_evidence}
+                    submission={submission}
+                    evaluations={evaluations}
+                    revalidatePath={here}
+                  />
+                )}
+              </>
+            )}
+  
+            {lesson.challenge_ar && (
+              <section className="panel section-block">
+                <h3 style={{ fontSize: '0.98rem' }}>{t('تحدٍّ إضافي — اختياري', 'An extra challenge — optional')}</h3>
+                <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.challenge_ar}</p>
+              </section>
+            )}
+  
+            <section className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem' }}>{t('أين يُحفَظ هذا العمل', 'Where this work lives')}</h3>
+              <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
+                {t('رتّب ملفاتك بهذا المسار حتى يبقى معرض أعمالك مقروءاً:',
+                   'Keep your files under this path so your portfolio stays readable:')}
+              </p>
+              <p className="copy-row"><span className="cv">{folder}</span></p>
+            </section>
+  
+            {next ? (
+              <section className="panel section-block">
+                <p className="kicker">{t('الدرس التالي', 'Next lesson')}</p>
+                <h3 style={{ fontSize: '1rem', margin: '4px 0 10px' }}>
+                  {contentText(locale, next.title_ar, next.title_en)}
+                </h3>
+                <Link className="btn btn-primary btn-sm" href={`/academy/${pathSlug}/${courseSlug}/${next.slug}`}>
+                  {t('تابع', 'Continue')}
+                </Link>
+              </section>
+            ) : (
+              <section className="panel section-block">
+                <p className="kicker">{t('آخر درس في الدورة', 'The last lesson of the course')}</p>
+                <p className="muted" style={{ fontSize: '0.86rem', margin: '6px 0 10px' }}>
+                  {t('يبقى مشروع الدورة ومهمتها التطبيقية — وهما ما تُبنى عليه الشهادة.',
+                     'The course task and project remain — and they are what the certificate is built on.')}
+                </p>
+                <Link className="btn btn-primary btn-sm" href={`/academy/${pathSlug}/${courseSlug}`}>
+                  {t('ارجع للدورة', 'Back to the course')}
+                </Link>
+              </section>
+            )}
+          </section>
+  
+          <aside>
+            <LessonBoard steps={board ?? []} />
+            <Pomodoro suggestion={lesson.title_ar} refTable="lessons" refId={lesson.id} />
+            <div style={{ marginTop: 16 }}>
+              <ShareDraft text={shareDraft} />
+            </div>
+          </aside>
+        </div>
+      )}
     </>
   );
 }
