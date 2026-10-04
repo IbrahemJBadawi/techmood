@@ -93,6 +93,9 @@ export default async function PassportPage() {
           {profile?.headline && <p className="pp-headline">{profile.headline}</p>}
           <div className="tags-row">
             <span className="id-chip">{profile?.techmood_id}</span>
+            {profile?.username
+              ? <span className="id-chip eng">@{profile.username}</span>
+              : <Link className="id-chip" href="/settings/profile#username">{t('+ احجز اسم مستخدم', '+ Reserve a username')}</Link>}
             {(roles ?? [])
               .filter((role) => role.status === 'approved')
               .map((role) => (

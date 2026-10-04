@@ -11,9 +11,10 @@ import type { ExperienceKind, LinkKind, ProfileSection } from '@/lib/database.ty
 
 import { ProfileCard, type Card } from './ProfileCard';
 import { siteOrigin } from '@/lib/site';
+import { PRIMARY_LINK_KINDS, isPrimaryLink } from '@/lib/profile-links';
 
 const LINK_LABEL: Record<LinkKind, string> = {
-  linkedin: 'LinkedIn', github: 'GitHub', behance: 'Behance', dribbble: 'Dribbble',
+  cv: 'CV', linkedin: 'LinkedIn', github: 'GitHub', behance: 'Behance', dribbble: 'Dribbble',
   kaggle: 'Kaggle', youtube: 'YouTube', portfolio: 'Portfolio', website: 'Website',
   x: 'X', other: 'Link',
 };
@@ -192,6 +193,17 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
     <>
       <div className="identity-wrap">
         <ProfileCard card={card} qrDataUrl={qrDataUrl} profileUrl={profileUrl} locale={locale} />
+
+      {/* The main accounts (0123), first and set apart from other links. */}
+      {can('links') && (links ?? []).some((link) => isPrimaryLink(link.kind)) && (
+        <nav className="pp-primary-links" aria-label={t('الحسابات الأساسية', 'Main accounts')}>
+          {PRIMARY_LINK_KINDS.map((kind) => (links ?? []).find((link) => link.kind === kind)).filter(Boolean).map((link) => (
+            <a key={link!.id} className={`pp-primary-link is-${link!.kind}`} href={link!.url} target="_blank" rel="noreferrer">
+              {link!.kind === 'cv' ? '📄 ' : ''}{LINK_LABEL[link!.kind]}
+            </a>
+          ))}
+        </nav>
+      )}
         <div className="identity-actions no-print">
           {viewer?.id === card.profile_id ? (
             <span className="badge-pill">{t(`${follow?.followers ?? 0} متابِع`, `${follow?.followers ?? 0} followers`)}</span>
@@ -559,11 +571,11 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
         </section>
       )}
 
-      {can('links') && (links ?? []).length > 0 && (
+      {can('links') && (links ?? []).some((link) => !isPrimaryLink(link.kind)) && (
         <section className="panel section-block">
-          <h2 className="profile-heading">{t('ملفات أخرى', 'Elsewhere')}</h2>
+          <h2 className="profile-heading">{t('روابط أخرى', 'Other links')}</h2>
           <div className="explore-row">
-            {(links ?? []).map((link) => (
+            {(links ?? []).filter((link) => !isPrimaryLink(link.kind)).map((link) => (
               <a className="explore-chip" href={link.url} target="_blank" rel="noreferrer" key={link.id}>
                 {link.label ?? LINK_LABEL[link.kind]}
               </a>

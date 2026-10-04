@@ -882,7 +882,7 @@ export type ProfileSection =
   | 'links' | 'external_exhibitions';
 
 export type LinkKind =
-  | 'linkedin' | 'github' | 'behance' | 'dribbble' | 'kaggle' | 'youtube'
+  | 'cv' | 'linkedin' | 'github' | 'behance' | 'dribbble' | 'kaggle' | 'youtube'
   | 'portfolio' | 'website' | 'x' | 'other';
 
 export type ExperienceKind = 'job' | 'freelance' | 'volunteer' | 'internship' | 'techmood';

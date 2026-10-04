@@ -12,6 +12,8 @@ import {
   addEducation, addExperience, addExternalExhibition, addLink, removeRow, setSectionAudience,
 } from './actions';
 import { BasicsForm } from './BasicsForm';
+import { PrimaryLinksForm, UsernameForm } from './IdentityForms';
+import { isPrimaryLink } from '@/lib/profile-links';
 import { PhotoCard } from './PhotoCard';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
@@ -42,9 +44,8 @@ const AUDIENCE_LABEL: Record<ProfileAudience, Text> = {
   private:      { ar: 'لي وحدي',            en: 'Only me' },
 };
 
-const LINK_KINDS: LinkKind[] = [
-  'linkedin', 'github', 'behance', 'dribbble', 'kaggle', 'youtube', 'portfolio', 'website', 'x', 'other',
-];
+// The main accounts have their own form above (PrimaryLinksForm, 0123).
+const LINK_KINDS: LinkKind[] = ['portfolio', 'website', 'dribbble', 'kaggle', 'x', 'other'];
 
 const EXPERIENCE_KINDS: ExperienceKind[] = ['job', 'freelance', 'volunteer', 'internship', 'techmood'];
 
@@ -76,7 +77,7 @@ export default async function ProfileSettingsPage() {
     { data: experience },
     { data: external },
   ] = await Promise.all([
-    supabase.from('profiles').select('headline, bio, is_public, techmood_id, avatar_url, full_name, display_name').eq('id', user.id).single(),
+    supabase.from('profiles').select('headline, bio, is_public, techmood_id, avatar_url, full_name, display_name, username').eq('id', user.id).single(),
     supabase.from('profile_section_visibility').select('section, audience').eq('profile_id', user.id),
     supabase.from('profile_links').select('id, kind, label, url').eq('profile_id', user.id).order('sort_order'),
     supabase.from('profile_education').select('id, institution, degree, field, started_on, ended_on').eq('profile_id', user.id),
@@ -125,6 +126,10 @@ export default async function ProfileSettingsPage() {
         <BasicsForm headline={profile.headline} bio={profile.bio} isPublic={profile.is_public} />
       )}
 
+      {profile && <UsernameForm username={profile.username} techmoodId={profile.techmood_id} />}
+
+      <PrimaryLinksForm current={Object.fromEntries((links ?? []).filter((link) => isPrimaryLink(link.kind)).map((link) => [link.kind, link.url]))} />
+
       <section className="hm-card st-section section-block">
         <h3>{t('من يرى ماذا', 'Who sees what')}</h3>
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
@@ -154,10 +159,10 @@ export default async function ProfileSettingsPage() {
       </section>
 
       <section className="hm-card st-section section-block">
-        <h3>{t('ملفات أخرى', 'External profiles')}</h3>
-        {(links ?? []).length > 0 && (
+        <h3>{t('روابط أخرى', 'Other links')}</h3>
+        {(links ?? []).filter((link) => !isPrimaryLink(link.kind)).length > 0 && (
           <ul className="st-items">
-            {(links ?? []).map((link) => (
+            {(links ?? []).filter((link) => !isPrimaryLink(link.kind)).map((link) => (
               <li key={link.id}>
                 <span>{link.label ?? link.kind}</span>
                 <a className="eng" href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
@@ -169,7 +174,7 @@ export default async function ProfileSettingsPage() {
         <details className="st-add">
           <summary>+ {t('أضف رابطاً', 'Add a link')}</summary>
         <form action={addLink} className="st-add-form">
-          <select name="kind" defaultValue="linkedin" aria-label={t('النوع', 'Kind')}>
+          <select name="kind" defaultValue="portfolio" aria-label={t('النوع', 'Kind')}>
             {LINK_KINDS.map((kind) => <option value={kind} key={kind}>{kind}</option>)}
           </select>
           <input name="url" type="url" required placeholder="https://" />

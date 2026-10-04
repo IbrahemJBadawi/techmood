@@ -201,35 +201,17 @@ function BasicsStep({
       />
       <input type="hidden" name="avatar_url" value={avatar} />
 
-      <div className="field-row">
-        <div className="field">
-          <label htmlFor="full_name">{t('الاسم الكامل بالإنجليزية', 'Full name in English')}</label>
-          <input id="full_name" name="full_name" defaultValue={isEnglishName(profile.full_name) ? profile.full_name : ''} required
-                 dir="ltr" lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
-                 title={t('حروف إنجليزية فقط', 'English letters only')} />
-          <small className="muted">{t('بالحروف الإنجليزية فقط، كما سيظهر على الشهادات.', 'English letters only, as it will be printed on your certificates.')}</small>
-        </div>
-        <div className="field">
-          <label htmlFor="display_name">{t('الاسم الظاهر', 'Display name')}</label>
-          <input id="display_name" name="display_name"
-                 defaultValue={profile.display_name ?? profile.full_name} required
-                 placeholder={t('إبراهيم', 'Ibrahem')} />
-          <small className="muted">{t('ما يناديك به الناس داخل المنصة.', 'What people call you on the platform.')}</small>
-        </div>
-      </div>
-
+      {/* One name, in English — the account's and the certificates'. A
+          username is optional and reserved later from Settings → Profile. */}
       <div className="field">
-        <label htmlFor="username">{t('اسم المستخدم', 'Username')}</label>
-        <div className="username-field">
-          <span className="username-prefix" dir="ltr">techmood.app/@</span>
-          <input id="username" name="username" defaultValue={profile.username ?? ''} required
-                 dir="ltr" pattern="[a-z0-9_]{3,30}" placeholder="ibrahem" />
-        </div>
+        <label htmlFor="full_name">{t('اسمك بالإنجليزية', 'Your name in English')}</label>
+        <input id="full_name" name="full_name" defaultValue={isEnglishName(profile.full_name) ? profile.full_name : ''} required
+               dir="ltr" lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
+               title={t('حروف إنجليزية فقط', 'English letters only')} />
         <small className="muted">
-          {t('حروف إنجليزية صغيرة وأرقام و_ فقط. هذا اسم مستعار للعرض؛ معرّفك الحقيقي هو ',
-             'Lowercase letters, digits and _ only. This is a display handle; your real identifier is ')}
-          <strong>{profile.techmood_id}</strong>
-          {t(' ولا يتغيّر.', ', and it never changes.')}
+          {t('بالحروف الإنجليزية، كما سيظهر في حسابك وعلى شهاداتك. معرّفك في TechMood: ',
+             'In English letters, as it appears on your account and certificates. Your TechMood ID: ')}
+          <strong className="eng">{profile.techmood_id}</strong>
         </small>
       </div>
 

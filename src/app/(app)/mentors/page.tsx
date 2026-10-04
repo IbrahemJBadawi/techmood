@@ -31,7 +31,7 @@ export default async function MentorsPage() {
 
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name, techmood_id, headline')
+    .select('id, full_name, techmood_id, headline, avatar_url')
     .in('id', mentorIds.length ? mentorIds : ['00000000-0000-0000-0000-000000000000']);
 
   const profileById = new Map((profiles ?? []).map((row) => [row.id, row]));
@@ -67,7 +67,10 @@ export default async function MentorsPage() {
                     href={`/mentors/${mentor.profile_id}`}>
                 <span className="mn-card-top">
                   <span className="mn-avatar" style={{ background: avatarColor(mentor.profile_id) }}>
-                    {initialOf(name)}
+                    {profile?.avatar_url
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={profile.avatar_url} alt="" />
+                      : initialOf(name)}
                     {mentor.is_accepting && <span className="mn-online" aria-hidden="true" />}
                   </span>
                   <span className="mn-card-id">

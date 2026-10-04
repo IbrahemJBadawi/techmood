@@ -44,7 +44,7 @@ export default async function MentorProfilePage({
   const { data: { user } } = await supabase.auth.getUser();
 
   const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }, { data: followRows }] = await Promise.all([
-    supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url').eq('id', mentorId).single(),
+    supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url, avatar_url').eq('id', mentorId).single(),
     supabase.rpc('mentor_price_list', { p_mentor: mentorId }),
     supabase.from('mentor_availability').select('day_of_week, start_time, end_time').eq('mentor_id', mentorId).order('day_of_week'),
     supabase
@@ -92,7 +92,10 @@ export default async function MentorProfilePage({
         <div className="pp-cover mn-cover" aria-hidden="true" style={{ '--hue': avatarColor(mentorId) } as React.CSSProperties} />
         <div className="pp-head">
           <span className="pp-avatar pp-avatar-initial mn-avatar-lg" style={{ background: avatarColor(mentorId) }}>
-            {initialOf(profile?.full_name)}
+            {profile?.avatar_url
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={profile.avatar_url} alt="" />
+              : initialOf(profile?.full_name)}
           </span>
           <div className="pp-actions">
             {user && user.id !== mentorId && (

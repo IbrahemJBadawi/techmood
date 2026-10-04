@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
+import { PRIMARY_LINK_KINDS } from '@/lib/profile-links';
 import type {
   ExperienceKind, LinkKind, ProfileAudience, ProfileSection,
 } from '@/lib/database.types';
@@ -41,6 +42,58 @@ export async function saveProfileBasics(_prev: ProfileState, formData: FormData)
   revalidatePath(HERE);
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('حُفظ.', 'Saved.') };
+}
+
+/**
+ * An optional username (a handle like @ibrahem) — never asked for at signup.
+ * The TechMood ID is the identity and never changes; this is only a name to
+ * be found by. Empty removes it.
+ */
+export async function saveUsername(_prev: ProfileState, formData: FormData): Promise<ProfileState> {
+  const t = await getT();
+  const { supabase, user } = await me();
+  const username = String(formData.get('username') ?? '').trim().toLowerCase().replace(/^@/, '');
+
+  if (username && !/^[a-z0-9_]{3,30}$/.test(username)) {
+    return { error: t('اسم المستخدم: حروف إنجليزية صغيرة وأرقام و_ فقط، من 3 إلى 30 خانة.',
+                      'Username: lowercase letters, digits and _ only, 3 to 30 characters.') };
+  }
+  if (username) {
+    const { data: current } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+    if (current?.username !== username) {
+      const { data: available } = await supabase.rpc('is_username_available', { p_username: username });
+      if (!available) return { error: t('اسم المستخدم هذا محجوز — اختر غيره.', 'That username is taken — pick another.') };
+    }
+  }
+
+  const { error } = await supabase.from('profiles').update({ username: username || null }).eq('id', user.id);
+  revalidatePath(HERE);
+  revalidatePath('/passport');
+  if (error) return { error: error.message.includes('username') ? t('اسم المستخدم غير صالح أو محجوز.', 'That username is invalid or taken.') : dbError(t, error.message) };
+  return { ok: username ? t(`حُجز @${username}.`, `@${username} is yours.`) : t('أُزيل اسم المستخدم.', 'Username removed.') };
+}
+
+/** The main accounts, set apart from other links (0123): one of each kind. */
+export async function savePrimaryLinks(_prev: ProfileState, formData: FormData): Promise<ProfileState> {
+  const t = await getT();
+  const { supabase, user } = await me();
+
+  for (const kind of PRIMARY_LINK_KINDS) {
+    const url = String(formData.get(`link_${kind}`) ?? '').trim();
+    if (url && !/^https?:\/\/\S+$/i.test(url)) {
+      return { error: t('كل رابط يبدأ بـ https://', 'Every link starts with https://') };
+    }
+  }
+  for (const kind of PRIMARY_LINK_KINDS) {
+    const url = String(formData.get(`link_${kind}`) ?? '').trim();
+    await supabase.from('profile_links').delete().eq('profile_id', user.id).eq('kind', kind);
+    if (url) {
+      const { error } = await supabase.from('profile_links').insert({ profile_id: user.id, kind: kind as LinkKind, url, sort_order: -10 });
+      if (error) return { error: dbError(t, error.message) };
+    }
+  }
+  revalidatePath(HERE);
+  return { ok: t('حُفظت حساباتك الأساسية.', 'Your main accounts are saved.') };
 }
 
 /** Narrowing one section. Anything left alone stays public. */

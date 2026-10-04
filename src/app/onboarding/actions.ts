@@ -28,40 +28,28 @@ async function me() {
 /**
  * Step 1 — who you are.
  *
- * The username is a handle, not the identity: the TechMood ID was issued when
- * the account was created and never changes, whatever the person calls
- * themselves here.
+ * One name, in English (the account's and the certificates'). No username is
+ * asked for: the TechMood ID was issued with the account and never changes,
+ * and a username is optional, reserved later from Settings → Profile.
  */
 export async function saveBasics(_prev: StepState, formData: FormData): Promise<StepState> {
   const t = await getT();
   const { supabase, user } = await me();
 
   const fullName = tidyName(String(formData.get('full_name') ?? ''));
-  const displayName = String(formData.get('display_name') ?? '').trim();
-  const username = String(formData.get('username') ?? '').trim().toLowerCase();
 
   if (fullName.length < 2) return { error: t('الاسم الكامل مطلوب.', 'Your full name is required.') };
   if (!isEnglishName(fullName)) {
     return { error: t('اكتب اسمك الكامل بالحروف الإنجليزية فقط — كما سيظهر على شهاداتك.',
                       'Write your full name in English letters only — as it will appear on your certificates.') };
   }
-  if (displayName.length < 2) return { error: t('الاسم الظاهر مطلوب.', 'A display name is required.') };
-  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-    return {
-      error: t('اسم المستخدم: حروف إنجليزية صغيرة وأرقام و_ فقط، من 3 إلى 30 خانة.',
-               'Username: lowercase letters, digits and _ only, 3 to 30 characters.'),
-    };
-  }
-
-  const { data: available } = await supabase.rpc('is_username_available', { p_username: username });
-  if (!available) return { error: t('اسم المستخدم هذا محجوز — اختر غيره.', 'That username is taken — pick another.') };
 
   const { error } = await supabase
     .from('profiles')
     .update({
       full_name: fullName,
-      display_name: displayName,
-      username,
+      // one name: the English one shows everywhere until they choose otherwise
+      display_name: null,
       country: String(formData.get('country') ?? '').trim() || null,
       city: String(formData.get('city') ?? '').trim() || null,
       language: (String(formData.get('language') ?? 'ar') as UiLanguage),

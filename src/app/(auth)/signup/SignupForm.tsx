@@ -28,7 +28,7 @@ export function SignupForm() {
   return (
     <form action={formAction}>
       <div className="field">
-        <label htmlFor="full_name">{t('الاسم الكامل بالإنجليزية', 'Full name in English')}</label>
+        <label htmlFor="full_name">{t('اسمك بالإنجليزية', 'Your name in English')}</label>
         <input id="full_name" name="full_name" type="text" required autoComplete="name" dir="ltr"
                lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
                value={name} onChange={(event) => setName(event.target.value)}
@@ -37,7 +37,7 @@ export function SignupForm() {
         <p id="name-hint" className={`field-hint${nameBad ? ' is-error' : ''}`} aria-live="polite">
           {nameBad
             ? t('اكتب اسمك بالحروف الإنجليزية فقط — كما سيظهر على شهاداتك.', 'Use English letters only — as it will appear on your certificates.')
-            : t('كما سيظهر على شهاداتك. اسمك الظاهر بالعربية تختاره في الخطوة التالية.', 'As it will appear on your certificates. You choose a display name in any language next.')}
+            : t('كما سيظهر في حسابك وعلى شهاداتك.', 'As it will appear on your account and your certificates.')}
         </p>
       </div>
 

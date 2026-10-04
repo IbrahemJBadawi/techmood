@@ -141,6 +141,7 @@ export async function StudentHome({
 
 
   const nameOf = new Map((mentorNames ?? []).map((row) => [row.id, row.display_name ?? row.full_name]));
+  const photoOf = new Map((mentorNames ?? []).map((row) => [row.id, row.avatar_url]));
 
   // A confirmed booking has a room of its own; the card links into it rather
   // than to a link somebody could forward.
@@ -234,7 +235,10 @@ export async function StudentHome({
                     <li key={session.id}>
                       <Link className="hm-row" href={room ? `/sessions/${room}` : `/bookings/${session.id}`}>
                         <span className="hm-row-avatar" style={{ background: avatarColor(session.mentor_id) }} aria-hidden="true">
-                          {initialOf(mentorName)}
+                          {photoOf.get(session.mentor_id)
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={photoOf.get(session.mentor_id)!} alt="" />
+                            : initialOf(mentorName)}
                         </span>
                         <span className="hm-row-main">
                           <strong>{session.topic_ar ?? t('جلسة إرشاد', 'Mentoring session')}</strong>
@@ -474,7 +478,10 @@ export async function StudentHome({
                     <li key={mentor.profile_id}>
                       <Link className="hm-row" href={`/mentors/${mentor.profile_id}`}>
                         <span className="hm-row-avatar" style={{ background: avatarColor(mentor.profile_id) }} aria-hidden="true">
-                          {initialOf(name)}
+                          {mentor.avatar_url
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={mentor.avatar_url} alt="" />
+                            : initialOf(name)}
                         </span>
                         <span className="hm-row-main">
                           <strong>{name}</strong>

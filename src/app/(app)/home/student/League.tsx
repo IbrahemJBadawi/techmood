@@ -77,7 +77,10 @@ export async function League({
     <li key={row.profile_id} className={`${row.rank <= 3 ? `is-top is-${row.rank}` : ''}${row.is_me ? ' is-me' : ''}`}>
       <span className="hm-rank">{MEDAL[row.rank] ?? row.rank}</span>
       <span className="hm-rank-avatar" style={{ background: avatarColor(row.profile_id) }} aria-hidden="true">
-        {initialOf(row.name)}
+        {row.avatar_url
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={row.avatar_url} alt="" />
+          : initialOf(row.name)}
       </span>
       <span className="hm-rank-name">
         <strong>{row.is_me ? t('أنت', 'You') : row.name}</strong>
