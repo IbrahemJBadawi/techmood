@@ -11,11 +11,10 @@ import { CLIENT_CRITERION, WORKER_CRITERION } from '@/lib/criteria';
 import type { EscrowPayTo } from '@/lib/escrow-instructions';
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
-import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPublic, SaleLicence } from '@/lib/database.types';
+import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPublic } from '@/lib/database.types';
 
 import {
-  buyProject, escrowAction, listForSale, openEscrow, reviewClient, reviewWork,
-  submitEscrowProof, withdrawListing, type MoneyState,
+  escrowAction, openEscrow, reviewClient, reviewWork, submitEscrowProof, type MoneyState,
 } from './money-actions';
 
 
@@ -298,138 +297,6 @@ export function ClientReviewForm({ projectId }: { projectId: string }) {
       <button className="btn btn-primary btn-sm" disabled={pending}>
         {pending ? t('جارٍ…', 'Sending…') : t('أرسل التقييم', 'Send the review')}
       </button>
-    </form>
-  );
-}
-
-/** Putting finished work on the shelf. */
-export function SellForm({
-  projectId,
-  listing,
-}: {
-  projectId: string;
-  listing: {
-    id: string; price_usd: number; licence: SaleLicence; summary_ar: string; includes: string[]; status: string;
-    demo_url?: string | null; discount_pct?: number; review_note_ar?: string | null;
-  } | null;
-}) {
-  const t = useT();
-  const [state, formAction, pending] = useActionState(listForSale, undefined as MoneyState);
-
-  return (
-    <form action={formAction} className="hm-card section-block pj-card">
-      <h3 style={{ fontSize: '0.98rem' }}>{t('اعرضه للبيع', 'Put it up for sale')}</h3>
-      <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6, maxWidth: '62ch' }}>
-        {t('البيع ينقل العمل، لا نسبته إليك: تبقى مشاركتك في المعرض وتقييمها ومهاراتها في سجلّك مهما تغيّر المالك.',
-           'A sale moves the work, never the authorship: your exhibition entry, its evaluation and the skills it proved stay on your record whoever owns it.')}
-      </p>
-
-      <input type="hidden" name="project_id" value={projectId} />
-
-      <div className="rules-grid">
-        <div className="field">
-          <label htmlFor="price">{t('السعر (دولار)', 'Price (USD)')}</label>
-          <input id="price" name="price" type="number" min="1" step="1" defaultValue={listing?.price_usd ?? ''} required />
-        </div>
-        <div className="field">
-          <label htmlFor="licence">{t('ما الذي يشتريه؟', 'What is being bought?')}</label>
-          <select id="licence" name="licence" defaultValue={listing?.licence ?? 'usage_rights'}>
-            <option value="usage_rights">{t('حق الاستخدام', 'Usage rights')}</option>
-            <option value="full_transfer">{t('نقل كامل', 'Full transfer')}</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="field">
-        <label htmlFor="summary">{t('ماذا يحصل عليه المشتري؟', 'What does the buyer get?')}</label>
-        <textarea id="summary" name="summary" rows={3} required minLength={20}
-                  defaultValue={listing?.summary_ar ?? ''} />
-      </div>
-
-      <div className="field">
-        <label htmlFor="includes">{t('المشمولات (مفصولة بفاصلة)', 'Included (comma separated)')}</label>
-        <input id="includes" name="includes" defaultValue={(listing?.includes ?? []).join('، ')} />
-      </div>
-
-      <div className="rules-grid">
-        <div className="field">
-          <label htmlFor="delivery_url">{t('رابط التسليم (مخفي حتى يتأكد الدفع) *', 'Delivery link (hidden until payment is confirmed) *')}</label>
-          <input id="delivery_url" name="delivery_url" type="url" dir="ltr" required placeholder="https://" />
-          <small className="muted">{t('المستودع أو الملفات أو رابط التحميل. تراه الإدارة للتحقق، والمشتري بعد تأكيد دفعه فقط.',
-                                      'The repository, files or download link. TechMood sees it to verify; a buyer only once their payment is confirmed.')}</small>
-        </div>
-        <div className="field">
-          <label htmlFor="demo_url">{t('عرض تجريبي أو معاينة (عام، اختياري)', 'Demo or preview (public, optional)')}</label>
-          <input id="demo_url" name="demo_url" type="url" dir="ltr" placeholder="https://" defaultValue={listing?.demo_url ?? ''} />
-        </div>
-        <div className="field">
-          <label htmlFor="discount_pct">{t('خصم % (اختياري)', 'Discount % (optional)')}</label>
-          <input id="discount_pct" name="discount_pct" type="number" min={0} max={90} defaultValue={listing?.discount_pct ?? 0} />
-        </div>
-      </div>
-
-      {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
-
-      <div className="row-actions">
-        <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? t('جارٍ…', 'Working…') : listing ? t('حدّث العرض', 'Update the listing') : t('اعرضه للبيع', 'List it')}
-        </button>
-      </div>
-
-      {listing && listing.status === 'listed' && (
-        <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-          {t('العرض منشور في السوق بعلامة «تم التحقق».', 'The listing is live in the market, marked verified.')}
-        </p>
-      )}
-      {listing && listing.status === 'pending_review' && (
-        <p className="notice" style={{ marginTop: 10 }}>
-          {t('العرض قيد المراجعة — يظهر في السوق بعد تحقق الإدارة منه ومن رابط التسليم.',
-             'The listing is under review — it shows in the market once TechMood has checked it and its delivery link.')}
-        </p>
-      )}
-      {listing && listing.status === 'rejected' && (
-        <p className="notice notice-danger" style={{ marginTop: 10 }}>
-          {t('رُفض العرض', 'The listing was refused')}{listing.review_note_ar ? `: ${listing.review_note_ar}` : ''}
-        </p>
-      )}
-    </form>
-  );
-}
-
-/** Taking it off the shelf. */
-export function WithdrawListing({ listingId, revalidate }: { listingId: string; revalidate: string }) {
-  const t = useT();
-
-  return (
-    <form action={withdrawListing}>
-      <input type="hidden" name="listing_id" value={listingId} />
-      <input type="hidden" name="revalidate" value={revalidate} />
-      <button className="btn btn-ghost btn-sm">{t('اسحب العرض', 'Withdraw the listing')}</button>
-    </form>
-  );
-}
-
-/** Buying one — which opens a hold rather than moving money. */
-export function BuyForm({ listingId, methods }: { listingId: string; methods: PaymentMethodPublic[] }) {
-  const t = useT();
-  const [state, formAction, pending] = useActionState(buyProject, undefined as MoneyState);
-
-  return (
-    <form action={formAction} className="row-actions">
-      <input type="hidden" name="listing_id" value={listingId} />
-      <select name="method_key" required defaultValue="" aria-label={t('طريقة الدفع', 'Payment method')}>
-        <option value="" disabled>{t('طريقة الدفع', 'Payment method')}</option>
-        {methods.map((method) => (
-          <option key={method.key} value={method.key}>{method.name_ar}</option>
-        ))}
-      </select>
-      <button className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? t('جارٍ…', 'Working…') : t('اشترِ', 'Buy')}
-      </button>
-
-      {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
     </form>
   );
 }

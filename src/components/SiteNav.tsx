@@ -102,6 +102,7 @@ export async function SiteFooter() {
       links: [
         { href: '/about', label: t('عن TechMood', 'About TechMood') },
         { href: '/guide', label: t('دليل التقييمات والمستويات', 'Ratings & levels guide') },
+        { href: '/policies', label: t('السياسات والشروط', 'Policies and terms') },
       ],
     },
   ];

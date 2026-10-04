@@ -1,134 +1,50 @@
 import Link from 'next/link';
-import { SiteFooter, SiteNav } from '@/components/SiteNav';
+import { redirect } from 'next/navigation';
 
-import { Stars } from '@/components/Stars';
+import { SiteFooter, SiteNav } from '@/components/SiteNav';
+import { ShowcaseGrid, type ShowcaseFilters } from '@/components/showcase/ShowcaseGrid';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
-import { ExhibitionExplorer } from './ExhibitionExplorer';
-import type { GalleryEntry } from './types';
-
-export const generateMetadata = localizedTitle('معرض TechMood', 'TechMood Exhibition', {
-  ar: 'مشاريع حقيقية بناها طلاب وفرق TechMood، قيّمها المنتورز وتم التحقق منها.',
-  en: 'Real projects built by TechMood students and teams, evaluated by mentors and verified.',
+export const generateMetadata = localizedTitle('معرض TechMood', 'TechMood Gallery', {
+  ar: 'مشاريع حقيقية بناها أعضاء TechMood وفرقهم: صور، ديمو، روابط، وتقييمات.',
+  en: 'Real projects built by TechMood members and teams: pictures, demos, links and ratings.',
 });
 
 /**
- * The public gallery.
- *
- * It reads snapshots only — the teams behind these projects are mostly private
- * workspaces, and exhibiting a project must not open them. What separates this
- * from a gallery of screenshots is on every card: a mentor judged the work
- * against criteria, and the work was published by the people who built it
- * after that judgement, not before.
+ * The public gallery (0121). A visitor browses every published project page;
+ * a signed-in member is taken to the same gallery inside the app, so they stay
+ * in their account.
  */
-export default async function ExhibitionPage() {
-  const t = await getT();
+export default async function ExhibitionPage({ searchParams }: { searchParams: Promise<ShowcaseFilters> }) {
+  const filters = await searchParams;
   const supabase = await createClient();
-
-  const [{ data }, { data: featuredRows }] = await Promise.all([
-    supabase
-      .from('exhibition_gallery')
-      .select('entry_code, published_at, snapshot')
-      .order('published_at', { ascending: false }),
-    supabase.rpc('exhibition_featured', { p_limit: 3 }),
-  ]);
-
-  const entries = (data ?? []) as GalleryEntry[];
-  const featured = (featuredRows ?? []) as GalleryEntry[];
-
-  // Counted from what is on the wall, not from a number kept somewhere.
-  const teams = new Set(entries.map((entry) => entry.snapshot.team?.code).filter(Boolean));
-  const builders = new Set<string>();
-  const mentors = new Set<string>();
-  for (const entry of entries) {
-    for (const member of entry.snapshot.members ?? []) builders.add(member.profile_id);
-    if (entry.snapshot.creator) builders.add(entry.snapshot.creator.profile_id);
-    if (entry.snapshot.evaluation) mentors.add(entry.snapshot.evaluation.mentor_id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value) as [string, string][]).toString();
+    redirect(`/gallery${query ? `?${query}` : ''}`);
   }
+  const t = await getT();
 
   return (
     <>
-    <SiteNav />
-    <main className="landing">
-
-      <section style={{ padding: '48px 0 24px', textAlign: 'center' }}>
-        <p className="kicker">Exhibition</p>
-        <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.3rem)', marginTop: 10 }}>
-          {t('معرض أعمال TechMood', 'The TechMood exhibition')}
-        </h1>
-        <p className="muted" style={{ marginTop: 12, fontSize: '0.98rem', maxWidth: '62ch', marginInline: 'auto' }}>
-          {t('مشاريع بناها طلاب وفرق TechMood، قيّمها منتور معياراً معياراً، ثم اختار أصحابها عرضها. ليس ما بنيته فقط — بل ما تعلّمته وسلّمته وأثبتّه.',
-             'Projects built by TechMood students and teams, judged by a mentor criterion by criterion, then put on the wall by the people who built them. Not just what you built — what you learned, delivered, and proved.')}
-        </p>
-        {/* Any member adds a project; a visitor is asked to sign in first (the
-            proxy sends /projects/new to /login and back). */}
-        <div className="tags-row" style={{ justifyContent: 'center', marginTop: 16 }}>
-          <Link className="btn btn-primary btn-sm" href="/projects/new">{t('+ أضف مشروعك للمعرض', '+ Add your project to the exhibition')}</Link>
-          <Link className="btn btn-ghost btn-sm" href="/projects">{t('مشاريعي', 'My projects')}</Link>
-        </div>
-      </section>
-
-      <section className="stat-tiles" style={{ marginBottom: 28 }}>
-        <div className="stat-tile">
-          <span className="val eng">{entries.length}</span>
-          <span className="lbl">{t('مشاريع معروضة', 'Projects exhibited')}</span>
-        </div>
-        <div className="stat-tile">
-          <span className="val eng">{builders.size}</span>
-          <span className="lbl">{t('من بنوها', 'People who built them')}</span>
-        </div>
-        <div className="stat-tile">
-          <span className="val eng">{teams.size}</span>
-          <span className="lbl">{t('فرق', 'Teams')}</span>
-        </div>
-        <div className="stat-tile">
-          <span className="val eng">{mentors.size}</span>
-          <span className="lbl">{t('منتورون قيّموا', 'Mentors who evaluated')}</span>
-        </div>
-      </section>
-
-      {featured.length > 0 && (
-        <section className="section-block">
-          <h2 className="academy-heading">{t('مشاريع مميّزة', 'Featured projects')}</h2>
-          <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 12 }}>
-            {t('كل مشروع هنا استوفى الشرط نفسه: تقييم كامل على المعايير الستة بمتوسط ٤٫٥ فأعلى، وما بُني موصوف، ودليل يمكن فتحه. لا ترتيب ولا أرقام — من استوفى الشرط ظهر.',
-               'Every project here met the same bar: a full rubric averaging 4.5 or better, a described outcome, and evidence anyone can open. No ranking and no numbers — whatever clears the bar is here.')}
+      <SiteNav />
+      <main className="landing">
+        <section style={{ padding: '40px 0 20px', textAlign: 'center' }}>
+          <p className="kicker">Gallery</p>
+          <h1 style={{ fontSize: 'clamp(1.6rem, 4vw, 2.3rem)', marginTop: 10 }}>{t('معرض مشاريع TechMood', 'The TechMood project gallery')}</h1>
+          <p className="muted" style={{ marginTop: 12, fontSize: '0.98rem', maxWidth: '62ch', marginInline: 'auto' }}>
+            {t('مشاريع بناها أعضاء TechMood وفرقهم. افتح أي مشروع لترى صوره وتجرّب الديمو وتقرأ من بناه — وبعضها متاح للشراء في السوق.',
+               'Projects built by TechMood members and teams. Open any one to see its pictures, try the demo and see who built it — some are for sale in the market.')}
           </p>
-          <div className="card-grid">
-            {featured.map((entry) => (
-              <article className="card exhibit-card exhibit-featured" key={entry.entry_code}>
-                <div className="row-between academy-card-head">
-                  <span className="kicker">{t('مميّز', 'Featured')}</span>
-                  <span className="id-chip">{entry.snapshot.project_code}</span>
-                </div>
-                <h3>{entry.snapshot.project_title}</h3>
-                <p className="exhibit-builder">
-                  {entry.snapshot.team?.title ?? entry.snapshot.creator?.full_name}
-                </p>
-                <p>{entry.snapshot.summary}</p>
-                {entry.snapshot.evaluation?.rating != null && (
-                  <p className="exhibit-rating">
-                    <Stars value={entry.snapshot.evaluation.rating} />
-                    <span className="eng">{entry.snapshot.evaluation.rating.toFixed(1)} / 5</span>
-                  </p>
-                )}
-                <Link className="btn btn-ghost btn-sm" href={`/exhibition/${entry.entry_code}`}>
-                  {t('عرض المشروع', 'View project')}
-                </Link>
-              </article>
-            ))}
+          <div className="tags-row" style={{ justifyContent: 'center', marginTop: 16 }}>
+            <Link className="btn btn-primary btn-sm" href="/signup">{t('انضم وأضف مشروعك', 'Join and add your project')}</Link>
+            <Link className="btn btn-ghost btn-sm" href="/login?next=/gallery">{t('تسجيل الدخول', 'Sign in')}</Link>
           </div>
         </section>
-      )}
-
-      {entries.length === 0 ? (
-        <p className="notice">{t('لا مشاريع معروضة بعد.', 'Nothing on the wall yet.')}</p>
-      ) : (
-        <ExhibitionExplorer entries={entries} />
-      )}
-    </main>
-    <SiteFooter />
+        <ShowcaseGrid mode="gallery" filters={filters} inApp={false} action="/exhibition" />
+      </main>
+      <SiteFooter />
     </>
   );
 }

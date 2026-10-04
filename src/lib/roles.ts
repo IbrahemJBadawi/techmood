@@ -190,7 +190,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
         { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
-        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
+        { href: '/gallery', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
       ],
     },
     {
@@ -252,7 +252,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
     {
       label: { ar: 'سجلّي', en: 'My record' },
       items: [
-        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
+        { href: '/gallery', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
         { href: '/certificates', label: { ar: 'الشهادات', en: 'Certificates' }, icon: 'certificate' },
       ],
     },
@@ -286,7 +286,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       items: [
         { href: '/teams', label: { ar: 'فرقي', en: 'My teams' }, icon: 'team' },
         { href: '/bookings', label: { ar: 'الحجوزات والتقويم', en: 'Bookings & calendar' }, icon: 'calendar' },
-        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
+        { href: '/gallery', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
       ],
     },
     {
@@ -326,7 +326,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
       label: { ar: 'الاستكشاف', en: 'Discover' },
       items: [
         { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
-        { href: '/exhibition', label: { ar: 'المعرض', en: 'Exhibition' }, icon: 'gallery' },
+        { href: '/gallery', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
       ],
     },
   ],
@@ -397,7 +397,7 @@ const MVP_MAIN: NavGroup[] = [
       { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
       { href: '/academy', label: { ar: 'الأكاديمية', en: 'Academy' }, icon: 'academy' },
       { href: '/teams', label: { ar: 'الفرق', en: 'Teams' }, icon: 'team' },
-      { href: '/exhibition', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
+      { href: '/gallery', label: { ar: 'المعرض', en: 'Gallery' }, icon: 'gallery' },
       { href: '/marketplace', label: { ar: 'السوق', en: 'Market' }, icon: 'work' },
       // Every member's own projects, headed for the exhibition or the market.
       { href: '/projects', label: { ar: 'مشاريعي', en: 'My projects' }, icon: 'gallery' },

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useState } from 'react';
 
 import { Stars } from '@/components/Stars';
@@ -173,6 +174,17 @@ export function SubmissionPanel({
 
           {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
           {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
+          {/* The work can become a project page of its own (0121) — optional,
+              and independent of the evaluation it is waiting for. */}
+          {state?.ok && (
+            <div className="sc-after-submit">
+              <p>{t('هل تريد عرض هذا المشروع في معرض TechMood أو سوق المشاريع؟', 'Show this project in the TechMood gallery or the market?')}</p>
+              <div className="row-actions">
+                <Link className="btn btn-primary btn-sm" href={`/projects/new?assignment=${assignmentId}&intent=gallery`}>🖼️ {t('أضف إلى المعرض', 'Add to the gallery')}</Link>
+                <Link className="btn btn-sky btn-sm" href={`/projects/new?assignment=${assignmentId}&intent=market`}>🛒 {t('اعرضه للبيع', 'Put it up for sale')}</Link>
+              </div>
+            </div>
+          )}
 
           <button className="btn btn-primary btn-sm" disabled={pending}>
             {pending

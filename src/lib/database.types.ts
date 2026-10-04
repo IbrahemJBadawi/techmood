@@ -223,6 +223,40 @@ export type EscrowKind = 'market_work' | 'project_sale';
 export type TermsStatus = 'offered' | 'accepted' | 'superseded' | 'withdrawn';
 export type ListingStatus = 'pending_review' | 'listed' | 'reserved' | 'sold' | 'withdrawn' | 'rejected';
 export type SaleLicence = 'usage_rights' | 'full_transfer';
+/** What a project page sells or shows (0121). */
+export type ProductType = 'full_project' | 'template' | 'design' | 'code' | 'file' | 'digital_service';
+export type OfferStatus = 'pending' | 'countered' | 'accepted' | 'rejected' | 'withdrawn' | 'expired' | 'used';
+export type ProjectLink = { kind: string; url: string };
+
+/** One card in the gallery or the market (gallery_projects, 0121). */
+export type ShowcaseCard = {
+  project_id: string; code: string; title: string; tagline: string | null; cover: string | null;
+  category: string | null; product_type: ProductType | null; technologies: string[];
+  owner_id: string; owner_name: string | null; team_title: string | null;
+  in_gallery: boolean; gallery_at: string | null;
+  listing_id: string | null; listing_status: ListingStatus | null; price_usd: number | null; effective_price: number | null;
+  discount_pct: number; negotiable: boolean; licence: SaleLicence | null; verified: boolean;
+  likes: number; views: number; sales_count: number; rating: number | null; reviews_count: number;
+  academic_title: string | null; mentor_rating: number | null;
+  comments_count: number; owner_avatar: string | null;
+};
+
+/** One public project page (showcase_project, 0121). */
+export type ShowcasePage = {
+  project_id: string; code: string; title: string; tagline: string | null; description: string | null;
+  images: string[]; links: ProjectLink[]; demo_url: string | null; video_url: string | null;
+  category: string | null; product_type: ProductType | null; technologies: string[]; skills: string[];
+  status: ProjectStatus; completed_at: string | null;
+  owner_id: string; owner_name: string | null; owner_techmood_id: string | null; owner_avatar: string | null;
+  team_title: string | null; team_code: string | null;
+  in_gallery: boolean; gallery_at: string | null; hidden_note: string | null; is_public_page: boolean; can_edit: boolean;
+  path_title: string | null; path_slug: string | null; course_title: string | null; course_slug: string | null;
+  assignment_title: string | null; mentor_rating: number | null; exhibition_code: string | null;
+  listing_id: string | null; listing_code: string | null; listing_status: ListingStatus | null; licence: SaleLicence | null;
+  price_usd: number | null; effective_price: number | null; discount_pct: number; discount_ends_at: string | null;
+  negotiable: boolean; listing_summary: string | null; includes: string[] | null; verified: boolean;
+  likes: number; views: number; link_clicks: number; sales_count: number; rating: number | null; reviews_count: number;
+};
 export type ClientCriterion =
   | 'quality' | 'communication' | 'deadline' | 'professionalism' | 'scope';
 
@@ -1228,6 +1262,17 @@ export type Database = {
         /** Public demo or preview (0099). The delivery link is not readable here. */
         demo_url: string | null; discount_pct: number; discount_ends_at: string | null;
         verified_at: string | null; review_note_ar: string | null; reviewed_at: string | null;
+        negotiable: boolean;
+      }>;
+      listing_offers: Table<{
+        id: string; listing_id: string; buyer_id: string; seller_id: string;
+        amount_usd: number; counter_usd: number | null; agreed_usd: number | null;
+        message_ar: string | null; seller_note_ar: string | null; status: OfferStatus;
+        expires_at: string; terms_version: string; created_at: string; decided_at: string | null;
+      }>;
+      project_reviews: Table<{
+        sale_id: string; project_id: string; buyer_id: string; stars: number;
+        comment_ar: string | null; created_at: string;
       }>;
       project_sales: Table<{
         id: string; listing_id: string; project_id: string; buyer_id: string;
@@ -1362,6 +1407,12 @@ export type Database = {
         opportunity_id: string | null; client_id: string | null; agreed_amount_usd: number | null;
         startup_id: string | null;
         completed_at: string | null; created_at: string; updated_at: string;
+        // the showcase page (0121)
+        tagline_ar: string | null; category: string | null; product_type: ProductType | null;
+        skills: string[]; links: ProjectLink[]; demo_url: string | null; video_url: string | null;
+        images: string[]; in_gallery: boolean; gallery_at: string | null;
+        gallery_hidden_at: string | null; gallery_hidden_note: string | null;
+        course_id: string | null; assignment_id: string | null; submission_id: string | null;
       }>;
       exhibition_entries: Table<ExhibitionEntry>;
       opportunities: Table<Opportunity>;
@@ -2012,12 +2063,13 @@ export type Database = {
           p_project: string; p_price: number; p_summary: string; p_delivery_url: string;
           p_licence?: SaleLicence; p_includes?: string[]; p_demo_url?: string | null;
           p_discount_pct?: number; p_discount_ends_at?: string | null;
+          p_negotiable?: boolean; p_accept_terms?: boolean;
         };
         Returns: Database['public']['Tables']['project_listings']['Row'];
       };
       withdraw_listing: { Args: { p_listing: string }; Returns: undefined };
       buy_project: {
-        Args: { p_listing: string; p_method_key: string };
+        Args: { p_listing: string; p_method_key: string; p_offer?: string | null; p_accept_terms?: boolean };
         Returns: Database['public']['Tables']['project_sales']['Row'];
       };
       market_listings: {
@@ -2034,11 +2086,70 @@ export type Database = {
       my_purchases: {
         Args: Record<string, never>;
         Returns: {
-          sale_id: string; listing_code: string; project_title: string; seller_name: string;
+          sale_id: string; listing_code: string; project_id: string; project_code: string;
+          project_title: string; seller_name: string;
           amount_usd: number; licence: SaleLicence; escrow_id: string | null;
-          escrow_status: EscrowStatus | null; delivery_url: string | null; bought_at: string;
+          escrow_status: EscrowStatus | null; delivery_url: string | null;
+          completed: boolean; my_stars: number | null; bought_at: string;
         }[];
       };
+      // the project showcase (0121)
+      gallery_projects: {
+        Args: {
+          p_mode?: 'all' | 'gallery' | 'market'; p_search?: string | null; p_category?: string | null;
+          p_type?: ProductType | null; p_sort?: 'new' | 'popular' | 'price_low' | 'price_high';
+          p_limit?: number; p_offset?: number; p_owner?: string | null;
+          p_group?: 'projects' | 'services' | null;
+        };
+        Returns: ShowcaseCard[];
+      };
+      showcase_comments: {
+        Args: { p_project: string };
+        Returns: {
+          id: string; parent_id: string | null; body_ar: string; created_at: string;
+          author_id: string; author_name: string | null; author_avatar: string | null; author_techmood_id: string | null;
+          is_owner: boolean; can_delete: boolean;
+        }[];
+      };
+      showcase_people: {
+        Args: { p_project: string };
+        Returns: { profile_id: string; full_name: string | null; techmood_id: string | null; avatar_url: string | null; is_leader: boolean; role_ar: string | null }[];
+      };
+      add_project_comment: { Args: { p_project: string; p_body: string; p_parent?: string | null }; Returns: string };
+      delete_project_comment: { Args: { p_comment: string }; Returns: undefined };
+      showcase_project: { Args: { p_code: string }; Returns: ShowcasePage[] };
+      can_edit_showcase: { Args: { p_project: string }; Returns: boolean };
+      showcase_reviews: {
+        Args: { p_project: string };
+        Returns: { stars: number; comment_ar: string | null; buyer_name: string | null; created_at: string }[];
+      };
+      my_project_stats: {
+        Args: { p_project: string };
+        Returns: {
+          likes: number; views: number; link_clicks: number; sales_count: number;
+          revenue_usd: number; rating: number | null; reviews_count: number; open_offers: number;
+        }[];
+      };
+      record_project_hit: { Args: { p_project: string; p_kind?: string; p_visitor?: string | null }; Returns: undefined };
+      market_terms_version: { Args: Record<string, never>; Returns: string };
+      make_offer: { Args: { p_listing: string; p_amount: number; p_message?: string | null; p_accept_terms?: boolean }; Returns: string };
+      respond_to_offer: {
+        Args: { p_offer: string; p_action: 'accept' | 'reject' | 'counter'; p_counter?: number | null; p_note?: string | null };
+        Returns: undefined;
+      };
+      answer_offer: { Args: { p_offer: string; p_action: 'accept' | 'reject' | 'withdraw' }; Returns: undefined };
+      my_listing_offers: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string; role: 'buyer' | 'seller'; listing_id: string; project_id: string; project_code: string;
+          project_title: string; other_name: string | null; list_price: number; amount_usd: number;
+          counter_usd: number | null; agreed_usd: number | null; message_ar: string | null;
+          seller_note_ar: string | null; status: OfferStatus; expires_at: string; created_at: string;
+        }[];
+      };
+      rate_purchase: { Args: { p_sale: string; p_stars: number; p_comment?: string | null }; Returns: undefined };
+      admin_set_project_hidden: { Args: { p_project: string; p_hidden: boolean; p_note?: string | null }; Returns: undefined };
+      delete_showcase_project: { Args: { p_project: string }; Returns: undefined };
       admin_pending_listings: {
         Args: Record<string, never>;
         Returns: {

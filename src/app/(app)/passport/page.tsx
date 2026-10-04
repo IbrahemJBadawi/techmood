@@ -128,7 +128,7 @@ export default async function PassportPage() {
           <div className="section-block">
             <div className="row-between pp-section-head">
               <h3>{t('أعمالي في المعرض', 'My work in the gallery')}</h3>
-              <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'Gallery')}</Link>
+              <Link className="btn btn-ghost btn-sm" href="/gallery">{t('المعرض', 'Gallery')}</Link>
             </div>
             {(exhibition?.length ?? 0) === 0 ? (
               <div className="panel pp-empty">

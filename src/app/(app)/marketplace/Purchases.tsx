@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
+import Link from 'next/link';
+
+import { RatePurchase } from './RatePurchase';
 
 /**
  * What I bought in the market (0099). The delivery link appears once TechMood
@@ -21,7 +24,7 @@ export async function Purchases() {
           <li key={purchase.sale_id}>
             <span className="eng wallet-amount is-out">{money(purchase.amount_usd)}</span>
             <span className="wallet-label">
-              {purchase.project_title}
+              <Link href={`/p/${purchase.project_code}`}>{purchase.project_title}</Link>
               <span className="id-chip" style={{ marginInlineStart: 6 }}>{purchase.listing_code}</span>
               <span className="muted" style={{ display: 'block', fontSize: '0.76rem' }}>{purchase.seller_name}</span>
             </span>
@@ -36,6 +39,10 @@ export async function Purchases() {
                   : t('بانتظار تأكيد الدفع', 'Waiting for payment confirmation')}
               </span>
             )}
+            {purchase.completed && purchase.my_stars === null && (
+              <div style={{ flexBasis: '100%' }}><RatePurchase saleId={purchase.sale_id} /></div>
+            )}
+            {purchase.my_stars !== null && <span className="muted eng">{'★'.repeat(purchase.my_stars)}</span>}
           </li>
         ))}
       </ul>

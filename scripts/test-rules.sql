@@ -5062,7 +5062,7 @@ select public.assert(
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert_rejects(
-  format($$select public.list_project_for_sale(%L, 500, 'نظام كامل مع الكود والتوثيق والتسليمات', 'https://files.example/w')$$, :'work_project'),
+  format($$select public.list_project_for_sale(%L, 500, 'نظام كامل مع الكود والتوثيق والتسليمات', 'https://files.example/w', p_accept_terms => true)$$, :'work_project'),
   '46.1 work somebody paid to have built is not the builder''s to sell',
   'نُفّذ لعميل');
 reset role;
@@ -5071,7 +5071,7 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 select public.assert_rejects(
-  format($$select public.list_project_for_sale(%L, 500, 'مشروع جاهز مع الكود والتوثيق كاملاً', 'https://files.example/s')$$, :'solo'),
+  format($$select public.list_project_for_sale(%L, 500, 'مشروع جاهز مع الكود والتوثيق كاملاً', 'https://files.example/s', p_accept_terms => true)$$, :'solo'),
   '46.2 and only whoever made it — or their team lead — may put it on sale',
   'صاحب المشروع أو قائد الفريق');
 reset role;
@@ -5081,8 +5081,9 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.publish_exhibition_entry(:'solo_entry');
+update public.projects set images = array[:'solo' || '/cover.jpg'] where id = :'solo';
 select (public.list_project_for_sale(
-  p_project => :'solo', p_price => 600,
+  p_project => :'solo', p_price => 600, p_accept_terms => true,
   p_summary => 'نظام جرد كامل: الكود، قاعدة البيانات، التوثيق، ونسخة تجريبية.',
   p_delivery_url => 'https://files.example/solo-full.zip',
   p_licence => 'full_transfer',
@@ -5101,7 +5102,7 @@ set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 
 select public.assert_rejects(
-  format($$select public.buy_project(%L, 'jawwal_pay')$$, :'listing'),
+  format($$select public.buy_project(%L, 'jawwal_pay', p_accept_terms => true)$$, :'listing'),
   '46.3 nobody buys their own project',
   'شراء مشروعك');
 reset role;
@@ -5109,7 +5110,7 @@ reset request.jwt.claim.sub;
 
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
-select (public.buy_project(:'listing', 'jawwal_pay')).id as sale \gset
+select (public.buy_project(:'listing', 'jawwal_pay', p_accept_terms => true)).id as sale \gset
 select public.submit_escrow_proof(
   (select escrow_id from public.project_sales where id = :'sale'),
   '22222222-2222-2222-2222-222222222222/buy.png', 'JP-95003');
@@ -8164,15 +8165,16 @@ select public.assert(
 insert into public.projects (title_ar, owner_id, status)
 values ('قالب لوحة تحكم للمتاجر', '77777777-7777-7777-7777-777777777777', 'completed')
 returning id as shop_project \gset
+update public.projects set images = array[:'shop_project' || '/cover.png'] where id = :'shop_project';
 
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.assert_rejects(
-  format($$select public.list_project_for_sale(%L, 50, 'قالب لوحة تحكم كامل مع الكود والتوثيق.', null)$$, :'shop_project'),
+  format($$select public.list_project_for_sale(%L, 50, 'قالب لوحة تحكم كامل مع الكود والتوثيق.', null, p_accept_terms => true)$$, :'shop_project'),
   '70.1 a listing carries the link it delivers — hidden until the payment is confirmed',
   'رابط التسليم مطلوب');
 select (public.list_project_for_sale(
-  p_project => :'shop_project', p_price => 50,
+  p_project => :'shop_project', p_price => 50, p_accept_terms => true,
   p_summary => 'قالب لوحة تحكم كامل مع الكود والتوثيق.',
   p_delivery_url => 'https://files.example/dashboard-template.zip',
   p_demo_url => 'https://demo.example/dashboard')).id as shop_listing \gset
@@ -8213,13 +8215,13 @@ reset role;
 
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
-select (public.buy_project(:'shop_listing', 'jawwal_pay')).id as shop_sale \gset
+select (public.buy_project(:'shop_listing', 'jawwal_pay', p_accept_terms => true)).id as shop_sale \gset
 select public.assert(
   (select amount_usd from public.escrows where id = (select escrow_id from public.project_sales where id = :'shop_sale')) = 40
   and (select delivery_url from public.my_purchases() where sale_id = :'shop_sale') is null,
   '70.6 the price charged is the price shown — and the link waits for the payment');
 select public.assert_rejects(
-  format($$select public.buy_project(%L, 'jawwal_pay')$$, :'shop_listing'),
+  format($$select public.buy_project(%L, 'jawwal_pay', p_accept_terms => true)$$, :'shop_listing'),
   '70.7 one buyer buys a listing once',
   'اشتريت هذا العرض');
 select public.submit_escrow_proof(
@@ -8246,7 +8248,7 @@ reset request.jwt.claim.sub;
 
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
-select (public.buy_project(:'shop_listing', 'jawwal_pay')).id as shop_sale2 \gset
+select (public.buy_project(:'shop_listing', 'jawwal_pay', p_accept_terms => true)).id as shop_sale2 \gset
 reset role;
 reset request.jwt.claim.sub;
 select public.assert(
@@ -8258,10 +8260,11 @@ select public.assert(
 insert into public.projects (title_ar, owner_id, status)
 values ('مشروع منسوخ', '77777777-7777-7777-7777-777777777777', 'completed')
 returning id as copied_project \gset
+update public.projects set images = array[:'copied_project' || '/cover.webp'] where id = :'copied_project';
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select (public.list_project_for_sale(:'copied_project', 30, 'مشروع كامل جاهز للاستخدام مباشرة.',
-  'https://files.example/copied.zip')).id as bad_listing \gset
+  'https://files.example/copied.zip', p_accept_terms => true)).id as bad_listing \gset
 reset role;
 reset request.jwt.claim.sub;
 
@@ -8499,8 +8502,8 @@ select public.assert_rejects(
 -- 73. What a signed-out visitor may call is a list, not an accident
 -- ===========================================================================
 -- On Supabase every new function is granted to anon by name; this list is the
--- set 0088 kept plus the market's two (0099) and the public counts of follows
--- and likes (0106). A new function a visitor may
+-- set 0088 kept plus the market's two (0099), the public counts of follows
+-- and likes (0106), and the project showcase (0121). A new function a visitor may
 -- call has to be added here on purpose.
 select public.assert(
   not exists (
@@ -8522,7 +8525,13 @@ select public.assert(
          'profile_skill_evidence', 'profile_verified_skills', 'record_share_view', 'roadmap',
          'session_quote', 'shared_view', 'trust_signals', 'verify_certificate', 'verify_exhibition_entry',
          'academy_courses', 'is_course_published', 'is_path_open',
-         'follow_stats', 'project_like_stats')
+         'follow_stats', 'project_like_stats',
+         -- the project showcase (0121): the gallery, one project page, its reviews,
+         -- counting a visit, and the market terms version
+         'gallery_projects', 'showcase_project', 'showcase_reviews', 'record_project_hit',
+         'market_terms_version',
+         -- and its comments and the people behind a page (0122)
+         'showcase_comments', 'showcase_people')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -9670,7 +9679,9 @@ update public.projects set status = 'completed' where id = :'p90';
 select public.assert(
   (select status from public.submit_to_exhibition(:'p90', 'نظام حجز مواعيد لعيادة أسنان', '{nextjs,supabase}')) = 'submitted',
   '90.2 then any member — no team, no role — sends it to the exhibition for a mentor''s review');
-select public.list_project_for_sale(:'p90', 120, 'نظام حجز جاهز للعيادات', 'https://example.com/delivery');
+update public.projects set images = array[:'p90' || '/cover.jpg'] where id = :'p90';
+select public.list_project_for_sale(:'p90', 120, 'نظام حجز جاهز للعيادات', 'https://example.com/delivery',
+                                    p_accept_terms => true);
 select public.assert(
   exists (select 1 from public.project_listings where project_id = :'p90'),
   '90.3 and may put the same finished project up for sale, reviewed before it shows');
@@ -9685,6 +9696,363 @@ reset request.jwt.claim.sub;
 select public.assert(
   (select title_ar from public.projects where id = :'p90') = 'تطبيق مواعيد لعيادة',
   '90.4 nobody else edits a member''s personal project');
+
+-- ===========================================================================
+-- 91. The project showcase: one page, the gallery and the market (0121)
+-- ===========================================================================
+-- a course the student has nothing to do with: not enrolled, not in an enrolled path, no progress
+select c.id as foreign_course from public.courses c
+ where not exists (select 1 from public.enrollments e
+                    where e.profile_id = '84848484-8484-8484-8484-848484848484'
+                      and (e.course_id = c.id
+                           or e.path_id in (select pc.path_id from public.path_courses pc where pc.course_id = c.id)))
+   and not exists (select 1 from public.lesson_progress lp join public.lessons l on l.id = lp.lesson_id
+                     join public.modules m on m.id = l.module_id
+                    where lp.profile_id = '84848484-8484-8484-8484-848484848484' and m.course_id = c.id)
+ order by c.slug limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+insert into public.projects (title_ar, owner_id, status, kind)
+values ('قالب متجر إلكتروني', '84848484-8484-8484-8484-848484848484', 'completed', 'personal')
+returning id as p91, code as p91_code \gset
+select public.assert_rejects(
+  format($$update public.projects set in_gallery = true where id = %L$$, :'p91'),
+  '91.1 a page goes to the gallery complete — a short description first',
+  'وصفاً مختصراً');
+select public.assert_rejects(
+  format($$update public.projects set images = array['55555555-5555-5555-5555-555555555555/x.jpg'] where id = %L$$, :'p91'),
+  '91.2 screenshots come from the project''s own folder, not any address',
+  'الصور تُرفع');
+select public.assert_rejects(
+  format($$update public.projects set links = '[{"kind":"github","url":"javascript:alert(1)"}]' where id = %L$$, :'p91'),
+  '91.3 every link is a web address',
+  'الروابط');
+update public.projects
+   set tagline_ar = 'قالب متجر كامل بواجهة عربية وسلة ودفع',
+       description_ar = 'قالب متجر إلكتروني مبني بـ Next.js: صفحات المنتجات، السلة، الدفع، ولوحة تحكم بسيطة للطلبات.',
+       images = array[:'p91' || '/cover.jpg', :'p91' || '/cart.png'],
+       links = '[{"kind":"github","url":"https://github.com/example/shop"},{"kind":"unknown","url":"https://x.example"}]',
+       category = 'web', product_type = 'template', tags = '{nextjs,tailwind}', skills = '{UI, UI ,Frontend}',
+       demo_url = 'https://shop.example', in_gallery = true
+ where id = :'p91';
+select public.assert(
+  (select gallery_at is not null and links -> 1 ->> 'kind' = 'other' and cardinality(skills) = 2
+     from public.projects where id = :'p91'),
+  '91.4 complete, it is published by its owner at once — no mentor needed — with its links and skills tidied');
+select public.assert_rejects(
+  format($$update public.projects set course_id = %L where id = %L$$, :'foreign_course', :'p91'),
+  '91.5 the academy link is optional, and only to a course of one''s own',
+  'بدورة سجّلت فيها');
+update public.projects set path_id = :'g89_path' where id = :'p91';
+reset role;
+reset request.jwt.claim.sub;
+
+select id as other_submission from public.submissions
+ where profile_id <> '84848484-8484-8484-8484-848484848484' limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert_rejects(
+  format($$update public.projects set submission_id = %L where id = %L$$, :'other_submission', :'p91'),
+  '91.6 nor to somebody else''s hand-in',
+  'تسليماتك');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  exists (select 1 from public.gallery_projects('gallery') where project_id = :'p91' and cover = :'p91' || '/cover.jpg')
+  and (select path_title is not null and tagline like 'قالب%' and not can_edit
+         from public.showcase_project(:'p91_code')),
+  '91.7 a visitor sees it in the gallery, and its page says the path it was built in');
+select public.record_project_hit(:'p91', 'view', '00000000-0000-0000-0000-00000000a001');
+select public.record_project_hit(:'p91', 'view', '00000000-0000-0000-0000-00000000a001');
+select public.record_project_hit(:'p91', 'view', '00000000-0000-0000-0000-00000000a002');
+select public.record_project_hit(:'p91', 'github', '00000000-0000-0000-0000-00000000a002');
+select public.assert_rejects(
+  format($$update public.project_stats set views = 9999 where project_id = %L$$, :'p91'),
+  '91.8 nobody writes the numbers by hand',
+  'permission denied');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.record_project_hit(:'p91', 'view');
+select public.assert(
+  (select views = 2 and link_clicks = 1 from public.my_project_stats(:'p91')),
+  '91.9 a visitor counts once a day, a click on a link is counted, and the owner''s own visits are not');
+select public.assert_rejects(
+  format($$select public.list_project_for_sale(%L, 100, 'قالب متجر كامل مع الكود والتوثيق', 'https://files.example/shop.zip')$$, :'p91'),
+  '91.10 a listing carries the seller''s acceptance of the market terms',
+  'شروط البيع والشراء');
+select (public.list_project_for_sale(:'p91', 100, 'قالب متجر كامل مع الكود والتوثيق', 'https://files.example/shop.zip',
+        p_negotiable => true, p_accept_terms => true)).id as l91 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_listing(:'l91', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select negotiable and effective_price = 100 and in_gallery from public.gallery_projects('market') where project_id = :'p91'),
+  '91.11 the same page is in the market too: its price, and that the price is negotiable');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.make_offer(%L, 20, null, true)$$, :'l91'),
+  '91.12 an offer is at least half the price',
+  'العرض يجب أن يكون');
+select public.assert_rejects(
+  format($$select public.make_offer(%L, 60)$$, :'l91'),
+  '91.13 and made on the market terms',
+  'شروط البيع والشراء');
+select public.make_offer(:'l91', 60, 'هل يمكن 60؟', true) as o91 \gset
+select public.assert_rejects(
+  format($$select public.make_offer(%L, 70, null, true)$$, :'l91'),
+  '91.14 one open offer at a time',
+  'عرض مفتوح');
+select public.assert_rejects(
+  format($$select public.make_offer(%L, 30, null, true)$$, :'shop_listing'),
+  '91.15 a fixed price takes no offers',
+  'سعر هذا المشروع ثابت');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert_rejects(
+  format($$select public.respond_to_offer(%L, 'counter', 55)$$, :'o91'),
+  '91.16 a counter lies between the offer and the price',
+  'السعر المقابل');
+select public.respond_to_offer(:'o91', 'counter', 80, 'أقل سعر 80');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.answer_offer(:'o91', 'accept');
+select public.assert(
+  (select status = 'accepted' and agreed_usd = 80 and role = 'buyer' from public.my_listing_offers() where id = :'o91'),
+  '91.17 the buyer accepts the counter: 80$ agreed, held for them to pay');
+select (public.buy_project(:'l91', 'jawwal_pay', :'o91', true)).id as sale91 \gset
+select public.assert(
+  (select e.amount_usd from public.escrows e join public.project_sales s on s.escrow_id = e.id where s.id = :'sale91') = 80
+  and (select status from public.listing_offers where id = :'o91') = 'used',
+  '91.18 the agreed price is what the escrow holds, and the agreement is spent');
+select public.assert_rejects(
+  format($$select public.rate_purchase(%L, 5)$$, :'sale91'),
+  '91.19 a buyer rates once they have it and released the money',
+  'بعد استلام');
+select public.submit_escrow_proof(
+  (select escrow_id from public.project_sales where id = :'sale91'),
+  '55555555-5555-5555-5555-555555555555/p91.png', 'JP-91');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(
+  (select id from public.payments where escrow_id = (select escrow_id from public.project_sales where id = :'sale91')),
+  true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.release_escrow((select escrow_id from public.project_sales where id = :'sale91'));
+select public.rate_purchase(:'sale91', 5, 'قالب نظيف وسهل التعديل');
+select public.assert_rejects(
+  format($$select public.rate_purchase(%L, 1)$$, :'sale91'),
+  '91.20 once',
+  'قيّمت هذا الشراء');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select rating = 5 and reviews_count = 1 and sales_count = 1 and views = 2
+     from public.showcase_project(:'p91_code'))
+  and exists (select 1 from public.showcase_reviews(:'p91') where comment_ar like 'قالب%'),
+  '91.21 the page shows its numbers: views, sales, and what the buyer said');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  not exists (select 1 from public.my_project_stats(:'p91')),
+  '91.22 the owner''s numbers are the owner''s');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert(
+  (select sales_count = 1 and revenue_usd > 0 and rating = 5 from public.my_project_stats(:'p91')),
+  '91.23 and they read their sales, what they earned, and their rating');
+select public.assert_rejects(
+  format($$select public.delete_showcase_project(%L)$$, :'p91'),
+  '91.24 a project somebody bought is not deleted — buyers keep what they paid for',
+  'بيعت نسخ');
+insert into public.projects (title_ar, owner_id, status) values ('مسودة', '84848484-8484-8484-8484-848484848484', 'completed')
+returning id as p91b \gset
+select public.delete_showcase_project(:'p91b');
+select public.assert(
+  not exists (select 1 from public.projects where id = :'p91b'),
+  '91.25 one nobody bought is deleted by its owner');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$insert into storage.objects (bucket_id, name) values ('project-media', %L)$$, :'p91' || '/mine.jpg'),
+  '91.26 nobody else puts pictures in a project''s folder',
+  'row-level security');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(
+  format($$select public.admin_set_project_hidden(%L, true, 'قصير')$$, :'p91'),
+  '91.27 hiding a project takes a reason the owner reads',
+  'سبب الإخفاء');
+select public.admin_set_project_hidden(:'p91', true, 'صور المشروع تحتوي بيانات عملاء حقيقية');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+update public.projects set gallery_hidden_at = null where id = :'p91';
+select public.assert_rejects(
+  format($$update public.projects set in_gallery = true where id = %L$$, :'p91'),
+  '91.28 hidden by TechMood, the owner cannot put it back — nor clear the mark',
+  'أخفت TechMood');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select not exists (select 1 from public.showcase_project(:'p91_code'))
+       and not exists (select 1 from public.gallery_projects() where project_id = :'p91') as gone91 \gset
+reset role;
+select public.assert(
+  :'gone91'::boolean and (select status from public.project_listings where id = :'l91') = 'withdrawn',
+  '91.29 a hidden project leaves the gallery and the market');
+
+-- ===========================================================================
+-- 92. Services, comments, the people behind a page (0122)
+-- ===========================================================================
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+insert into public.projects (title_ar, owner_id, status, kind, product_type, category)
+values ('تصميم شعار وهوية بصرية', '84848484-8484-8484-8484-848484848484', 'completed', 'personal', 'digital_service', 'design')
+returning id as p92, code as p92_code \gset
+update public.projects
+   set tagline_ar = 'أصمم لك شعاراً وهوية بصرية كاملة خلال أسبوع',
+       description_ar = 'خدمة تصميم شعار مع ثلاث مسودات، ودليل ألوان وخطوط، وملفات بكل الصيغ المطلوبة للطباعة والويب.',
+       images = array[:'p92' || '/logo.jpg'], in_gallery = true
+ where id = :'p92';
+select (public.list_project_for_sale(:'p92', 50, 'شعار وهوية بصرية: ثلاث مسودات وملفات نهائية', 'https://files.example/brand',
+        p_accept_terms => true)).id as l92 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_listing(:'l92', true);
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  exists (select 1 from public.gallery_projects('market', p_group => 'services') where project_id = :'p92')
+  and not exists (select 1 from public.gallery_projects('market', p_group => 'projects') where project_id = :'p92')
+  and (select is_leader from public.showcase_people(:'p92')) is true,
+  '92.1 a service sits on the services shelf, not the projects one, and its page shows who leads it');
+reset role;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.add_project_comment(%L, 'تواصل معي على https://x.example')$$, :'p92'),
+  '92.2 no links in comments',
+  'لا روابط');
+select public.add_project_comment(:'p92', 'شغل جميل، كم يستغرق التعديل الإضافي؟') as c92 \gset
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.add_project_comment(:'p92', 'يومان لكل تعديل إضافي.', :'c92');
+reset role;
+reset request.jwt.claim.sub;
+
+set role anon;
+select public.assert(
+  (select count(*) from public.showcase_comments(:'p92')) = 2
+  and exists (select 1 from public.showcase_comments(:'p92') where parent_id = :'c92' and is_owner)
+  and (select comments_count from public.gallery_projects('gallery') where project_id = :'p92') = 2,
+  '92.3 comments and replies are public on the page, the owner''s marked, and counted on the card');
+reset role;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '84848484-8484-8484-8484-848484848484'
+           and title_ar = 'تعليق جديد على مشروعك')
+  and exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+               and title_ar = 'ردّ على تعليقك'),
+  '92.4 the owner is told of a comment, and the commenter of the reply');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.delete_project_comment(%L)$$, :'c92'),
+  '92.5 nobody removes somebody else''s comment on somebody else''s page',
+  'التعليق غير موجود');
+select (public.buy_project(:'l92', 'jawwal_pay', null, true)).id as sale92 \gset
+select public.submit_escrow_proof(
+  (select escrow_id from public.project_sales where id = :'sale92'),
+  '11111111-1111-1111-1111-111111111111/p92.png', 'JP-92');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  not exists (select 1 from public.conversations where escrow_id = (select escrow_id from public.project_sales where id = :'sale92')),
+  '92.6 ordering a service opens no conversation before the payment is confirmed');
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(
+  (select id from public.payments where escrow_id = (select escrow_id from public.project_sales where id = :'sale92')),
+  true, null);
+reset role;
+reset request.jwt.claim.sub;
+
+select id as conv92 from public.conversations
+ where escrow_id = (select escrow_id from public.project_sales where id = :'sale92') \gset
+select public.assert(
+  (select count(*) from public.conversation_participants where conversation_id = :'conv92') = 2
+  and not exists (select 1 from public.conversations c
+                   join public.project_sales s on s.escrow_id = c.escrow_id where s.id = :'sale91'),
+  '92.7 confirmed, the buyer and the provider have a conversation — a project sale still has none');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'conv92', '11111111-1111-1111-1111-111111111111', 'أريد اللون الأزرق في الشعار');
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar) values (%L, '11111111-1111-1111-1111-111111111111', 'ملفاتي هنا https://x.example')$$, :'conv92'),
+  '92.8 the no-links rule holds in it',
+  'links and images are not allowed');
+select public.release_escrow((select escrow_id from public.project_sales where id = :'sale92'));
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select is_read_only from public.conversations where id = :'conv92'),
+  '92.9 when the order ends the conversation closes, its history kept');
 
 \echo ''
 \echo '================================================'

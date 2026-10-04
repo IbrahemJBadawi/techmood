@@ -19,7 +19,7 @@ import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { DeliverableForm, MilestoneForm } from './WorkForms';
 import {
   ClientReviewForm, EscrowControls, EscrowProofForm,
-  OpenEscrowForm, SellForm, WithdrawListing, WorkerReviewForm,
+  OpenEscrowForm, WorkerReviewForm,
 } from './Money';
 import { ESCROW_STATUS } from './escrow-status';
 import type { PaymentMethodPublic } from '@/lib/database.types';
@@ -398,15 +398,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
             </div>
           )}
 
-          {canSell && <SellForm projectId={projectId} listing={listing ?? null} />}
-
-          {isOwner && listing && listing.status === 'listed' && (
+          {/* The project's public page and its sale live in one editor (0121). */}
+          {canSell && (
             <div className="hm-card section-block pj-card">
-              <div className="row-between">
-                <span className="muted" style={{ fontSize: '0.86rem' }}>
-                  {t('معروض للبيع بـ ', 'On sale for ')}<span className="eng">{money(listing.price_usd)}</span>
-                </span>
-                <WithdrawListing listingId={listing.id} revalidate={`/projects/${projectId}`} />
+              <h3 className="pj-h">{t('صفحة المشروع في المعرض والسوق', 'The project page — gallery and market')}</h3>
+              <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>
+                {listing
+                  ? <>{t('في السوق: ', 'In the market: ')}<span className="eng">{money(listing.price_usd)}</span> · {listing.status}</>
+                  : t('أضف الصور والديمو والروابط، وانشره في المعرض أو اعرضه للبيع.', 'Add pictures, a demo and links, then publish it in the gallery or put it up for sale.')}
+              </p>
+              <div className="row-actions" style={{ marginTop: 10 }}>
+                <Link className="btn btn-primary btn-sm" href={`/projects/${projectId}/edit`}>{t('✎ الصفحة والبيع', '✎ Page & sale')}</Link>
+                <Link className="btn btn-ghost btn-sm" href={`/p/${project.code}`}>{t('عرض الصفحة', 'View the page')}</Link>
               </div>
             </div>
           )}
@@ -423,7 +426,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
             {entry && (
               <li>
                 {t('هذا العمل في المعرض. ', 'This work is in the exhibition. ')}
-                <Link href="/exhibition">{t('افتحه', 'Open it')}</Link>
+                <Link href="/gallery">{t('افتحه', 'Open it')}</Link>
               </li>
             )}
             {isClient && (

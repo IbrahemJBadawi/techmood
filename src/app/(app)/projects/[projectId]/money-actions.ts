@@ -8,7 +8,7 @@ import { applyPayerAccount } from '@/lib/payer';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import { saveRatingDetails } from '@/lib/rating-details';
-import type { ClientCriterion, SaleLicence, WorkerCriterion } from '@/lib/database.types';
+import type { ClientCriterion, WorkerCriterion } from '@/lib/database.types';
 
 export type MoneyState = { error?: string; ok?: string } | undefined;
 
@@ -121,60 +121,6 @@ export async function reviewWork(_prev: MoneyState, formData: FormData): Promise
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('وصل تقييمك، وهو الآن جزء من سجلّ من نفّذ العمل.',
                  'Your review is in, and it is now part of the record of whoever did the work.') };
-}
-
-/** Putting finished work on the shelf. */
-export async function listForSale(_prev: MoneyState, formData: FormData): Promise<MoneyState> {
-  const t = await getT();
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const projectId = String(formData.get('project_id') ?? '');
-
-  const { error } = await supabase.rpc('list_project_for_sale', {
-    p_project: projectId,
-    p_price: Number(formData.get('price') ?? 0),
-    p_summary: String(formData.get('summary') ?? '').trim(),
-    p_licence: (String(formData.get('licence') ?? 'usage_rights') as SaleLicence),
-    p_includes: String(formData.get('includes') ?? '')
-      .split(/[,،]/).map((item) => item.trim()).filter(Boolean),
-    p_delivery_url: String(formData.get('delivery_url') ?? '').trim(),
-    p_demo_url: String(formData.get('demo_url') ?? '').trim() || null,
-    p_discount_pct: Number(formData.get('discount_pct') ?? 0) || 0,
-  });
-
-  revalidatePath(`/projects/${projectId}`);
-  revalidatePath('/marketplace');
-  if (error) return { error: dbError(t, error.message) };
-  return { ok: t('أُرسل العرض للمراجعة — يظهر في السوق بعد تحقق الإدارة.', 'The listing is sent for review — it shows in the market once TechMood has checked it.') };
-}
-
-export async function withdrawListing(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  await supabase.rpc('withdraw_listing', { p_listing: String(formData.get('listing_id') ?? '') });
-  revalidatePath(String(formData.get('revalidate') ?? '/marketplace'));
-}
-
-/** Buying one. Nothing changes hands on a click: it opens a hold. */
-export async function buyProject(_prev: MoneyState, formData: FormData): Promise<MoneyState> {
-  const t = await getT();
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { error } = await supabase.rpc('buy_project', {
-    p_listing: String(formData.get('listing_id') ?? ''),
-    p_method_key: String(formData.get('method_key') ?? ''),
-  });
-
-  revalidatePath('/marketplace');
-  if (error) return { error: dbError(t, error.message) };
-  return { ok: t('فُتح حجز مالي — أرسل الإيصال، ويصلك رابط التسليم حين تؤكد TechMood الدفع.',
-                 'A hold is open — send the receipt, and the delivery link reaches you once TechMood confirms the payment.') };
 }
 
 /**

@@ -9,7 +9,8 @@ import type { Text } from '@/lib/i18n';
 
 import { JobList } from './JobList';
 import { Purchases } from './Purchases';
-import { ListingList } from './ListingList';
+import { Offers } from './Offers';
+import { ShowcaseGrid } from '@/components/showcase/ShowcaseGrid';
 import { MoneyTab } from './Money';
 import { MyWork } from './MyWork';
 import { TalentList } from './TalentList';
@@ -44,7 +45,7 @@ const TAB_LABEL: Record<Tab, Text> = {
 export default async function MarketPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; kind?: string; q?: string; remote?: string }>;
+  searchParams: Promise<{ tab?: string; kind?: string; q?: string; remote?: string; category?: string; type?: string; sort?: string }>;
 }) {
   const t = await getT();
   const supabase = await createClient();
@@ -57,34 +58,56 @@ export default async function MarketPage({
   // for sale, and what you bought. Jobs and freelancing are outside its scope
   // (src/lib/scope.ts) and their tabs are not shown.
   if (IS_MVP) {
-    const mvpTab = params.tab === 'money' || params.tab === 'buying' ? 'money' : 'listings';
-    const search = (params.q ?? '').trim() || undefined;
+    const mvpTab = (['projects', 'services', 'jobs', 'offers', 'money'] as const)
+      .find((key) => key === params.tab) ?? (params.tab === 'buying' ? 'money' : 'projects');
+    const filters = { q: params.q, category: params.category,
+                      type: params.type, sort: params.sort };
+    const tabs: { key: typeof mvpTab; label: string; soon?: boolean }[] = [
+      { key: 'projects', label: t('🧩 المشاريع', '🧩 Projects') },
+      { key: 'services', label: t('🛠️ الخدمات', '🛠️ Services') },
+      { key: 'jobs', label: t('💼 الوظائف والطلبات', '💼 Jobs & requests'), soon: true },
+      { key: 'offers', label: t('💬 عروض الأسعار', '💬 Offers') },
+      { key: 'money', label: t('مشترياتي ومبيعاتي', 'My purchases & sales') },
+    ];
     return (
       <>
         <section className="market-hero section-block">
-          <h2>{t('سوق الطلاب', 'Student market')}</h2>
+          <h2>{t('سوق TechMood', 'TechMood market')}</h2>
           <p className="muted">
-            {t('مشاريع مكتملة لأعضاء TechMood وفرقهم، تحقّقت منها TechMood قبل عرضها. رابط التسليم يصلك بعد تأكيد الدفع.',
-               'Finished projects by TechMood members and teams, checked by TechMood before they are listed. The delivery link reaches you once the payment is confirmed.')}
+            {t('مشاريع جاهزة وخدمات رقمية من أعضاء TechMood وفرقهم، تتحقق منها TechMood قبل عرضها. يُحتجز المبلغ لدى TechMood، ورابط التسليم يصلك بعد تأكيد الدفع.',
+               'Ready-made projects and digital services by TechMood members and teams, checked by TechMood before they are listed. TechMood holds the money, and the delivery reaches you once the payment is confirmed.')}
           </p>
-          {/* Any member, any role: add a project, complete it, put it up for sale. */}
           <div className="tags-row" style={{ margin: '10px 0' }}>
-            <Link className="btn btn-primary btn-sm" href="/projects/new">{t('+ أضف مشروعك للبيع', '+ Add your project for sale')}</Link>
+            <Link className="btn btn-primary btn-sm" href="/projects/new?intent=market">{t('+ اعرض مشروعاً للبيع', '+ Sell a project')}</Link>
+            <Link className="btn btn-sky btn-sm" href="/projects/new?intent=market&type=digital_service">{t('+ اعرض خدمة', '+ Offer a service')}</Link>
             <Link className="btn btn-ghost btn-sm" href="/projects">{t('مشاريعي', 'My projects')}</Link>
+            <Link className="btn btn-ghost btn-sm" href="/policies#market">{t('الشروط', 'Terms')}</Link>
           </div>
-          <form className="market-search" action="/marketplace">
-            <input type="search" name="q" defaultValue={search ?? ''}
-                   placeholder={t('ابحث عن مشروع…', 'Search for a project…')}
-                   aria-label={t('ابحث في السوق', 'Search the market')} />
-            <button className="btn btn-primary btn-sm">{t('ابحث', 'Search')}</button>
-          </form>
         </section>
         <nav className="tabs" aria-label={t('أقسام السوق', 'Market sections')}>
-          <Link className={`tab${mvpTab === 'listings' ? ' is-active' : ''}`} href="/marketplace">{t('المشاريع المعروضة', 'Projects for sale')}</Link>
-          <Link className={`tab${mvpTab === 'money' ? ' is-active' : ''}`} href="/marketplace?tab=money">{t('مشترياتي ومبيعاتي', 'My purchases & sales')}</Link>
+          {tabs.map((tab) => (
+            <Link key={tab.key} className={`tab${mvpTab === tab.key ? ' is-active' : ''}`} href={`/marketplace?tab=${tab.key}`}>
+              {tab.label}{tab.soon && <span className="soon-chip">{t('قريباً', 'Soon')}</span>}
+            </Link>
+          ))}
         </nav>
         <section className="section-block">
-          {mvpTab === 'listings' ? <ListingList search={search} /> : (<><Purchases /><MoneyTab /></>)}
+          {(mvpTab === 'projects' || mvpTab === 'services') && (
+            <ShowcaseGrid mode="market" group={mvpTab} filters={filters} inApp action="/marketplace" hidden={{ tab: mvpTab }}
+                          emptyCta={<Link className="btn btn-primary btn-sm" href={`/projects/new?intent=market${mvpTab === 'services' ? '&type=digital_service' : ''}`}>
+                            {mvpTab === 'services' ? t('اعرض أول خدمة', 'Offer the first service') : t('اعرض أول مشروع', 'List the first project')}</Link>} />
+          )}
+          {mvpTab === 'jobs' && (
+            <div className="panel empty-state">
+              <h3 style={{ fontSize: '1rem' }}>💼 {t('الوظائف والطلبات — قريباً', 'Jobs & requests — coming soon')}</h3>
+              <p className="muted" style={{ fontSize: '0.86rem' }}>
+                {t('قريباً تنشر الشركات والأعضاء طلبات عمل ووظائف، ويتقدّم لها أعضاء TechMood بسجلّهم الموثّق.',
+                   'Soon companies and members will post jobs and work requests, and TechMood members apply with their verified record.')}
+              </p>
+            </div>
+          )}
+          {mvpTab === 'offers' && <Offers />}
+          {mvpTab === 'money' && (<><Purchases /><MoneyTab /></>)}
         </section>
       </>
     );
@@ -207,7 +230,7 @@ export default async function MarketPage({
               <h3 className="academy-heading">{t('مشاريع جاهزة للبيع', 'Finished work for sale')}</h3>
               <Link className="btn btn-ghost btn-sm" href={href({ tab: 'listings' })}>{t('الكل', 'See all')}</Link>
             </div>
-            <ListingList />
+            <ShowcaseGrid mode="market" filters={{}} inApp action="/marketplace" hidden={{ tab: 'listings' }} />
           </section>
         </>
       )}
@@ -259,7 +282,7 @@ export default async function MarketPage({
             {t('عمل مكتمل تحقّقت منه TechMood قبل عرضه. الشراء يفتح حجزاً مالياً، ورابط التسليم يصلك بعد تأكيد الدفع — والبيع ينقل العمل لا نسبته: يبقى في سجلّ من بناه.',
                'Finished work TechMood checked before listing it. Buying opens a hold, and the delivery link reaches you once the payment is confirmed — and a sale moves the work, never the authorship: it stays on the record of whoever built it.')}
           </p>
-          <ListingList search={search} />
+          <ShowcaseGrid mode="market" filters={{ q: search, category: params.category, type: params.type, sort: params.sort }} inApp action="/marketplace" hidden={{ tab: 'listings' }} />
         </section>
       )}
 

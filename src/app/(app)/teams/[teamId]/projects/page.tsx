@@ -43,7 +43,7 @@ export default async function TeamProjectsPage({
       <section className="section-block">
         <div className="row-between">
           <h2 style={{ fontSize: '1.15rem' }}>{team.title_ar}{t(' — المشاريع', ' — projects')}</h2>
-          <Link className="btn btn-ghost btn-sm" href="/exhibition">{t('المعرض', 'Exhibition')}</Link>
+          <Link className="btn btn-ghost btn-sm" href="/gallery">{t('المعرض', 'Exhibition')}</Link>
         </div>
         <p className="muted" style={{ fontSize: '0.88rem', marginTop: 6 }}>
           {t('عندما يكتمل مشروع، قدّمه للمعرض — عندها يصبح دليلاً مهنياً في ملف كل من عمل عليه.', 'When a project is finished, submit it to the exhibition — it then becomes professional evidence on the profile of everyone who worked on it.')}
