@@ -33,7 +33,10 @@ function geminiModel() {
   return process.env.GEMINI_MODEL?.trim() || GEMINI_DEFAULT_MODEL;
 }
 
-type Part = { text?: string; thought?: boolean; functionCall?: { name: string; args?: Record<string, unknown> } };
+type Part = {
+  text?: string; thought?: boolean; thoughtSignature?: string;
+  functionCall?: { id?: string; name: string; args?: Record<string, unknown> };
+};
 type GeminiResponse = {
   candidates?: { content?: { parts?: Part[] }; finishReason?: string }[];
   modelVersion?: string;
@@ -128,16 +131,17 @@ export async function askGemini(input: {
   kinds: AiActionKind[];
 }, route?: GeminiRoute): Promise<AiAnswer> {
   const declaration = proposalDeclaration(input.kinds);
+  const request = {
+    systemInstruction: { parts: [{ text: systemPrompt(input.kinds, input.context) }] },
+    contents: [
+      ...input.history.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+      { role: 'user', parts: [{ text: input.prompt }] },
+    ] as unknown[],
+    ...(declaration ? { tools: [{ functionDeclarations: [declaration] }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {}),
+    generationConfig: { maxOutputTokens: 4096, temperature: 0.6 },
+  };
   try {
-    const { data, status } = await generate({
-      systemInstruction: { parts: [{ text: systemPrompt(input.kinds, input.context) }] },
-      contents: [
-        ...input.history.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-        { role: 'user', parts: [{ text: input.prompt }] },
-      ],
-      ...(declaration ? { tools: [{ functionDeclarations: [declaration] }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {}),
-      generationConfig: { maxOutputTokens: 4096, temperature: 0.6 },
-    }, route);
+    const { data, status } = await generate(request, route);
     if (status !== 200 || !data) return { text: '', proposals: [], model: null, error_ar: failure(status, data) };
 
     const candidate = data.candidates?.[0];
@@ -162,8 +166,33 @@ export async function askGemini(input: {
           .filter((p): p is AiProposal => p !== null)
       : [];
 
+    // Gemini often stops at a proposal and waits to hear what became of it.
+    // A second round tells it — shown to the member, nothing done yet — so it
+    // writes the actual answer to the question.
+    let answer = text;
+    const calls = parts.filter((p) => p.functionCall);
+    if (trustTools && calls.length && !answer) {
+      const follow = await generate({
+        ...request,
+        contents: [
+          ...request.contents,
+          { role: 'model', parts },
+          { role: 'user', parts: calls.map((p) => ({
+            functionResponse: {
+              ...(p.functionCall?.id ? { id: p.functionCall.id } : {}),
+              name: p.functionCall!.name,
+              response: { result: 'عُرض الاقتراح على صاحب الحساب كبطاقة تنتظر موافقته؛ لم يُنفَّذ شيء. أجب الآن عن سؤاله نصّاً.' },
+            },
+          })) },
+        ],
+        toolConfig: { functionCallingConfig: { mode: 'NONE' } },
+      }, route).catch(() => null);
+      const followParts = follow?.status === 200 ? follow.data?.candidates?.[0]?.content?.parts ?? [] : [];
+      answer = followParts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n').trim();
+    }
+
     return {
-      text: text || (proposals.length ? 'جهّزت لك اقتراحاً — راجعه وأكّده إن ناسبك.' : 'لم يصلني ردّ نصّي. أعد صياغة سؤالك.'),
+      text: answer || (proposals.length ? 'جهّزت لك اقتراحاً — راجعه وأكّده إن ناسبك.' : 'لم يصلني ردّ نصّي. أعد صياغة سؤالك.'),
       proposals,
       model: data.modelVersion ?? geminiModel(),
       error_ar: null,

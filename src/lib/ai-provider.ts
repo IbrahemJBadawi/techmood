@@ -43,12 +43,32 @@ const NOT_CONNECTED =
   'المساعد غير موصول بمزوّد نموذج في هذه البيئة (لا مفتاح Gemini ولا ANTHROPIC_API_KEY). '
   + 'المحادثة والذاكرة والإجراءات تعمل، لكن لا يوجد من يجيب بعد.';
 
+/**
+ * Only the proposals that fit where the member is: a company's goals and
+ * roadmap for someone with a company, a canvas card on a canvas, saving an
+ * opening from an opening. (A live test saw a roadmap item proposed to a
+ * student with no company.) Restricted kinds stay, so they are refused by name.
+ */
+export function kindsThatFit(kinds: AiActionKind[], context: unknown): AiActionKind[] {
+  const ctx = (context ?? {}) as { startups?: unknown[]; page?: { kind?: string } | null };
+  const page = ctx.page?.kind ?? null;
+  const hasCompany = (ctx.startups?.length ?? 0) > 0 || page === 'startup';
+  return kinds.filter((k) => {
+    if (k.permission === 'restricted') return true;
+    if (k.kind === 'create_goal' || k.kind === 'create_roadmap_item') return hasCompany;
+    if (k.kind === 'add_canvas_card') return page === 'canvas';
+    if (k.kind === 'save_opportunity') return page === 'opportunity';
+    return true;
+  });
+}
+
 export async function askAssistant(supabase: Db, thread: string, input: {
   context: unknown;
   history: { role: 'user' | 'assistant'; content: string }[];
   prompt: string;
   kinds: AiActionKind[];
 }): Promise<AiAnswer> {
+  input = { ...input, kinds: kindsThatFit(input.kinds, input.context) };
   const provider = await aiProvider(supabase);
   if (provider === 'gemini') return askGemini(input, await routeFor(supabase, thread));
   if (provider === 'anthropic') return askClaude(input);

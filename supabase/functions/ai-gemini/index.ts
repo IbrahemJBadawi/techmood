@@ -10,6 +10,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Tried in turn when the configured model is busy.
+const FALLBACKS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -44,18 +46,22 @@ Deno.serve(async (req: Request) => {
   const cfg = config as { api_key: string | null; model: string } | null;
   if (!cfg?.api_key) return json({ error: 'no key', status: 503 }, 503);
 
-  const call = () => fetch(`${ENDPOINT}/${encodeURIComponent(cfg.model)}:generateContent`, {
+  // Google's free models are sometimes busy for a moment. The configured model
+  // first, then the other current Flash models, each once; a model that is
+  // simply busy (429/503) hands over to the next, anything else is the answer.
+  const models = [cfg.model, ...FALLBACKS.filter((m) => m !== cfg.model)];
+  const call = (model: string) => fetch(`${ENDPOINT}/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.api_key! },
     body: JSON.stringify(payload.request),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(25_000),
   }).catch(() => null);
 
-  // Google's free tier is sometimes busy for a moment: one retry, then say so.
-  let upstream = await call();
-  if (upstream && (upstream.status === 503 || upstream.status === 429)) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    upstream = await call();
+  let upstream: Response | null = null;
+  for (const [index, model] of models.entries()) {
+    if (index > 0) await new Promise((resolve) => setTimeout(resolve, 800));
+    upstream = await call(model);
+    if (upstream && upstream.status !== 503 && upstream.status !== 429) break;
   }
   if (!upstream) return json({ status: 504, data: null });
 

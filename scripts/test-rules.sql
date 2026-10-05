@@ -10529,10 +10529,11 @@ select public.assert_rejects(
   format($$select public.claim_ai_model_call(%L)$$, :'th99'),
   '99.5 no question, no model call', 'لا سؤال');
 select public.ai_say(:'th99', 'user', 'كيف أبدأ؟', 'general', 'page');
-select public.assert(public.claim_ai_model_call(:'th99'), '99.6 a question asked buys one model call');
+select public.assert(public.claim_ai_model_call(:'th99'), '99.6 a question asked buys a model call');
+select public.assert(public.claim_ai_model_call(:'th99'), '99.6b and the follow-up round after a proposal (0134)');
 select public.assert_rejects(
   format($$select public.claim_ai_model_call(%L)$$, :'th99'),
-  '99.7 and only one', 'أُجيب');
+  '99.7 and no more', 'أُجيب');
 select public.assert(public.ai_gemini_ready() is not null and not public.ai_gemini_ready(),
   '99.8 a member can ask whether a key exists (none here) without seeing it');
 select public.assert_rejects(
