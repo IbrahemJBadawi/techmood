@@ -3034,10 +3034,11 @@ select public.assert(
 
 -- Depth and Breadth live in is_required, not in a second column. (back-end
 -- used to be the example; since 0078 it is open because it carries the
--- published SQL course, so the roadmap no longer lists it.)
+-- published SQL course, so the roadmap no longer lists it. Java followed in
+-- 0135, when its first course arrived.)
 select public.assert(
-  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'java') = 4
-  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'java') = 2,
+  (select array_length(deep_titles_ar, 1) from public.academy_roadmap() where slug = 'qa-testing') = 4
+  and (select array_length(exposure_titles_ar, 1) from public.academy_roadmap() where slug = 'qa-testing') = 2,
   '24.11 a path''s depth is what it requires, its breadth what it carries');
 
 select public.assert(
@@ -3311,12 +3312,12 @@ select public.assert(
 -- the older "every required course" rule with the founder's: one ready course
 -- opens the path, none keeps it «قريباً»).
 select public.assert_rejects(
-  $$update public.learning_paths set status = 'published' where slug = 'java'$$,
+  $$update public.learning_paths set status = 'published' where slug = 'qa-testing'$$,
   '27.3 a path with no ready course cannot be published',
   'دورة واحدة جاهزة');
 
 select public.assert(
-  (select status from public.learning_paths where slug = 'java') = 'planned'
+  (select status from public.learning_paths where slug = 'qa-testing') = 'planned'
   and (select status from public.learning_paths where slug = 'js-ts') = 'published',
   '27.4 the refusal leaves it announced; a path with a ready course is open');
 
@@ -7115,20 +7116,20 @@ select public.assert(
 
 -- Publishing the first course of a «قريباً» path opens it; taking it back closes it.
 insert into public.modules (course_id, title_ar, sort_order)
-select id, 'وحدة Java الأولى', 1 from public.courses where slug = 'java-basics';
+select id, 'وحدة الاختبار الأولى', 1 from public.courses where slug = 'manual-testing';
 insert into public.lessons (module_id, title_ar, kind, sort_order)
-select m.id, 'أول برنامج Java', 'video', 1
+select m.id, 'أول حالة اختبار', 'video', 1
   from public.modules m join public.courses c on c.id = m.course_id
- where c.slug = 'java-basics';
+ where c.slug = 'manual-testing';
 
-update public.courses set status = 'published' where slug = 'java-basics';
+update public.courses set status = 'published' where slug = 'manual-testing';
 select public.assert(
-  (select status from public.learning_paths where slug = 'java') = 'published',
+  (select status from public.learning_paths where slug = 'qa-testing') = 'published',
   '59.3 one ready course opens its path');
 
-update public.courses set status = 'draft' where slug = 'java-basics';
+update public.courses set status = 'draft' where slug = 'manual-testing';
 select public.assert(
-  (select status from public.learning_paths where slug = 'java') = 'planned',
+  (select status from public.learning_paths where slug = 'qa-testing') = 'planned',
   '59.4 and with none left, the path goes back to «قريباً»');
 
 -- An announced course counts; a switched-off lesson does not show.
@@ -7210,7 +7211,7 @@ set role authenticated;
 set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
 select public.assert(
   public.set_path_mode((select id from public.learning_paths where slug = 'js-ts'), 'auto') = 'published'
-  and public.set_path_mode((select id from public.learning_paths where slug = 'java'), 'auto') = 'planned',
+  and public.set_path_mode((select id from public.learning_paths where slug = 'qa-testing'), 'auto') = 'planned',
   '59.12 back on auto, the rule decides: open with a ready course, «قريباً» without');
 reset role;
 reset request.jwt.claim.sub;
@@ -7218,7 +7219,7 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert_rejects(
-  $$select public.set_path_mode((select id from public.learning_paths where slug = 'java'), 'archived')$$,
+  $$select public.set_path_mode((select id from public.learning_paths where slug = 'qa-testing'), 'archived')$$,
   '59.13 and only the admin has that switch',
   'للإدارة فقط');
 reset role;
@@ -10545,6 +10546,38 @@ select public.assert_rejects(
   '99.10 nobody claims a call on another member''s question', 'لا سؤال');
 reset role;
 reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 100. The second batch of courses (0135)
+-- -----------------------------------------------------------------------------
+select public.assert(
+  (select count(*) from public.courses
+    where slug in ('java-basics','db-foundations','sql-server','design-patterns','clean-code','data-structures',
+                   'operating-systems','linux','wordpress','linq-adonet','aspnet-mvc','aspnet-core','aspnet-mvc-3tier')
+      and status = 'published') = 13,
+  '100.1 all thirteen courses are open');
+select public.assert(
+  (select count(*) from public.lessons l join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+    where c.slug in ('java-basics','db-foundations','sql-server','design-patterns','clean-code','data-structures',
+                     'operating-systems','linux','wordpress','linq-adonet','aspnet-mvc','aspnet-core','aspnet-mvc-3tier')) = 155,
+  '100.2 one lesson per lecture: 155');
+select public.assert(
+  not exists (
+    select 1 from public.lessons l join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+     where c.slug in ('java-basics','db-foundations','sql-server','design-patterns','clean-code','data-structures',
+                      'operating-systems','linux','wordpress','linq-adonet','aspnet-mvc','aspnet-core','aspnet-mvc-3tier')
+       and (not exists (select 1 from public.lesson_videos v where v.lesson_id = l.id)
+            or not exists (select 1 from public.assignments a where a.lesson_id = l.id and a.is_required)
+            or l.case_study_ar is null or l.challenge_ar is null)),
+  '100.3 every lesson has its video, a required assignment, a case study and a challenge');
+select public.assert(
+  (select count(*) from public.lesson_videos v join public.lessons l on l.id = v.lesson_id
+     join public.modules m on m.id = l.module_id join public.courses c on c.id = m.course_id
+    where c.slug = 'aspnet-core') = 16,
+  '100.4 the two Web API recordings sit side by side, not as duplicate lessons');
+select public.assert(
+  (select status from public.learning_paths where slug = 'java') = 'published',
+  '100.5 the Java path opens with its first course');
 
 \echo ''
 \echo '================================================'
