@@ -235,7 +235,7 @@ export default async function MentorProfilePage({
             </ul>
           )}
           <p className="muted" style={{ fontSize: '0.76rem', marginTop: 10 }}>
-            {t('بحد أقصى 5 ساعات يومياً، والحجز قبل 72 ساعة على الأقل.', 'At most five hours a day, and bookings need 72 hours’ notice.')}
+            {t('بحد أقصى 5 ساعات يومياً، والحجز قبل 72 ساعة — أو حجز فوري لموعد أقرب بزيادة 50%.', 'At most five hours a day; bookings need 72 hours’ notice — or book a sooner slot instantly at +50%.')}
           </p>
         </aside>
       </div>

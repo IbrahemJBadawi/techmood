@@ -10,7 +10,7 @@ import { OF_LEARNER, OF_MENTOR } from '@/lib/criteria';
 
 import { cancelBooking } from '../actions';
 import { RatingForm } from '../../sessions/[sessionId]/RatingForm';
-import { AttendanceForm, DeclineForm, MeetingLinkForm } from './SessionPanel';
+import { AttendanceForm, DeclineForm, DisputeAbsenceForm, MeetingLinkForm, RescheduleForm } from './SessionPanel';
 
 export default async function BookingDetailPage({
   params,
@@ -103,6 +103,27 @@ export default async function BookingDetailPage({
   const now = new Date(serverNow ?? booking.updated_at);
   const started = new Date(booking.scheduled_start) <= now;
 
+  // The absence rules (0125): the mentor answers a reported absence within a
+  // day, and a learner who missed a first session picks one new time.
+  const disputeUntil = booking.attendance_at ? new Date(new Date(booking.attendance_at).getTime() + 24 * 60 * 60 * 1000) : null;
+  const canDispute = isMentor && booking.status === 'confirmed' && booking.attendance === 'mentor_absent'
+    && !booking.absence_disputed_at && disputeUntil !== null && now < disputeUntil;
+  const awaitingNewTime = booking.status === 'confirmed' && booking.attendance === 'learner_absent' && booking.reschedule_by;
+  const { data: freeSlots } = awaitingNewTime && isStudent
+    ? await supabase.rpc('mentor_available_slots', {
+        p_mentor: booking.mentor_id,
+        p_from: now.toISOString().slice(0, 10),
+        p_to: String(booking.reschedule_by).slice(0, 10),
+      })
+    : { data: null };
+  const rescheduleSlots = (freeSlots ?? [])
+    .filter((slot) => slot.state === 'available' && slot.slot_start <= String(booking.reschedule_by))
+    .slice(0, 60)
+    .map((slot) => {
+      const label = formatSlot(slot.slot_start, t.locale);
+      return { value: slot.slot_start, label: `${label.date} · ${label.time}` };
+    });
+
   // Rating, a week from the end of a completed session (0095).
   const [{ data: feedback }, { data: requiresEvaluation }] =
     IS_MVP && booking.status === 'completed' && (isMentor || isLearner)
@@ -146,6 +167,7 @@ export default async function BookingDetailPage({
           <span className="badge-pill">{when.date}</span>
           <span className="badge-pill eng">{when.time}</span>
           <span className="badge-pill eng">{sessionType?.duration_minutes ?? 60} min</span>
+          {booking.is_instant && <span className="badge-pill">⚡ {t('حجز فوري', 'Instant booking')}</span>}
         </div>
 
         {booking.status === 'payment_pending' && isStudent && (
@@ -361,9 +383,28 @@ export default async function BookingDetailPage({
               )}
 
               {booking.attendance === 'mentor_absent' && (
-                <p className="notice notice-warn" style={{ marginTop: 12 }}>
-                  {t('أُبلغ عن غياب المنتور — ينتظر مراجعة فريق TechMood.', 'The mentor was reported absent — waiting for TechMood to review it.')}
-                </p>
+                <div className="notice notice-warn" style={{ marginTop: 12 }}>
+                  {booking.absence_disputed_at
+                    ? t('أُبلغ عن غياب المنتور، واعترض المنتور — يراجعه فريق TechMood ويبلغ الطرفين بالقرار.',
+                        'The mentor was reported absent and disputes it — TechMood is reviewing it and will tell you both.')
+                    : isMentor
+                      ? t('سجّل الطالب أنك لم تحضر. إن كانت الجلسة قد انعقدت اعترض خلال 24 ساعة، وإلا يُعاد المبلغ للطالب تلقائياً.',
+                          'The learner recorded that you did not come. If the session took place, dispute it within 24 hours — otherwise the learner is refunded automatically.')
+                      : t('أُبلغ عن غياب المنتور. إن لم يعترض خلال 24 ساعة يُعاد إليك المبلغ كاملاً إلى محفظتك تلقائياً.',
+                          'The mentor was reported absent. Unless they dispute it within 24 hours, you are refunded in full to your wallet automatically.')}
+                  {canDispute && <DisputeAbsenceForm bookingId={bookingId} />}
+                </div>
+              )}
+
+              {awaitingNewTime && (
+                <div className="notice" style={{ marginTop: 12 }}>
+                  {isStudent
+                    ? t(`فاتتك الجلسة. لك فرصة واحدة: اختر موعداً جديداً قبل ${formatDate(t.locale, String(booking.reschedule_by))} دون دفع جديد — ولا يُسترد المبلغ. إن تكرر الغياب تُحتسب الجلسة.`,
+                        `You missed the session. You have one chance: pick a new time before ${formatDate(t.locale, String(booking.reschedule_by))}, with nothing more to pay — the payment is not refunded. A second absence counts the session.`)
+                    : t(`سجّلت غياب الطالب. له فرصة واحدة لاختيار موعد جديد قبل ${formatDate(t.locale, String(booking.reschedule_by))}؛ إن لم يختر تُحتسب الجلسة وتصل حصتك.`,
+                        `You recorded the learner absent. They have one chance to pick a new time before ${formatDate(t.locale, String(booking.reschedule_by))}; if they do not, the session counts and your share is released.`)}
+                  {isStudent && <RescheduleForm bookingId={bookingId} slots={rescheduleSlots} />}
+                </div>
               )}
 
               {isMentor && !started && (

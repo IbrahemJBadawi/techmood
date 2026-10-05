@@ -75,7 +75,7 @@ export type BookingStatus =
 export type PaymentStatus =
   | 'pending' | 'under_review' | 'needs_info' | 'verified' | 'rejected' | 'failed' | 'refunded';
 
-export type SlotState = 'available' | 'pending' | 'booked' | 'unavailable';
+export type SlotState = 'available' | 'instant' | 'pending' | 'booked' | 'unavailable';
 export type LedgerKind = 'earning' | 'fee' | 'commission' | 'payout' | 'refund';
 export type LedgerStatus = 'pending' | 'available' | 'paid' | 'cancelled';
 export type PayoutStatus = 'requested' | 'approved' | 'paid' | 'rejected';
@@ -667,6 +667,14 @@ export type Booking = {
   attendance_at: string | null;
   /** Flagged to the mentor and the admins when nobody recorded it in 48 hours. */
   attendance_flagged_at: string | null;
+  /** Booked inside the usual notice window, at the instant surcharge (0125). */
+  is_instant: boolean;
+  /** How many times the learner missed this session (0125): the first one gives a free new time. */
+  learner_absences: number;
+  /** After a first absence: the learner picks a new time before this, once (0125). */
+  reschedule_by: string | null;
+  /** The mentor said a session they were reported absent from was held (0125). */
+  absence_disputed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1920,6 +1928,7 @@ export type Database = {
       };
       mentor_decline_booking: { Args: { p_booking: string; p_reason: string }; Returns: undefined };
       record_attendance: { Args: { p_booking: string; p_outcome: BookingAttendance }; Returns: undefined };
+      reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       admin_attendance_disputes: {
         Args: Record<string, never>;
         Returns: {

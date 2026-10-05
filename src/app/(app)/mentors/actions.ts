@@ -87,8 +87,11 @@ export async function createBooking(_prev: BookingState, formData: FormData): Pr
     if (message.includes('conflicting key value') || message.includes('bookings_no_overlap')) {
       return { error: t('هذا الموعد لم يعد متاحاً — اختر موعداً آخر.', 'That slot is no longer free — pick another.') };
     }
-    if (message.includes('72 hours') || message.includes('in advance')) {
-      return { error: t('يجب أن يكون الحجز قبل 72 ساعة على الأقل من موعد الجلسة.', 'A booking must be at least 72 hours before the session.') };
+    if (message.includes('in advance')) {
+      return { error: t('هذا الموعد قريب جداً — اختر موعداً آخر من الجدول.', 'That time is too close — pick another from the calendar.') };
+    }
+    if (message.includes('الحجز الفوري')) {
+      return { error: dbError(t, message) };
     }
     if (message.includes('availability')) {
       return { error: t('الموعد المختار خارج أوقات توفر المنتور.', 'That time is outside the mentor’s available hours.') };

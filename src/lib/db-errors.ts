@@ -16,6 +16,12 @@ import type { T } from '@/lib/i18n';
  * language is more useful than hiding it in the right one.
  */
 const PHRASES: { match: string; en: string }[] = [
+  // session rules (0125)
+  { match: 'الحجز الفوري يبدأ بعد',          en: 'An instant booking has to start a little later, so the payment can be confirmed first.' },
+  { match: 'اعترضت على تسجيل الغياب بالفعل',  en: 'You already disputed it — TechMood is reviewing it.' },
+  { match: 'انتهت مهلة الاعتراض',             en: 'The time to dispute this absence has passed.' },
+  { match: 'لا توجد فرصة إعادة جدولة',        en: 'There is no reschedule available for this session.' },
+  { match: 'انتهت مهلة إعادة الجدولة',        en: 'The time to pick a new slot has passed.' },
   // mentor levels and upgrades (0101, 0120)
   { match: 'الترقية للمنتورز المعتمدين',     en: 'Level upgrades are for approved mentors.' },
   { match: 'أنت في أعلى مستوى',              en: 'You are already at the top level.' },

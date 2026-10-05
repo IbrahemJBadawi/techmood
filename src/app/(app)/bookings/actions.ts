@@ -273,3 +273,34 @@ export async function recordAttendance(_prev: SessionState, formData: FormData):
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('سُجّل الحضور.', 'Attendance is recorded.') };
 }
+
+/**
+ * After a first absence the learner picks the session's new time — once,
+ * without paying again (0125). The database checks the slot like any booking.
+ */
+export async function rescheduleAfterAbsence(_prev: SessionState, formData: FormData): Promise<SessionState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const bookingId = String(formData.get('booking_id') ?? '');
+  const startsAt = String(formData.get('starts_at') ?? '');
+  if (!startsAt) return { error: t('اختر موعداً.', 'Choose a time.') };
+
+  const { error } = await supabase.rpc('reschedule_after_absence', { p_booking: bookingId, p_starts_at: startsAt });
+
+  revalidatePath('/bookings');
+  revalidatePath(`/bookings/${bookingId}`);
+  if (error) {
+    const message = error.message ?? '';
+    if (message.includes('bookings_no_overlap') || message.includes('conflicting key value')) {
+      return { error: t('هذا الموعد لم يعد متاحاً — اختر موعداً آخر.', 'That slot is no longer free — pick another.') };
+    }
+    if (message.includes('in advance') || message.includes('availability')) {
+      return { error: t('هذا الموعد غير متاح — اختر موعداً آخر من القائمة.', 'That time is not available — pick another from the list.') };
+    }
+    return { error: dbError(t, message) };
+  }
+  return { ok: t('حُدّد الموعد الجديد، وأُبلغ المنتور.', 'The new time is set, and the mentor has been told.') };
+}

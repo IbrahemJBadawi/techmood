@@ -4749,6 +4749,9 @@ a.txn:hover { background: var(--bg-deep); }
 .date-tab.selected { box-shadow: 0 3px 0 color-mix(in srgb, var(--royal) 70%, #000); }
 .slot { border-radius: 999px; padding: 11px 6px; font-weight: 600; transition: border-color 0.15s, background 0.15s; }
 .slot:hover:not(:disabled) { border-color: var(--royal); color: var(--royal-dark); }
+.slot-instant { display: flex; flex-direction: column; align-items: center; gap: 2px; border-color: color-mix(in srgb, var(--warn) 60%, var(--line)); border-radius: 14px; padding: 7px 4px; }
+.slot-instant .slot-tag { font-size: 0.66rem; font-weight: 700; color: var(--warn-ink); line-height: 1; }
+.slot-instant.selected .slot-tag { color: #fff; }
 .choice { border-radius: var(--radius-m); transition: border-color 0.15s, box-shadow 0.15s; }
 .choice.selected { box-shadow: 0 0 0 3px var(--sky-tint); }
 .step-num { box-shadow: 0 2px 0 color-mix(in srgb, var(--royal) 70%, #000); }

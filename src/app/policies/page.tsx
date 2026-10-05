@@ -27,6 +27,10 @@ export default async function PoliciesPage() {
   const version = get('market_terms_version', '1');
   const saleCommission = tiers?.[0]?.rate_percent ?? 15;
   const instantPct = get('instant_booking_surcharge_pct', '50');
+  const noticeHours = get('booking_min_notice_hours', '72');
+  const instantMinutes = get('instant_booking_min_minutes', '120');
+  const disputeHours = get('mentor_absence_dispute_hours', '24');
+  const rescheduleDays = get('learner_reschedule_days', '14');
   const responseHours = get('mentor_response_hours', '48');
 
   const sections: { id: string; title: string; items: string[] }[] = [
@@ -73,9 +77,9 @@ export default async function PoliciesPage() {
       items: [
         t('يحدد المنتور سعره ضمن نطاق مستواه. يُحتجز المبلغ لدى TechMood ولا يصل للمنتور إلا بعد الجلسة.', 'A mentor sets their price within their level’s range. TechMood holds the money and pays the mentor only after the session.'),
         t(`يردّ المنتور على طلب مدفوع خلال ${responseHours} ساعة، وإلا يُلغى الطلب ويُعاد لك المبلغ.`, `A mentor answers a paid request within ${responseHours} hours, or it is cancelled and refunded.`),
-        t(`الحجز الفوري (أقرب موعد خلال ٢٤ ساعة دون مهلة الحجز المعتادة) بزيادة ${instantPct}% على السعر.`, `Instant booking (the nearest slot within 24 hours, without the usual notice) costs ${instantPct}% more.`),
-        t('إن غاب المنتور عن الجلسة يُعاد لك المبلغ كاملاً.', 'If the mentor misses the session, you are refunded in full.'),
-        t('إن غاب الطالب تُمنح فرصة واحدة لإعادة جدولة الجلسة دون استرداد المبلغ؛ وإن تكرّر الغياب تُحتسب الجلسة.', 'If the learner misses it, they get one chance to reschedule, without a refund; a second absence counts the session as held.'),
+        t(`يُحجز الموعد قبل ${noticeHours} ساعة على الأقل. الحجز الفوري — موعد أقرب من ذلك، يبدأ بعد ${Math.round(Number(instantMinutes) / 60)} ساعة على الأقل — بزيادة ${instantPct}% على السعر.`, `A session is booked at least ${noticeHours} hours ahead. An instant booking — a sooner slot, starting at least ${Math.round(Number(instantMinutes) / 60)} hours from now — costs ${instantPct}% more.`),
+        t(`إن سجّل الطالب غياب المنتور، للمنتور ${disputeHours} ساعة ليعترض. إن لم يعترض يُعاد المبلغ كاملاً إلى محفظة الطالب تلقائياً؛ وإن اعترض تقرّر TechMood.`, `If the learner records the mentor absent, the mentor has ${disputeHours} hours to dispute it. Without a dispute the learner is refunded in full to their wallet automatically; with one, TechMood decides.`),
+        t(`إن غاب الطالب أول مرة تبقى الجلسة له: يختار موعداً جديداً خلال ${rescheduleDays} يوماً دون دفع جديد ودون استرداد. إن تكرّر الغياب أو لم يختر موعداً في المهلة تُحتسب الجلسة.`, `If the learner misses a session for the first time, it stays theirs: they pick a new time within ${rescheduleDays} days, with nothing more to pay and no refund. A second absence, or no new time in that window, counts the session as held.`),
       ],
     },
     {

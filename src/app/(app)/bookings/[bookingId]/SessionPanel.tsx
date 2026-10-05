@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n.client';
 import {
   declineBooking,
   recordAttendance,
+  rescheduleAfterAbsence,
   setMeetingLink,
   type SessionState,
 } from '../actions';
@@ -97,6 +98,53 @@ export function AttendanceForm({ bookingId, side }: { bookingId: string; side: '
           {t('لم يحضر المنتور', 'The mentor did not come')}
         </button>
       )}
+      <Result state={state} />
+    </form>
+  );
+}
+
+/** The mentor was reported absent but held the session: they say so once, and TechMood decides (0125). */
+export function DisputeAbsenceForm({ bookingId }: { bookingId: string }) {
+  const t = useT();
+  const [state, action, pending] = useActionState(recordAttendance, undefined as SessionState);
+
+  return (
+    <form action={action} style={{ marginTop: 10 }}>
+      <input type="hidden" name="booking_id" value={bookingId} />
+      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} name="outcome" value="held" disabled={pending}>
+        {t('الجلسة انعقدت — أعترض', 'The session took place — dispute')}
+      </button>
+      <Result state={state} />
+    </form>
+  );
+}
+
+/** The learner's one new time after a first absence (0125). */
+export function RescheduleForm({ bookingId, slots }: { bookingId: string; slots: { value: string; label: string }[] }) {
+  const t = useT();
+  const [state, action, pending] = useActionState(rescheduleAfterAbsence, undefined as SessionState);
+
+  if (slots.length === 0) {
+    return (
+      <p className="muted" style={{ fontSize: '0.84rem', marginTop: 10 }}>
+        {t('لا مواعيد متاحة لدى المنتور حالياً — عُد لاحقاً أو راسل الدعم.', 'The mentor has no free times right now — check back later or contact Support.')}
+      </p>
+    );
+  }
+
+  return (
+    <form action={action} style={{ marginTop: 10 }}>
+      <input type="hidden" name="booking_id" value={bookingId} />
+      <div className="field">
+        <label htmlFor="reschedule-slot">{t('الموعد الجديد', 'The new time')}</label>
+        <select id="reschedule-slot" name="starts_at" required defaultValue="">
+          <option value="" disabled>{t('اختر موعداً', 'Choose a time')}</option>
+          {slots.map((slot) => <option key={slot.value} value={slot.value}>{slot.label}</option>)}
+        </select>
+      </div>
+      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={pending}>
+        {t('ثبّت الموعد الجديد', 'Set the new time')}
+      </button>
       <Result state={state} />
     </form>
   );

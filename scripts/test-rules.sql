@@ -765,9 +765,9 @@ select (public.create_booking_request(
 reset role;
 
 select public.assert(
-  (select price_usd from public.bookings where id = :'booking2') = 15.00
-  and (select platform_share_usd from public.bookings where id = :'booking2') = 5.00
-  and (select mentor_share_usd from public.bookings where id = :'booking2') = 10.00,
+  (select price_usd from public.bookings where id = :'booking2') = 10.00
+  and (select platform_share_usd from public.bookings where id = :'booking2') = 3.33
+  and (select mentor_share_usd from public.bookings where id = :'booking2') = 6.67,
   '12.3 the price comes from the mentor level, never from the caller');
 
 select public.assert(
@@ -4561,14 +4561,14 @@ reset role;
 reset request.jwt.claim.sub;
 
 select public.assert(
-  (select price_usd from public.bookings where id = :'bk_team') = 30.00
-  and (select mentor_share_usd from public.bookings where id = :'bk_team') = 20.00
-  and (select platform_share_usd from public.bookings where id = :'bk_team') = 10.00
+  (select price_usd from public.bookings where id = :'bk_team') = 20.00
+  and (select mentor_share_usd from public.bookings where id = :'bk_team') = 13.34
+  and (select platform_share_usd from public.bookings where id = :'bk_team') = 6.66
   and (select seats from public.bookings where id = :'bk_team') = 2,
   '39.3 a team session costs the mentor''s rate once per member, counted here');
 
 select public.assert(
-  (select amount_usd from public.payments where booking_id = :'bk_team') = 30.00,
+  (select amount_usd from public.payments where booking_id = :'bk_team') = 20.00,
   '39.4 and the payment asks for the whole of it, not for one seat');
 
 set role authenticated;
@@ -5404,7 +5404,7 @@ reset request.jwt.claim.sub;
 select public.assert(
   (select kind from public.bookings where id = :'company_booking') = 'company_mentor'
   and (select startup_id from public.bookings where id = :'company_booking') = :'startup'
-  and (select price_usd from public.bookings where id = :'company_booking') = 15.00,
+  and (select price_usd from public.bookings where id = :'company_booking') = 10.00,
   '49.6 a company session belongs to the company and is priced per seat');
 
 set role authenticated;
@@ -6802,9 +6802,9 @@ select public.assert(
   and (select platform_share_usd from public.mentor_levels where level = 'L2') = 12.00
   and (select string_agg(level || '@' || commission_pct, ',' order by sort_order) from public.mentor_levels)
       = 'L1@33.33,L2@30.00,L3@30.00'
-  and (select platform_share_usd || '/' || mentor_share_usd from public.mentor_levels where level = 'L1') = '5.00/10.00'
+  and (select platform_share_usd || '/' || mentor_share_usd from public.mentor_levels where level = 'L1') = '3.33/6.67'
   and (select min(min_session_usd) || '-' || max(max_session_usd) from public.mentor_levels) = '10.00-150.00',
-  '58.1 every level has a band and a percentage: 10$ to 150$, 30% to TechMood, and a new mentor''s 15$ is 5$ + 10$');
+  '58.1 every level has a band and a percentage: 10$ to 150$, 30% to TechMood, and a new mentor''s 10$ is 3.33$ + 6.67$');
 
 select public.assert(
   (select price_usd || '/' || platform_share_usd || '/' || mentor_share_usd
@@ -8771,9 +8771,10 @@ reset role;
 reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.record_attendance(:'m4', 'held');
 select public.assert_rejects(
   format($$select public.record_attendance(%L, 'held')$$, :'m4'),
-  '75.15 once the learner reports the mentor absent, the mentor cannot overwrite it', 'سُجّل الحضور');
+  '75.15 once the learner reports the mentor absent, the mentor can only dispute it, once (0125) — it does not close the session', 'اعترضت');
 reset role;
 reset request.jwt.claim.sub;
 set role authenticated;
@@ -10089,6 +10090,208 @@ select public.assert(
   '93.3 finishing it opens the next');
 insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
 values ('84848484-8484-8484-8484-848484848484', :'l93b', 'completed', now());
+reset role;
+reset request.jwt.claim.sub;
+
+-- =============================================================================
+-- 94. The founder's session rules (0125): instant booking, absences
+-- =============================================================================
+\echo ''
+\echo '94. instant booking and absences'
+
+select date_trunc('day', now() + interval '2 days') + interval '10 hours' as slot94 \gset
+
+select public.assert(
+  (select state from public.mentor_available_slots('33333333-3333-3333-3333-333333333333',
+       (now() + interval '2 days')::date, (now() + interval '2 days')::date)
+    where slot_start = :'slot94'::timestamptz) = 'instant'
+  and not exists (select 1 from public.mentor_available_slots('33333333-3333-3333-3333-333333333333',
+       current_date, current_date)
+    where state in ('instant', 'available') and slot_start < now() + interval '2 hours'),
+  '94.1 a free hour inside the notice window is offered as instant; nearer than two hours it is not offered');
+
+select price_usd as quote94 from public.session_quote('33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance')) \gset
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot94'::timestamptz, 'jawwal_pay', 'جلسة فورية لمراجعة مشروعي قبل التسليم.')).id as bk94 \gset
+select public.assert_rejects(
+  format($$select public.create_booking_request('33333333-3333-3333-3333-333333333333',
+      (select id from public.session_types where slug = 'career_guidance'),
+      %L::timestamptz, 'jawwal_pay', 'جلسة بعد ساعة من الآن رجاءً.')$$,
+      date_trunc('hour', now()) + interval '1 hour'),
+  '94.3 an instant booking still leaves time to confirm the payment',
+  'الحجز الفوري');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  (select is_instant and price_usd = round(:quote94 * 1.5, 2)
+          and platform_share_usd + mentor_share_usd = price_usd
+     from public.bookings where id = :'bk94')
+  and (select amount_usd from public.payments where booking_id = :'bk94') = round(:quote94 * 1.5, 2),
+  '94.2 booked inside the notice window: instant, at +50%, and the payment asks for the same');
+
+-- A confirmed session to play the absences on.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '81 days') + interval '10 hours',
+        date_trunc('day', now() + interval '81 days') + interval '11 hours',
+        10, 3.33, 6.67, 'جلسة غياب', 'draft')
+returning id as a94 \gset
+update public.bookings set status = 'payment_pending' where id = :'a94';
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'a94', 'jawwal_pay', 10, 'pending') returning id as a94_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.submit_payment_proof(:'a94', '55555555-5555-5555-5555-555555555555/r-a94.png', 'JP-a94');
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'a94_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '90 minutes', scheduled_end = now() - interval '30 minutes'
+ where id = :'a94';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.record_attendance(:'a94', 'learner_absent');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status = 'confirmed' and learner_absences = 1 and reschedule_by > now() + interval '13 days'
+     from public.bookings where id = :'a94')
+  and exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+               and title_ar like '%فرصة واحدة%'),
+  '94.4 a first absence keeps the session for one new time, unpaid, and tells the learner');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  format($$select public.reschedule_after_absence(%L, %L::timestamptz)$$, :'a94',
+         date_trunc('day', now() + interval '82 days') + interval '10 hours'),
+  '94.5 nobody else picks the new time', 'غير موجود');
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.reschedule_after_absence(%L, %L::timestamptz)$$, :'a94',
+         date_trunc('hour', now()) + interval '5 hours'),
+  '94.6 the new time keeps the usual notice (no instant at the old price)', 'in advance');
+select public.reschedule_after_absence(:'a94', date_trunc('day', now() + interval '82 days') + interval '10 hours');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status = 'confirmed' and attendance is null and reschedule_by is null
+          and scheduled_start = date_trunc('day', now() + interval '82 days') + interval '10 hours'
+     from public.bookings where id = :'a94'),
+  '94.7 the learner picks the new time once, and the session waits for it');
+
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '90 minutes', scheduled_end = now() - interval '30 minutes'
+ where id = :'a94';
+set session_replication_role = origin;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.record_attendance(:'a94', 'learner_absent');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select status = 'completed' and learner_absences = 2 from public.bookings where id = :'a94')
+  and not exists (select 1 from public.wallet_entries where ref_id = :'a94' and kind = 'refund'),
+  '94.8 a second absence counts the session, with no refund');
+
+-- The mentor did not come.
+insert into public.bookings
+  (kind, student_id, mentor_id, scheduled_start, scheduled_end,
+   price_usd, platform_share_usd, mentor_share_usd, topic_ar, status)
+values ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '83 days') + interval '10 hours',
+        date_trunc('day', now() + interval '83 days') + interval '11 hours',
+        10, 3.33, 6.67, 'جلسة غياب المنتور', 'draft'),
+       ('student_mentor', '55555555-5555-5555-5555-555555555555', '33333333-3333-3333-3333-333333333333',
+        date_trunc('day', now() + interval '84 days') + interval '10 hours',
+        date_trunc('day', now() + interval '84 days') + interval '11 hours',
+        10, 3.33, 6.67, 'جلسة غياب مختلف عليها', 'draft');
+select id as b94 from public.bookings where topic_ar = 'جلسة غياب المنتور' \gset
+select id as c94 from public.bookings where topic_ar = 'جلسة غياب مختلف عليها' \gset
+update public.bookings set status = 'payment_pending' where id in (:'b94', :'c94');
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'b94', 'jawwal_pay', 10, 'pending') returning id as b94_pay \gset
+insert into public.payments (booking_id, method_key, amount_usd, status)
+values (:'c94', 'jawwal_pay', 10, 'pending') returning id as c94_pay \gset
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.submit_payment_proof(:'b94', '55555555-5555-5555-5555-555555555555/r-b94.png', 'JP-b94');
+select public.submit_payment_proof(:'c94', '55555555-5555-5555-5555-555555555555/r-c94.png', 'JP-c94');
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.verify_payment(:'b94_pay', true, null);
+select public.verify_payment(:'c94_pay', true, null);
+reset role;
+reset request.jwt.claim.sub;
+set session_replication_role = replica;
+update public.bookings
+   set scheduled_start = now() - interval '170 minutes', scheduled_end = now() - interval '110 minutes'
+ where id = :'b94';
+update public.bookings
+   set scheduled_start = now() - interval '250 minutes', scheduled_end = now() - interval '190 minutes'
+ where id = :'c94';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.record_attendance(:'b94', 'mentor_absent');
+select public.record_attendance(:'c94', 'mentor_absent');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.record_attendance(:'c94', 'held');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.attendance_housekeeping() as hk94a \gset
+select public.assert(
+  (select status from public.bookings where id = :'b94') = 'confirmed',
+  '94.9 inside the 24 hours nothing is refunded yet — the mentor may answer');
+
+update public.bookings set attendance_at = now() - interval '25 hours' where id in (:'b94', :'c94');
+select public.attendance_housekeeping() as hk94b \gset
+select public.assert(
+  (select status from public.bookings where id = :'b94') = 'refunded'
+  and (select amount_usd from public.wallet_entries where ref_id = :'b94' and kind = 'refund') = 10
+  and exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+               and title_ar = 'أُعيد إليك مبلغ الجلسة'),
+  '94.10 a mentor absence left unanswered for 24 hours refunds the learner in full, automatically');
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select status = 'confirmed' and absence_disputed_at is not null from public.bookings where id = :'c94')
+  and exists (select 1 from public.admin_attendance_disputes() d where d.booking_id = :'c94'),
+  '94.11 an absence the mentor disputed waits for the admins instead');
+reset role;
+reset request.jwt.claim.sub;
+
+-- A first absence nobody rescheduled.
+update public.bookings
+   set status = 'confirmed', attendance = 'learner_absent', learner_absences = 1,
+       reschedule_by = now() - interval '1 minute'
+ where id = :'c94';
+select public.attendance_housekeeping() as hk94c \gset
+select public.assert(
+  (select status from public.bookings where id = :'c94') = 'completed',
+  '94.12 a first absence with no new time inside the 14 days counts the session');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.refund_booking_now(%L, 'x')$$, :'bk94'),
+  '94.13 the automatic refund is the platform''s, never a member''s to call',
+  'permission denied');
 reset role;
 reset request.jwt.claim.sub;
 

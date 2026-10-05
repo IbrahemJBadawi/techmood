@@ -33,6 +33,7 @@ export const PAYMENT_STATUS: Record<PaymentStatus, { text: Text; className: stri
 
 export const SLOT_STATE: Record<SlotState, { label: Text; selectable: boolean }> = {
   available:   { label: { ar: 'متاح',         en: 'Available' },       selectable: true },
+  instant:     { label: { ar: 'حجز فوري',     en: 'Instant booking' }, selectable: true },
   pending:     { label: { ar: 'محجوز مؤقتاً',  en: 'Held' },            selectable: false },
   booked:      { label: { ar: 'محجوز',        en: 'Booked' },          selectable: false },
   unavailable: { label: { ar: 'غير متاح',     en: 'Unavailable' },     selectable: false },

@@ -8,7 +8,7 @@ import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database
 import { BookingWizard } from './BookingWizard';
 import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 
-/** How far ahead the picker looks. The 72-hour floor is applied by the database. */
+/** How far ahead the picker looks. The notice and instant windows are the database's (0125). */
 const HORIZON_DAYS = 21;
 
 export default async function BookSessionPage({
@@ -42,6 +42,7 @@ export default async function BookSessionPage({
     { data: slots },
     { data: methods },
     { data: student },
+    { data: bookingSettings },
   ] = await Promise.all([
     supabase.from('profiles').select('full_name').eq('id', mentorId).single(),
     supabase.rpc('mentor_price_list', { p_mentor: mentorId }),
@@ -57,7 +58,11 @@ export default async function BookSessionPage({
     }),
     supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order'),
     supabase.from('profiles').select('full_name, techmood_id, phone').eq('id', user.id).single(),
+    supabase.from('platform_settings').select('key, value')
+      .in('key', ['booking_min_notice_hours', 'instant_booking_surcharge_pct']),
   ]);
+  const setting = (key: string, fallback: number) =>
+    Number(bookingSettings?.find((row) => row.key === key)?.value ?? fallback) || fallback;
 
   const sessionTypes = (offered ?? [])
     .map((row) => row.session_types as unknown as SessionType)
@@ -193,6 +198,8 @@ export default async function BookSessionPage({
         reviewCandidates={reviewCandidates}
         teams={teams}
         companies={companies}
+        noticeHours={setting('booking_min_notice_hours', 72)}
+        instantPct={setting('instant_booking_surcharge_pct', 50)}
       />
     </>
   );

@@ -29,6 +29,8 @@ export function BookingWizard({
   reviewCandidates,
   teams,
   companies,
+  noticeHours,
+  instantPct,
 }: {
   mentorId: string;
   mentorName: string;
@@ -44,6 +46,10 @@ export function BookingWizard({
   teams: LedTeam[];
   /** The companies they run. A company session is priced per seat too. */
   companies: LedCompany[];
+  /** The usual notice (booking_min_notice_hours); a slot inside it is an instant booking. */
+  noticeHours: number;
+  /** What an instant booking adds to the price (instant_booking_surcharge_pct, 0125). */
+  instantPct: number;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(createBooking, undefined as BookingState);
@@ -52,8 +58,11 @@ export function BookingWizard({
   const [companyId, setCompanyId] = useState('');
   const [seats, setSeats] = useState<string[]>([]);
   const [sessionTypeId, setSessionTypeId] = useState(sessionTypes[0]?.id ?? '');
-  const price = prices[sessionTypeId] ?? 0;
   const [slotStart, setSlotStart] = useState('');
+  // An instant slot is priced by the database at the surcharge; this shows the same figure.
+  const instant = slots.find((slot) => slot.slot_start === slotStart)?.state === 'instant';
+  const basePrice = prices[sessionTypeId] ?? 0;
+  const price = instant ? Math.round(basePrice * (100 + instantPct)) / 100 : basePrice;
   const [methodKey, setMethodKey] = useState('');
 
   // Slots arrive flat; the picker is a day at a time.
@@ -64,7 +73,7 @@ export function BookingWizard({
       map.set(day, [...(map.get(day) ?? []), slot]);
     }
     return [...map.entries()].filter(([, daySlots]) =>
-      daySlots.some((slot) => slot.state === 'available'),
+      daySlots.some((slot) => SLOT_STATE[slot.state].selectable),
     );
   }, [slots]);
 
@@ -90,8 +99,8 @@ export function BookingWizard({
   if (byDay.length === 0) {
     return (
       <p className="notice">
-        {t('لا توجد مواعيد متاحة لدى هذا المنتور خلال الفترة القادمة. تذكّر أن الحجز يحتاج 72 ساعة مسبقاً على الأقل.',
-           'This mentor has no free slots in the coming weeks. Remember a booking needs at least 72 hours\u2019 notice.')}
+        {t('لا توجد مواعيد متاحة لدى هذا المنتور خلال الفترة القادمة.',
+           'This mentor has no free slots in the coming weeks.')}
       </p>
     );
   }
@@ -231,7 +240,7 @@ export function BookingWizard({
                   day: 'numeric',
                   month: 'short',
                 });
-                const free = items.filter((slot) => slot.state === 'available').length;
+                const free = items.filter((slot) => SLOT_STATE[slot.state].selectable).length;
                 return (
                   <button
                     type="button"
@@ -253,20 +262,28 @@ export function BookingWizard({
                   <button
                     type="button"
                     key={slot.slot_start}
-                    className={`slot${slot.slot_start === slotStart ? ' selected' : ''}`}
+                    className={`slot${slot.state === 'instant' ? ' slot-instant' : ''}${slot.slot_start === slotStart ? ' selected' : ''}`}
                     disabled={!info.selectable}
-                    title={t(info.label)}
+                    title={slot.state === 'instant' ? t(`حجز فوري +${instantPct}%`, `Instant booking +${instantPct}%`) : t(info.label)}
                     onClick={() => setSlotStart(slot.slot_start)}
                   >
                     {formatSlot(slot.slot_start).time}
+                    {slot.state === 'instant' && <span className="slot-tag">⚡ +{instantPct}%</span>}
                   </button>
                 );
               })}
             </div>
 
             <p className="muted" style={{ fontSize: '0.78rem', marginTop: 10 }}>
-              {t('المواعيد المشطوبة محجوزة أو خارج مهلة الـ72 ساعة.', 'Struck-through slots are taken, or inside the 72-hour window.')}
+              {t(`المواعيد المشطوبة محجوزة. ⚡ موعد خلال ${noticeHours} ساعة القادمة = حجز فوري بزيادة ${instantPct}% على السعر.`,
+                 `Struck-through slots are taken. ⚡ A slot within the next ${noticeHours} hours is an instant booking, at +${instantPct}%.`)}
             </p>
+            {instant && (
+              <p className="notice" style={{ marginTop: 10, fontSize: '0.84rem' }}>
+                {t(`⚡ اخترت حجزاً فورياً: السعر ${money(price)} بدل ${money(basePrice)}. أرسل الدفع فوراً ليتأكد قبل الموعد.`,
+                   `⚡ You picked an instant booking: ${money(price)} instead of ${money(basePrice)}. Send the payment now so it is confirmed in time.`)}
+              </p>
+            )}
           </section>
 
           {/* 3 — goal */}
@@ -386,7 +403,13 @@ export function BookingWizard({
                 <span className="muted">{t('طريقة الدفع', 'Payment method')}</span>
                 <span>{selectedMethod?.name_ar ?? '—'}</span>
               </div>
-              <div className="summary-row"><span className="muted">{t('سعر الجلسة', 'Session price')}</span><span className="eng">{money(price)}</span></div>
+              <div className="summary-row"><span className="muted">{t('سعر الجلسة', 'Session price')}</span><span className="eng">{money(basePrice)}</span></div>
+              {instant && (
+                <div className="summary-row">
+                  <span className="muted">{t(`حجز فوري +${instantPct}%`, `Instant +${instantPct}%`)}</span>
+                  <span className="eng">{money(price - basePrice)}</span>
+                </div>
+              )}
               {activeGroup && (
                 <div className="summary-row">
                   <span className="muted">{t('المقاعد', 'Seats')}</span>
