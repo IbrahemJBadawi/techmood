@@ -9,7 +9,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 export const generateMetadata = localizedTitle('معرض TechMood', 'TechMood Gallery', {
   ar: 'مشاريع حقيقية بناها أعضاء TechMood وفرقهم: صور، ديمو، روابط، وتقييمات.',
   en: 'Real projects built by TechMood members and teams: pictures, demos, links and ratings.',
-});
+}, '/exhibition');
 
 /**
  * The public gallery (0121). A visitor browses every published project page;

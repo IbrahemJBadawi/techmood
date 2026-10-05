@@ -5,7 +5,13 @@ import { localizedTitle } from '@/lib/i18n.server';
 
 import { ProfileBody } from './ProfileBody';
 
-export const generateMetadata = localizedTitle('ملف على TechMood', 'A TechMood profile');
+export async function generateMetadata({ params }: { params: Promise<{ techmoodId: string }> }) {
+  const { techmoodId } = await params;
+  return {
+    ...(await localizedTitle('ملف على TechMood', 'A TechMood profile')()),
+    alternates: { canonical: `/u/${techmoodId}` },
+  };
+}
 
 /**
  * A member's public profile link (/u/…), for a CV or a QR code. A signed-in

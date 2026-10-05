@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
-export const generateMetadata = localizedTitle('عن TechMood', 'About — TechMood');
+export const generateMetadata = localizedTitle('عن TechMood', 'About — TechMood', undefined, '/about');
 
 export default async function AboutPage() {
   const t = await getT();

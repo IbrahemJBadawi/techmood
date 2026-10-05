@@ -26,12 +26,14 @@ export const getT = cache(async (): Promise<T> => makeT(await getLocale()));
  * a shared link's preview all show it. Used as
  * `export const generateMetadata = localizedTitle('…', '…');`
  */
-export function localizedTitle(ar: string, en: string, description?: { ar: string; en: string }) {
+export function localizedTitle(ar: string, en: string, description?: { ar: string; en: string }, canonical?: string) {
   return async () => {
     const locale = await getLocale();
     return {
       title: locale === 'ar' ? ar : en,
       ...(description ? { description: locale === 'ar' ? description.ar : description.en } : {}),
+      // a public page names its one official address (metadataBase, root layout)
+      ...(canonical ? { alternates: { canonical } } : {}),
     };
   };
 }

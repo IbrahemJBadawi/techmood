@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 
-export const generateMetadata = localizedTitle('السياسات والشروط — TechMood', 'Policies and terms — TechMood');
+export const generateMetadata = localizedTitle('السياسات والشروط — TechMood', 'Policies and terms — TechMood', undefined, '/policies');
 
 /**
  * TechMood's policies in one page, each section linkable (#terms, #privacy,

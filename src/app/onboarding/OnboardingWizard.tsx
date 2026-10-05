@@ -11,6 +11,7 @@ import type { RoleStatus, TaxonomyKind, UiLanguage, UserRole } from '@/lib/datab
 
 import { finishOnboarding, requestRoles, saveBasics, saveTerms, suggestTerm } from './actions';
 import { LogoMark } from '@/components/Logo';
+import { UsernameField } from '@/components/UsernameField';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Term = { id: string; slug: string; name_ar: string; name_en: string; status: string };
@@ -201,8 +202,7 @@ function BasicsStep({
       />
       <input type="hidden" name="avatar_url" value={avatar} />
 
-      {/* One name, in English — the account's and the certificates'. A
-          username is optional and reserved later from Settings → Profile. */}
+      {/* One name, in English — the account's and the certificates' — and a username. */}
       <div className="field">
         <label htmlFor="full_name">{t('اسمك بالإنجليزية', 'Your name in English')}</label>
         <input id="full_name" name="full_name" defaultValue={isEnglishName(profile.full_name) ? profile.full_name : ''} required
@@ -214,6 +214,8 @@ function BasicsStep({
           <strong className="eng">{profile.techmood_id}</strong>
         </small>
       </div>
+
+      <UsernameField current={profile.username} />
 
       <div className="field">
         <label htmlFor="headline">{t('سطر تعريفي', 'Headline')}</label>

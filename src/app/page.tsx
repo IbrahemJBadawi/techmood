@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import type { IconName } from '@/lib/roles';
 
+/** The home of the official domain. */
+export const metadata = { alternates: { canonical: '/' } };
+
 /**
  * The front door.
  *

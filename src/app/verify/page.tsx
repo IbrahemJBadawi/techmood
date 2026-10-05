@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
-export const generateMetadata = localizedTitle('تحقّق من شهادة — TechMood', 'Verify a certificate — TechMood');
+export const generateMetadata = localizedTitle('تحقّق من شهادة — TechMood', 'Verify a certificate — TechMood', undefined, '/verify');
 
 async function goToCode(formData: FormData) {
   'use server';

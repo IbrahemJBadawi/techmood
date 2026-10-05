@@ -23,7 +23,8 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   return {
     title: `${page.title} — TechMood`,
     description: page.tagline ?? undefined,
-    openGraph: { title: page.title, description: page.tagline ?? undefined, images: cover ? [cover] : undefined, type: 'website' },
+    openGraph: { title: page.title, description: page.tagline ?? undefined, images: cover ? [cover] : undefined, type: 'website', url: `/gallery/${page.code}` },
+    alternates: { canonical: `/gallery/${page.code}` },
   };
 }
 

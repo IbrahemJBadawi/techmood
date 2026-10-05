@@ -5,6 +5,7 @@ import { DeviceBoot } from '@/components/DeviceSetup';
 import { LocaleProvider } from '@/lib/i18n.client';
 import { dirFor } from '@/lib/i18n';
 import { getLocale, getT } from '@/lib/i18n.server';
+import { SITE_URL } from '@/lib/contact';
 
 import './globals.css';
 
@@ -34,11 +35,14 @@ export async function generateMetadata(): Promise<Metadata> {
   );
 
   return {
+    // Relative links in metadata (previews, canonicals) resolve against the
+    // official domain, not whichever host served the page.
+    metadataBase: new URL(SITE_URL),
     title: 'TechMood Technology',
     description,
     // app/icon.png and app/apple-icon.png are picked up on their own; this is
     // the mark a link preview shows.
-    openGraph: { title: 'TechMood Technology', description, images: ['/logo.png'] },
+    openGraph: { title: 'TechMood Technology', description, images: ['/logo.png'], siteName: 'TechMood', type: 'website' },
     // «Add to Home Screen» on iPhone opens TechMood as its own app (no Safari
     // bar), on every iOS version — not as a bookmark to the website.
     appleWebApp: { capable: true, title: 'TechMood', statusBarStyle: 'default' },
