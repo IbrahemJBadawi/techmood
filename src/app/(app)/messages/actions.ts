@@ -22,18 +22,23 @@ export async function sendMessage(_prev: MessageState, formData: FormData): Prom
 
   const conversationId = String(formData.get('conversation_id') ?? '');
   const body = String(formData.get('body') ?? '').trim();
+  const replyTo = String(formData.get('reply_to_id') ?? '');
   if (!body) return undefined;
 
   const { error } = await supabase.from('messages').insert({
     conversation_id: conversationId,
     sender_id: user.id,
     body_ar: body,
+    reply_to_id: replyTo || null,
   });
 
   if (error) {
     const message = error.message ?? '';
     if (message.includes('links and images')) {
       return { error: t('لا يمكن إرسال روابط أو صور داخل محادثات TechMood. شارك عملك كتسليم بدلاً من ذلك.', 'Links and images cannot be sent in TechMood conversations. Share your work as a submission instead.') };
+    }
+    if (message.includes('المحادثة نفسها')) {
+      return { error: t('الرسالة التي ترد عليها لم تعد موجودة.', 'The message you are replying to is no longer there.') };
     }
     if (message.includes('read-only')) {
       return { error: t('هذه المحادثة للقراءة فقط.', 'This conversation is read-only.') };
@@ -77,4 +82,19 @@ export async function markRead(conversationId: string) {
     .update({ last_read_at: new Date().toISOString() })
     .eq('conversation_id', conversationId)
     .eq('profile_id', user.id);
+}
+
+/** Mute a conversation for a while, or until unmuted (0126). hours: '8', '168', 'always', 'off'. */
+export async function setMuted(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const conversationId = String(formData.get('conversation_id') ?? '');
+  const choice = String(formData.get('hours') ?? 'off');
+  const hours = choice === 'always' ? null : choice === 'off' ? 0 : Math.min(Number(choice) || 0, 24 * 365);
+
+  await supabase.rpc('set_conversation_muted', { p_conversation: conversationId, p_hours: hours });
+  revalidatePath('/messages');
+  revalidatePath('/', 'layout');
 }

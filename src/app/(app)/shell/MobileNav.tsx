@@ -64,7 +64,7 @@ export function MobileTabBar({
           >
             <span className="tabbar-icon">
               <Icon name={tab.icon} size={22} />
-              {tab.href === '/messages' && unread > 0 && <span className="tabbar-dot" />}
+              {tab.href === '/messages' && unread > 0 && <span className="tabbar-dot eng">{unread > 99 ? '99+' : unread}</span>}
             </span>
             <span className="tabbar-label">{tab.label}</span>
           </Link>

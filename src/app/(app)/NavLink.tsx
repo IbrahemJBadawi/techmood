@@ -17,12 +17,15 @@ export function NavLink({
   href,
   icon,
   siblings = [],
+  count = 0,
   children,
 }: {
   href: string;
   icon?: IconName;
   /** Every link in the same navigation: a deeper one that also matches wins. */
   siblings?: string[];
+  /** A blue count beside the label (unread messages, 0126). */
+  count?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -40,6 +43,7 @@ export function NavLink({
     >
       {icon && <Icon name={icon} />}
       <span className="navlink-label">{children}</span>
+      {count > 0 && <span className="nav-count eng" aria-label={String(count)}>{count > 99 ? '99+' : count}</span>}
     </Link>
   );
 }

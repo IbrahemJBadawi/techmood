@@ -3872,6 +3872,8 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
     white-space: nowrap;
   }
   .role-switcher-trigger span:not(.chevron) { display: none; }
+  .navlink { position: relative; }
+  .navlink .nav-count { position: absolute; top: 3px; inset-inline-end: 8px; min-width: 16px; height: 16px; padding: 0 4px; font-size: 0.6rem; }
 }
 
 @media (max-width: 760px) {
@@ -3930,9 +3932,10 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   .tabbar-item.is-active .tabbar-icon { background: var(--sky-tint); color: var(--royal); }
   .tabbar-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tabbar-dot {
-    position: absolute; top: 3px; inset-inline-end: 14px;
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--danger); box-shadow: 0 0 0 2px var(--panel);
+    position: absolute; top: -2px; inset-inline-end: 4px;
+    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+    background: var(--royal); color: #fff; font-size: 0.62rem; font-weight: 700; line-height: 17px; text-align: center;
+    box-shadow: 0 0 0 2px var(--panel);
   }
 
   .sheet-backdrop {
@@ -4793,7 +4796,28 @@ a.txn:hover { background: var(--bg-deep); }
 .chat-item .ci-name { font-size: 0.92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ci-time { flex: none; font-size: 0.72rem; color: var(--ink-faint); }
 .chat-item .ci-last { margin: 0; font-size: 0.82rem; }
-.unread-dot { background: var(--xp); flex: none; }
+.unread-dot { background: var(--royal); flex: none; }
+.unread-dot.is-muted { background: var(--ink-faint); }
+.ci-muted { font-size: 0.72rem; margin-inline-start: 5px; opacity: 0.75; }
+
+/* messages: reply, mute (0126) */
+.bubble-actions { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.reply-chip { margin-top: 5px; }
+.bubble .b-reply { color: inherit; text-decoration: none; border-radius: 6px; background: color-mix(in srgb, currentColor 8%, transparent); padding: 4px 8px; }
+.bubble .b-reply strong { display: block; font-size: 0.72rem; }
+.bubble-row:target .bubble { box-shadow: 0 0 0 3px var(--sky-tint); }
+.chat-replying { display: flex; align-items: center; gap: 10px; margin: 0 13px 6px; padding: 7px 10px; border-inline-start: 3px solid var(--royal); background: var(--sky-tint); border-radius: 8px; font-size: 0.8rem; }
+.chat-replying .cr-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-replying .cr-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
+.chat-mute { position: relative; }
+.chat-mute > summary { list-style: none; cursor: pointer; }
+.chat-mute > summary::-webkit-details-marker { display: none; }
+.chat-mute-menu { position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 20; min-width: 190px; display: flex; flex-direction: column; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); }
+.chat-mute-menu button { text-align: start; padding: 9px 10px; border: 0; background: none; border-radius: 8px; color: var(--ink); font: inherit; font-size: 0.86rem; cursor: pointer; }
+.chat-mute-menu button:hover { background: var(--sky-tint); }
+
+/* the unread-messages count on the Messages tab, blue like the list's */
+.nav-count { margin-inline-start: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--royal); color: #fff; font-size: 0.7rem; font-weight: 700; display: inline-grid; place-items: center; line-height: 1; }
 
 .chat-main { border: 0; border-radius: 0; }
 .chat-head {

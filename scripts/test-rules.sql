@@ -10295,6 +10295,70 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- =============================================================================
+-- 95. Messages: replies in their thread, mute, the unread number (0126)
+-- =============================================================================
+\echo ''
+\echo '95. messages'
+
+select cp.conversation_id as cv95
+  from public.conversation_participants cp
+  join public.conversations c on c.id = cp.conversation_id
+ where not c.is_read_only and c.archived_at is null and c.kind in ('team', 'learning_path', 'admin')
+   and not public.is_restricted(cp.profile_id, 'messaging')
+ group by cp.conversation_id having count(*) >= 2
+ order by min(cp.joined_at), cp.conversation_id limit 1 \gset
+select profile_id as p95a from public.conversation_participants
+ where conversation_id = :'cv95' and not public.is_restricted(profile_id, 'messaging') order by profile_id limit 1 \gset
+select profile_id as p95b from public.conversation_participants
+ where conversation_id = :'cv95' and not public.is_restricted(profile_id, 'messaging') order by profile_id offset 1 limit 1 \gset
+select c.id as other95 from public.conversations c
+ where not exists (select 1 from public.conversation_participants cp where cp.conversation_id = c.id and cp.profile_id = :'p95a')
+ order by c.id limit 1 \gset
+
+insert into public.messages (conversation_id, sender_id, body_ar, is_system)
+values (:'other95', null, 'رسالة في محادثة أخرى', true) returning id as m95other \gset
+
+update public.conversation_participants set last_read_at = now(), muted_until = null
+ where conversation_id = :'cv95';
+
+set role authenticated;
+set request.jwt.claim.sub = :'p95a';
+insert into public.messages (conversation_id, sender_id, body_ar)
+values (:'cv95', :'p95a', 'مرحباً بالفريق') returning id as m95 \gset
+select public.assert_rejects(
+  format($$insert into public.messages (conversation_id, sender_id, body_ar, reply_to_id)
+           values (%L, %L, 'رد', %L)$$, :'cv95', :'p95a', :'m95other'),
+  '95.1 a reply points at a message of its own thread only',
+  'المحادثة نفسها');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = :'p95b';
+insert into public.messages (conversation_id, sender_id, body_ar, reply_to_id)
+values (:'cv95', :'p95b', 'أهلاً، وصلت', :'m95');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = :'p95a';
+select public.my_unread_messages() as before95 \gset
+select public.assert(:before95 >= 1, '95.2 the Messages tab counts unread messages from others');
+select public.set_conversation_muted(:'cv95', 8);
+select public.assert(
+  public.my_unread_messages() = :before95 - 1
+  and (select is_muted and unread_count >= 1 from public.conversation_unread
+        where conversation_id = :'cv95' and profile_id = :'p95a'),
+  '95.3 a muted thread keeps its count in the list, but not on the tab');
+select public.set_conversation_muted(:'cv95', 0);
+select public.assert(public.my_unread_messages() = :before95, '95.4 and unmuting brings it back');
+select public.assert_rejects(
+  format($$select public.set_conversation_muted(%L, null)$$, :'other95'),
+  '95.5 nobody mutes a conversation they are not in', 'لست في هذه المحادثة');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

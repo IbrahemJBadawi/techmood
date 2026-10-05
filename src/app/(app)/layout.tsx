@@ -28,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [
     { data: profile }, { data: roles }, { data: notifications }, { data: restrictions }, { data: mentorApplication },
-    { count: unreadCount },
+    { count: unreadCount }, { data: unreadMessages },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -53,6 +53,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('id', { count: 'exact', head: true })
       .eq('profile_id', user.id)
       .eq('is_read', false),
+    // Unread messages in threads that are not muted (0126), on the Messages tab.
+    supabase.rpc('my_unread_messages'),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -117,7 +119,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="nav-group" key={group.label.en}>
             <div className="nav-group-label">{t(group.label)}</div>
             {group.items.map((item) => (
-              <NavLink href={item.href} icon={item.icon} key={item.href} siblings={navHrefs}>
+              <NavLink href={item.href} icon={item.icon} key={item.href} siblings={navHrefs}
+                       count={item.href === '/messages' ? unreadMessages ?? 0 : 0}>
                 {t(item.label)}
               </NavLink>
             ))}
@@ -208,7 +211,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         groups={sheetGroups}
         moreLabel={t('المزيد', 'More')}
         closeLabel={t('إغلاق', 'Close')}
-        unread={0}
+        unread={unreadMessages ?? 0}
       >
         <div className="sheet-role">
           <span className="muted">{t('تتصفّح بدور', 'Browsing as')}</span>

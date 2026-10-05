@@ -10,7 +10,8 @@ import { IS_MVP } from '@/lib/scope';
 
 import { Composer } from './Composer';
 import { Reactions } from './Reactions';
-import { markRead } from './actions';
+import { markRead, setMuted } from './actions';
+import { ReplyButton } from './ReplyButton';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الرسائل — TechMood', 'Messages — TechMood');
@@ -97,7 +98,7 @@ export default async function MessagesPage({
       .in('id', conversationIds.length ? conversationIds : placeholder),
     supabase
       .from('conversation_unread')
-      .select('conversation_id, unread_count, last_message_at')
+      .select('conversation_id, unread_count, last_message_at, is_muted')
       .eq('profile_id', user.id),
     supabase.rpc('is_admin'),
   ]);
@@ -176,6 +177,8 @@ export default async function MessagesPage({
   }
 
   const bodyById = new Map(messages.map((row) => [row.id, row.body_ar]));
+  const senderById = new Map(messages.map((row) => [row.id, row.sender_id]));
+  const activeMuted = active ? unreadById.get(active.id)?.is_muted === true : false;
   const isChannel = active?.kind === 'channel';
   const readOnly = Boolean(active?.is_read_only || active?.archived_at || (isChannel && isAdmin !== true));
   const readOnlyNote = isChannel
@@ -206,6 +209,7 @@ export default async function MessagesPage({
             {ordered.map((conversation) => {
               const last = lastByConversation.get(conversation.id);
               const count = unreadById.get(conversation.id)?.unread_count ?? 0;
+              const muted = unreadById.get(conversation.id)?.is_muted === true;
 
               return (
                 <Link
@@ -218,13 +222,16 @@ export default async function MessagesPage({
                   </span>
                   <span className="ci-body">
                     <span className="ci-top">
-                      <span className="ci-name">{conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}</span>
+                      <span className="ci-name">
+                        {conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}
+                        {muted && <span className="ci-muted" title={t('مكتومة', 'Muted')} aria-label={t('مكتومة', 'Muted')}>🔕</span>}
+                      </span>
                       {last && <time className="ci-time">{timeLabel(last.created_at, t.locale)}</time>}
                     </span>
                     <span className="ci-bottom">
                       <span className="ci-last">{last?.body_ar ?? t('لا رسائل بعد', 'No messages yet')}</span>
                       {count > 0 && conversation.id !== activeId && (
-                        <span className="unread-dot eng">{count}</span>
+                        <span className={`unread-dot eng${muted ? ' is-muted' : ''}`}>{count > 99 ? '99+' : count}</span>
                       )}
                     </span>
                   </span>
@@ -257,6 +264,23 @@ export default async function MessagesPage({
                     {!IS_MVP && room && (
                       <Link className="btn btn-ghost btn-sm" href={`/sessions/${room}`}>{t('الغرفة', 'Room')}</Link>
                     )}
+                    <details className="chat-mute">
+                      <summary className="icon-button" aria-label={t('كتم الإشعارات', 'Mute notifications')} title={activeMuted ? t('مكتومة', 'Muted') : t('كتم', 'Mute')}>
+                        {activeMuted ? '🔕' : '🔔'}
+                      </summary>
+                      <form action={setMuted} className="chat-mute-menu">
+                        <input type="hidden" name="conversation_id" value={active.id} />
+                        {activeMuted ? (
+                          <button name="hours" value="off">{t('إلغاء الكتم', 'Unmute')}</button>
+                        ) : (
+                          <>
+                            <button name="hours" value="8">{t('كتم 8 ساعات', 'Mute for 8 hours')}</button>
+                            <button name="hours" value="168">{t('كتم أسبوعاً', 'Mute for a week')}</button>
+                            <button name="hours" value="always">{t('كتم حتى أُلغيه', 'Mute until I unmute')}</button>
+                          </>
+                        )}
+                      </form>
+                    </details>
                   </span>
                 </header>
 
@@ -292,10 +316,17 @@ export default async function MessagesPage({
                     return (
                       <div key={message.id} style={{ display: 'contents' }}>
                       {separator}
-                      <div className="bubble-row" style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                      <div className="bubble-row" id={`m-${message.id}`} style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
                         <div className={`bubble ${mine ? 'me' : 'them'}`}>
                           {message.reply_to_id && bodyById.has(message.reply_to_id) && (
-                            <span className="b-reply">{bodyById.get(message.reply_to_id)}</span>
+                            <a className="b-reply" href={`#m-${message.reply_to_id}`}>
+                              <strong>
+                                {senderById.get(message.reply_to_id) === user.id
+                                  ? t('أنت', 'You')
+                                  : nameById.get(senderById.get(message.reply_to_id) ?? '') ?? t('عضو', 'A member')}
+                              </strong>
+                              {bodyById.get(message.reply_to_id)}
+                            </a>
                           )}
                           {!mine && (
                             <span className="b-author" style={{ color: `color-mix(in srgb, ${KIND_COLOR[active.kind]} 70%, var(--ink))` }}>
@@ -306,7 +337,16 @@ export default async function MessagesPage({
                           <span className="b-meta">{timeLabel(message.created_at, t.locale)}</span>
                         </div>
 
-                        <Reactions messageId={message.id} counts={counts} mine={myReaction} />
+                        <div className="bubble-actions">
+                          <Reactions messageId={message.id} counts={counts} mine={myReaction} />
+                          {!readOnly && (
+                            <ReplyButton detail={{
+                              id: message.id,
+                              author: mine ? t('نفسك', 'yourself') : nameById.get(message.sender_id ?? '') ?? t('عضو', 'a member'),
+                              text: message.body_ar.slice(0, 140),
+                            }} />
+                          )}
+                        </div>
                       </div>
                       </div>
                     );

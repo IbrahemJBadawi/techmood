@@ -1519,6 +1519,8 @@ export type Database = {
       conversations: Table<Conversation>;
       conversation_participants: Table<{
         conversation_id: string; profile_id: string; last_read_at: string | null; joined_at: string;
+        /** Muted for this member until then (0126). */
+        muted_until: string | null;
       }>;
       message_reactions: Table<{
         message_id: string; profile_id: string; reaction: MessageReaction; created_at: string;
@@ -1607,7 +1609,7 @@ export type Database = {
         entry_code: string; published_at: string; snapshot: ExhibitionSnapshot;
       }>;
       conversation_unread: View<{
-        conversation_id: string; profile_id: string; unread_count: number; last_message_at: string | null;
+        conversation_id: string; profile_id: string; unread_count: number; last_message_at: string | null; is_muted: boolean;
       }>;
       wallet_balance: View<{
         profile_id: string; available_usd: number; pending_usd: number;
@@ -1929,6 +1931,8 @@ export type Database = {
       mentor_decline_booking: { Args: { p_booking: string; p_reason: string }; Returns: undefined };
       record_attendance: { Args: { p_booking: string; p_outcome: BookingAttendance }; Returns: undefined };
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
+      set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
+      my_unread_messages: { Args: Record<string, never>; Returns: number };
       admin_attendance_disputes: {
         Args: Record<string, never>;
         Returns: {
