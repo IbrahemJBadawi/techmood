@@ -10467,6 +10467,84 @@ select public.assert(
   and (select welcomed_at is null from public.profiles where id = '55555555-5555-5555-5555-555555555555'),
   '98.1 finishing the guide is remembered for that member alone');
 
+-- =============================================================================
+-- 99. Instant bookings wait for the payment; one model call per question (0130)
+-- =============================================================================
+\echo ''
+\echo '99. instant payment gate, ai model calls'
+
+-- a free instant hour, as the calendar offers it
+select slot_start as slot99 from public.mentor_available_slots('33333333-3333-3333-3333-333333333333',
+       current_date, current_date + 3)
+ where state = 'instant' order by slot_start desc limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot99'::timestamptz, 'jawwal_pay', 'جلسة فورية ثانية لمراجعة التسليم.')).id as bk99 \gset
+select public.submit_payment_proof(:'bk99', '55555555-5555-5555-5555-555555555555/r-bk99.png', 'JP-bk99');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.assert(
+  exists (select 1 from public.notifications n join public.profile_roles pr on pr.profile_id = n.profile_id and pr.role = 'admin'
+           where n.title_ar like '%دفع حجز فوري%'),
+  '99.1 a payment for an instant booking reaches the admins at once');
+
+select id as pay99 from public.payments where booking_id = :'bk99' order by created_at desc limit 1 \gset
+set session_replication_role = replica;
+update public.bookings set scheduled_start = now() - interval '7 hours', scheduled_end = now() - interval '6 hours'
+ where id = :'bk99';
+update public.bookings set scheduled_start = now() - interval '9 hours', scheduled_end = now() - interval '8 hours'
+ where id = :'bk94';
+set session_replication_role = origin;
+
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(
+  format($$select public.verify_payment(%L, true, null)$$, :'pay99'),
+  '99.2 an instant booking is not confirmed after its start: the session never opens unpaid',
+  'انتهى موعد الحجز الفوري');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.instant_booking_housekeeping() as hk99 \gset
+select public.assert(
+  (select status from public.bookings where id = :'bk94') = 'expired'
+  and (select status from public.bookings where id = :'bk99') = 'cancelled'
+  and exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+               and title_ar = 'لم تُفتح الجلسة الفورية'),
+  '99.3 an instant booking whose time came first is closed — unpaid expires, a pending receipt is cancelled for review');
+
+select public.assert(
+  (select value from public.platform_settings where key = 'site_url') = 'https://techmoodtech.com'
+  and (select value from public.platform_settings where key = 'support_email') = 'support@techmoodtech.com',
+  '99.4 the platform speaks from techmoodtech.com');
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.start_ai_thread('سؤال', 'general', 'page', null, null) as th99 \gset
+select public.assert_rejects(
+  format($$select public.claim_ai_model_call(%L)$$, :'th99'),
+  '99.5 no question, no model call', 'لا سؤال');
+select public.ai_say(:'th99', 'user', 'كيف أبدأ؟', 'general', 'page');
+select public.assert(public.claim_ai_model_call(:'th99'), '99.6 a question asked buys one model call');
+select public.assert_rejects(
+  format($$select public.claim_ai_model_call(%L)$$, :'th99'),
+  '99.7 and only one', 'أُجيب');
+select public.assert(public.ai_gemini_ready() is not null and not public.ai_gemini_ready(),
+  '99.8 a member can ask whether a key exists (none here) without seeing it');
+select public.assert_rejects(
+  $$select * from public.ai_gemini_config()$$,
+  '99.9 the key itself is for the Edge Function alone', 'permission denied');
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.claim_ai_model_call(%L)$$, :'th99'),
+  '99.10 nobody claims a call on another member''s question', 'لا سؤال');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

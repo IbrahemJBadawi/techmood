@@ -1,4 +1,5 @@
 import type { AiActionKind } from '@/lib/database.types';
+import { SUPABASE_PUBLIC_KEY, SUPABASE_URL } from './supabase/config';
 
 import {
   ADMIN_SYSTEM, CATEGORIES, systemPrompt, validAssessment, validProposal,
@@ -13,9 +14,12 @@ import {
  * still has to confirm, restricted kinds are refused in the database, and a
  * proposal of the wrong shape is dropped. This file holds only the HTTP call.
  *
- * Configuration (server-side only, never NEXT_PUBLIC_):
- *   GEMINI_API_KEY  — the key from Google AI Studio
- *   GEMINI_MODEL    — optional; defaults to GEMINI_DEFAULT_MODEL
+ * Where the key is (server-side only, never NEXT_PUBLIC_):
+ *   * in Supabase Vault as `gemini_api_key` (0130) — the call then goes
+ *     through the `ai-gemini` Edge Function, which reads the key itself and
+ *     allows one model call per question the member actually asked; or
+ *   * GEMINI_API_KEY in the server's environment — a direct call
+ *     (GEMINI_MODEL optional; defaults to GEMINI_DEFAULT_MODEL).
  */
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -37,7 +41,26 @@ type GeminiResponse = {
   error?: { code?: number; message?: string };
 };
 
-async function generate(body: unknown): Promise<{ data: GeminiResponse | null; status: number }> {
+/** How this call reaches Gemini when the key is in Vault: as the member, for one thread. */
+export type GeminiRoute = { accessToken: string | null; thread: string | null };
+
+async function generate(body: unknown, route?: GeminiRoute): Promise<{ data: GeminiResponse | null; status: number }> {
+  if (!geminiConfigured()) {
+    if (!route?.accessToken) return { data: null, status: 401 };
+    const relay = await fetch(`${SUPABASE_URL}/functions/v1/ai-gemini`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${route.accessToken}`,
+        apikey: SUPABASE_PUBLIC_KEY,
+      },
+      body: JSON.stringify({ thread: route.thread, request: body }),
+      signal: AbortSignal.timeout(100_000),
+      cache: 'no-store',
+    });
+    const out = (await relay.json().catch(() => null)) as { status?: number; data?: GeminiResponse } | null;
+    return { data: out?.data ?? null, status: relay.ok ? (out?.status ?? 502) : relay.status };
+  }
   const response = await fetch(`${ENDPOINT}/${encodeURIComponent(geminiModel())}:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY ?? '' },
@@ -92,7 +115,8 @@ function parseParams(raw: unknown): Record<string, unknown> {
 
 function failure(status: number, data: GeminiResponse | null): string {
   if (status === 429) return 'بلغ المساعد حدّ الاستخدام المجاني لدى Gemini الآن. حاول بعد قليل.';
-  if (status === 400 || status === 403) return `رفض Gemini الطلب (${status}) — تحقّق من مفتاح GEMINI_API_KEY واسم النموذج.`;
+  if (status === 400 || status === 403) return `رفض Gemini الطلب (${status}) — تحقّق من مفتاح Gemini واسم النموذج.`;
+  if (status === 409) return 'هذا السؤال أُجيب بالفعل أو انتهت مهلته — اسأل من جديد.';
   return `تعذّر الوصول إلى النموذج (${status || data?.error?.code || 'خطأ'}). حاول بعد قليل.`;
 }
 
@@ -101,7 +125,7 @@ export async function askGemini(input: {
   history: { role: 'user' | 'assistant'; content: string }[];
   prompt: string;
   kinds: AiActionKind[];
-}): Promise<AiAnswer> {
+}, route?: GeminiRoute): Promise<AiAnswer> {
   const declaration = proposalDeclaration(input.kinds);
   try {
     const { data, status } = await generate({
@@ -112,7 +136,7 @@ export async function askGemini(input: {
       ],
       ...(declaration ? { tools: [{ functionDeclarations: [declaration] }], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } } : {}),
       generationConfig: { maxOutputTokens: 4096, temperature: 0.6 },
-    });
+    }, route);
     if (status !== 200 || !data) return { text: '', proposals: [], model: null, error_ar: failure(status, data) };
 
     const candidate = data.candidates?.[0];
@@ -152,7 +176,7 @@ export async function assessWithGemini(input: {
   kind: 'case' | 'ticket';
   facts: unknown;
   conversation: { author: string; body: string }[];
-}): Promise<{ assessment: AdminAssessment | null; error_ar: string | null }> {
+}, route?: GeminiRoute): Promise<{ assessment: AdminAssessment | null; error_ar: string | null }> {
   try {
     const { data, status } = await generate({
       systemInstruction: { parts: [{ text: ADMIN_SYSTEM }] },
@@ -176,7 +200,7 @@ export async function assessWithGemini(input: {
       }],
       toolConfig: { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['record_assessment'] } },
       generationConfig: { maxOutputTokens: 2048, temperature: 0.2 },
-    });
+    }, route);
     if (status !== 200 || !data) return { assessment: null, error_ar: failure(status, data) };
 
     const candidate = data.candidates?.[0];

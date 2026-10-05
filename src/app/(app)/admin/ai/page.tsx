@@ -53,10 +53,10 @@ export default async function AdminAiPage({ searchParams }: { searchParams: Prom
           {t('كيف يُستخدم المساعد، لا ما قاله الناس له. محتوى المحادثة الخاصة لا يُقرأ إلا ضمن قضية مفتوحة وبسبب مكتوب، ويُسجَّل ذلك ويُبلَّغ صاحبها.',
              'How the assistant is used — not what people told it. A private conversation’s words are read only within an open case with a written reason; the access is recorded and its owner is told.')}
         </p>
-        {!aiConfigured() && (
+        {!(await aiConfigured(supabase)) && (
           <p className="notice" style={{ marginTop: 10 }}>
-            {t('لا يوجد مزوّد نموذج موصول في هذه البيئة (GEMINI_API_KEY أو ANTHROPIC_API_KEY غير مضبوط): المحادثات تُحفظ لكن لا أحد يجيب عليها.',
-               'No model provider is connected here (GEMINI_API_KEY or ANTHROPIC_API_KEY is not set): conversations are saved but nobody answers them.')}
+            {t('لا يوجد مزوّد نموذج موصول في هذه البيئة (لا مفتاح Gemini ولا ANTHROPIC_API_KEY): المحادثات تُحفظ لكن لا أحد يجيب عليها.',
+               'No model provider is connected here (no Gemini key and no ANTHROPIC_API_KEY): conversations are saved but nobody answers them.')}
           </p>
         )}
       </section>

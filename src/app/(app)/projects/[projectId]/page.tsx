@@ -26,6 +26,7 @@ import type { PaymentMethodPublic } from '@/lib/database.types';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
+import { ShareButton } from '@/components/ShareButton';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
@@ -410,6 +411,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
               <div className="row-actions" style={{ marginTop: 10 }}>
                 <Link className="btn btn-primary btn-sm" href={`/projects/${projectId}/edit`}>{t('✎ الصفحة والبيع', '✎ Page & sale')}</Link>
                 <Link className="btn btn-ghost btn-sm" href={`/p/${project.code}`}>{t('عرض الصفحة', 'View the page')}</Link>
+                <ShareButton path={`/gallery/${project.code}`} title={project.title_ar} />
               </div>
             </div>
           )}

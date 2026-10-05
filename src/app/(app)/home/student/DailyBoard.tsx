@@ -24,6 +24,8 @@ const KIND: Record<string, { label: Text; icon: IconName; color: string }> = {
   team_task:  { label: { ar: 'مهمة فريق',  en: 'Team task' },  icon: 'team',     color: '#0B8FB3' },
 };
 
+const TODAY_LIMIT = 5;
+
 const FALLBACK = { label: { ar: 'عنصر', en: 'Item' }, icon: 'layers' as IconName, color: '#5B6B7C' };
 
 /**
@@ -37,6 +39,9 @@ export async function DailyBoard({ entries }: { entries: AgendaEntry[] }) {
   const now = entries.filter((entry) => entry.bucket === 'today' || entry.bucket === 'in_progress');
   const upcoming = entries.filter((entry) => entry.bucket === 'upcoming');
   const done = entries.filter((entry) => entry.bucket === 'completed');
+  // Today shows the first five; the rest fold away under "more" (founder's request).
+  const first = now.slice(0, TODAY_LIMIT);
+  const rest = now.slice(TODAY_LIMIT);
 
   return (
     <section className="section-block">
@@ -53,8 +58,17 @@ export async function DailyBoard({ entries }: { entries: AgendaEntry[] }) {
           </p>
         ) : (
           <ul className="hm-list">
-            {now.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
+            {first.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
           </ul>
+        )}
+
+        {rest.length > 0 && (
+          <details className="hm-fold">
+            <summary>{t('مهام أخرى لليوم', 'More for today')} <span className="hm-count">{rest.length}</span></summary>
+            <ul className="hm-list">
+              {rest.map((entry) => <Row entry={entry} t={t} key={`${entry.entry_kind}-${entry.entry_id}`} />)}
+            </ul>
+          </details>
         )}
 
         {upcoming.length > 0 && (

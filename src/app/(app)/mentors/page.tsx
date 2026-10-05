@@ -51,6 +51,27 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
 
   const profileById = new Map((profiles ?? []).map((row) => [row.id, row]));
 
+  // A mentor's field, by name: their domains are field slugs; a mentor who
+  // listed none is shown their primary field from their profile.
+  const [{ data: fieldRows }, { data: primaryRows }] = await Promise.all([
+    supabase.from('fields').select('id, slug, name_ar, name_en'),
+    supabase.from('profile_fields').select('profile_id, field_id').eq('is_primary', true)
+      .in('profile_id', mentorIds.length ? mentorIds : ['00000000-0000-0000-0000-000000000000']),
+  ]);
+  const fieldBySlug = new Map((fieldRows ?? []).map((row) => [row.slug, row]));
+  const fieldById = new Map((fieldRows ?? []).map((row) => [row.id, row]));
+  const fieldName = (slug: string) => {
+    const row = fieldBySlug.get(slug);
+    return row ? t(row.name_ar, row.name_en ?? row.name_ar) : domainLabel(slug);
+  };
+  const fieldsOf = (mentor: { profile_id: string; domains: string[] | null }) => {
+    const named = (mentor.domains ?? []).map(fieldName);
+    if (named.length) return named;
+    const primary = (primaryRows ?? []).find((row) => row.profile_id === mentor.profile_id);
+    const row = primary ? fieldById.get(primary.field_id) : undefined;
+    return row ? [t(row.name_ar, row.name_en ?? row.name_ar)] : [];
+  };
+
   const available = (mentors ?? []).filter((mentor) => mentor.is_accepting).length;
 
   const domains = [...new Set((mentors ?? []).flatMap((mentor) => mentor.domains ?? []))].sort();
@@ -72,7 +93,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
       if (max !== null && (price === undefined || price > max)) return false;
       if (query) {
         const text = [profile?.full_name, profile?.techmood_id, mentor.headline_ar, profile?.headline, mentor.bio_ar,
-          ...(mentor.domains ?? []).map(domainLabel)].join(' ').toLowerCase();
+          ...fieldsOf(mentor)].join(' ').toLowerCase();
         if (!text.includes(query)) return false;
       }
       return true;
@@ -111,7 +132,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
           {domains.length > 0 && (
             <select name="domain" defaultValue={domain ?? ''} aria-label={t('المجال', 'Field')}>
               <option value="">{t('كل المجالات', 'All fields')}</option>
-              {domains.map((key) => <option key={key} value={key}>{domainLabel(key)}</option>)}
+              {domains.map((key) => <option key={key} value={key}>{fieldName(key)}</option>)}
             </select>
           )}
           <select name="max" defaultValue={max ? String(max) : ''} aria-label={t('أعلى سعر', 'Top price')}>
@@ -166,13 +187,10 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
                   <span className="muted">· {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}</span>
                 </span>
 
-                {(mentor.domains ?? []).length > 0 && (
-                  <span className="mn-domains">
-                    {(mentor.domains ?? []).slice(0, 3).map((domain) => (
-                      <span className="mn-domain" key={domain}>{domainLabel(domain)}</span>
-                    ))}
-                  </span>
-                )}
+                <span className={`mn-field-box${fieldsOf(mentor).length ? '' : ' is-empty'}`}>
+                  <small>{t('المجال', 'Field')}</small>
+                  <strong>{fieldsOf(mentor).length ? fieldsOf(mentor).slice(0, 3).join(' · ') : t('لم يُحدَّد بعد', 'Not set yet')}</strong>
+                </span>
 
                 <span className="mn-card-foot">
                   <span className="mn-price">

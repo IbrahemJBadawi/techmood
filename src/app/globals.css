@@ -6191,3 +6191,20 @@ textarea { line-height: 1.6; resize: vertical; }
 .wt-dots span.is-on { width: 22px; background: var(--royal); }
 .wt-actions { display: flex; justify-content: space-between; gap: 10px; }
 @media (prefers-reduced-motion: reduce) { .wt-backdrop { animation: none; } }
+
+/* one share button for every page worth sending (projects, services, courses, paths, profiles) */
+.share-wrap { position: relative; display: inline-flex; }
+.share-wrap > .btn { gap: 6px; }
+.share-menu { position: absolute; top: calc(100% + 6px); inset-inline-end: 0; z-index: 40; min-width: 180px; display: flex; flex-direction: column; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14); }
+.share-menu button { text-align: start; padding: 9px 10px; border: 0; background: none; border-radius: 8px; color: var(--ink); font: inherit; font-size: 0.86rem; cursor: pointer; }
+.share-menu button:hover { background: var(--sky-tint); }
+.ac-cover-share { margin-top: 10px; }
+
+/* mentors list: the mentor's field in its own box */
+.mn-field-box { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--royal) 30%, var(--line)); background: color-mix(in srgb, var(--royal) 6%, var(--panel)); }
+.mn-field-box small { font-size: 0.68rem; color: var(--ink-soft); font-weight: 600; }
+.mn-field-box strong { font-size: 0.86rem; color: var(--royal-dark, var(--royal)); line-height: 1.4; }
+.mn-field-box.is-empty { border-style: dashed; background: none; }
+.mn-field-box.is-empty strong { color: var(--ink-faint); font-weight: 500; }
+.site-footer-contact { font-size: 0.86rem; margin: 6px 0 10px; }
+.site-footer-contact a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }

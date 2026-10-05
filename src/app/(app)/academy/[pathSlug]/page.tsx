@@ -11,6 +11,7 @@ import { Icon } from '@/components/Icon';
 import { enrolInPath } from '../actions';
 import { ProgressRing } from '../ProgressRing';
 import { schoolLook } from '../schools';
+import { ShareButton } from '@/components/ShareButton';
 import { SubmissionPanel } from '../SubmissionPanel';
 
 export default async function PathPage({
@@ -186,6 +187,9 @@ export default async function PathPage({
         )}
         <p className="ac-cover-desc">{path.description_ar}</p>
         {path.tagline_ar && <p className="ac-cover-tagline">{path.tagline_ar}</p>}
+        <div className="ac-cover-share">
+          <ShareButton path={`/academy/${pathSlug}`} title={path.title_ar} text={t(`مسار «${path.title_ar}» على TechMood`, `The “${path.title_ar}” path on TechMood`)} />
+        </div>
 
         <ul className="ac-cover-meta">
           <li><Icon name="layers" size={15} />{t(`${doneCount} من ${courses.length} دورات مكتملة`, `${doneCount} of ${courses.length} courses done`)}</li>

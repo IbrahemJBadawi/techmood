@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { LikeButton } from '@/components/Social';
 import { MemberAvatar } from '@/components/MemberAvatar';
+import { ShareButton } from '@/components/ShareButton';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -106,6 +107,7 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
             {listing && <span title={t('مبيعات', 'Sales')}>🛒 <b className="eng">{page.sales_count}</b> <small>{t('مبيعات', 'sales')}</small></span>}
             {page.reviews_count > 0 && <span>⭐ <b className="eng">{page.rating}</b> <small>({page.reviews_count})</small></span>}
             {page.can_edit && <span title={t('ضغطات الروابط', 'Link clicks')}>🔗 <b className="eng">{page.link_clicks}</b></span>}
+            <ShareButton path={galleryPath(page.code)} title={page.title} text={page.tagline ?? page.title} />
           </div>
 
           {/* On a phone the buy box sits below the page; this jumps to it. */}

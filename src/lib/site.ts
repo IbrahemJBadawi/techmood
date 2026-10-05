@@ -14,5 +14,5 @@ export async function siteOrigin(): Promise<string> {
       ?? (host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https');
     return `${proto}://${host}`;
   }
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmoodtech.vercel.app').replace(/\/$/, '');
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://techmoodtech.com').replace(/\/$/, '');
 }

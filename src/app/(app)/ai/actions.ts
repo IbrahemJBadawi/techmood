@@ -88,7 +88,7 @@ export async function openPanel(where: PanelWhere, threadId: string | null): Pro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  return { ...(await readThread(supabase, threadId, where.surface)), live: aiConfigured() };
+  return { ...(await readThread(supabase, threadId, where.surface)), live: await aiConfigured(supabase) };
 }
 
 /**
@@ -107,7 +107,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
 
   const question = prompt.trim();
   if (!question) {
-    return { ...(await readThread(supabase, threadId, where.surface)), live: aiConfigured(),
+    return { ...(await readThread(supabase, threadId, where.surface)), live: await aiConfigured(supabase),
              error: t('اكتب سؤالك أولاً.', 'Write your question first.') };
   }
 
@@ -122,7 +122,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
       p_entity_id: where.entityId ?? null,
     });
     if (error || !data) {
-      return { ...(await readThread(supabase, null, where.surface)), live: aiConfigured(),
+      return { ...(await readThread(supabase, null, where.surface)), live: await aiConfigured(supabase),
                error: dbError(t, error?.message ?? '') };
     }
     thread = data;
@@ -133,7 +133,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
     p_surface: where.surface, p_scope: where.scope,
   });
   if (sayError) {
-    return { ...(await readThread(supabase, thread, where.surface)), live: aiConfigured(),
+    return { ...(await readThread(supabase, thread, where.surface)), live: await aiConfigured(supabase),
              error: dbError(t, sayError.message) };
   }
 
@@ -155,7 +155,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
     .slice(-12)
     .map((row) => ({ role: row.role as 'user' | 'assistant', content: row.content }));
 
-  const answer = await askAssistant({
+  const answer = await askAssistant(supabase, thread, {
     context,
     history: earlier,
     prompt: question,
@@ -183,7 +183,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
     });
   }
 
-  return { ...(await readThread(supabase, thread, where.surface)), live: aiConfigured() };
+  return { ...(await readThread(supabase, thread, where.surface)), live: await aiConfigured(supabase) };
 }
 
 /** The button. Everything the assistant changes goes through this one door. */

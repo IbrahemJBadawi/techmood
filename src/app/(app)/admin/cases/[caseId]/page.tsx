@@ -113,7 +113,7 @@ export default async function CasePage({ params }: { params: Promise<{ caseId: s
                 <input type="hidden" name="case_id" value={item.id} />
               </ActionForm>
             </div>
-            {!aiConfigured() && (
+            {!(await aiConfigured(supabase)) && (
               <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
                 {t('غير موصول بمزوّد نموذج هنا — الحقائق أعلاه من قاعدة البيانات مباشرة.', 'No model provider is connected here — the facts above come straight from the database.')}
               </p>

@@ -58,7 +58,7 @@ export async function assistTicket(_prev: ActionFormState, formData: FormData): 
   ]);
   if (!ticket) return { error: t('البلاغ غير موجود', 'Ticket not found') };
 
-  const result = await assessForAdmin({
+  const result = await assessForAdmin(supabase, {
     kind: 'ticket',
     facts: { ...ticket, attachments: (messages ?? []).filter((row) => row.attachment_path).length },
     conversation: (messages ?? []).map((row) => ({ author: row.author_kind, body: row.body_ar })),
@@ -137,7 +137,7 @@ export async function assistCase(_prev: ActionFormState, formData: FormData): Pr
     ? await supabase.from('ticket_messages').select('author_kind, body_ar').in('ticket_id', ticketIds).order('created_at')
     : { data: [] as { author_kind: string; body_ar: string }[] };
 
-  const result = await assessForAdmin({
+  const result = await assessForAdmin(supabase, {
     kind: 'case',
     facts,
     conversation: (messages ?? []).map((row) => ({ author: row.author_kind, body: row.body_ar })),

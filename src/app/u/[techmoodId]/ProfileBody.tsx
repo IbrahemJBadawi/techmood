@@ -12,6 +12,7 @@ import type { ExperienceKind, LinkKind, ProfileSection } from '@/lib/database.ty
 import { ProfileCard, type Card } from './ProfileCard';
 import { siteOrigin } from '@/lib/site';
 import { PRIMARY_LINK_KINDS, isPrimaryLink } from '@/lib/profile-links';
+import { ShareButton } from '@/components/ShareButton';
 
 const LINK_LABEL: Record<LinkKind, string> = {
   cv: 'CV', linkedin: 'LinkedIn', github: 'GitHub', behance: 'Behance', dribbble: 'Dribbble',
@@ -216,6 +217,8 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
               path={`/u/${card.techmood_id}`}
             />
           )}
+          <ShareButton path={`/u/${card.techmood_id}`} title={card.full_name ?? card.techmood_id}
+                       text={t(`الملف المهني لـ ${card.full_name ?? card.techmood_id} على TechMood`, `${card.full_name ?? card.techmood_id}’s profile on TechMood`)} />
           <Link className="btn btn-ghost btn-sm" href={`/u/${card.techmood_id}/card`}>
             {t('بطاقة للمشاركة', 'A card to share')}
           </Link>

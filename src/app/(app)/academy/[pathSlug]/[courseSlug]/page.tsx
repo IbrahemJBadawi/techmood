@@ -13,6 +13,7 @@ import { ProgressRing } from '../../ProgressRing';
 import { schoolLook } from '../../schools';
 import { SubmissionPanel } from '../../SubmissionPanel';
 import { CourseRatingForm } from '../../CourseRatingForm';
+import { ShareButton } from '@/components/ShareButton';
 
 const LESSON_KIND_LABELS: Record<string, Text> = {
   video:    { ar: 'فيديو',        en: 'Video' },
@@ -210,6 +211,9 @@ export default async function CoursePage({
           </p>
         )}
         <p className="ac-cover-desc">{course.description_ar}</p>
+        <div className="ac-cover-share">
+          <ShareButton path={`/academy/${pathSlug}/${courseSlug}`} title={course.title_ar} text={t(`دورة «${course.title_ar}» على TechMood`, `The “${course.title_ar}” course on TechMood`)} />
+        </div>
 
         <ul className="ac-cover-meta">
           <li><Icon name="play" size={15} />{t(`${lessonsDone} من ${openLessons.length} دروس`, `${lessonsDone} of ${openLessons.length} lessons`)}</li>

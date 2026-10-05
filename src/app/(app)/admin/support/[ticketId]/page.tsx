@@ -75,9 +75,9 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ ti
             <input type="hidden" name="ticket_id" value={ticket.id} />
           </ActionForm>
         </div>
-        {!aiConfigured() && (
+        {!(await aiConfigured(supabase)) && (
           <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-            {t('غير موصول بمزوّد نموذج هنا — يعمل حين يُضبط GEMINI_API_KEY أو ANTHROPIC_API_KEY.', 'No model provider is connected here — it works once GEMINI_API_KEY or ANTHROPIC_API_KEY is set.')}
+            {t('غير موصول بمزوّد نموذج هنا — يعمل حين يُضاف مفتاح Gemini أو ANTHROPIC_API_KEY.', 'No model provider is connected here — it works once a Gemini key or ANTHROPIC_API_KEY is added.')}
           </p>
         )}
         {ticket.ai_summary_ar ? (
