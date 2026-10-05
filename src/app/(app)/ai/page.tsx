@@ -44,7 +44,7 @@ export default async function AiPage() {
             'A layer over the whole platform: it reads what you can read, suggests, and changes nothing until you confirm.',
           )}
         </p>
-        <Link className="ghost-button" href="/settings/ai">
+        <Link className="btn btn-ghost btn-sm" href="/settings/ai">
           {t('الذاكرة والصلاحيات', 'Memory and permissions')}
         </Link>
       </div>

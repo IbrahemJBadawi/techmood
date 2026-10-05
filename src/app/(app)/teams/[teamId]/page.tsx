@@ -208,7 +208,7 @@ export default async function TeamOverviewPage({
                     {ACTIVITY_VERBS[entry.verb] ? t(ACTIVITY_VERBS[entry.verb]) : entry.verb}
                     {entry.subject_ar && <span className="muted"> «{entry.subject_ar}»</span>}
                     <br />
-                    <span className="muted eng" style={{ fontSize: '0.74rem' }}>
+                    <span className="muted date" style={{ fontSize: '0.74rem' }}>
                       {new Date(entry.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </span>

@@ -12,6 +12,7 @@ import type { ExperienceKind, LinkKind, ProfileSection } from '@/lib/database.ty
 import { ProfileCard, type Card } from './ProfileCard';
 import { siteOrigin } from '@/lib/site';
 import { PRIMARY_LINK_KINDS, isPrimaryLink } from '@/lib/profile-links';
+import { roleLabel } from '@/lib/roles';
 import { ShareButton } from '@/components/ShareButton';
 
 const LINK_LABEL: Record<LinkKind, string> = {
@@ -259,7 +260,7 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
               <p className="profile-label" style={{ marginTop: 14 }}>{t('الأدوار المعتمدة', 'Approved roles')}</p>
               <div className="tags-row">
                 {(roles ?? []).map((row) => (
-                  <span className="status-pill status-ok" key={row.role}>✓ {row.role}</span>
+                  <span className="status-pill status-ok" key={row.role}>✓ {t(roleLabel(row.role))}</span>
                 ))}
               </div>
             </>

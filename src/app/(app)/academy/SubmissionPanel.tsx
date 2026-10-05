@@ -104,7 +104,7 @@ export function SubmissionPanel({
               )}
               <div className="row-between">
                 <Stars value={evaluation.stars} />
-                <span className="muted eng" style={{ fontSize: '0.74rem' }}>
+                <span className="muted date" style={{ fontSize: '0.74rem' }}>
                   {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                 </span>
               </div>

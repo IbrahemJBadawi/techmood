@@ -292,7 +292,11 @@ export default async function BookingDetailPage({
                         {formatDate(t.locale, event.created_at)}
                       </td>
                       <td>
-                        {event.event_key.startsWith('payment_')
+                        {event.event_key === 'booking_created'
+                          ? t('أُنشئ الحجز', 'Booking created')
+                          : event.event_key === 'payment_submitted'
+                          ? t('الدفع: أُرسل الإيصال', 'Payment: receipt sent')
+                          : event.event_key.startsWith('payment_')
                           ? t('الدفع: ', 'Payment: ') + (() => {
                               const key = event.event_key.replace('payment_', '') as keyof typeof PAYMENT_STATUS;
                               return PAYMENT_STATUS[key] ? t(PAYMENT_STATUS[key].text) : event.event_key;

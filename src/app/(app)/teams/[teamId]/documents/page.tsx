@@ -117,7 +117,7 @@ export default async function TeamDocumentsPage({
                     </a>
                   )}
 
-                  <p className="muted eng" style={{ fontSize: '0.74rem', marginTop: 10 }}>
+                  <p className="muted date" style={{ fontSize: '0.74rem', marginTop: 10 }}>
                     {authorById.get(document.author_id) ?? '—'} ·{' '}
                     {new Date(document.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                   </p>

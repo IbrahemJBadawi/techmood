@@ -6253,3 +6253,25 @@ textarea { line-height: 1.6; resize: vertical; }
 .ai-text p, .ai-text li { color: inherit; }
 /* on the conversation page the floating button would cover the thread it opens */
 body:has(.ai-conversation) .ai-fab { display: none; }
+
+/* ---------- phone polish (UX review) ----------
+   Filters: two to a row instead of a full screen of stacked selects.
+   Floating buttons: «احجز جلسة» becomes a round icon so it covers less; the
+   assistant's button rises above a page's own sticky action bar. */
+@media (max-width: 719px) {
+  .sc-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sc-filters input[type="search"] { grid-column: 1 / -1; }
+  .sc-filters select { min-height: 42px; padding-block: 8px; font-size: 0.86rem; }
+  .sc-filters .sc-check { align-self: center; }
+}
+@media (max-width: 760px) {
+  .book-fab { width: 52px; height: 52px; padding: 0; justify-content: center; font-size: 1.25rem; }
+  .book-fab-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body:has(.mn-sticky-book) .ai-fab { inset-block-end: calc(var(--tabbar-h) + 78px + env(safe-area-inset-bottom)); }
+}
+/* a page title beside its tabs: on a phone the tabs take their own line */
+@media (max-width: 760px) {
+  .section-block.row-between { flex-wrap: wrap; }
+  .section-block.row-between > nav.tags-row { flex-basis: 100%; }
+}
+a.tag { text-decoration: none; }

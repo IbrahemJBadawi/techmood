@@ -174,7 +174,7 @@ export default async function StartupOverviewPage({
                       return found ? t(found.label) : entry.stage;
                     })()}
                     <br />
-                    <span className="muted eng" style={{ fontSize: '0.74rem' }}>
+                    <span className="muted date" style={{ fontSize: '0.74rem' }}>
                       {new Date(entry.changed_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </span>

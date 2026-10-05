@@ -165,7 +165,7 @@ export default async function ReviewSubmissionPage({
                     {t(`النسخة ${version.version}`, `Version ${version.version}`)}
                     {index === 0 && <span className="badge-pill" style={{ marginInlineStart: 8 }}>{t('الأحدث', 'Latest')}</span>}
                   </strong>
-                  <span className="muted eng" style={{ fontSize: '0.76rem' }}>
+                  <span className="muted date" style={{ fontSize: '0.76rem' }}>
                     {new Date(version.submitted_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                   </span>
                 </div>
@@ -218,7 +218,7 @@ export default async function ReviewSubmissionPage({
                   >
                     <div className="row-between">
                       <span className={`status-pill ${decision.className}`}>{t(decision.text)}</span>
-                      <span className="muted eng" style={{ fontSize: '0.74rem' }}>
+                      <span className="muted date" style={{ fontSize: '0.74rem' }}>
                         v{version?.version ?? '?'} ·{' '}
                         {new Date(evaluation.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                         {evaluation.evaluator_id === user.id ? t(' · أنت', ' · you') : ''}

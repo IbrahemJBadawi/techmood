@@ -39,7 +39,7 @@ export function PreferencesForm({ memory, actions }: { memory: boolean; actions:
       {state?.error && <p className="form-error">{state.error}</p>}
       {state?.ok && <p className="form-ok">{state.ok}</p>}
 
-      <button type="submit" className="primary-button" disabled={pending}>
+      <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
         {t('احفظ', 'Save')}
       </button>
     </form>

@@ -62,7 +62,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ ti
             <span className={`status-pill ${TICKET_STATUS[ticket.status].className}`}>{t(TICKET_STATUS[ticket.status].label)}</span>
             <span className={`status-pill ${TICKET_PRIORITY[ticket.priority].className}`}>{t(TICKET_PRIORITY[ticket.priority].label)}</span>
             {ticket.escalation_reason && ESCALATION[ticket.escalation_reason] && (
-              <span className="tag">Needs Human Review · {t(ESCALATION[ticket.escalation_reason])}</span>
+              <span className="tag">{t('يحتاج مراجعة بشرية', 'Needs human review')} · {t(ESCALATION[ticket.escalation_reason])}</span>
             )}
           </div>
         </div>

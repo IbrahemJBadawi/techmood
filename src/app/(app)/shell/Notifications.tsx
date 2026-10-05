@@ -44,7 +44,7 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
         onClick={() => setOpen((value) => !value)}
       >
         <Bell />
-        {unread > 0 && <span className="dot-badge">{unread > 9 ? '9+' : unread}</span>}
+        {unread > 0 && <span className="dot-badge" dir="ltr">{unread > 9 ? '9+' : unread}</span>}
       </button>
 
       {open && (

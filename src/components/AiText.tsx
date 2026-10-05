@@ -11,7 +11,9 @@ import { Fragment, type ReactNode } from 'react';
  * any other address stays plain text.
  */
 export function AiText({ text }: { text: string }) {
-  const blocks = text.replace(/\r\n/g, '\n').split(/\n{2,}/).filter((block) => block.trim());
+  // Horizontal rules and tables are not part of the answer's style: dropped.
+  const clean = text.replace(/\r\n/g, '\n').split('\n').filter((line) => !/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)).join('\n');
+  const blocks = clean.split(/\n{2,}/).filter((block) => block.trim());
   return (
     <div className="ai-text">
       {blocks.map((block, index) => <Block key={index} block={block} />)}

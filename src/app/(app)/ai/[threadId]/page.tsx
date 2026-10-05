@@ -51,7 +51,7 @@ export default async function AiThreadPage({
         <p className="page-sub">
           {t('السياق', 'Context')}: {t(SCOPE[thread.scope].label)}
         </p>
-        <Link className="ghost-button" href="/ai">{t('كل المحادثات', 'All threads')}</Link>
+        <Link className="btn btn-ghost btn-sm" href="/ai">{t('كل المحادثات', 'All threads')}</Link>
       </div>
 
       <Conversation initial={state} where={where} />

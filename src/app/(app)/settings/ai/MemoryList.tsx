@@ -60,10 +60,10 @@ export function MemoryList({ rows }: { rows: MemoryRow[] }) {
                 }}
               >
                 <input value={draft} onChange={(event) => setDraft(event.target.value)} />
-                <button type="submit" className="primary-button" disabled={pending}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
                   {t('احفظ', 'Save')}
                 </button>
-                <button type="button" className="ghost-button" onClick={() => setEditing(null)}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
                   {t('إلغاء', 'Cancel')}
                 </button>
               </form>
@@ -74,15 +74,15 @@ export function MemoryList({ rows }: { rows: MemoryRow[] }) {
                   <span className="muted">{t('استنتجه المساعد', 'Inferred')}</span>
                 )}
                 <span className="ai-memory-buttons">
-                  <button type="button" className="ghost-button" disabled={pending}
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={pending}
                           onClick={() => { setEditing(row.id); setDraft(row.content_ar); }}>
                     {t('عدّل', 'Edit')}
                   </button>
-                  <button type="button" className="ghost-button" disabled={pending}
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={pending}
                           onClick={() => run(() => setMemoryActive(row.id, !row.is_active))}>
                     {row.is_active ? t('أوقف', 'Mute') : t('شغّل', 'Unmute')}
                   </button>
-                  <button type="button" className="ghost-button danger" disabled={pending}
+                  <button type="button" className="btn btn-sm btn-danger" disabled={pending}
                           onClick={() => run(() => forgetMemory(row.id))}>
                     {t('احذف', 'Delete')}
                   </button>

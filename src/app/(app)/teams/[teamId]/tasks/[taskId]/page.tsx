@@ -130,7 +130,7 @@ export default async function TaskDetailPage({
                 <div key={comment.id} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid var(--line)' }}>
                   <div className="row-between">
                     <strong style={{ fontSize: '0.86rem' }}>{nameById.get(comment.author_id) ?? '—'}</strong>
-                    <span className="muted eng" style={{ fontSize: '0.74rem' }}>
+                    <span className="muted date" style={{ fontSize: '0.74rem' }}>
                       {new Date(comment.created_at).toLocaleDateString('ar-EG-u-nu-latn', { timeZone: PLATFORM_TIME_ZONE })}
                     </span>
                   </div>
