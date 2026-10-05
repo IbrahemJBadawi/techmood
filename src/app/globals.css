@@ -6114,3 +6114,80 @@ input[type="file"]::file-selector-button:hover { border-color: var(--royal); col
 .ach-icon { font-size: 1.5rem; line-height: 1; }
 .ach-name { font-size: 0.7rem; font-weight: 600; line-height: 1.25; }
 .ach-times { position: absolute; top: 4px; inset-inline-end: 6px; font-size: 0.62rem; font-weight: 700; color: var(--royal); }
+
+/* sidebar: announced places that are not open yet */
+.navlink.is-soon { cursor: default; opacity: 0.6; }
+.navlink.is-soon:hover { background: none; }
+.soon-pill { margin-inline-start: auto; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--sky-tint); color: var(--royal); white-space: nowrap; }
+@media (min-width: 761px) and (max-width: 1023px) { .navlink.is-soon .soon-pill { display: none; } }
+.sheet-tile.is-soon { opacity: 0.6; cursor: default; position: relative; }
+.sheet-tile.is-soon .soon-pill { position: absolute; top: 6px; inset-inline-end: 6px; }
+
+/* =========================================================================
+   Form controls, finished (founder's request): one height, a soft focus ring,
+   a drawn chevron on selects that sits on the reading end in Arabic and
+   English, and date/time pickers that match the theme.
+   ========================================================================= */
+:where(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"]), select, textarea) {
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+:where(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"]), select, textarea):hover:not(:disabled, :focus) {
+  border-color: color-mix(in srgb, var(--royal) 45%, var(--line-strong));
+}
+:where(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea):focus-visible,
+.field input:focus-visible, .field textarea:focus-visible, .field select:focus-visible {
+  outline: none;
+  border-color: var(--royal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--royal) 22%, transparent);
+}
+:where(input, select, textarea):disabled { opacity: 0.6; cursor: not-allowed; }
+
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%237a869a' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 8px;
+  padding-inline-end: 36px;
+  cursor: pointer;
+  min-height: 42px;
+}
+[dir="rtl"] select:not([multiple]):not([size]) { background-position: left 13px center; }
+
+input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"] {
+  min-height: 42px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  border-radius: 6px;
+  padding: 3px;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+input::-webkit-calendar-picker-indicator:hover { opacity: 1; background-color: var(--sky-tint); }
+:root[data-theme="dark"] input::-webkit-calendar-picker-indicator { filter: invert(0.85); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) input::-webkit-calendar-picker-indicator { filter: invert(0.85); }
+}
+input[type="number"] { font-variant-numeric: tabular-nums; }
+textarea { line-height: 1.6; resize: vertical; }
+
+/* checkboxes and radios in the brand colour, a touch larger */
+:where(input[type="checkbox"]:not(.switch-row input), input[type="radio"]) { accent-color: var(--royal); width: 17px; height: 17px; cursor: pointer; }
+
+/* the first-visit welcome guide (0129) */
+.wt-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 45%, transparent); animation: fade-in 0.2s ease-out; }
+.wt-card { position: relative; width: min(100%, 440px); background: var(--panel); border-radius: 22px; padding: 28px 24px 20px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25); outline: none; }
+.wt-skip { position: absolute; top: 10px; inset-inline-end: 10px; }
+.wt-icon { font-size: 2.6rem; display: block; margin-bottom: 8px; }
+.wt-card h2 { font-size: 1.25rem; margin: 0 0 8px; }
+.wt-card p { color: var(--ink-soft); line-height: 1.7; margin: 0 0 12px; }
+.wt-link { display: inline-block; font-weight: 600; color: var(--royal); margin-bottom: 12px; }
+.wt-dots { display: flex; justify-content: center; gap: 6px; margin: 6px 0 16px; }
+.wt-dots span { width: 7px; height: 7px; border-radius: 999px; background: var(--line-strong); transition: width 0.2s, background 0.2s; }
+.wt-dots span.is-on { width: 22px; background: var(--royal); }
+.wt-actions { display: flex; justify-content: space-between; gap: 10px; }
+@media (prefers-reduced-motion: reduce) { .wt-backdrop { animation: none; } }

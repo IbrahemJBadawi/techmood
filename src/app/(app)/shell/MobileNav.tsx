@@ -23,6 +23,7 @@ export function MobileTabBar({
   moreLabel,
   closeLabel,
   unread,
+  soon,
   children,
 }: {
   tabs: Item[];
@@ -30,6 +31,8 @@ export function MobileTabBar({
   moreLabel: string;
   closeLabel: string;
   unread: number;
+  /** Announced places, not open yet: shown, not linked. */
+  soon?: { title: string; tag: string; items: { label: string; icon: Item['icon'] }[] };
   children?: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -120,6 +123,21 @@ export function MobileTabBar({
               </div>
             </section>
           ))}
+
+          {soon && (
+            <section className="sheet-group">
+              <h2>{soon.title}</h2>
+              <div className="sheet-grid">
+                {soon.items.map((item) => (
+                  <span key={item.label} className="sheet-tile is-soon" aria-disabled="true">
+                    <span className="sheet-tile-icon"><Icon name={item.icon} size={22} /></span>
+                    <span>{item.label}</span>
+                    <span className="soon-pill">{soon.tag}</span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </>

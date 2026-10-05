@@ -20,6 +20,12 @@ import { LogoMark } from '@/components/Logo';
 import { MobileTabBar } from './shell/MobileNav';
 import { roleInScope } from '@/lib/scope';
 
+/** On the sidebar as "coming soon": not links, nothing behind them yet. */
+const COMING_SOON = [
+  { ar: 'ورش العمل', en: 'Workshops', icon: 'calendar' as const },
+  { ar: 'للأعمال', en: 'For business', icon: 'company' as const },
+];
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const t = await getT();
   const supabase = await createClient();
@@ -127,6 +133,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         ))}
 
+        {/* announced, not open yet: shown so members know what is coming */}
+        <div className="nav-group">
+          <div className="nav-group-label">{t('قريباً', 'Coming soon')}</div>
+          {COMING_SOON.map((item) => (
+            <span className="navlink is-soon" key={item.en} aria-disabled="true" title={t(`${item.ar} — قريباً`, `${item.en} — coming soon`)}>
+              <Icon name={item.icon} />
+              <span className="navlink-label">{t(item.ar, item.en)}</span>
+              <span className="soon-pill">{t('قريباً', 'Soon')}</span>
+            </span>
+          ))}
+        </div>
+
         <div className="nav-group">
           <div className="nav-group-label">{t('الحساب', 'Account')}</div>
           <NavLink href="/settings/roles" icon="settings">{t('أدواري', 'My roles')}</NavLink>
@@ -212,6 +230,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         moreLabel={t('المزيد', 'More')}
         closeLabel={t('إغلاق', 'Close')}
         unread={unreadMessages ?? 0}
+        soon={{
+          title: t('قريباً', 'Coming soon'),
+          tag: t('قريباً', 'Soon'),
+          items: COMING_SOON.map((item) => ({ label: t(item.ar, item.en), icon: item.icon })),
+        }}
       >
         <div className="sheet-role">
           <span className="muted">{t('تتصفّح بدور', 'Browsing as')}</span>

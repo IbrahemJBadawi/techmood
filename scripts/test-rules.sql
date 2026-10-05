@@ -10449,6 +10449,24 @@ select public.assert_rejects(
 reset role;
 reset request.jwt.claim.sub;
 
+-- =============================================================================
+-- 98. The welcome guide, once per member (0129)
+-- =============================================================================
+\echo ''
+\echo '98. welcome guide'
+
+update public.profiles set welcomed_at = null
+ where id in ('84848484-8484-8484-8484-848484848484', '55555555-5555-5555-5555-555555555555');
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.mark_welcomed();
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select welcomed_at is not null from public.profiles where id = '84848484-8484-8484-8484-848484848484')
+  and (select welcomed_at is null from public.profiles where id = '55555555-5555-5555-5555-555555555555'),
+  '98.1 finishing the guide is remembered for that member alone');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

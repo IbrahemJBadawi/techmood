@@ -8,6 +8,7 @@ import { ACTIVE_ROLE_COOKIE, defaultRole } from '@/lib/roles';
 import type { UserRole } from '@/lib/database.types';
 
 import { DeviceSetup } from '@/components/DeviceSetup';
+import { WelcomeTour } from '@/components/WelcomeTour';
 
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
@@ -20,7 +21,7 @@ export const generateMetadata = localizedTitle('الرئيسية — TechMood', 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ lm?: string; lw?: string; lp?: string }>;
+  searchParams: Promise<{ lm?: string; lw?: string; lp?: string; tour?: string }>;
 }) {
   const t = await getT();
   const supabase = await createClient();
@@ -30,7 +31,7 @@ export default async function HomePage({
   const [{ data: profile }, { data: roles }, { data: pushKey }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('full_name, display_name, techmood_id, avatar_url, primary_role')
+      .select('full_name, display_name, techmood_id, avatar_url, primary_role, welcomed_at')
       .eq('id', user.id)
       .single(),
     supabase.from('profile_roles').select('role, status').eq('profile_id', user.id),
@@ -64,6 +65,9 @@ export default async function HomePage({
           {t('. بقية أدوارك تعمل كالمعتاد.', '. Your other roles carry on as normal.')}
         </p>
       )}
+
+      {/* A first visit gets the welcome guide; ?tour=1 replays it (0129). */}
+      <WelcomeTour open={!profile.welcomed_at || params.tour === '1'} />
 
       {/* Install + notifications, until both are on for this device. */}
       <DeviceSetup variant="home" publicKey={(pushKey as string | null) ?? null} />

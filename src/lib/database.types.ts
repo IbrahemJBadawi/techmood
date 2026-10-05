@@ -754,6 +754,8 @@ export type Profile = {
   language: UiLanguage;
   primary_role: UserRole | null;
   onboarding_completed_at: string | null;
+  /** Finished or skipped the welcome guide (0129). */
+  welcomed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1933,6 +1935,7 @@ export type Database = {
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
       my_unread_messages: { Args: Record<string, never>; Returns: number };
+      mark_welcomed: { Args: Record<string, never>; Returns: undefined };
       my_activity: { Args: { p_days?: number }; Returns: { on_date: string; xp: number; lessons: number; acts: number }[] };
       my_challenges: {
         Args: Record<string, never>;
