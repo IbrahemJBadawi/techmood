@@ -7,9 +7,12 @@ import { contentText, type Text } from '@/lib/i18n';
 import type { Assignment, Evaluation, Lesson, LessonVideo, Submission } from '@/lib/database.types';
 
 import { Pomodoro } from '../../../../home/student/Pomodoro';
-import { toggleLesson } from '../../../actions';
+import { toggleLesson, type Precheck, type QuizState } from '../../../actions';
+import { LessonQuiz } from '../../../LessonQuiz';
+import { aiConfigured } from '@/lib/ai-provider';
 import { LessonBoard } from '../../../LessonBoard';
 import { ShareDraft } from '../../../ShareDraft';
+import { siteOrigin } from '@/lib/site';
 import { SubmissionPanel } from '../../../SubmissionPanel';
 import { CredentialPanel } from '../../../CredentialPanel';
 import { AiSurface } from '@/components/AiSurface';
@@ -136,10 +139,18 @@ export default async function LessonPage({
   const previousOpen = lessons.slice(0, index).reverse().find((item) => item.status === 'published') ?? null;
   const canTick = !preview && !soon && !locked && (!credential || (credential.verified && credential.applied) || credential.completed);
 
+  // The short quiz (0139): once the lesson has one, it is passed before the
+  // lesson completes. Without one (the model was unreachable) nothing waits on it.
+  const [{ data: quizRow }, aiReady] = canTick
+    ? await Promise.all([supabase.rpc('lesson_quiz', { p_lesson: lesson.id }), aiConfigured(supabase)])
+    : [{ data: null }, false];
+  const quiz = (quizRow as QuizState | null) ?? null;
+
   const assignment = ((assignments ?? []) as Assignment[])[0] ?? null;
 
   let submission: Submission | null = null;
   let evaluations: Evaluation[] = [];
+  let precheck: Precheck | null = null;
   if (assignment) {
     const { data: submissions } = await supabase
       .from('submissions')
@@ -155,6 +166,17 @@ export default async function LessonPage({
         .eq('submission_id', submission.id)
         .order('created_at');
       evaluations = (rows ?? []) as unknown as Evaluation[];
+
+      // The first look at the newest version (0140), if it has had one.
+      const { data: latest } = await supabase
+        .from('submission_versions').select('id')
+        .eq('submission_id', submission.id).eq('version', submission.current_version).maybeSingle();
+      if (latest) {
+        const { data: look } = await supabase
+          .from('submission_prechecks').select('status, result, created_at')
+          .eq('version_id', latest.id).maybeSingle();
+        precheck = (look as Precheck | null) ?? null;
+      }
     }
   }
 
@@ -166,11 +188,18 @@ export default async function LessonPage({
   const position = index + 1;
   const code = `TM-${courseSlug.toUpperCase()}-L${String(position).padStart(2, '0')}`;
   const folder = `TechMood_${pathSlug.toUpperCase()}/${courseSlug}/${lessonSlug}`;
+  // The post ends with the member's public TechMood record, so whoever reads
+  // it on LinkedIn can see the work behind it.
+  const [{ data: me }, origin] = await Promise.all([
+    user ? supabase.from('profiles').select('techmood_id').eq('id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+    siteOrigin(),
+  ]);
   const shareDraft = [
     `🚀 Completed Lesson ${position} of TechMood — ${contentText('en', path.title_ar, path.title_en)}!`,
     '',
     `Today I worked through "${contentText('en', lesson.title_ar, lesson.title_en)}"`
       + (assignment ? ` and built ${assignment.title_ar}.` : '.'),
+    ...(me?.techmood_id ? ['', `My TechMood record: ${origin}/u/${me.techmood_id}`] : []),
     '',
     '#TechMood #Learning',
   ].join('\n');
@@ -221,14 +250,24 @@ export default async function LessonPage({
                'This lesson’s video is coming soon. You can study it now from the summary and sources, start the assignment, and complete it as usual.')}
           </p>
         )}
+        {canTick && quiz && (quiz.ready || (!done && aiReady)) && (
+          <LessonQuiz lessonId={lesson.id} initial={quiz} canWrite={aiReady && !done} revalidate={here} />
+        )}
         {canTick && (
           <form action={toggleLesson} className="lesson-done-form">
             <input type="hidden" name="lesson_id" value={lesson.id} />
             <input type="hidden" name="completed" value={String(done)} />
             <input type="hidden" name="revalidate" value={here} />
-            <button className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} type="submit">
-              {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
-            </button>
+            {!done && quiz?.ready && !quiz.passed ? (
+              <>
+                <button className="btn btn-primary btn-lg" type="button" disabled>{t('علّم الدرس كمكتمل', 'Mark the lesson as done')}</button>
+                <p className="muted lesson-done-hint">{t('اجتز الاختبار القصير أعلاه أولاً — إجابتان صحيحتان من ثلاث.', 'Pass the short quiz above first — two right answers of three.')}</p>
+              </>
+            ) : (
+              <button className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} type="submit">
+                {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
+              </button>
+            )}
           </form>
         )}
       </section>
@@ -337,6 +376,8 @@ export default async function LessonPage({
                     submission={submission}
                     evaluations={evaluations}
                     revalidatePath={here}
+                    precheck={precheck}
+                    precheckEnabled={aiReady}
                   />
                 )}
               </>

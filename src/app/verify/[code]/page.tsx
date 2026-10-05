@@ -10,6 +10,8 @@ import { LogoMark } from '@/components/Logo';
 import { Certificate } from './Certificate';
 import { PrintButton } from './PrintButton';
 import { siteOrigin } from '@/lib/site';
+import { LinkedInAddCertificate } from '@/components/LinkedInButton';
+import { linkedInCertificateUrl } from '@/lib/linkedin';
 
 export const generateMetadata = localizedTitle('تحقّق من شهادة — TechMood', 'Verify a certificate — TechMood');
 
@@ -31,6 +33,14 @@ export default async function VerifyCertificatePage({
   const certificate = (data as VerifiedCertificate[] | null)?.[0] ?? null;
 
   const siteUrl = await siteOrigin();
+
+  // Only the holder is offered to add it to LinkedIn: the button adds to the
+  // profile of whoever presses it.
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: viewer } = user && certificate
+    ? await supabase.from('profiles').select('techmood_id').eq('id', user.id).maybeSingle()
+    : { data: null };
+  const isHolder = Boolean(viewer && certificate && viewer.techmood_id === certificate.techmood_id);
   // The QR on the document opens the holder's public record — one certificate
   // proves one course, the profile is what it belongs to, and it lists this
   // certificate among the rest.
@@ -100,6 +110,14 @@ export default async function VerifyCertificatePage({
 
           <div className="cta-row no-print">
             {certificate.status === 'active' && <PrintButton />}
+            {certificate.status === 'active' && isHolder && (
+              <LinkedInAddCertificate href={linkedInCertificateUrl({
+                name: certificate.title_en || certificate.title,
+                code: certificate.certificate_code,
+                issuedAt: certificate.issued_at,
+                verifyUrl: `${siteUrl}/verify/${certificate.certificate_code}`,
+              })} />
+            )}
             <Link className="btn btn-ghost btn-sm" href={`/u/${certificate.techmood_id}`}>
               {t('ملف صاحب الشهادة', 'The holder\u2019s profile')}
             </Link>

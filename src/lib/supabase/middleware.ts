@@ -5,7 +5,7 @@ import { pathInScope } from '@/lib/scope';
 
 /** Routes a signed-out visitor may open. Everything else redirects to /login. */
 const PUBLIC_PREFIXES = ['/', '/login', '/signup', '/about', '/verify', '/exhibition', '/gallery', '/policies', '/auth', '/u',
-  '/robots.txt', '/sitemap.xml'];
+  '/robots.txt', '/sitemap.xml', '/ingest'];
 
 function isPublic(pathname: string) {
   return PUBLIC_PREFIXES.some(

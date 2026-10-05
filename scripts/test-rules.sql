@@ -10621,6 +10621,136 @@ select public.assert(
   '102.2 and none of the conversations they cannot read');
 reset request.jwt.claim.sub;
 
+-- -----------------------------------------------------------------------------
+-- 103. A short quiz after each lesson (0139)
+-- -----------------------------------------------------------------------------
+select l.id as q_lesson from public.lessons l where l.slug = 'aspnet-core-l1' \gset
+select l.id as q_lesson2 from public.lessons l where l.slug = 'aspnet-core-l2' \gset
+
+select public.assert(
+  public.quiz_valid('[{"q":"سؤال أول؟","options":["a","b","c","d"],"answer":1,"why":"x"}]'::jsonb) is null
+  and public.quiz_valid('{"questions":[{"q":"سؤال أول؟","options":["a","b","c"],"answer":1},{"q":"سؤال ثانٍ؟","options":["a","b","c","d"],"answer":1},{"q":"سؤال ثالث؟","options":["a","b","c","d"],"answer":1}]}'::jsonb) is null
+  and public.quiz_valid('{"questions":[{"q":"سؤال أول؟","options":["a","b","c","d"],"answer":7},{"q":"سؤال ثانٍ؟","options":["a","b","c","d"],"answer":1},{"q":"سؤال ثالث؟","options":["a","b","c","d"],"answer":1}]}'::jsonb) is null
+  and public.quiz_valid('{"questions":[{"q":"سؤال أول؟","options":["a","a","c","d"],"answer":0},{"q":"سؤال ثانٍ؟","options":["a","b","c","d"],"answer":1},{"q":"سؤال ثالث؟","options":["a","b","c","d"],"answer":1}]}'::jsonb) is null,
+  '103.1 a quiz is three questions of four different options and one answer in range — anything else is thrown away');
+
+select public.assert(
+  jsonb_array_length(public.quiz_from_gemini(jsonb_build_object('candidates', jsonb_build_array(jsonb_build_object(
+    'content', jsonb_build_object('parts', jsonb_build_array(jsonb_build_object('text',
+      '{"questions":[{"q":"ما REST؟","options":["أسلوب","لغة","قاعدة","متصفح"],"answer":0,"why":"لأنه أسلوب"},{"q":"ما JSON؟","options":["صيغة","خادم","لغة","جدول"],"answer":0,"why":"صيغة"},{"q":"ما 404؟","options":["نجاح","غير موجود","خطأ خادم","تحويل"],"answer":1,"why":"غير موجود"}]}')))))))) = 3
+  and public.quiz_from_gemini('{"candidates":[{"content":{"parts":[{"text":"not json"}]}}]}'::jsonb) is null,
+  '103.2 the model''s reply is read as a quiz, or not at all');
+
+select public.assert(
+  (public.lesson_quiz_request(:'q_lesson') -> 'generationConfig' ->> 'responseMimeType') = 'application/json'
+  and (public.lesson_quiz_request(:'q_lesson') -> 'contents' -> 0 -> 'parts' -> 0 ->> 'text') like '%الدرس:%',
+  '103.3 the request carries the lesson''s own material and asks for JSON');
+
+insert into public.lesson_quizzes (lesson_id, questions)
+values (:'q_lesson', public.quiz_valid('{"questions":[{"q":"ما REST؟","options":["أسلوب","لغة","قاعدة","متصفح"],"answer":0,"why":"لأنه أسلوب"},{"q":"ما JSON؟","options":["صيغة","خادم","لغة","جدول"],"answer":0,"why":"صيغة"},{"q":"ما 404؟","options":["نجاح","غير موجود","خطأ خادم","تحويل"],"answer":1,"why":"غير موجود"}]}'::jsonb));
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (public.lesson_quiz(:'q_lesson') ->> 'ready')::boolean
+  and jsonb_array_length(public.lesson_quiz(:'q_lesson') -> 'questions') = 3
+  and not (public.lesson_quiz(:'q_lesson')::text like '%"answer"%')
+  and not (public.lesson_quiz(:'q_lesson')::text like '%"why"%')
+  and not exists (select 1 from public.lesson_quizzes),
+  '103.4 a member sees the questions and their options — never the answers, not even through the table');
+
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status, completed_at) values ('11111111-1111-1111-1111-111111111111', %L, 'completed', now())$$, :'q_lesson'),
+  '103.5 a lesson with a quiz is not completed before the quiz is passed', 'اجتز اختبار');
+
+select public.assert(
+  not (public.submit_lesson_quiz(:'q_lesson', array[1,1,0]::smallint[]) ->> 'passed')::boolean,
+  '103.6 one right of three does not pass');
+select pg_sleep(5.1);
+select public.assert(
+  (public.submit_lesson_quiz(:'q_lesson', array[0,0,0]::smallint[]) ->> 'correct')::int = 2,
+  '103.7 two right of three passes');
+reset role;
+select public.assert(
+  (select count(*) from public.xp_events where profile_id = '11111111-1111-1111-1111-111111111111'
+      and source = 'lesson_quiz_passed' and ref_id = :'q_lesson') = 1,
+  '103.8 passing earns its XP');
+set role authenticated;
+select pg_sleep(5.1);
+select public.submit_lesson_quiz(:'q_lesson', array[0,0,1]::smallint[]);
+reset role;
+select public.assert(
+  (select count(*) from public.xp_events where profile_id = '11111111-1111-1111-1111-111111111111'
+      and source = 'lesson_quiz_passed' and ref_id = :'q_lesson') = 1,
+  '103.9 once');
+set role authenticated;
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+values ('11111111-1111-1111-1111-111111111111', :'q_lesson', 'completed', now());
+select public.assert(
+  (select status from public.lesson_progress where profile_id = '11111111-1111-1111-1111-111111111111' and lesson_id = :'q_lesson') = 'completed',
+  '103.10 and after passing, the lesson completes');
+
+select public.assert_rejects(
+  format($$select public.claim_quiz_generation(%L)$$, :'q_lesson'),
+  '103.11 a lesson that has its quiz is not written again', 'جاهز');
+select public.assert(public.claim_quiz_generation(:'q_lesson2'), '103.12 a lesson without one can be claimed');
+select public.assert_rejects(
+  format($$select public.claim_quiz_generation(%L)$$, :'q_lesson2'),
+  '103.13 but only once while it is being written', 'يُجهَّز');
+select public.assert_rejects(
+  format($$select public.save_lesson_quiz(%L, '[]'::jsonb)$$, :'q_lesson2'),
+  '103.14 and only the Edge Function saves what the model wrote', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 104. A first look at submitted work (0140)
+-- -----------------------------------------------------------------------------
+select s.id as pc_sub from public.submissions s
+ where s.profile_id = '11111111-1111-1111-1111-111111111111'
+   and exists (select 1 from public.submission_versions v where v.submission_id = s.id)
+ limit 1 \gset
+
+select public.assert(
+  public.precheck_valid('{"summary":"جيد","items":[{"item":"README","status":"found","note":""}],"next":"تابع"}'::jsonb) is not null
+  and public.precheck_valid('{"summary":"x","items":[{"item":"README","status":"great"}]}'::jsonb) is null
+  and public.precheck_valid('{"summary":"x","items":[]}'::jsonb) is null
+  and public.precheck_valid('{"items":[{"item":"a","status":"found"}]}'::jsonb) is null,
+  '104.1 a first look is a summary and a checklist of found / missing / unclear — nothing else is kept');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.claim_submission_precheck(%L)$$, :'pc_sub'),
+  '104.2 only the owner asks for a first look at their work', 'ليس لك');
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.claim_submission_precheck(:'pc_sub') as pc_version \gset
+select public.assert_rejects(
+  format($$select public.claim_submission_precheck(%L)$$, :'pc_sub'),
+  '104.3 one at a time', 'جارٍ');
+select public.assert_rejects(
+  format($$select public.save_submission_precheck(%L, '{}'::jsonb)$$, :'pc_version'),
+  '104.4 and only the Edge Function writes it', 'permission denied');
+reset role;
+select public.assert(
+  public.save_submission_precheck(:'pc_version', '{"summary":"ينقص README","items":[{"item":"README يشرح التشغيل","status":"missing","note":"أضفه"}],"next":"أضف README ثم أعد التسليم"}'::jsonb, 'test')
+  and (public.precheck_material(:'pc_version') ->> 'brief') is not null,
+  '104.5 the Edge Function reads the brief and the links, and saves the checklist');
+set role authenticated;
+select public.assert(
+  (select status from public.submission_prechecks where version_id = :'pc_version') = 'done',
+  '104.6 the owner sees it');
+select public.assert_rejects(
+  format($$select public.claim_submission_precheck(%L)$$, :'pc_sub'),
+  '104.7 a version is looked at once', 'بالفعل');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  not public.is_mentor()
+  and not exists (select 1 from public.submission_prechecks where version_id = :'pc_version'),
+  '104.8 another member who is not a mentor does not');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

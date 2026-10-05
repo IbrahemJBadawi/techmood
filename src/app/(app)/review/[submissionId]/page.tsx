@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { PrecheckBox } from '../../academy/PrecheckBox';
+import type { Precheck } from '../../academy/actions';
 
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
@@ -87,10 +89,20 @@ export default async function ReviewSubmissionPage({
 
   const versionIds = (versions ?? []).map((version) => version.id);
 
-  const { data: evidence } = await supabase
-    .from('submission_evidence')
-    .select('id, version_id, kind, url, label')
-    .in('version_id', versionIds.length ? versionIds : ['00000000-0000-0000-0000-000000000000']);
+  const [{ data: evidence }, { data: looks }] = await Promise.all([
+    supabase
+      .from('submission_evidence')
+      .select('id, version_id, kind, url, label')
+      .in('version_id', versionIds.length ? versionIds : ['00000000-0000-0000-0000-000000000000']),
+    // The first look each version had (0140) — the learner's advice, shown here
+    // so the mentor knows what they were already told. It decides nothing.
+    supabase
+      .from('submission_prechecks')
+      .select('version_id, status, result, created_at')
+      .eq('submission_id', submissionId)
+      .eq('status', 'done'),
+  ]);
+  const lookByVersion = new Map((looks ?? []).map((row) => [row.version_id, row as unknown as Precheck]));
 
   // Where does this work sit in the catalogue?
   let context: string | null = null;
@@ -191,6 +203,15 @@ export default async function ReviewSubmissionPage({
                     <span className="muted" style={{ fontSize: '0.8rem' }}>{t('لا روابط مرفقة', 'No links attached')}</span>
                   )}
                 </div>
+                {lookByVersion.get(version.id) && (
+                  <PrecheckBox
+                    submissionId={submissionId}
+                    version={version.version}
+                    initial={lookByVersion.get(version.id)!}
+                    canRun={false}
+                    revalidate={`/review/${submissionId}`}
+                  />
+                )}
               </div>
             ))}
           </div>

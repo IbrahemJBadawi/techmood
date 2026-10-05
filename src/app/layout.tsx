@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
+import { Analytics } from '@/components/Analytics';
 
 import { DeviceBoot } from '@/components/DeviceSetup';
 import { LocaleProvider } from '@/lib/i18n.client';
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               browser sees an installable app wherever a person installs from,
               and offers «Install app» rather than a shortcut. */}
           <DeviceBoot />
+          <Analytics />
           {children}
         </LocaleProvider>
       </body>

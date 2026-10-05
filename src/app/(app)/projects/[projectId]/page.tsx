@@ -27,6 +27,8 @@ import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 import { ShareButton } from '@/components/ShareButton';
+import { LinkedInPostButton } from '@/components/LinkedInButton';
+import { siteOrigin } from '@/lib/site';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
@@ -56,7 +58,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, is_public, created_at, tags')
+    .select('id, code, title_ar, description_ar, owner_id, client_id, opportunity_id, team_id, status, kind, agreed_amount_usd, is_public, created_at, tags, in_gallery')
     .eq('id', projectId)
     .maybeSingle();
 
@@ -100,6 +102,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   // Every listing is reviewed by an admin before it shows (0099), so finished
   // work need not have been exhibited to be sold.
+  const origin = await siteOrigin();
   const canSell = isOwner
     && project.client_id === null
     && (project.status === 'completed' || project.status === 'sold');
@@ -412,6 +415,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                 <Link className="btn btn-primary btn-sm" href={`/projects/${projectId}/edit`}>{t('✎ الصفحة والبيع', '✎ Page & sale')}</Link>
                 <Link className="btn btn-ghost btn-sm" href={`/p/${project.code}`}>{t('عرض الصفحة', 'View the page')}</Link>
                 <ShareButton path={`/gallery/${project.code}`} title={project.title_ar} />
+                {(project.in_gallery || listing) && (
+                  <LinkedInPostButton text={[
+                    `🚀 ${project.title_ar}`,
+                    '',
+                    ...(project.description_ar ? [project.description_ar.slice(0, 280), ''] : []),
+                    `${origin}/gallery/${project.code}`,
+                    '',
+                    '#TechMood #Portfolio',
+                  ].join('\n')} />
+                )}
               </div>
             </div>
           )}

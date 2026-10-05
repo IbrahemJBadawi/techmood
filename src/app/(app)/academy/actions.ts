@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { dbError } from '@/lib/db-errors';
+import { precheckSubmission, writeLessonQuiz } from '@/lib/ai-tasks';
 import type { CourseCriterion, EvidenceKind } from '@/lib/database.types';
 
 export type ActionState = { error?: string; ok?: string } | undefined;
@@ -227,4 +228,72 @@ export async function rateCourse(_prev: ActionState, formData: FormData): Promis
   revalidatePath(String(formData.get('revalidate') ?? '/academy'));
   if (error) return { error: dbError(t, error.message) };
   return { ok: t('شكراً — وصل تقييمك للأكاديمية.', 'Thank you — your rating reached the academy.') };
+}
+
+// ---------------------------------------------------------------------------
+// The lesson's short quiz (0139) and the first look at submitted work (0140)
+// ---------------------------------------------------------------------------
+
+export type QuizState = {
+  ready: boolean;
+  generating: boolean;
+  questions: { q: string; options: string[] }[];
+  passed: boolean;
+  last: { correct: number; total: number; at: string } | null;
+};
+
+export type QuizResult = {
+  correct: number;
+  total: number;
+  passed: boolean;
+  results: { answer: number; chosen: number; ok: boolean; why: string }[];
+};
+
+/** Asks for the lesson's quiz to be written now, then returns it (without answers). */
+export async function prepareLessonQuiz(lessonId: string): Promise<{ state: QuizState | null; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const written = await writeLessonQuiz(supabase, lessonId);
+  const { data, error } = await supabase.rpc('lesson_quiz', { p_lesson: lessonId });
+  if (error) return { state: null, error: error.message };
+  return { state: data as QuizState, error: written.ok ? undefined : written.error };
+}
+
+/** Grades on the server; the answers and their reasons come back only now. */
+export async function answerLessonQuiz(lessonId: string, answers: number[], revalidate: string): Promise<{ result?: QuizResult; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { data, error } = await supabase.rpc('submit_lesson_quiz', { p_lesson: lessonId, p_answers: answers });
+  if (error) return { error: dbError(await getT(), error.message) };
+  revalidatePath(revalidate);
+  return { result: data as QuizResult };
+}
+
+export type Precheck = {
+  status: 'pending' | 'done' | 'failed';
+  result: {
+    summary: string;
+    items: { item: string; status: 'found' | 'missing' | 'unclear'; note: string }[];
+    next: string;
+  } | null;
+  created_at: string;
+};
+
+/** The first look at a submission's newest version, written now. */
+export async function runPrecheck(submissionId: string, revalidate: string): Promise<{ precheck: Precheck | null; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const run = await precheckSubmission(supabase, submissionId);
+  const { data } = await supabase
+    .from('submission_prechecks')
+    .select('status, result, created_at')
+    .eq('submission_id', submissionId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  revalidatePath(revalidate);
+  return { precheck: (data as Precheck | null) ?? null, error: run.ok ? undefined : run.error };
 }

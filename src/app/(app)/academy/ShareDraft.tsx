@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
+import { LinkedInPostButton } from '@/components/LinkedInButton';
 
 /**
  * A draft post, offered and never required.
@@ -37,6 +38,7 @@ export function ShareDraft({ text }: { text: string }) {
         </button>
       </div>
       <pre className="share-draft">{text}</pre>
+      <LinkedInPostButton text={text} />
       <p className="muted" style={{ fontSize: '0.74rem' }}>
         {t('النشر لا يؤثر على تقييمك. المنتور يراجع ما تُسلّمه هنا.',
            'Publishing does not affect your grade. Your mentor reviews what you submit here.')}

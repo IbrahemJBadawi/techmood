@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { Analytics } from '@/components/Analytics';
 
 import { Icon } from '@/components/Icon';
 import { createClient } from '@/lib/supabase/server';
@@ -187,6 +188,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
+        <Analytics memberId={user.id} role={ROLE_BY_VALUE[active].value} />
         <AssistantProvider>
           <main className="content" id="main" tabIndex={-1} data-active-role={ROLE_BY_VALUE[active].value}>
             {(restrictions ?? []).length > 0 && (

@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n.client';
 import type { UiLanguage } from '@/lib/database.types';
 
 import { signOut } from '../../(auth)/actions';
+import { identifyMember } from '@/lib/analytics';
 import { setLanguage } from './actions';
 
 export function ProfileMenu({
@@ -100,7 +101,7 @@ export function ProfileMenu({
             </p>
           </div>
 
-          <form action={signOut}>
+          <form action={signOut} onSubmit={() => identifyMember(null)}>
             <button className="header-dropdown-item is-danger" type="submit">
               {t('تسجيل الخروج', 'Sign out')}
             </button>

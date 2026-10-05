@@ -1,15 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 
 import { Stars } from '@/components/Stars';
 import { useT } from '@/lib/i18n.client';
+import { track } from '@/lib/analytics';
 import type { Text } from '@/lib/i18n';
 import type { EvidenceKind, Evaluation, Submission } from '@/lib/database.types';
 
 import { requestReevaluation } from '../review/actions';
-import { submitWork, type ActionState } from './actions';
+import { submitWork, type ActionState, type Precheck } from './actions';
+import { PrecheckBox } from './PrecheckBox';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
@@ -41,6 +43,8 @@ export function SubmissionPanel({
   revalidatePath,
   hasOpenReevaluation = false,
   isProject = false,
+  precheck = null,
+  precheckEnabled = false,
 }: {
   assignmentId: string;
   title: string;
@@ -52,6 +56,9 @@ export function SubmissionPanel({
   hasOpenReevaluation?: boolean;
   /** A course or path project: a project link is required, YouTube and LinkedIn optional (0096). */
   isProject?: boolean;
+  /** The first look at the newest version (0140), and whether one can be asked for. */
+  precheck?: Precheck | null;
+  precheckEnabled?: boolean;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(submitWork, undefined as ActionState);
@@ -60,6 +67,10 @@ export function SubmissionPanel({
     undefined as ActionState,
   );
   const [showReevalForm, setShowReevalForm] = useState(false);
+
+  useEffect(() => {
+    if (state?.ok) track('assignment_submitted', { assignment: assignmentId });
+  }, [state, assignmentId]);
 
   const status = submission?.status ?? 'draft';
   const label = STATUS_LABELS[status] ?? STATUS_LABELS.draft;
@@ -75,6 +86,17 @@ export function SubmissionPanel({
       </div>
 
       {brief && <p className="muted lesson-text" style={{ fontSize: '0.85rem', marginTop: 8 }}>{brief}</p>}
+
+      {submission && status !== 'draft' && (precheck || (precheckEnabled && !isApproved)) && (
+        <PrecheckBox
+          key={submission.current_version}
+          submissionId={submission.id}
+          version={submission.current_version}
+          initial={precheck}
+          canRun={precheckEnabled && !isApproved}
+          revalidate={revalidatePath}
+        />
+      )}
 
       {evaluations.length > 0 && (
         <div style={{ marginTop: 14 }}>

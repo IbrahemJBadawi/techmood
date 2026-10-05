@@ -987,6 +987,8 @@ export type Certificate = {
     holder_name: string;
     techmood_id: string;
     title: string;
+    /** the English title printed on the certificate */
+    title_en?: string | null;
     kind: CertificateKind;
     stars_avg: number | null;
     total_xp: number | null;
@@ -1132,6 +1134,14 @@ type View<Row> = { Row: Row; Relationships: [] };
 export type Database = {
   public: {
     Tables: {
+      submission_prechecks: Table<{
+        version_id: string; submission_id: string; status: 'pending' | 'done' | 'failed';
+        result: unknown; model: string | null; created_at: string; finished_at: string | null;
+      }>;
+      lesson_quiz_attempts: Table<{
+        id: string; profile_id: string; lesson_id: string; answers: number[]; correct: number; total: number;
+        passed: boolean; created_at: string;
+      }>;
       ai_preferences: Table<{
         profile_id: string; memory_enabled: boolean; actions_enabled: boolean; updated_at: string;
       }>;
@@ -1935,6 +1945,10 @@ export type Database = {
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
       my_unread_messages: { Args: Record<string, never>; Returns: number };
+      lesson_quiz: { Args: { p_lesson: string }; Returns: unknown };
+      submit_lesson_quiz: { Args: { p_lesson: string; p_answers: number[] }; Returns: unknown };
+      claim_quiz_generation: { Args: { p_lesson: string }; Returns: boolean };
+      claim_submission_precheck: { Args: { p_submission: string }; Returns: string };
       conversation_previews: { Args: { p_ids: string[] }; Returns: { conversation_id: string; body_ar: string; created_at: string }[] };
       mark_welcomed: { Args: Record<string, never>; Returns: undefined };
       ai_gemini_ready: { Args: Record<string, never>; Returns: boolean };

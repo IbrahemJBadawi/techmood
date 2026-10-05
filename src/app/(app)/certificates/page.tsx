@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
+import { LinkedInAddCertificate } from '@/components/LinkedInButton';
+import { linkedInCertificateUrl } from '@/lib/linkedin';
+import { siteOrigin } from '@/lib/site';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
@@ -27,6 +30,7 @@ export default async function CertificatesPage() {
     supabase.from('learning_paths').select('id, slug, title_ar').eq('status', 'published'),
   ]);
 
+  const origin = await siteOrigin();
   const issuedCourseIds = new Set<string>();
   const issuedPathIds = new Set<string>();
 
@@ -120,6 +124,14 @@ export default async function CertificatesPage() {
                     {t('صدرت في ', 'Issued ')}<span className="date">{formatDate(t.locale, certificate.issued_at)}</span>
                   </p>
                   <span className="id-chip">{certificate.certificate_code}</span>
+                </div>
+                <div className="ct-linkedin">
+                  <LinkedInAddCertificate href={linkedInCertificateUrl({
+                    name: certificate.snapshot?.title_en || certificate.snapshot?.title || 'TechMood Certificate',
+                    code: certificate.certificate_code,
+                    issuedAt: certificate.issued_at,
+                    verifyUrl: `${origin}/verify/${certificate.certificate_code}`,
+                  })} />
                 </div>
                 <Link className="ct-open" href={`/verify/${certificate.certificate_code}`}>
                   {t('عرض الشهادة والتحقق', 'View and verify')} <Icon name="arrow" size={14} />

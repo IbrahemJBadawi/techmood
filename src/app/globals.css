@@ -6275,3 +6275,46 @@ body:has(.ai-conversation) .ai-fab { display: none; }
   .section-block.row-between > nav.tags-row { flex-basis: 100%; }
 }
 a.tag { text-decoration: none; }
+
+/* LinkedIn's own blue, for the buttons that hand work over to it */
+.btn-linkedin { background: #0A66C2; border-color: #0A66C2; color: #fff; display: inline-flex; align-items: center; gap: 7px; }
+.btn-linkedin:hover:not(:disabled) { background: #004182; border-color: #004182; color: #fff; }
+.ct-linkedin { padding: 0 16px 12px; }
+
+/* the lesson's short quiz (0139) */
+.lq-title { font-size: 1rem; }
+.lq-hint { font-size: 0.84rem; margin-top: 4px; }
+.lq-wait { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; margin-top: 8px; }
+.lq-list { list-style: none; padding: 0; margin: 14px 0 12px; display: grid; gap: 16px; counter-reset: lq; }
+.lq-q { counter-increment: lq; }
+.lq-text { font-weight: 700; margin-bottom: 8px; }
+.lq-text::before { content: counter(lq) ". "; color: var(--royal); }
+.lq-options { display: grid; gap: 6px; }
+@media (min-width: 720px) { .lq-options { grid-template-columns: 1fr 1fr; } }
+.lq-option {
+  display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); font-size: 0.9rem; transition: border-color .15s, background .15s;
+}
+.lq-option:hover { border-color: var(--royal); }
+.lq-option input { accent-color: var(--royal); width: 17px; height: 17px; flex: none; }
+.lq-option.is-picked { border-color: var(--royal); background: var(--sky-tint); }
+.lq-option.is-right { border-color: var(--ok, #16a34a); background: color-mix(in srgb, #16a34a 12%, var(--panel)); }
+.lq-option.is-wrong { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); }
+.lq-why { font-size: 0.84rem; margin-top: 6px; color: var(--danger); }
+.lq-why.is-ok { color: #15803d; }
+.lq-result { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.lesson-done-hint { font-size: 0.82rem; margin-top: 6px; }
+
+/* the first look at submitted work (0140) */
+.pc-box { margin-top: 14px; padding: 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--royal) 45%, var(--line)); background: color-mix(in srgb, var(--sky-tint) 55%, var(--panel)); }
+.pc-title { font-size: 0.92rem; }
+.pc-note { font-size: 0.76rem; }
+.pc-wait { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; margin-top: 8px; }
+.pc-summary { font-size: 0.88rem; margin-top: 8px; }
+.pc-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 7px; }
+.pc-item { display: flex; gap: 9px; align-items: flex-start; font-size: 0.86rem; }
+.pc-mark { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 0.78rem; font-weight: 800; color: #fff; }
+.pc-item.is-found .pc-mark { background: #16a34a; }
+.pc-item.is-missing .pc-mark { background: var(--danger); }
+.pc-item.is-unclear .pc-mark { background: var(--warn); }
+.pc-next { font-size: 0.86rem; margin-top: 10px; font-weight: 600; }
