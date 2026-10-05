@@ -25,6 +25,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 // Tried in turn when the configured model is busy.
 const FALLBACKS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+// Quizzes and first looks go to Flash-Lite first: on the free tier Flash has
+// only a few requests a day, and those are kept for the assistant (0141).
+const LITE = 'gemini-flash-lite-latest';
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -36,13 +39,14 @@ const service = () => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('
   auth: { persistSession: false },
 });
 
-/** The configured model first, then the other current Flash models, each once. */
-async function gemini(request: unknown): Promise<{ status: number; data: GeminiData; model: string | null }> {
+/** The configured model (or `first`), then the other current Flash models, each once. */
+async function gemini(request: unknown, first?: string): Promise<{ status: number; data: GeminiData; model: string | null }> {
   const { data: config } = await service().rpc('ai_gemini_config').single();
   const cfg = config as { api_key: string | null; model: string } | null;
   if (!cfg?.api_key) return { status: 503, data: null, model: null };
 
-  const models = [cfg.model, ...FALLBACKS.filter((m) => m !== cfg.model)];
+  const lead = first ?? cfg.model;
+  const models = [lead, ...[cfg.model, ...FALLBACKS].filter((m, i, all) => m !== lead && all.indexOf(m) === i)];
   let last = 504;
   for (const [index, model] of models.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, 800));
@@ -162,7 +166,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: request } = await service().rpc('lesson_quiz_request', { p_lesson: payload.lesson });
     if (!request) return json({ ok: false, error: 'no lesson' }, 404);
-    const answer = await gemini(request);
+    const answer = await gemini(request, LITE);
     if (answer.status !== 200) return json({ ok: false, status: answer.status }, 502);
     const { data: saved } = await service().rpc('save_lesson_quiz', {
       p_lesson: payload.lesson, p_questions: answerJson(answer.data), p_model: answer.model,
@@ -197,7 +201,7 @@ Deno.serve(async (req: Request) => {
         `ما سلّمه الطالب:\n${read.join('\n\n---\n\n')}`,
       ].filter(Boolean).join('\n\n') }] }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 8192, responseMimeType: 'application/json', responseSchema: PRECHECK_SCHEMA },
-    });
+    }, LITE);
     const result = answer.status === 200 ? answerJson(answer.data) : null;
     const { data: saved } = await service().rpc('save_submission_precheck', {
       p_version: version,
