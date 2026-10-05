@@ -1933,6 +1933,10 @@ export type Database = {
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
       my_unread_messages: { Args: Record<string, never>; Returns: number };
+      showcase_evaluator: {
+        Args: { p_project: string };
+        Returns: { full_name: string; techmood_id: string; avatar_url: string | null; reviewed_at: string | null }[];
+      };
       admin_attendance_disputes: {
         Args: Record<string, never>;
         Returns: {

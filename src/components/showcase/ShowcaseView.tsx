@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { LikeButton } from '@/components/Social';
+import { MemberAvatar } from '@/components/MemberAvatar';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -26,13 +27,16 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: reviews }, { data: comments }, { data: people }, { data: likeRows }, { data: isAdmin }] = await Promise.all([
+  const [{ data: reviews }, { data: comments }, { data: people }, { data: likeRows }, { data: isAdmin }, { data: evaluatorRows }] = await Promise.all([
     supabase.rpc('showcase_reviews', { p_project: page.project_id }),
     supabase.rpc('showcase_comments', { p_project: page.project_id }),
     supabase.rpc('showcase_people', { p_project: page.project_id }),
     supabase.rpc('project_like_stats', { p_projects: [page.project_id] }),
     user ? supabase.rpc('is_admin') : Promise.resolve({ data: false }),
+    // the mentor who evaluated the work (0127)
+    page.mentor_rating !== null ? supabase.rpc('showcase_evaluator', { p_project: page.project_id }) : Promise.resolve({ data: [] }),
   ]);
+  const evaluator = evaluatorRows?.[0] ?? null;
 
   const listing = page.listing_id && page.listing_status && ['listed', 'reserved', 'sold'].includes(page.listing_status) ? page : null;
   const isPeople = (people ?? []).some((person) => person.profile_id === user?.id);
@@ -169,6 +173,16 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
                   <Stars value={Number(page.mentor_rating)} /> <b className="eng">{Number(page.mentor_rating).toFixed(1)}</b>
                   {' '}{t('تقييم منتور للعمل', 'a mentor’s evaluation of the work')}
                   {page.exhibition_code && <> · <Link href={`/exhibition/${page.exhibition_code}/verify`}>{t('تحقّق', 'Verify')}</Link></>}
+                </p>
+              )}
+              {evaluator && (
+                <p className="sc-evaluator">
+                  <MemberAvatar id={evaluator.techmood_id} name={evaluator.full_name} url={evaluator.avatar_url} size={30} />
+                  <span>
+                    {t('قيّمه المنتور ', 'Evaluated by mentor ')}
+                    <Link href={memberHref(evaluator.techmood_id, inApp)}><strong>{evaluator.full_name}</strong></Link>
+                    {evaluator.reviewed_at && <span className="muted"> · {formatDate(locale, evaluator.reviewed_at)}</span>}
+                  </span>
                 </p>
               )}
             </section>

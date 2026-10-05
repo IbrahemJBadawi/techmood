@@ -5,13 +5,28 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
-import { mentorLevelLabel } from '@/lib/mentor-levels';
+import { MENTOR_LEVEL_LOOK, mentorLevelLabel } from '@/lib/mentor-levels';
+import type { MentorLevel } from '@/lib/database.types';
 
 export const generateMetadata = localizedTitle('المنتورز — TechMood', 'Mentors — TechMood');
 
-export default async function MentorsPage() {
+type MentorFilters = { q?: string; level?: string; domain?: string; max?: string; open?: string; sort?: string };
+
+const SORTS = {
+  rating:    { ar: 'الأعلى تقييماً', en: 'Top rated' },
+  sessions:  { ar: 'الأكثر جلسات', en: 'Most sessions' },
+  price_low: { ar: 'السعر: الأقل', en: 'Price: low to high' },
+} as const;
+
+/**
+ * Mentors, with filters: a name or topic, the level, the field, a top price,
+ * only those taking bookings, and the order. A plain GET form, so a filtered
+ * list is a link. There are few mentors, so the filtering happens here.
+ */
+export default async function MentorsPage({ searchParams }: { searchParams: Promise<MentorFilters> }) {
   const t = await getT();
   const supabase = await createClient();
+  const filters = await searchParams;
 
   const { data: mentors } = await supabase
     .from('mentor_profiles')
@@ -38,6 +53,36 @@ export default async function MentorsPage() {
 
   const available = (mentors ?? []).filter((mentor) => mentor.is_accepting).length;
 
+  const domains = [...new Set((mentors ?? []).flatMap((mentor) => mentor.domains ?? []))].sort();
+  const query = filters.q?.trim().toLowerCase() ?? '';
+  const level = filters.level && filters.level in MENTOR_LEVEL_LOOK ? (filters.level as MentorLevel) : null;
+  const domain = filters.domain && domains.includes(filters.domain) ? filters.domain : null;
+  const max = Number(filters.max) > 0 ? Number(filters.max) : null;
+  const onlyOpen = filters.open === '1';
+  const sort = (filters.sort && filters.sort in SORTS ? filters.sort : 'rating') as keyof typeof SORTS;
+  const filtering = Boolean(query || level || domain || max || onlyOpen || sort !== 'rating');
+
+  const shown = (mentors ?? [])
+    .filter((mentor) => {
+      const profile = profileById.get(mentor.profile_id);
+      const price = fromPrice.get(mentor.profile_id);
+      if (level && mentor.level !== level) return false;
+      if (domain && !(mentor.domains ?? []).includes(domain)) return false;
+      if (onlyOpen && !mentor.is_accepting) return false;
+      if (max !== null && (price === undefined || price > max)) return false;
+      if (query) {
+        const text = [profile?.full_name, profile?.techmood_id, mentor.headline_ar, profile?.headline, mentor.bio_ar,
+          ...(mentor.domains ?? []).map(domainLabel)].join(' ').toLowerCase();
+        if (!text.includes(query)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sort === 'sessions') return (b.sessions_count ?? 0) - (a.sessions_count ?? 0);
+      if (sort === 'price_low') return (fromPrice.get(a.profile_id) ?? Infinity) - (fromPrice.get(b.profile_id) ?? Infinity);
+      return Number(b.rating_avg ?? 0) - Number(a.rating_avg ?? 0);
+    });
+
   return (
     <>
       <section className="section-block mn-head">
@@ -53,11 +98,46 @@ export default async function MentorsPage() {
         </span>
       </section>
 
+      {(mentors?.length ?? 0) > 0 && (
+        <form className="sc-filters mn-filters" action="/mentors" role="search">
+          <input type="search" name="q" defaultValue={filters.q ?? ''} aria-label={t('بحث', 'Search')}
+                 placeholder={t('ابحث باسم أو مجال…', 'Search a name or field…')} />
+          <select name="level" defaultValue={level ?? ''} aria-label={t('المستوى', 'Level')}>
+            <option value="">{t('كل المستويات', 'All levels')}</option>
+            {(Object.keys(MENTOR_LEVEL_LOOK) as MentorLevel[]).map((key) => (
+              <option key={key} value={key}>{mentorLevelLabel(key)}</option>
+            ))}
+          </select>
+          {domains.length > 0 && (
+            <select name="domain" defaultValue={domain ?? ''} aria-label={t('المجال', 'Field')}>
+              <option value="">{t('كل المجالات', 'All fields')}</option>
+              {domains.map((key) => <option key={key} value={key}>{domainLabel(key)}</option>)}
+            </select>
+          )}
+          <select name="max" defaultValue={max ? String(max) : ''} aria-label={t('أعلى سعر', 'Top price')}>
+            <option value="">{t('أي سعر', 'Any price')}</option>
+            {[10, 20, 40, 75, 150].map((value) => (
+              <option key={value} value={value}>{t(`حتى ${money(value)}`, `Up to ${money(value)}`)}</option>
+            ))}
+          </select>
+          <select name="sort" defaultValue={sort} aria-label={t('الترتيب', 'Sort')}>
+            {Object.entries(SORTS).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
+          </select>
+          <label className="sc-check">
+            <input type="checkbox" name="open" value="1" defaultChecked={onlyOpen} /> {t('متاح للحجز', 'Taking bookings')}
+          </label>
+          <button className="btn btn-primary btn-sm">{t('تصفية', 'Filter')}</button>
+          {filtering && <Link className="btn btn-ghost btn-sm" href="/mentors">{t('مسح', 'Clear')}</Link>}
+        </form>
+      )}
+
       {(mentors?.length ?? 0) === 0 ? (
         <p className="notice">{t('لا يوجد منتورز معتمدون بعد.', 'No approved mentors yet.')}</p>
+      ) : shown.length === 0 ? (
+        <p className="notice">{t('لا منتورز يطابقون هذا — جرّب تصفية أوسع.', 'No mentors match — try a wider filter.')}</p>
       ) : (
         <div className="mn-grid">
-          {mentors!.map((mentor) => {
+          {shown.map((mentor) => {
             const profile = profileById.get(mentor.profile_id);
             const price = fromPrice.get(mentor.profile_id);
             const name = profile?.full_name ?? '—';

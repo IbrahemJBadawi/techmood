@@ -8531,7 +8531,9 @@ select public.assert(
          'gallery_projects', 'showcase_project', 'showcase_reviews', 'record_project_hit',
          'market_terms_version',
          -- and its comments and the people behind a page (0122)
-         'showcase_comments', 'showcase_people')
+         'showcase_comments', 'showcase_people',
+         -- and who evaluated the work on show (0127)
+         'showcase_evaluator')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -10358,6 +10360,34 @@ select public.assert_rejects(
   '95.5 nobody mutes a conversation they are not in', 'لست في هذه المحادثة');
 reset role;
 reset request.jwt.claim.sub;
+
+-- =============================================================================
+-- 96. Who evaluated a project on show (0127)
+-- =============================================================================
+\echo ''
+\echo '96. showcase evaluator'
+
+select p.id as sp96 from public.projects p where public.showcase_visible(p.id) order by p.created_at limit 1 \gset
+select p.id as hp96 from public.projects p where not public.showcase_visible(p.id) order by p.created_at limit 1 \gset
+select ev.submission_id as sub96 from public.evaluations ev
+ where ev.decision = 'approved' order by ev.created_at limit 1 \gset
+-- a re-reviewed hand-in names whoever approved it last
+select ev.evaluator_id as evr96 from public.evaluations ev
+ where ev.submission_id = :'sub96' and ev.decision = 'approved' order by ev.created_at desc limit 1 \gset
+
+set session_replication_role = replica;
+update public.projects set submission_id = :'sub96' where id in (:'sp96', :'hp96');
+set session_replication_role = origin;
+
+set role anon;
+select public.assert(
+  (select techmood_id from public.showcase_evaluator(:'sp96'))
+    = (select techmood_id from public.profiles where id = :'evr96'),
+  '96.1 a project on show names the mentor who approved its hand-in');
+select public.assert(
+  not exists (select 1 from public.showcase_evaluator(:'hp96')),
+  '96.2 a project that is not on show tells nobody who evaluated it');
+reset role;
 
 \echo ''
 \echo '================================================'
