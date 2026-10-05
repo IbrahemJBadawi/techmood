@@ -3346,7 +3346,7 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
   cursor: pointer;
   box-shadow: 0 10px 28px rgba(0, 82, 204, 0.32);
 }
-.ai-fab.is-open { transform: rotate(45deg); }
+.ai-fab.is-open { font-size: 1.6rem; }
 
 .ai-panel {
   position: fixed;
@@ -6208,3 +6208,48 @@ textarea { line-height: 1.6; resize: vertical; }
 .mn-field-box.is-empty strong { color: var(--ink-faint); font-weight: 500; }
 .site-footer-contact { font-size: 0.86rem; margin: 6px 0 10px; }
 .site-footer-contact a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+/* =========================================================================
+   The assistant, finished: formatted answers, the question shown at once,
+   a typing bubble, a send button that points the way the text reads
+   ========================================================================= */
+.ai-panel-head { align-items: center; background: linear-gradient(135deg, color-mix(in srgb, var(--royal) 9%, var(--panel)), var(--panel)); }
+.ai-panel-head strong { font-size: 1rem; }
+.ai-stream { gap: 12px; padding: 16px; scroll-behavior: smooth; }
+.ai-bubble { border-radius: 16px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.75; max-width: 88%; white-space: normal; overflow-wrap: anywhere; }
+.ai-user { background: var(--royal); color: #fff; border-end-end-radius: 6px; white-space: pre-wrap; }
+.ai-assistant { background: var(--bg-deep); color: var(--ink); border-end-start-radius: 6px; }
+.ai-bubble.is-error { background: color-mix(in srgb, var(--danger, #d64545) 8%, var(--panel)); border: 1px solid color-mix(in srgb, var(--danger, #d64545) 30%, var(--line)); }
+.ai-text p { margin: 0 0 8px; }
+.ai-text p:last-child, .ai-text ul:last-child, .ai-text ol:last-child { margin-bottom: 0; }
+.ai-text ul, .ai-text ol { margin: 4px 0 8px; padding-inline-start: 20px; display: grid; gap: 4px; }
+.ai-text a { color: var(--royal); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.ai-text code { font-family: var(--font-mono, monospace); font-size: 0.82em; background: color-mix(in srgb, var(--ink) 8%, transparent); padding: 1px 5px; border-radius: 5px; }
+.ai-text strong { font-weight: 700; }
+.ai-bubble.is-thinking { padding: 12px 16px; }
+.ai-dots { display: inline-flex; gap: 5px; align-items: center; }
+.ai-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-soft); animation: ai-dot 1.2s infinite ease-in-out; }
+.ai-dots i:nth-child(2) { animation-delay: 0.15s; }
+.ai-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ai-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .ai-dots i { animation: none; opacity: 0.6; } }
+.ai-empty { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 18px 6px; }
+.ai-empty-mark { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 1.3rem; color: #fff; background: linear-gradient(140deg, var(--royal), var(--sky-deep)); }
+.ai-empty p { margin: 0; max-width: 32ch; }
+.ai-suggestions { justify-content: center; }
+.ai-suggestion { text-align: start; }
+.ai-action { border-radius: 14px; }
+.ai-action-kicker { display: block; font-size: 0.7rem; color: var(--royal-dark, var(--royal)); font-weight: 600; margin-bottom: 2px; }
+.ai-retry { align-self: flex-start; }
+.ai-form-error { margin: 0 16px 8px; }
+.ai-composer { align-items: flex-end; padding: 10px 12px; }
+.ai-composer textarea { resize: none; border-radius: 20px; padding: 10px 14px; line-height: 1.5; min-height: 42px; max-height: 160px; border-color: var(--line-strong); }
+.ai-send { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--royal); color: #fff; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+.ai-send:disabled { opacity: 0.4; cursor: default; }
+.ai-send:not(:disabled):active { transform: scale(0.94); }
+[dir="rtl"] .ai-send svg { transform: scaleX(-1); }
+.ai-conversation { display: flex; flex-direction: column; min-height: 60vh; padding: 0; overflow: hidden; }
+.ai-conversation .ai-stream { max-height: none; min-height: 50vh; }
+.ai-text p, .ai-text li { color: inherit; }
+/* on the conversation page the floating button would cover the thread it opens */
+body:has(.ai-conversation) .ai-fab { display: none; }

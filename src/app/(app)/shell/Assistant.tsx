@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { useT } from '@/lib/i18n.client';
-import { ACTION_STATUS, SCOPE, SCOPES_FOR, SURFACE } from '@/lib/ai';
+import { SCOPE, SCOPES_FOR, SURFACE } from '@/lib/ai';
+import { ChatComposer, ChatThread, lastFailedPrompt } from '@/app/(app)/ai/ChatParts';
 import type { AiScope } from '@/lib/database.types';
 import {
   ask, confirmAction, declineAction, openPanel,
@@ -31,7 +32,7 @@ export function Assistant() {
   const [state, setState] = useState<PanelState>(EMPTY);
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const [sending, setSending] = useState<string | null>(null);
 
   const isOpen = assistant?.isOpen ?? false;
   const where = assistant?.where;
@@ -53,21 +54,25 @@ export function Assistant() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, where?.surface, where?.entityId]);
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
-  }, [state.messages.length, isOpen]);
-
   if (!assistant || !wire || !where) return null;
 
   // A prompt handed over by an «اسأل الذكاء» button lands in the box, not in
   // the thread: the person still decides whether to send it.
   const { draft, setDraft } = assistant;
 
+  // The question shows at once; the answer replaces the typing bubble.
   const send = (prompt: string) => {
-    if (!prompt.trim() || pending) return;
+    const question = prompt.trim();
+    if (!question || pending) return;
     setDraft('');
-    startTransition(async () => setState(await ask(wire, prompt, state.threadId)));
+    setSending(question);
+    startTransition(async () => {
+      const next = await ask(wire, question, state.threadId);
+      setSending(null);
+      setState(next);
+    });
   };
+  const retry = lastFailedPrompt(state);
 
   const decide = (id: string, yes: boolean) => {
     setBusy(id);
@@ -90,7 +95,7 @@ export function Assistant() {
         aria-expanded={isOpen}
         aria-label={t('مساعد TechMood', 'TechMood AI')}
       >
-        <span aria-hidden>✦</span>
+        <span aria-hidden>{isOpen ? '×' : '✦'}</span>
       </button>
 
       {isOpen && (
@@ -104,10 +109,10 @@ export function Assistant() {
               </span>
             </div>
             <div className="ai-panel-tools">
-              <button type="button" className="ghost-button"
+              <button type="button" className="btn btn-ghost btn-sm"
                       onClick={() => setState({ ...EMPTY, live: state.live,
                                                 suggestions: state.suggestions })}>
-                {t('محادثة جديدة', 'New thread')}
+                ＋ {t('محادثة جديدة', 'New chat')}
               </button>
               <button type="button" className="icon-button" onClick={assistant.close}
                       aria-label={t('إغلاق', 'Close')}>×</button>
@@ -136,84 +141,26 @@ export function Assistant() {
             </p>
           )}
 
-          <div className="ai-stream">
-            {state.messages.length === 0 && (
-              <div className="ai-empty">
-                <p>{t('اسألني عن هذه الصفحة، أو اختر:', 'Ask about this page, or pick one:')}</p>
-                <div className="ai-suggestions">
-                  {state.suggestions.map((s) => (
-                    <button key={s.label} type="button" className="ai-suggestion"
-                            onClick={() => send(s.prompt)}>
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          <ChatThread
+            state={state}
+            sending={sending}
+            busyAction={busy}
+            onDecide={decide}
+            onRetry={retry ? () => send(retry) : null}
+            onSuggestion={send}
+            emptyHint={t('أهلاً! اسألني عن هذه الصفحة، عن مسارك، أو عن أي شيء في TechMood.',
+                         'Hi! Ask me about this page, your path, or anything on TechMood.')}
+          />
 
-            {state.messages.map((message) => (
-              <div key={message.id} className={`ai-bubble ai-${message.role}`}>
-                {message.errorAr
-                  ? <em className="ai-error">{message.content}</em>
-                  : message.content}
-              </div>
-            ))}
+          {state.error && <p className="form-error ai-form-error">{state.error}</p>}
 
-            {state.actions.filter((a) => a.status === 'proposed').map((action) => (
-              <div className="ai-action" key={action.id}>
-                <div>
-                  <strong>{action.titleAr}</strong>
-                  <p>{action.summaryAr}</p>
-                </div>
-                <div className="ai-action-buttons">
-                  <button type="button" className="primary-button" disabled={busy === action.id}
-                          onClick={() => decide(action.id, true)}>
-                    {t('أكّد', 'Confirm')}
-                  </button>
-                  <button type="button" className="ghost-button" disabled={busy === action.id}
-                          onClick={() => decide(action.id, false)}>
-                    {t('لا', 'No')}
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {state.actions.filter((a) => a.status !== 'proposed').map((action) => (
-              <div className="ai-action is-settled" key={action.id}>
-                <span className={`status-pill ${ACTION_STATUS[action.status]?.className ?? ''}`}>
-                  {t(ACTION_STATUS[action.status]?.label ?? { ar: action.status, en: action.status })}
-                </span>
-                <span>{action.summaryAr}</span>
-                {action.errorAr && <em className="ai-error">{action.errorAr}</em>}
-              </div>
-            ))}
-
-            {pending && <div className="ai-bubble ai-assistant is-thinking">…</div>}
-            <div ref={endRef} />
-          </div>
-
-          {state.error && <p className="form-error">{state.error}</p>}
-
-          <form
-            className="ai-composer"
-            onSubmit={(event) => { event.preventDefault(); send(draft); }}
-          >
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  send(draft);
-                }
-              }}
-              rows={2}
-              placeholder={t('اكتب سؤالك…', 'Ask something…')}
-            />
-            <button type="submit" className="primary-button" disabled={pending || !draft.trim()}>
-              {t('أرسل', 'Send')}
-            </button>
-          </form>
+          <ChatComposer
+            value={draft}
+            onChange={setDraft}
+            onSend={() => send(draft)}
+            disabled={pending}
+            placeholder={t('اكتب سؤالك…', 'Ask something…')}
+          />
 
           <footer className="ai-panel-foot">
             <Link href="/ai">{t('كل المحادثات', 'All threads')}</Link>
