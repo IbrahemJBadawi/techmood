@@ -22,7 +22,7 @@ import {
  *     (GEMINI_MODEL optional; defaults to GEMINI_DEFAULT_MODEL).
  */
 
-export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+export const GEMINI_DEFAULT_MODEL = 'gemini-flash-latest';
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export function geminiConfigured(): boolean {
@@ -115,6 +115,7 @@ function parseParams(raw: unknown): Record<string, unknown> {
 
 function failure(status: number, data: GeminiResponse | null): string {
   if (status === 429) return 'بلغ المساعد حدّ الاستخدام المجاني لدى Gemini الآن. حاول بعد قليل.';
+  if (status === 503) return 'نموذج Gemini مشغول الآن من كثرة الطلب. حاول بعد لحظات.';
   if (status === 400 || status === 403) return `رفض Gemini الطلب (${status}) — تحقّق من مفتاح Gemini واسم النموذج.`;
   if (status === 409) return 'هذا السؤال أُجيب بالفعل أو انتهت مهلته — اسأل من جديد.';
   return `تعذّر الوصول إلى النموذج (${status || data?.error?.code || 'خطأ'}). حاول بعد قليل.`;

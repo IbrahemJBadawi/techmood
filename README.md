@@ -368,9 +368,12 @@ select cron.schedule('mentor-requests', '*/10 * * * *', $$select public.mentor_r
 
 ### The assistant's model provider
 
-Two providers, one set of rules (`src/lib/ai-provider.ts`): **Gemini** when
-`GEMINI_API_KEY` is set (`src/lib/ai-gemini.ts`; model `GEMINI_MODEL`, default
-`gemini-2.5-flash`), otherwise **Claude** with `ANTHROPIC_API_KEY`;
+Two providers, one set of rules (`src/lib/ai-provider.ts`): **Gemini** when it
+has a key — in Supabase Vault as `gemini_api_key` (0130; the call then goes
+through the `ai-gemini` Edge Function, which reads the key itself and allows
+one model call per question a member asked; model from the `ai_gemini_model`
+setting, `gemini-flash-latest`), or `GEMINI_API_KEY` in the server env for a
+direct call — otherwise **Claude** with `ANTHROPIC_API_KEY`;
 `AI_PROVIDER=gemini|anthropic` forces one. Both share the system prompt, the
 proposal-only tool and the validators, so the restricted actions (paid booking,
 money, sensitive data, deleting a project, writing as the member) stay refused

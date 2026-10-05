@@ -44,12 +44,19 @@ Deno.serve(async (req: Request) => {
   const cfg = config as { api_key: string | null; model: string } | null;
   if (!cfg?.api_key) return json({ error: 'no key', status: 503 }, 503);
 
-  const upstream = await fetch(`${ENDPOINT}/${encodeURIComponent(cfg.model)}:generateContent`, {
+  const call = () => fetch(`${ENDPOINT}/${encodeURIComponent(cfg.model)}:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.api_key },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': cfg.api_key! },
     body: JSON.stringify(payload.request),
     signal: AbortSignal.timeout(90_000),
   }).catch(() => null);
+
+  // Google's free tier is sometimes busy for a moment: one retry, then say so.
+  let upstream = await call();
+  if (upstream && (upstream.status === 503 || upstream.status === 429)) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    upstream = await call();
+  }
   if (!upstream) return json({ status: 504, data: null });
 
   const data = await upstream.json().catch(() => null);
