@@ -353,7 +353,8 @@ export default async function MessagesPage({
                   })}
                 </div>
 
-                <Composer conversationId={active.id} readOnly={readOnly} note={readOnlyNote} />
+                {/* keyed: another conversation starts with an empty box and no reply */}
+                <Composer key={active.id} conversationId={active.id} readOnly={readOnly} note={readOnlyNote} />
               </>
             )}
           </section>

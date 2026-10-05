@@ -30,9 +30,6 @@ export function Composer({ conversationId, readOnly, note }: { conversationId: s
     return () => window.removeEventListener(REPLY_EVENT, onReply);
   }, []);
 
-  // Another conversation, another reply.
-  useEffect(() => setReplyTo(null), [conversationId]);
-
   if (readOnly) {
     return (
       <div className="chat-composer">
