@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/ActionForm';
-import { aiConfigured } from '@/lib/ai-claude';
+import { aiConfigured } from '@/lib/ai-provider';
 import { CASE_STATUS, FEATURE } from '@/lib/cases';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';

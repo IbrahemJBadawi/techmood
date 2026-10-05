@@ -33,11 +33,12 @@ export type AiAnswer = {
 };
 
 /** No key, no model call — and the interface says so rather than pretending. */
-export function aiConfigured(): boolean {
+export function claudeConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-function systemPrompt(kinds: AiActionKind[], context: unknown): string {
+/** Shared by every provider (src/lib/ai.ts): the same rules whoever answers. */
+export function systemPrompt(kinds: AiActionKind[], context: unknown): string {
   const allowed = kinds.filter((k) => k.permission !== 'restricted' && k.is_enabled);
   const restricted = kinds.filter((k) => k.permission === 'restricted');
 
@@ -109,7 +110,7 @@ function proposalTool(kinds: AiActionKind[]) {
 }
 
 /** A proposal whose shape is wrong is dropped, not repaired and not run. */
-function validProposal(input: unknown, kinds: AiActionKind[]): AiProposal | null {
+export function validProposal(input: unknown, kinds: AiActionKind[]): AiProposal | null {
   if (typeof input !== 'object' || input === null) return null;
   const raw = input as Record<string, unknown>;
   const kind = typeof raw.kind === 'string' ? raw.kind : null;
@@ -131,7 +132,7 @@ export async function askClaude(input: {
   prompt: string;
   kinds: AiActionKind[];
 }): Promise<AiAnswer> {
-  if (!aiConfigured()) {
+  if (!claudeConfigured()) {
     return {
       text: '',
       proposals: [],
@@ -210,6 +211,14 @@ export async function askClaude(input: {
  * beside the case as a suggestion, nothing acts on it, and the admin decides.
  * ------------------------------------------------------------------------- */
 
+export const ADMIN_SYSTEM = [
+  'أنت مساعد لفريق إدارة TechMood يقرأ بلاغاً أو قضية ويلخّصها للموظف.',
+  '- لا تحكم على أي شخص ولا تتخذ قراراً: القرار للإدارة وحدها.',
+  '- اعتمد على الحقائق والمحادثة المعطاة فقط، ولا تخترع أرقاماً أو أحداثاً.',
+  '- إن كان هناك نقص في المعلومات فاذكره واجعل الخطوة التالية جمعه.',
+  '- اكتب بالعربية وبإيجاز، ثم سجّل قراءتك بالأداة record_assessment.',
+].join('\n');
+
 export type AdminAssessment = {
   summary_ar: string;
   evidence: string[];
@@ -218,12 +227,12 @@ export type AdminAssessment = {
   confidence: number | null;
 };
 
-const CATEGORIES = [
+export const CATEGORIES = [
   'payment', 'booking', 'mentor', 'mentee', 'freelancer', 'client',
   'content', 'account', 'behavior', 'fraud', 'copyright', 'technical', 'other',
 ] as const;
 
-function validAssessment(raw: unknown): AdminAssessment | null {
+export function validAssessment(raw: unknown): AdminAssessment | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const input = raw as Record<string, unknown>;
   if (typeof input.summary_ar !== 'string' || typeof input.next_step_ar !== 'string') return null;
@@ -241,12 +250,12 @@ function validAssessment(raw: unknown): AdminAssessment | null {
   };
 }
 
-export async function assessForAdmin(input: {
+export async function assessWithClaude(input: {
   kind: 'case' | 'ticket';
   facts: unknown;
   conversation: { author: string; body: string }[];
 }): Promise<{ assessment: AdminAssessment | null; error_ar: string | null }> {
-  if (!aiConfigured()) {
+  if (!claudeConfigured()) {
     return {
       assessment: null,
       error_ar: 'AI Assist غير موصول بمزوّد نموذج في هذه البيئة (ANTHROPIC_API_KEY غير مضبوط). الحقائق المجمّعة أدناه من قاعدة البيانات مباشرة.',
@@ -258,13 +267,7 @@ export async function assessForAdmin(input: {
     const stream = client.messages.stream({
       model: AI_MODEL,
       max_tokens: 2048,
-      system: [
-        'أنت مساعد لفريق إدارة TechMood يقرأ بلاغاً أو قضية ويلخّصها للموظف.',
-        '- لا تحكم على أي شخص ولا تتخذ قراراً: القرار للإدارة وحدها.',
-        '- اعتمد على الحقائق والمحادثة المعطاة فقط، ولا تخترع أرقاماً أو أحداثاً.',
-        '- إن كان هناك نقص في المعلومات فاذكره واجعل الخطوة التالية جمعه.',
-        '- اكتب بالعربية وبإيجاز، ثم سجّل قراءتك بالأداة record_assessment.',
-      ].join('\n'),
+      system: ADMIN_SYSTEM,
       tools: [{
         name: 'record_assessment',
         description: 'سجّل قراءتك للبلاغ أو القضية: ملخص، الأدلة المهمة، الخطوة التالية المقترحة، التصنيف ودرجة الثقة.',

@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { ActionForm } from '@/components/ActionForm';
 import { SupportComposer } from '@/components/SupportComposer';
 import { TicketThread } from '@/components/TicketThread';
-import { aiConfigured } from '@/lib/ai-claude';
+import { aiConfigured } from '@/lib/ai-provider';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { ESCALATION, TICKET_CATEGORY, TICKET_PRIORITY, TICKET_RELATED, TICKET_STATUS } from '@/lib/support';
@@ -77,7 +77,7 @@ export default async function AdminTicketPage({ params }: { params: Promise<{ ti
         </div>
         {!aiConfigured() && (
           <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
-            {t('غير موصول بمزوّد نموذج هنا — يعمل حين يُضبط ANTHROPIC_API_KEY.', 'No model provider is connected here — it works once ANTHROPIC_API_KEY is set.')}
+            {t('غير موصول بمزوّد نموذج هنا — يعمل حين يُضبط GEMINI_API_KEY أو ANTHROPIC_API_KEY.', 'No model provider is connected here — it works once GEMINI_API_KEY or ANTHROPIC_API_KEY is set.')}
           </p>
         )}
         {ticket.ai_summary_ar ? (

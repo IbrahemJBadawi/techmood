@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import type { ActionFormState } from '@/components/ActionForm';
-import { assessForAdmin } from '@/lib/ai-claude';
+import { assessForAdmin } from '@/lib/ai-provider';
 import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';

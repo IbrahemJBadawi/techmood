@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { dbError } from '@/lib/db-errors';
-import { askClaude, aiConfigured } from '@/lib/ai-claude';
+import { askAssistant, aiConfigured } from '@/lib/ai-provider';
 import type {
   AiActionKind, AiActionStatus, AiMemoryKind, AiRole, AiScope, AiSurface,
 } from '@/lib/database.types';
@@ -155,7 +155,7 @@ export async function ask(where: PanelWhere, prompt: string, threadId: string | 
     .slice(-12)
     .map((row) => ({ role: row.role as 'user' | 'assistant', content: row.content }));
 
-  const answer = await askClaude({
+  const answer = await askAssistant({
     context,
     history: earlier,
     prompt: question,

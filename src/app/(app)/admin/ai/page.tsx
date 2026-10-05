@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { aiConfigured } from '@/lib/ai-claude';
+import { aiConfigured } from '@/lib/ai-provider';
 import { ACTION_STATUS, SURFACE } from '@/lib/ai';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
@@ -55,8 +55,8 @@ export default async function AdminAiPage({ searchParams }: { searchParams: Prom
         </p>
         {!aiConfigured() && (
           <p className="notice" style={{ marginTop: 10 }}>
-            {t('لا يوجد مزوّد نموذج موصول في هذه البيئة (ANTHROPIC_API_KEY غير مضبوط): المحادثات تُحفظ لكن لا أحد يجيب عليها.',
-               'No model provider is connected here (ANTHROPIC_API_KEY is not set): conversations are saved but nobody answers them.')}
+            {t('لا يوجد مزوّد نموذج موصول في هذه البيئة (GEMINI_API_KEY أو ANTHROPIC_API_KEY غير مضبوط): المحادثات تُحفظ لكن لا أحد يجيب عليها.',
+               'No model provider is connected here (GEMINI_API_KEY or ANTHROPIC_API_KEY is not set): conversations are saved but nobody answers them.')}
           </p>
         )}
       </section>

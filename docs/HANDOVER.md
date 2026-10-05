@@ -94,7 +94,8 @@ the seed, then `scripts/test-rules.sql`, and drops it. It must end with
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel env | the app's connection (public by design; RLS protects the data) |
 | `NEXT_PUBLIC_SITE_URL` | Vercel env | absolute links (sign-in redirects, share links) |
 | `NEXT_PUBLIC_TECHMOOD_SCOPE` | Vercel env | unset = MVP areas only (the default); `full` = everything |
-| `ANTHROPIC_API_KEY` | Vercel env (server only) | the AI assistant; without it the assistant says nothing is connected |
+| `GEMINI_API_KEY` | Vercel env (server only) | the AI assistant on Google Gemini (free tier); used first when set. Optional `GEMINI_MODEL`, `AI_PROVIDER` |
+| `ANTHROPIC_API_KEY` | Vercel env (server only) | the AI assistant on Claude; without either key the assistant says nothing is connected |
 | `email_api_key` | Supabase Vault | Resend key for outgoing mail |
 | `push_vapid_private_key`, `push_dispatch_secret`, `email_dispatch_secret` | Supabase Vault | device notifications and the dispatch functions |
 | `email_from`, `push_vapid_public_key`, `ai_daily_messages`, … | `platform_settings` table | non-secret settings an admin may change |

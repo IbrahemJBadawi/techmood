@@ -368,6 +368,14 @@ select cron.schedule('mentor-requests', '*/10 * * * *', $$select public.mentor_r
 
 ### The assistant's model provider
 
+Two providers, one set of rules (`src/lib/ai-provider.ts`): **Gemini** when
+`GEMINI_API_KEY` is set (`src/lib/ai-gemini.ts`; model `GEMINI_MODEL`, default
+`gemini-2.5-flash`), otherwise **Claude** with `ANTHROPIC_API_KEY`;
+`AI_PROVIDER=gemini|anthropic` forces one. Both share the system prompt, the
+proposal-only tool and the validators, so the restricted actions (paid booking,
+money, sensitive data, deleting a project, writing as the member) stay refused
+whichever model answers. The keys are Vercel server env vars, never in code.
+
 `ANTHROPIC_API_KEY` is read server-side only and has no `NEXT_PUBLIC_` prefix on
 purpose. **No key is configured in this repository.** Each person may ask the
 assistant `ai_daily_messages` questions a day (platform setting, 40 to start;
