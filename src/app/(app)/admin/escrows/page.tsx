@@ -9,6 +9,9 @@ import { money } from '@/lib/booking';
 import { ESCROW_STATUS } from '../../projects/[projectId]/escrow-status';
 import { settleEscrow } from './actions';
 
+
+/** How many closed holds the page lists. */
+const HISTORY_LIMIT = 100;
 export const generateMetadata = localizedTitle('الضمان — TechMood', 'Escrow — TechMood');
 
 /**
@@ -31,10 +34,16 @@ export default async function AdminEscrowsPage() {
     return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
-  const { data: escrows } = await supabase
-    .from('escrows')
-    .select('id, escrow_code, kind, project_id, payer_id, payee_id, amount_usd, commission_usd, net_usd, status, dispute_reason_ar, created_at')
-    .order('created_at', { ascending: false });
+  // Open holds in full; closed ones only the latest, so the page does not
+  // grow with every sale ever made.
+  const COLUMNS = 'id, escrow_code, kind, project_id, payer_id, payee_id, amount_usd, commission_usd, net_usd, status, dispute_reason_ar, created_at';
+  const [{ data: open }, { data: closed }] = await Promise.all([
+    supabase.from('escrows').select(COLUMNS).in('status', ['funded', 'disputed'])
+      .order('created_at', { ascending: false }),
+    supabase.from('escrows').select(COLUMNS).not('status', 'in', '(funded,disputed)')
+      .order('created_at', { ascending: false }).limit(HISTORY_LIMIT),
+  ]);
+  const escrows = [...(open ?? []), ...(closed ?? [])];
 
   const rows = escrows ?? [];
   const ids = [...new Set(rows.flatMap((row) => [row.payer_id, row.payee_id]))];

@@ -11,6 +11,9 @@ import { reviewPayout, startTransfer } from './actions';
 import { PayoutProof } from './PayoutProof';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
+
+/** How many settled payout requests the page lists. */
+const HISTORY_LIMIT = 100;
 export const generateMetadata = localizedTitle('السحوبات — إدارة TechMood', 'Payouts — TechMood admin');
 
 export default async function AdminPayoutsPage() {
@@ -24,10 +27,15 @@ export default async function AdminPayoutsPage() {
     return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
-  const { data: requests } = await supabase
-    .from('payout_requests')
-    .select('id, request_code, profile_id, account_id, amount_usd, status, note_ar, paid_reference, created_at, reviewed_at, proof_path')
-    .order('created_at', { ascending: true });
+  // Requests still waiting in full; settled ones only the latest.
+  const COLUMNS = 'id, request_code, profile_id, account_id, amount_usd, status, note_ar, paid_reference, created_at, reviewed_at, proof_path';
+  const [{ data: open }, { data: done }] = await Promise.all([
+    supabase.from('payout_requests').select(COLUMNS).in('status', ['requested', 'approved'])
+      .order('created_at', { ascending: true }),
+    supabase.from('payout_requests').select(COLUMNS).in('status', ['paid', 'rejected'])
+      .order('created_at', { ascending: false }).limit(HISTORY_LIMIT),
+  ]);
+  const requests = [...(open ?? []), ...(done ?? [])];
 
   const profileIds = [...new Set((requests ?? []).map((row) => row.profile_id))];
   const accountIds = [...new Set((requests ?? []).map((row) => row.account_id))];

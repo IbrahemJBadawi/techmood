@@ -11,6 +11,9 @@ import { ReceiptLink } from './ReceiptLink';
 import { reviewPayment } from './actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
+
+/** How many settled payments the history shows. */
+const HISTORY_LIMIT = 100;
 export const generateMetadata = localizedTitle('المدفوعات — إدارة TechMood', 'Payments — TechMood admin');
 
 export default async function AdminPaymentsPage() {
@@ -24,10 +27,16 @@ export default async function AdminPaymentsPage() {
     return <p className="notice notice-danger">{t('هذه الصفحة للمشرفين فقط.', 'This page is for admins only.')}</p>;
   }
 
-  const { data: payments } = await supabase
-    .from('payments')
-    .select('id, payment_code, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason, paid_currency, paid_amount, exchange_rate, info_request_ar, payer_note_ar, payer_holder, payer_account')
-    .order('submitted_at', { ascending: true, nullsFirst: false });
+  // The queue in full, oldest first; the history only its latest rows, so the
+  // page (and the ids it looks up next) stays the same size as payments pile up.
+  const COLUMNS = 'id, payment_code, booking_id, escrow_id, method_key, amount_usd, status, reference, proof_path, submitted_at, verified_at, rejection_reason, paid_currency, paid_amount, exchange_rate, info_request_ar, payer_note_ar, payer_holder, payer_account';
+  const [{ data: queue }, { data: recent }] = await Promise.all([
+    supabase.from('payments').select(COLUMNS).eq('status', 'under_review')
+      .order('submitted_at', { ascending: true, nullsFirst: false }),
+    supabase.from('payments').select(COLUMNS).neq('status', 'under_review')
+      .order('submitted_at', { ascending: false, nullsFirst: false }).limit(HISTORY_LIMIT),
+  ]);
+  const payments = [...(queue ?? []), ...(recent ?? [])];
 
   const bookingIds = [...new Set((payments ?? []).map((row) => row.booking_id).filter(Boolean))] as string[];
   const escrowIds = [...new Set((payments ?? []).map((row) => row.escrow_id).filter(Boolean))] as string[];
@@ -65,8 +74,8 @@ export default async function AdminPaymentsPage() {
   const methodByKey = new Map((methods ?? []).map((row) => [row.key, row]));
   const personById = new Map((people ?? []).map((row) => [row.id, row]));
 
-  const waiting = (payments ?? []).filter((row) => row.status === 'under_review');
-  const settled = (payments ?? []).filter((row) => row.status !== 'under_review');
+  const waiting = queue ?? [];
+  const settled = recent ?? [];
 
   return (
     <>
@@ -211,7 +220,7 @@ export default async function AdminPaymentsPage() {
 
       {settled.length > 0 && (
         <section className="section-block">
-          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t('سجلّ المدفوعات', 'Payment history')}</h3>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>{t(`سجلّ المدفوعات — آخر ${HISTORY_LIMIT}`, `Payment history — latest ${HISTORY_LIMIT}`)}</h3>
           <table className="data">
             <thead>
               <tr><th>{t('الحجز', 'Booking')}</th><th>{t('الطالب', 'Student')}</th><th>{t('الطريقة', 'Method')}</th><th>{t('المبلغ', 'Amount')}</th><th>{t('الحالة', 'Status')}</th><th>{t('تاريخ المراجعة', 'Reviewed')}</th></tr>

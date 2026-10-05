@@ -16,6 +16,9 @@ import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الرسائل — TechMood', 'Messages — TechMood');
 
+/** How many of a conversation's latest messages the page shows. */
+const THREAD_LIMIT = 200;
+
 const KIND_ICON: Record<ConversationKind, string> = {
   channel: '📣',
   admin: '🛡️',
@@ -123,20 +126,15 @@ export default async function MessagesPage({
     : { data: null };
   const room = bookingRoom?.id ?? null;
 
-  // Last line of each conversation, for the list.
-  const { data: recent } = await supabase
-    .from('messages')
-    .select('conversation_id, body_ar, created_at')
-    .in('conversation_id', conversationIds.length ? conversationIds : placeholder)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  // Last line of each conversation, for the list — one per conversation, so a
+  // busy one never pushes the others' out (0137).
+  const { data: recent } = conversationIds.length
+    ? await supabase.rpc('conversation_previews', { p_ids: conversationIds })
+    : { data: [] };
 
   const lastByConversation = new Map<string, { body_ar: string; created_at: string }>();
   for (const row of recent ?? []) {
-    if (!lastByConversation.has(row.conversation_id)) {
-      lastByConversation.set(row.conversation_id, { body_ar: row.body_ar, created_at: row.created_at });
-    }
+    lastByConversation.set(row.conversation_id, { body_ar: row.body_ar, created_at: row.created_at });
   }
 
   let messages: {
@@ -145,32 +143,36 @@ export default async function MessagesPage({
   }[] = [];
   let reactions: { message_id: string; profile_id: string; reaction: MessageReaction }[] = [];
   let nameById = new Map<string, string>();
+  let olderHidden = false;
 
   if (active) {
+    // The latest messages only, with their reactions in the same request: a
+    // long conversation neither loads its whole history nor sends every
+    // message id back in a URL.
     const { data: thread } = await supabase
       .from('messages')
-      .select('id, sender_id, body_ar, is_system, reply_to_id, created_at')
+      .select('id, sender_id, body_ar, is_system, reply_to_id, created_at, message_reactions(profile_id, reaction)')
       .eq('conversation_id', active.id)
       .is('deleted_at', null)
-      .order('created_at');
+      .order('created_at', { ascending: false })
+      .limit(THREAD_LIMIT);
 
-    messages = thread ?? [];
+    type ThreadRow = (typeof messages)[number] & { message_reactions: { profile_id: string; reaction: string }[] | null };
+    const newestFirst = (thread ?? []) as unknown as ThreadRow[];
+    olderHidden = newestFirst.length === THREAD_LIMIT;
+    messages = newestFirst.slice().reverse().map((row) => ({
+      id: row.id, sender_id: row.sender_id, body_ar: row.body_ar, is_system: row.is_system,
+      reply_to_id: row.reply_to_id, created_at: row.created_at,
+    }));
+    reactions = newestFirst.flatMap((row) =>
+      (row.message_reactions ?? []).map((r) => ({ message_id: row.id, profile_id: r.profile_id, reaction: r.reaction as MessageReaction })));
 
-    const messageIds = messages.map((row) => row.id);
     const senderIds = [...new Set(messages.map((row) => row.sender_id).filter(Boolean))] as string[];
 
-    const [{ data: reactionRows }, { data: profiles }] = await Promise.all([
-      supabase
-        .from('message_reactions')
-        .select('message_id, profile_id, reaction')
-        .in('message_id', messageIds.length ? messageIds : placeholder),
-      supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', senderIds.length ? senderIds : placeholder),
-    ]);
-
-    reactions = (reactionRows ?? []) as typeof reactions;
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', senderIds.length ? senderIds : placeholder);
     nameById = new Map((profiles ?? []).map((row) => [row.id, row.full_name]));
 
     await markRead(active.id);
@@ -285,6 +287,9 @@ export default async function MessagesPage({
                 </header>
 
                 <div className="chat-thread">
+                  {olderHidden && (
+                    <div className="chat-day"><span>{t(`تظهر آخر ${THREAD_LIMIT} رسالة`, `Showing the latest ${THREAD_LIMIT} messages`)}</span></div>
+                  )}
                   {messages.length === 0 && (
                     <p className="muted" style={{ fontSize: '0.86rem', margin: 'auto' }}>
                       {t('لا رسائل بعد — ابدأ الحديث.', 'No messages yet — start the conversation.')}

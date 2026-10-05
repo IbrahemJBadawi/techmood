@@ -1935,6 +1935,7 @@ export type Database = {
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
       my_unread_messages: { Args: Record<string, never>; Returns: number };
+      conversation_previews: { Args: { p_ids: string[] }; Returns: { conversation_id: string; body_ar: string; created_at: string }[] };
       mark_welcomed: { Args: Record<string, never>; Returns: undefined };
       ai_gemini_ready: { Args: Record<string, never>; Returns: boolean };
       claim_ai_model_call: { Args: { p_thread?: string | null }; Returns: boolean };

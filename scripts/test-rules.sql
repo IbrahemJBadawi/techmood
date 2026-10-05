@@ -10579,6 +10579,48 @@ select public.assert(
   (select status from public.learning_paths where slug = 'java') = 'published',
   '100.5 the Java path opens with its first course');
 
+-- -----------------------------------------------------------------------------
+-- 101. Money is decided once (0136)
+-- -----------------------------------------------------------------------------
+select p.id as pay101, p.escrow_id as esc101 from public.payments p
+ where p.escrow_id is not null and p.status = 'verified' limit 1 \gset
+select count(*) as earn101 from public.wallet_entries where ref_id = :'esc101' \gset
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(
+  format($$select public.verify_payment(%L, true)$$, :'pay101'),
+  '101.1 an approved market payment cannot be approved again', 'رُوجعت بالفعل');
+select public.assert_rejects(
+  format($$select public.verify_payment(%L, false, 'x')$$, :'pay101'),
+  '101.2 nor turned down after it was approved', 'رُوجعت بالفعل');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) from public.wallet_entries where ref_id = :'esc101') = :earn101,
+  '101.3 and the seller''s earning is written once');
+select public.assert(
+  (select bool_and(pg_get_functiondef(p.oid) ~* 'for update')
+     from pg_proc p
+    where p.pronamespace = 'public'::regnamespace
+      and p.proname in ('verify_payment','release_escrow','refund_escrow','review_payout','refund_booking_now','request_payout')),
+  '101.4 every function that moves money locks what it decides on');
+
+-- -----------------------------------------------------------------------------
+-- 102. Each conversation's last line (0137)
+-- -----------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select count(*) from public.conversation_previews(array(select id from public.conversations)))
+  = (select count(distinct m.conversation_id) from public.messages m where m.deleted_at is null),
+  '102.1 every conversation the member can read, and that has a message, gets its own last line');
+select count(*) as seen102 from public.conversation_previews(array(select id from public.conversations)) \gset
+reset role;
+select public.assert(
+  :seen102 < (select count(*) from public.conversation_previews(array(select id from public.conversations))),
+  '102.2 and none of the conversations they cannot read');
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
