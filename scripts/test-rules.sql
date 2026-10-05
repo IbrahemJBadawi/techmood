@@ -10389,6 +10389,66 @@ select public.assert(
   '96.2 a project that is not on show tells nobody who evaluated it');
 reset role;
 
+-- =============================================================================
+-- 97. Achievements, the follow feed, challenges and the activity chart (0128)
+-- =============================================================================
+\echo ''
+\echo '97. progress, follows and challenges'
+
+select public.assert(
+  exists (select 1 from public.profile_achievements pa join public.achievements a on a.id = pa.achievement_id
+           where pa.profile_id = '84848484-8484-8484-8484-848484848484' and a.slug = 'first_lesson')
+  and exists (select 1 from public.notifications
+               where profile_id = '84848484-8484-8484-8484-848484848484' and title_ar like '%إنجاز جديد: أول درس%'),
+  '97.1 finishing a first lesson earns "First lesson", and says so');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.toggle_follow('84848484-8484-8484-8484-848484848484');
+reset role;
+reset request.jwt.claim.sub;
+
+select public.award_achievement('84848484-8484-8484-8484-848484848484', 'joined_team') as aw97 \gset
+select public.award_achievement('84848484-8484-8484-8484-848484848484', 'joined_team') as aw97b \gset
+select public.assert(
+  :'aw97'::boolean and not :'aw97b'::boolean
+  and exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+               and title_ar like '%حقّق «منضمّ لفريق»%'),
+  '97.2 an achievement is earned once, and the people who follow its member hear of it');
+
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  exists (select 1 from public.following_feed(20) where kind = 'lessons' and title::int >= 2)
+  and exists (select 1 from public.following_feed(20) where kind = 'achievement'),
+  '97.3 the feed shows what the people I follow finished: lessons a day at a time, and achievements');
+select public.assert(
+  (select count(*) from public.following_week()) >= 2
+  and (select count(*) from public.following_week() where is_me) = 1,
+  '97.4 this week''s race holds me and the people I follow');
+reset role;
+reset request.jwt.claim.sub;
+
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert(
+  (select count(*) from public.my_challenges()) = 4
+  and (select progress from public.my_challenges() where key = 'lessons') >= 2,
+  '97.5 the week''s four challenges count this week''s work');
+select public.assert(
+  (select count(*) from public.my_activity(91)) = 91
+  and (select lessons from public.my_activity(91) order by on_date desc limit 1) >= 2,
+  '97.6 the activity chart has one row a day, today''s lessons included');
+select public.assert(
+  (select count(*) from public.my_achievements()) = (select count(*) from public.achievements)
+  and (select awarded_at is not null from public.my_achievements() where slug = 'first_lesson'),
+  '97.7 a member sees every achievement, earned first');
+select public.assert_rejects(
+  $$select public.award_achievement('84848484-8484-8484-8484-848484848484', 'lessons_50')$$,
+  '97.8 nobody awards themselves an achievement', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

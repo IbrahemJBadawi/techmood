@@ -15,6 +15,8 @@ import { League, type LeagueQuery } from './League';
 import { Pomodoro } from './Pomodoro';
 import { StudentHero, StreakCard, type ActivityDay } from './StudentHero';
 import { ProgressRing } from '../../academy/ProgressRing';
+import { ActivityCharts, type ActivityPoint } from './ActivityCharts';
+import { AchievementsShelf, FollowingProgress, WeeklyChallenges } from './ProgressSocial';
 
 const KIND_LABEL: Record<string, Text> = {
   freelance:  { ar: 'عمل حر',        en: 'Freelance' },
@@ -72,8 +74,8 @@ export async function StudentHome({
     { data: membership },
     { data: suggestions },
     { data: mentors },
-    { data: achievements },
     { data: reputation },
+    { data: activity },
   ] = await Promise.all([
     supabase.from('profile_xp').select('total_xp').eq('profile_id', userId).maybeSingle(),
     supabase.from('profile_stars').select('stars_avg, rated_count').eq('profile_id', userId).maybeSingle(),
@@ -94,13 +96,9 @@ export async function StudentHome({
     supabase.from('team_members').select('team_id, role, title_ar').eq('profile_id', userId).eq('is_active', true).limit(1),
     supabase.rpc('suggested_opportunities', { p_limit: 4 }),
     supabase.rpc('suggested_mentors', { p_limit: 3 }),
-    supabase
-      .from('profile_achievements')
-      .select('achievement_id, awarded_at')
-      .eq('profile_id', userId)
-      .order('awarded_at', { ascending: false })
-      .limit(6),
     supabase.from('reputation_scores').select('dimension, value').eq('profile_id', userId),
+    // the home charts (0128): 13 weeks, one row a day
+    supabase.rpc('my_activity', { p_days: 91 }),
   ]);
 
   const resume = ((resumeRows as Resume[] | null) ?? [])[0] ?? null;
@@ -111,13 +109,12 @@ export async function StudentHome({
   // when there is something to look up.
   const mentorIds = [...new Set((sessions ?? []).map((row) => row.mentor_id))];
   const teamId = membership?.[0]?.team_id ?? null;
-  const achievementIds = (achievements ?? []).map((row) => row.achievement_id);
   const dimensionKeys = (reputation ?? []).map((row) => row.dimension);
 
   // Lookups are separate queries rather than PostgREST embeds: the hand-written
   // schema types declare no relationships, so an embed would typecheck as an
   // error object. Separate reads are also easier to reason about under RLS.
-  const [{ data: paths }, { data: mentorNames }, { data: badges }, { data: dimensions }, team] = await Promise.all([
+  const [{ data: paths }, { data: mentorNames }, { data: dimensions }, team] = await Promise.all([
     supabase
       .from('enrollments')
       .select('path_id, enrolled_at, completed_at')
@@ -127,16 +124,12 @@ export async function StudentHome({
     mentorIds.length
       ? supabase.from('profiles').select('id, full_name, display_name, avatar_url').in('id', mentorIds)
       : Promise.resolve({ data: [] as { id: string; full_name: string; display_name: string | null; avatar_url: string | null }[] }),
-    achievementIds.length
-      ? supabase.from('achievements').select('id, name_ar, icon').in('id', achievementIds)
-      : Promise.resolve({ data: [] as { id: string; name_ar: string; icon: string | null }[] }),
     dimensionKeys.length
       ? supabase.from('reputation_dimensions').select('slug, name_ar').in('slug', dimensionKeys)
       : Promise.resolve({ data: [] as { slug: string; name_ar: string }[] }),
     teamId ? loadTeam(teamId) : Promise.resolve(null),
   ]);
 
-  const badgeById = new Map((badges ?? []).map((row) => [row.id, row]));
   const dimensionName = new Map((dimensions ?? []).map((row) => [row.slug, row.name_ar]));
 
 
@@ -209,6 +202,18 @@ export async function StudentHome({
           </section>
 
           <DailyBoard entries={entries} />
+
+          {/* activity: the grid of days and the XP line (0128) */}
+          <section className="section-block">
+            <div className="hm-head">
+              <h2>{t('نشاطك', 'Your activity')}</h2>
+            </div>
+            <ActivityCharts days={(activity ?? []) as ActivityPoint[]} totalXp={xp?.total_xp ?? 0} />
+          </section>
+
+          <WeeklyChallenges />
+
+          <FollowingProgress />
 
           {/* upcoming mentor sessions */}
           <section className="section-block">
@@ -403,18 +408,7 @@ export async function StudentHome({
                 </Link>
               ))}
             </div>
-            {(achievements ?? []).length > 0 && (
-              <div className="hm-badges">
-                {(achievements ?? []).map((row) => {
-                  const badge = badgeById.get(row.achievement_id);
-                  return (
-                    <span className="hm-badge" key={row.achievement_id} title={badge?.name_ar}>
-                      <span aria-hidden="true">{badge?.icon ?? '🏅'}</span> {badge?.name_ar}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+            <AchievementsShelf />
           </article>
 
           {/* progress and reputation */}

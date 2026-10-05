@@ -1933,6 +1933,29 @@ export type Database = {
       reschedule_after_absence: { Args: { p_booking: string; p_starts_at: string }; Returns: undefined };
       set_conversation_muted: { Args: { p_conversation: string; p_hours: number | null }; Returns: string | null };
       my_unread_messages: { Args: Record<string, never>; Returns: number };
+      my_activity: { Args: { p_days?: number }; Returns: { on_date: string; xp: number; lessons: number; acts: number }[] };
+      my_challenges: {
+        Args: Record<string, never>;
+        Returns: { key: string; title_ar: string; title_en: string; icon: string; goal: number; progress: number; week_ends: string; days_left: number }[];
+      };
+      my_achievements: {
+        Args: Record<string, never>;
+        Returns: {
+          slug: string; name_ar: string; name_en: string | null; description_ar: string | null; description_en: string | null;
+          icon: string | null; awarded_at: string | null; times: number | null;
+        }[];
+      };
+      following_feed: {
+        Args: { p_limit?: number };
+        Returns: {
+          kind: string; happened_at: string; techmood_id: string; name: string; avatar_url: string | null;
+          title: string | null; detail: string | null; link: string | null;
+        }[];
+      };
+      following_week: {
+        Args: Record<string, never>;
+        Returns: { rank: number; techmood_id: string; name: string; avatar_url: string | null; xp: number; streak: number; is_me: boolean }[];
+      };
       showcase_evaluator: {
         Args: { p_project: string };
         Returns: { full_name: string; techmood_id: string; avatar_url: string | null; reviewed_at: string | null }[];
