@@ -2,8 +2,8 @@ import Link from 'next/link';
 import QRCode from 'qrcode';
 
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
-import { SITE_URL } from '@/lib/contact';
 import { getT, localizedTitle } from '@/lib/i18n.server';
+import { siteOrigin } from '@/lib/site';
 
 import { AppInstall } from './AppInstall';
 
@@ -25,7 +25,8 @@ export const generateMetadata = localizedTitle(
  */
 export default async function AppPage() {
   const t = await getT();
-  const qr = await QRCode.toDataURL(`${SITE_URL}/app`, { margin: 1, width: 280 });
+  // The address the visitor is on, so the code works on whichever domain serves the site.
+  const qr = await QRCode.toDataURL(`${await siteOrigin()}/app`, { margin: 1, width: 280 });
 
   const features = [
     { icon: '🔔', title: t('إشعارات على الجوال', 'Phone notifications'), body: t('رسائلك، جلساتك، مراجعة تسليماتك، وتذكير يومي بحماستك — حتى والتطبيق مغلق.', 'Your messages, sessions, reviews of your work and a daily streak reminder — even with the app closed.') },
