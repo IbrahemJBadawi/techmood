@@ -1,9 +1,41 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { MemberAvatar } from '@/components/MemberAvatar';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { IS_MVP } from '@/lib/scope';
+
+/** People to follow, shown before anyone types — so «ابحث عن زملاء» is never an empty page. */
+async function SuggestedPeople() {
+  const t = await getT();
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('suggested_people', { p_limit: 12 });
+  const people = data ?? [];
+  if (people.length === 0) return null;
+
+  return (
+    <section className="section-block">
+      <h2 style={{ fontSize: '1rem', marginBottom: 4 }}>{t('زملاء قد تعرفهم', 'Classmates you may know')}</h2>
+      <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 10 }}>
+        {t('تابعهم لترى تقدّمهم وتتسابقوا على نقاط الأسبوع.', 'Follow them to see their progress and race for the week’s XP.')}
+      </p>
+      <div className="suggest-grid">
+        {people.map((person) => (
+          <Link className="panel suggest-card" href={`/m/${person.techmood_id}`} key={person.techmood_id}>
+            <MemberAvatar id={person.techmood_id} name={person.name} url={person.avatar_url} size={44} />
+            <strong className="suggest-name">{person.name}</strong>
+            {person.headline && <span className="muted suggest-head">{person.headline}</span>}
+            <span className="muted suggest-meta eng">
+              {person.followers > 0 && `${person.followers} ${t('متابِع', 'followers')}`}
+              {person.xp > 0 && `${person.followers > 0 ? ' · ' : ''}${person.xp} XP`}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export const generateMetadata = localizedTitle('البحث — TechMood', 'Search — TechMood');
 
@@ -27,10 +59,14 @@ export default async function SearchPage({
   const term = (await searchParams).q?.trim() ?? '';
   if (term.length < 2) {
     return (
-      <section className="panel section-block">
-        <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{t('بحث', 'Search')}</h1>
-        <p className="muted">{t('اكتب حرفين على الأقل.', 'Type at least two characters.')}</p>
-      </section>
+      <>
+        <section className="section-block">
+          <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{t('بحث', 'Search')}</h1>
+          <p className="muted">{t('اكتب حرفين على الأقل للبحث في المسارات والدورات والمنتورز والأشخاص.',
+                                  'Type at least two characters to search paths, courses, mentors and people.')}</p>
+        </section>
+        <SuggestedPeople />
+      </>
     );
   }
 
@@ -97,7 +133,7 @@ export default async function SearchPage({
     {
       title: t('أشخاص', 'People'),
       rows: (people.data ?? []).map((row) => ({
-        key: row.id, href: '/passport', title: row.display_name ?? row.full_name,
+        key: row.id, href: `/m/${row.techmood_id}`, title: row.display_name ?? row.full_name,
         detail: row.headline ?? row.techmood_id,
       })),
     },

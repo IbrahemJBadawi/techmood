@@ -1976,6 +1976,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { rank: number; techmood_id: string; name: string; avatar_url: string | null; xp: number; streak: number; is_me: boolean }[];
       };
+      suggested_people: {
+        Args: { p_limit?: number };
+        Returns: { techmood_id: string; name: string; avatar_url: string | null; headline: string | null; xp: number; followers: number }[];
+      };
       showcase_evaluator: {
         Args: { p_project: string };
         Returns: { full_name: string; techmood_id: string; avatar_url: string | null; reviewed_at: string | null }[];
