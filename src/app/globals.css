@@ -6318,3 +6318,28 @@ a.tag { text-decoration: none; }
 .pc-item.is-missing .pc-mark { background: var(--danger); }
 .pc-item.is-unclear .pc-mark { background: var(--warn); }
 .pc-next { font-size: 0.86rem; margin-top: 10px; font-weight: 600; }
+
+/* ---------- /app: TechMood on your phone ---------- */
+.app-page .app-h2 { text-align: center; margin-bottom: 20px; }
+.app-install { display: flex; gap: 24px; align-items: center; justify-content: space-between; max-width: 760px; margin-inline: auto; }
+.app-install-main { display: grid; gap: 12px; justify-items: start; flex: 1; min-width: 0; }
+.app-install-head { display: flex; align-items: center; gap: 12px; }
+.app-install-head > div { display: grid; }
+.app-icon { border-radius: 14px; box-shadow: 0 4px 14px rgba(0, 107, 224, 0.18); }
+.app-name { font-size: 1.15rem; }
+.app-small { font-size: 0.82rem; }
+.app-state { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.app-install-btn { font-size: 1rem; padding-inline: 22px; }
+.app-steps { margin: 0; padding-inline-start: 22px; display: grid; gap: 6px; }
+.app-steps li::marker { color: var(--royal); font-weight: 700; }
+.app-share-icon { vertical-align: -3px; color: var(--royal); }
+.app-qr { margin: 0; display: grid; gap: 6px; justify-items: center; text-align: center; max-width: 180px; }
+.app-qr img { border-radius: 10px; background: #fff; padding: 6px; border: 1px solid var(--line); }
+.app-faq { display: grid; gap: 10px; max-width: 760px; margin-inline: auto; }
+.app-faq details { padding: 14px 16px; }
+.app-faq summary { cursor: pointer; font-weight: 600; }
+.app-faq details p { margin-top: 8px; }
+@media (max-width: 640px) {
+  .app-install { flex-direction: column; align-items: stretch; }
+  .app-install-btn { width: 100%; }
+}

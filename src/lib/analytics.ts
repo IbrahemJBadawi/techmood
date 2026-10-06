@@ -47,7 +47,9 @@ export type AnalyticsEvent =
   | 'precheck_shown'
   | 'booking_requested'
   | 'certificate_linkedin'
-  | 'linkedin_post';
+  | 'linkedin_post'
+  | 'app_installed'
+  | 'app_install_dismissed';
 
 export function track(event: AnalyticsEvent, properties?: Record<string, string | number | boolean | null>) {
   if (!started) return;

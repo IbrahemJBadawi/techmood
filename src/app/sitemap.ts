@@ -12,7 +12,7 @@ export const revalidate = 3600;
  * visitor may see is listed). Profiles are left out on purpose.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const fixed: MetadataRoute.Sitemap = ['', '/about', '/exhibition', '/policies', '/verify', '/signup'].map((path) => ({
+  const fixed: MetadataRoute.Sitemap = ['', '/about', '/app', '/exhibition', '/policies', '/verify', '/signup'].map((path) => ({
     url: `${SITE_URL}${path}`,
     changeFrequency: path === '' || path === '/exhibition' ? 'daily' : 'monthly',
     priority: path === '' ? 1 : 0.6,

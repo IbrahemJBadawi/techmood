@@ -94,6 +94,7 @@ export async function SiteFooter() {
       links: [
         { href: '/signup', label: t('أنشئ حساباً', 'Create an account') },
         { href: '/login', label: t('تسجيل الدخول', 'Sign in') },
+        { href: '/app', label: t('تطبيق الجوال', 'Mobile app') },
         { href: '/verify', label: t('تحقّق من شهادة', 'Verify a certificate') },
         { href: '/support', label: t('المساعدة والبلاغات', 'Help & reports') },
       ],
