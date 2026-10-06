@@ -3888,7 +3888,8 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 @media (max-width: 760px) {
   .sidebar { display: none; }
   .topbar-inner { padding: 8px 12px; gap: 6px; }
-  .topbar-brand { display: flex; align-items: center; flex: none; }
+  .topbar-brand { display: flex; align-items: center; gap: 8px; flex: none; color: var(--ink); text-decoration: none; }
+  .topbar-wordmark { font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; direction: ltr; }
   .header-search, .topbar-wide { display: none; }
   .topbar-search-icon { display: grid; }
   .topbar-actions { margin-inline-start: auto; gap: 4px; }

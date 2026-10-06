@@ -159,6 +159,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="topbar-inner">
             <Link className="topbar-brand" href="/home" aria-label="TechMood">
               <LogoMark size={28} />
+              <span className="topbar-wordmark" aria-hidden="true">TechMood</span>
             </Link>
             <HeaderSearch />
 
