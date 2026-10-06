@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@/components/Analytics';
 
 import { DeviceBoot } from '@/components/DeviceSetup';
+import { OfflineStatus } from '@/components/OfflineStatus';
 import { LocaleProvider } from '@/lib/i18n.client';
 import { dirFor } from '@/lib/i18n';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               and offers «Install app» rather than a shortcut. */}
           <DeviceBoot />
           <Analytics />
+          <OfflineStatus />
           {children}
         </LocaleProvider>
       </body>

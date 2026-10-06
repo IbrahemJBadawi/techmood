@@ -13,6 +13,8 @@
   img { width: 72px; height: 72px; }
   h1 { font-size: 1.2rem; margin: 16px 0 8px; }
   p { font-size: 0.92rem; opacity: 0.8; line-height: 1.7; }
+  a { display: block; margin-top: 14px; color: #007BFF; font-size: 0.92rem; }
+  @media (prefers-color-scheme: dark) { a { color: #5AA8FF; } }
   button { margin-top: 16px; padding: 10px 20px; border: 0; border-radius: 10px; background: #007BFF; color: #fff; font: inherit; }
 </style>
 </head>
@@ -20,8 +22,9 @@
 <main>
   <img src="/logo-mark.png" alt="TechMood">
   <h1>لا يوجد اتصال بالإنترنت</h1>
-  <p>TechMood يحتاج اتصالاً ليعرض بياناتك المحدّثة. تحقّق من الشبكة ثم أعد المحاولة.</p>
+  <p>هذه الصفحة لم تُفتح من قبل على هذا الجهاز، فلا نسخة محفوظة منها. الصفحات التي فتحتها سابقاً تعمل بلا اتصال.</p>
   <button onclick="location.reload()">أعد المحاولة</button>
+  <a href="/home">افتح الرئيسية</a>
 </main>
 </body>
 </html>

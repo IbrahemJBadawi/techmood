@@ -8,4 +8,6 @@ export const SUPPORT_EMAIL = 'support@techmoodtech.com';
  * (src/lib/site.ts), so a session is never started on one host and finished
  * on another.
  */
-export const SITE_URL = 'https://techmoodtech.com';
+// techmoodtech.com is on hold at the registrar; until it is back, the Vercel
+// address is the official one (migration 0142 does the same in the database).
+export const SITE_URL = 'https://techmoodtech.vercel.app';

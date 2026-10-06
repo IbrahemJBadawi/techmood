@@ -10519,9 +10519,9 @@ select public.assert(
   '99.3 an instant booking whose time came first is closed — unpaid expires, a pending receipt is cancelled for review');
 
 select public.assert(
-  (select value from public.platform_settings where key = 'site_url') = 'https://techmoodtech.com'
+  (select value from public.platform_settings where key = 'site_url') = 'https://techmoodtech.vercel.app'
   and (select value from public.platform_settings where key = 'support_email') = 'support@techmoodtech.com',
-  '99.4 the platform speaks from techmoodtech.com');
+  '99.4 links lead to the Vercel address while techmoodtech.com is on hold (0142)');
 
 set role authenticated;
 set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';

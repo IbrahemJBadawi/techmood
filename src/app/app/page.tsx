@@ -33,7 +33,7 @@ export default async function AppPage() {
     { icon: '📱', title: t('شاشة كاملة', 'Full screen'), body: t('يفتح من أيقونته على الشاشة الرئيسية بلا شريط المتصفح، بشريط تبويبات سفلي مثل أي تطبيق.', 'Opens from its icon on the home screen without the browser bar, with a bottom tab bar like any app.') },
     { icon: '⚡', title: t('خفيف جداً', 'Very light'), body: t('أقل من 1 ميغابايت على جهازك، لا يستهلك مساحة ولا ذاكرة.', 'Under 1 MB on your device; it takes no real space or memory.') },
     { icon: '🔄', title: t('يتحدّث وحده', 'Updates itself'), body: t('كل ميزة جديدة تصلك فوراً، بلا تحديثات ولا انتظار متجر.', 'Every new feature reaches you at once — no updates to install, no store to wait for.') },
-    { icon: '🔒', title: t('نفس حسابك ونفس الأمان', 'Same account, same security'), body: t('هو موقع TechMood الرسمي نفسه على techmoodtech.com، بنفس الحساب والبيانات.', 'It is the official TechMood site itself, on techmoodtech.com, with the same account and data.') },
+    { icon: '🔒', title: t('نفس حسابك ونفس الأمان', 'Same account, same security'), body: t('هو موقع TechMood الرسمي نفسه، بنفس الحساب والبيانات.', 'It is the official TechMood site itself, with the same account and data.') },
     { icon: '🌐', title: t('كل الأجهزة', 'Every device'), body: t('Android وiPhone وiPad والكمبيوتر — تبدأ على جهاز وتكمل على آخر.', 'Android, iPhone, iPad and computers — start on one, carry on on another.') },
   ];
 
