@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { BarList, ColumnChart } from '@/components/Charts';
+import { BarList, ColumnChart, Funnel, KpiCard, LineChart } from '@/components/Charts';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { TICKET_CATEGORY } from '@/lib/support';
@@ -21,17 +21,34 @@ export default async function AdminAnalyticsPage() {
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (!isAdmin) redirect('/home');
 
-  const [{ data: weeks }, { data: tickets }, { data: paths }, { data: jobs }] = await Promise.all([
+  const [{ data: weeks }, { data: tickets }, { data: paths }, { data: jobs }, { data: funnel }] = await Promise.all([
     supabase.rpc('admin_weekly_metrics', { p_weeks: 12 }),
     supabase.rpc('admin_ticket_stats', { p_days: 90 }),
     supabase.rpc('admin_top_paths', { p_limit: 10 }),
     supabase.rpc('admin_scheduled_jobs'),
+    supabase.rpc('admin_signup_funnel', { p_days: 30 }),
   ]);
 
   const label = (week: string) => week.slice(5).replace('-', '/');
   const series = (key: 'signups' | 'active_people' | 'enrolments' | 'certificates' | 'sessions_completed' | 'tickets_opened') =>
     (weeks ?? []).map((row) => ({ label: label(row.week), value: row[key] }));
   const table = t('عرض الأرقام', 'Show the numbers');
+  // the KPI cards compare the last full week with the one before it: the current week is still running
+  const rows = weeks ?? [];
+  const lastFull = rows[rows.length - 2];
+  const beforeThat = rows[rows.length - 3];
+  type Measure = 'signups' | 'active_people' | 'enrolments' | 'sessions_completed';
+  const kpi = (key: Measure, title: string) => (
+    <KpiCard key={key} label={title} value={lastFull?.[key] ?? 0} previous={beforeThat?.[key] ?? 0}
+             period={t('عن الأسبوع الذي قبله', 'vs the week before')} newLabel={t('جديد', 'new')} />
+  );
+  const STEP = {
+    signed_up:            t('سجّلوا', 'Signed up'),
+    onboarded:            t('أكملوا الإعداد', 'Finished onboarding'),
+    enrolled:             t('التحقوا بمسار أو دورة', 'Joined a path or course'),
+    first_lesson:         t('أنهوا أول درس', 'Finished a first lesson'),
+    certified_or_session: t('شهادة أو جلسة إرشاد', 'A certificate or a mentoring session'),
+  } as const;
   const time = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'short', timeStyle: 'short' });
 
   return (
@@ -44,9 +61,28 @@ export default async function AdminAnalyticsPage() {
         </p>
       </section>
 
+      {/* design lab 4: numbers with their change, a line for the trend, the funnel, then each measure's own bars */}
+      <section className="section-block">
+        <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('الأسبوع الماضي', 'Last week')}</h3>
+        <div className="kpi-grid">
+          {kpi('signups', t('تسجيلات جديدة', 'New sign-ups'))}
+          {kpi('active_people', t('أشخاص نشطون', 'Active people'))}
+          {kpi('enrolments', t('التحاق بالمسارات', 'Path enrolments'))}
+          {kpi('sessions_completed', t('جلسات مكتملة', 'Sessions held'))}
+        </div>
+      </section>
+
+      <section className="section-block detail-grid">
+        <LineChart title={t('أشخاص نشطون — اتجاه 12 أسبوعاً', 'Active people — 12-week trend')} data={series('active_people')} tableLabel={table} />
+        <div className="panel">
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 4 }}>{t('من التسجيل إلى أول نتيجة', 'From sign-up to a first result')}</h3>
+          <p className="muted" style={{ fontSize: '0.8rem', marginBottom: 12 }}>{t('من سجّلوا في آخر 30 يوماً', 'People who joined in the last 30 days')}</p>
+          <Funnel steps={(funnel ?? []).map((row) => ({ label: STEP[row.step], value: row.people }))} ofPrevious={t('من الخطوة السابقة', 'of the step before')} />
+        </div>
+      </section>
+
       <section className="section-block chart-grid-4">
         <ColumnChart title={t('تسجيلات جديدة', 'New sign-ups')} data={series('signups')} tableLabel={table} />
-        <ColumnChart title={t('أشخاص نشطون', 'Active people')} data={series('active_people')} tableLabel={table} />
         <ColumnChart title={t('التحاق بالمسارات', 'Path enrolments')} data={series('enrolments')} tableLabel={table} />
         <ColumnChart title={t('شهادات صادرة', 'Certificates issued')} data={series('certificates')} tableLabel={table} />
         <ColumnChart title={t('جلسات إرشاد مكتملة', 'Mentoring sessions held')} data={series('sessions_completed')} tableLabel={table} />

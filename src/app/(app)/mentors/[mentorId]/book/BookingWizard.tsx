@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { useActionState, useMemo, useRef, useState } from 'react';
 
 import { formatSlot, money, SLOT_STATE } from '@/lib/booking';
 import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database.types';
@@ -11,6 +11,7 @@ import { IS_MVP } from '@/lib/scope';
 import { createBooking, type BookingState } from '../../actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 import { mentorLevelLabel } from '@/lib/mentor-levels';
+import { MethodLogo } from '@/components/MethodLogo';
 
 type Slot = { slot_start: string; slot_end: string; state: SlotState };
 type ReviewCandidate = { kind: string; id: string | null; label: string };
@@ -64,6 +65,7 @@ export function BookingWizard({
   const basePrice = prices[sessionTypeId] ?? 0;
   const price = instant ? Math.round(basePrice * (100 + instantPct)) / 100 : basePrice;
   const [methodKey, setMethodKey] = useState('');
+  const [goal, setGoal] = useState('');
 
   // Slots arrive flat; the picker is a day at a time.
   const byDay = useMemo(() => {
@@ -96,6 +98,31 @@ export function BookingWizard({
   const local = paymentMethods.filter((method) => method.category === 'local');
   const international = paymentMethods.filter((method) => method.category === 'international');
 
+  // one step per screen (design lab 4), with dots for where you are; every field stays in the form, only hidden
+  const steps = [
+    ...(teams.length > 0 || companies.length > 0 ? [{ key: 'who', title: t('لمن الجلسة', 'Who it is for') }] : []),
+    { key: 'type', title: t('نوع الجلسة', 'Session type') },
+    { key: 'time', title: t('الموعد', 'Time') },
+    { key: 'goal', title: t('هدف الجلسة', 'Session goal') },
+    { key: 'pay', title: t('الدفع والتأكيد', 'Payment and confirm') },
+  ] as const;
+  const [stepIndex, setStepIndex] = useState(0);
+  const current = steps[stepIndex]?.key ?? 'type';
+  const isLast = stepIndex === steps.length - 1;
+  const ready: Record<string, boolean> = {
+    who: !activeGroup || seats.length > 0,
+    type: Boolean(sessionTypeId),
+    time: Boolean(slotStart),
+    goal: goal.trim().length > 0,
+    pay: Boolean(methodKey),
+  };
+  const top = useRef<HTMLFormElement>(null);
+  const go = (index: number) => {
+    setStepIndex(index);
+    top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+  const canSend = !pending && Boolean(slotStart) && Boolean(methodKey) && Boolean(sessionTypeId) && ready.goal && ready.who;
+
   if (byDay.length === 0) {
     return (
       <p className="notice">
@@ -106,7 +133,7 @@ export function BookingWizard({
   }
 
   return (
-    <form action={formAction}>
+    <form action={formAction} ref={top} className={`booking-wizard${isLast ? ' is-final' : ''}`}>
       <input type="hidden" name="mentor_id" value={mentorId} />
       <input type="hidden" name="session_type_id" value={sessionTypeId} />
       <input type="hidden" name="starts_at" value={slotStart} />
@@ -115,12 +142,23 @@ export function BookingWizard({
       <input type="hidden" name="startup_id" value={companyId} />
       {seats.map((seat) => <input type="hidden" name="seat" value={seat} key={seat} />)}
 
+      <div className="step-dots-wrap booking-dots">
+        <ol className="step-dots" aria-label={t(`الخطوة ${stepIndex + 1} من ${steps.length}`, `Step ${stepIndex + 1} of ${steps.length}`)}>
+          {steps.map((item, index) => (
+            <li key={item.key} className={index === stepIndex ? 'is-now' : index < stepIndex ? 'is-done' : ''}
+                aria-current={index === stepIndex ? 'step' : undefined}>
+              <span className="sr-only">{item.title}</span>
+            </li>
+          ))}
+        </ol>
+        <strong className="step-dots-title">{steps[stepIndex]?.title}</strong>
+      </div>
+
       <div className="detail-grid">
         <div>
           {(teams.length > 0 || companies.length > 0) && (
-            <section className="step">
+            <section className="step" hidden={current !== 'who'}>
               <div className="step-head">
-                <span className="step-num">0</span>
                 <h3>{t('لمن هذه الجلسة؟', 'Who is this session for?')}</h3>
               </div>
 
@@ -199,9 +237,8 @@ export function BookingWizard({
           )}
 
           {/* 1 — session type */}
-          <section className="step">
+          <section className="step" hidden={current !== 'type'}>
             <div className="step-head">
-              <span className="step-num">1</span>
               <h3>{t('نوع الجلسة', 'Session type')}</h3>
             </div>
             <div className="choice-grid">
@@ -227,9 +264,8 @@ export function BookingWizard({
           </section>
 
           {/* 2 — slot */}
-          <section className="step">
+          <section className="step" hidden={current !== 'time'}>
             <div className="step-head">
-              <span className="step-num">2</span>
               <h3>{t('الموعد', 'Time')}</h3>
             </div>
 
@@ -296,9 +332,8 @@ export function BookingWizard({
           </section>
 
           {/* 3 — goal */}
-          <section className="step">
+          <section className="step" hidden={current !== 'goal'}>
             <div className="step-head">
-              <span className="step-num">3</span>
               <h3>{t('هدف الجلسة', 'Session goal')}</h3>
             </div>
             <div className="field">
@@ -308,6 +343,8 @@ export function BookingWizard({
                 name="goal"
                 rows={4}
                 required
+                value={goal}
+                onChange={(event) => setGoal(event.target.value)}
                 placeholder={t('مثال: أريد مراجعة مشروعي وتحديد الخطوات التالية لبناء الـBackend.', 'For example: I want my project reviewed and the next steps for building the backend.')}
               />
             </div>
@@ -338,9 +375,8 @@ export function BookingWizard({
           </section>
 
           {/* 4 — payment method */}
-          <section className="step">
+          <section className="step" hidden={current !== 'pay'}>
             <div className="step-head">
-              <span className="step-num">4</span>
               <h3>{t('طريقة الدفع', 'Payment method')}</h3>
             </div>
 
@@ -364,7 +400,7 @@ export function BookingWizard({
                           checked={method.key === methodKey}
                           onChange={() => setMethodKey(method.key)}
                         />
-                        <span className="choice-title">{method.icon} {method.name_ar}</span>
+                        <span className="choice-title choice-with-logo"><MethodLogo methodKey={method.key} icon={method.icon} size={30} /> {t(method.name_ar, method.name_en)}</span>
                         <span className="choice-sub">
                           {method.supports_automatic_payment
                             ? t('دفع مباشر', 'Direct payment')
@@ -382,6 +418,17 @@ export function BookingWizard({
                  'This step creates the request and holds the slot for you. Payment instructions and the receipt upload come next.')}
             </p>
           </section>
+
+          <div className="wizard-nav">
+            {stepIndex > 0 && (
+              <button type="button" className="btn btn-ghost" onClick={() => go(stepIndex - 1)}>{t('→ السابق', '← Back')}</button>
+            )}
+            {!isLast && (
+              <button type="button" className="btn btn-primary" disabled={!ready[current]} onClick={() => go(stepIndex + 1)}>
+                {t('التالي ←', 'Next →')}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* summary */}
@@ -444,12 +491,14 @@ export function BookingWizard({
 
             {state?.error && <p className="notice notice-danger" style={{ marginTop: 14 }}>{state.error}</p>}
 
-            <button
-              className="btn btn-primary"
-              style={{ width: '100%', marginTop: 16 }}
-              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)} aria-busy={pending}>
-              {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
-            </button>
+            {isLast && (
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 16 }}
+                disabled={!canSend} aria-busy={pending}>
+                {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
+              </button>
+            )}
 
             <p className="muted" style={{ fontSize: '0.74rem', marginTop: 10 }}>
               {IS_MVP
@@ -467,12 +516,15 @@ export function BookingWizard({
           <span className="muted">{t('الإجمالي', 'Total')}</span>
           <strong className="eng">{money(total)}</strong>
         </span>
-        <button
-          className="btn btn-primary"
-          type="submit"
-          disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)} aria-busy={pending}>
-          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
-        </button>
+        {isLast ? (
+          <button className="btn btn-primary" type="submit" disabled={!canSend} aria-busy={pending}>
+            {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
+          </button>
+        ) : (
+          <button className="btn btn-primary" type="button" disabled={!ready[current]} onClick={() => go(stepIndex + 1)}>
+            {t('التالي ←', 'Next →')}
+          </button>
+        )}
       </div>
     </form>
   );

@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { choosePaymentMethod } from '@/app/(app)/wallet/actions';
+import { MethodLogo } from '@/components/MethodLogo';
 
 export type MethodOption = {
   key: string;
@@ -48,24 +49,28 @@ export function MethodPicker({ paymentId, options, revalidate }: {
       <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('اختر طريقة الدفع', 'Choose how to pay')}</h3>
       <div className="method-cards">
         {options.map((option) => (
-          <div key={option.key} className={`method-card${option.is_current ? ' is-current' : ''}`}>
-            <strong>{option.icon} {option.name_ar}</strong>
-            {option.is_current ? (
-              <span className="status-pill status-ok">{t('المختارة', 'Chosen')}</span>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                disabled={pending}
-                onClick={() => startTransition(async () => {
-                  const result = await choosePaymentMethod(paymentId, option.key, revalidate);
-                  setError(result.ok ? '' : result.error ?? '');
-                  router.refresh();
-                })} aria-busy={pending}>
-                {revealLabel(option, t)}
-              </button>
-            )}
-          </div>
+          // the whole card is the choice: a tap on it switches the payment to this method
+          <button
+            key={option.key}
+            type="button"
+            className={`method-card${option.is_current ? ' is-current' : ''}`}
+            aria-pressed={option.is_current}
+            disabled={pending}
+            onClick={() => {
+              if (option.is_current) return;
+              startTransition(async () => {
+                const result = await choosePaymentMethod(paymentId, option.key, revalidate);
+                setError(result.ok ? '' : result.error ?? '');
+                router.refresh();
+              });
+            }}>
+            <MethodLogo methodKey={option.key} icon={option.icon} />
+            <span className="method-card-text">
+              <strong>{t(option.name_ar, option.name_en)}</strong>
+              <small>{option.is_current ? t('المختارة — بياناتها بالأسفل', 'Chosen — details below') : revealLabel(option, t)}</small>
+            </span>
+            <span className="method-card-check" aria-hidden>{option.is_current ? '✓' : ''}</span>
+          </button>
         ))}
       </div>
       {error && <p className="notice notice-danger">{error}</p>}

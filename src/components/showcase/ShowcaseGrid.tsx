@@ -52,6 +52,57 @@ export async function ShowcaseGrid({
   const cards = (data ?? []) as ShowcaseCard[];
   const href = (code: string) => (inApp ? `/p/${code}` : galleryPath(code));
 
+  const [lead, ...rest] = cards;
+  // a card without a picture still varies in height, so the columns do not read as a grid
+  const SHAPES = ['4 / 3', '1 / 1', '16 / 10', '3 / 4'];
+  const renderCard = (card: ShowcaseCard, index: number, isLead: boolean) => {
+    const cover = mediaUrl(card.cover);
+    return (
+      <Link className={`sc-card-item${isLead ? ' is-lead' : ''}`} href={href(card.code)} key={card.project_id}>
+        <span className={`sc-card-cover${cover ? ' has-img' : ''}`} style={cover || isLead ? undefined : { aspectRatio: SHAPES[index % SHAPES.length] }}>
+          {cover
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={cover} alt="" loading="lazy" />
+            : <span className="sc-card-initial">{card.title.trim().charAt(0)}</span>}
+          {card.product_type && <span className="sc-card-type">{t(PRODUCT_TYPES[card.product_type])}</span>}
+          {showPrices && card.discount_pct > 0 && <span className="sc-card-discount eng">-{card.discount_pct}%</span>}
+        </span>
+        <span className="sc-card-body">
+          <strong className="sc-card-title">{card.title}</strong>
+          {card.tagline && <span className="sc-card-tagline">{card.tagline}</span>}
+          <span className="sc-card-owner">
+            {card.owner_avatar
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={card.owner_avatar} alt="" className="sc-avatar is-xs" />
+              : <span className="sc-avatar is-xs is-initial" style={{ background: avatarColor(card.owner_name ?? '?') }}>{(card.owner_name ?? '?').charAt(0)}</span>}
+            {card.team_title ?? card.owner_name}
+          </span>
+          {(card.academic_title || card.mentor_rating !== null) && (
+            <span className="sc-card-academy">
+              {card.academic_title && <>🎓 {card.academic_title}</>}
+              {card.mentor_rating !== null && <> · ★ <span className="eng">{Number(card.mentor_rating).toFixed(1)}</span> {t('منتور', 'mentor')}</>}
+            </span>
+          )}
+          <span className="sc-card-stats">
+            <span>❤️ <span className="eng">{card.likes}</span></span>
+            <span>👁️ <span className="eng">{card.views}</span></span>
+            <span>💬 <span className="eng">{card.comments_count}</span></span>
+            {card.listing_id && <span>🛒 <span className="eng">{card.sales_count}</span></span>}
+            {card.rating !== null && <span>⭐ <span className="eng">{card.rating}</span></span>}
+          </span>
+          {showPrices && card.effective_price !== null && (
+            <span className="sc-card-price">
+              <b className="eng">{money(card.effective_price)}</b>
+              {card.discount_pct > 0 && card.price_usd !== null && <s className="eng">{money(card.price_usd)}</s>}
+              {card.negotiable && <small>{t('قابل للتفاوض', 'Negotiable')}</small>}
+              {card.listing_status === 'sold' && <small>{t('مباع', 'Sold')}</small>}
+            </span>
+          )}
+        </span>
+      </Link>
+    );
+  };
+
   return (
     <>
       <form className="filter-form" action={action} role="search">
@@ -86,55 +137,11 @@ export async function ShowcaseGrid({
           {emptyCta}
         </div>
       ) : (
-        <div className="sc-grid">
-          {cards.map((card) => {
-            const cover = mediaUrl(card.cover);
-            return (
-              <Link className="sc-card-item" href={href(card.code)} key={card.project_id}>
-                <span className="sc-card-cover">
-                  {cover
-                    // eslint-disable-next-line @next/next/no-img-element
-                    ? <img src={cover} alt="" loading="lazy" />
-                    : <span className="sc-card-initial">{card.title.trim().charAt(0)}</span>}
-                  {card.product_type && <span className="sc-card-type">{t(PRODUCT_TYPES[card.product_type])}</span>}
-                  {showPrices && card.discount_pct > 0 && <span className="sc-card-discount eng">-{card.discount_pct}%</span>}
-                </span>
-                <span className="sc-card-body">
-                  <strong className="sc-card-title">{card.title}</strong>
-                  {card.tagline && <span className="sc-card-tagline">{card.tagline}</span>}
-                  <span className="sc-card-owner">
-                    {card.owner_avatar
-                      // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={card.owner_avatar} alt="" className="sc-avatar is-xs" />
-                      : <span className="sc-avatar is-xs is-initial" style={{ background: avatarColor(card.owner_name ?? '?') }}>{(card.owner_name ?? '?').charAt(0)}</span>}
-                    {card.team_title ?? card.owner_name}
-                  </span>
-                  {(card.academic_title || card.mentor_rating !== null) && (
-                    <span className="sc-card-academy">
-                      {card.academic_title && <>🎓 {card.academic_title}</>}
-                      {card.mentor_rating !== null && <> · ★ <span className="eng">{Number(card.mentor_rating).toFixed(1)}</span> {t('منتور', 'mentor')}</>}
-                    </span>
-                  )}
-                  <span className="sc-card-stats">
-                    <span>❤️ <span className="eng">{card.likes}</span></span>
-                    <span>👁️ <span className="eng">{card.views}</span></span>
-                    <span>💬 <span className="eng">{card.comments_count}</span></span>
-                    {card.listing_id && <span>🛒 <span className="eng">{card.sales_count}</span></span>}
-                    {card.rating !== null && <span>⭐ <span className="eng">{card.rating}</span></span>}
-                  </span>
-                  {showPrices && card.effective_price !== null && (
-                    <span className="sc-card-price">
-                      <b className="eng">{money(card.effective_price)}</b>
-                      {card.discount_pct > 0 && card.price_usd !== null && <s className="eng">{money(card.price_usd)}</s>}
-                      {card.negotiable && <small>{t('قابل للتفاوض', 'Negotiable')}</small>}
-                      {card.listing_status === 'sold' && <small>{t('مباع', 'Sold')}</small>}
-                    </span>
-                  )}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+        // design lab 4: the first card large, the rest as masonry — each cover keeps its own shape
+        <>
+          {lead && renderCard(lead, 0, true)}
+          {rest.length > 0 && <div className="sc-mason">{rest.map((card, index) => renderCard(card, index + 1, false))}</div>}
+        </>
       )}
     </>
   );

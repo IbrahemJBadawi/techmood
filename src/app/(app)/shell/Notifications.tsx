@@ -48,7 +48,13 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
       </button>
 
       {open && (
-        <div className="header-dropdown" role="menu">
+        // a tap outside closes it; on a phone this is the dimmed page behind the bottom panel
+        <button type="button" className="menu-backdrop" aria-label={t('إغلاق', 'Close')} onClick={() => setOpen(false)} />
+      )}
+      {open && (
+        <div className="header-dropdown is-sheet" role="menu"
+             onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+          <span className="sheet-grip" aria-hidden="true" />
           <div className="header-dropdown-head">
             <strong>{t('الإشعارات', 'Notifications')}</strong>
             {unread > 0 && (

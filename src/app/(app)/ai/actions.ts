@@ -36,6 +36,8 @@ export type PanelState = {
   suggestions: { label: string; prompt: string }[];
   /** Whether a model can actually be reached from this deployment. */
   live: boolean;
+  /** The member's latest conversations, offered when the panel opens empty (design lab 4). */
+  recent?: { id: string; title: string; at: string }[];
   error?: string;
 };
 
@@ -88,7 +90,13 @@ export async function openPanel(where: PanelWhere, threadId: string | null): Pro
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  return { ...(await readThread(supabase, threadId, where.surface)), live: await aiConfigured(supabase) };
+  const [thread, live, { data: threads }] = await Promise.all([
+    readThread(supabase, threadId, where.surface),
+    aiConfigured(supabase),
+    supabase.rpc('my_ai_threads', { p_include_archived: false }),
+  ]);
+  const recent = (threads ?? []).slice(0, 3).map((row) => ({ id: row.id, title: row.title_ar, at: row.last_message_at }));
+  return { ...thread, live, recent };
 }
 
 /**

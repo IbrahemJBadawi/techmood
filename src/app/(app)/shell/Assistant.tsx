@@ -99,6 +99,9 @@ export function Assistant() {
       </button>
 
       {isOpen && (
+        <button type="button" className="ai-backdrop" aria-label={t('إغلاق', 'Close')} onClick={assistant.close} />
+      )}
+      {isOpen && (
         <aside className="ai-panel" role="dialog" aria-label={t('مساعد TechMood', 'TechMood AI')}>
           <header className="ai-panel-head">
             <div>
@@ -150,6 +153,30 @@ export function Assistant() {
             onSuggestion={send}
             emptyHint={t('أهلاً! اسألني عن هذه الصفحة، عن مسارك، أو عن أي شيء في TechMood.',
                          'Hi! Ask me about this page, your path, or anything on TechMood.')}
+            emptyExtra={(
+              // design lab 4: suggestions, where you are, quick actions and your latest threads, together
+              <div className="ai-start">
+                <p className="ai-start-where">
+                  {t('أنت في: ', 'You are in: ')}<strong>{surface.icon} {t(surface.label)}{where.label ? ` — ${where.label}` : ''}</strong>
+                </p>
+                <div className="ai-start-actions">
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('لخّص لي هذه الصفحة في نقاط قصيرة.', 'Summarise this page for me in short points.'))}>📝 {t('لخّص', 'Summarise')}</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('اشرح لي ما في هذه الصفحة ببساطة.', 'Explain what is on this page simply.'))}>💡 {t('اشرح', 'Explain')}</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('ضع لي خطة خطوات قصيرة انطلاقاً من هذه الصفحة.', 'Give me a short step-by-step plan from this page.'))}>🗺️ {t('خطة', 'Plan')}</button>
+                </div>
+                {(state.recent ?? []).length > 0 && (
+                  <div className="ai-start-recent">
+                    <span className="muted">{t('تابع من حيث توقفت', 'Pick up where you left off')}</span>
+                    {(state.recent ?? []).map((thread) => (
+                      <button type="button" key={thread.id} className="ai-start-thread"
+                              onClick={() => startTransition(async () => setState(await openPanel(wire, thread.id)))}>
+                        ✦ {thread.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           />
 
           {state.error && <p className="form-error ai-form-error">{state.error}</p>}

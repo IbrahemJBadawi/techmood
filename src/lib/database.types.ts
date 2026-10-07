@@ -3107,6 +3107,10 @@ export type Database = {
           sessions_completed: number; tickets_opened: number; tickets_resolved: number;
         }[];
       };
+      admin_signup_funnel: {
+        Args: { p_days?: number };
+        Returns: { step: 'signed_up' | 'onboarded' | 'enrolled' | 'first_lesson' | 'certified_or_session'; people: number }[];
+      };
       admin_ticket_stats: {
         Args: { p_days?: number };
         Returns: { category: TicketCategory; opened: number; escalated: number; resolved: number; avg_hours_to_resolve: number | null }[];

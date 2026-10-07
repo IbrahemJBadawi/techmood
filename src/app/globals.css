@@ -3800,7 +3800,7 @@ button.explore-chip { cursor: pointer; font: inherit; font-size: 0.86rem; }
 .chart-grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .chart-card { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--panel); }
 .chart-title { font-size: 0.86rem; font-weight: 600; margin-bottom: 6px; }
-.chart-svg { width: 100%; height: auto; display: block; }
+.chart-svg { width: 100%; height: auto; display: block; direction: ltr; }
 .chart-mark { fill: var(--royal); }
 .chart-hit { fill: transparent; }
 .chart-band:hover .chart-mark { filter: brightness(1.15); }
@@ -7081,7 +7081,9 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
 
 /* ===================== screen review fixes (from the founder's phone) ===================== */
 
-/* the bell and profile menus never leave the screen on a phone */
+/* the bell and profile menus never leave the screen on a phone; the bell's opens as a panel from the bottom (design lab 4) */
+.menu-backdrop { position: fixed; inset: 0; z-index: 94; border: 0; padding: 0; background: transparent; cursor: default; }
+.sheet-grip { display: none; }
 @media (max-width: 760px) {
   .header-dropdown {
     position: fixed; top: calc(env(safe-area-inset-top, 0px) + 66px);
@@ -7090,16 +7092,48 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
     border-radius: var(--radius-m);
     z-index: 140;
   }
-}
-
-/* the assistant on a phone: the whole screen, above the tab bar, so its send button is never covered */
-@media (max-width: 720px) {
-  .ai-panel {
-    inset: env(safe-area-inset-top, 0px) 0 0 0; height: auto; z-index: 130;
-    border-radius: 0; border-top: 0; box-shadow: none;
+  .menu-backdrop { z-index: 139; background: rgba(11, 27, 43, 0.4); animation: fade-in 0.2s ease; }
+  .header-dropdown.is-sheet {
+    top: auto; bottom: 0; inset-inline: 0; width: 100%;
+    max-height: 82dvh; padding: 4px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-l) var(--radius-l) 0 0; border: 0;
+    box-shadow: 0 -20px 50px -20px rgba(11, 27, 43, 0.45);
+    animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
+  .header-dropdown.is-sheet .sheet-grip { display: block; width: 44px; height: 5px; border-radius: 99px; background: var(--line-strong); margin: 8px auto 6px; }
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* the assistant on a phone: a panel from the bottom (design lab 4), above the tab bar, so its send button is never covered;
+   the page behind dims, and a tap on it closes the panel */
+.ai-backdrop { display: none; }
+@media (max-width: 720px) {
+  .ai-backdrop {
+    display: block; position: fixed; inset: 0; z-index: 129; border: 0; padding: 0; cursor: default;
+    background: rgba(11, 27, 43, 0.42); animation: fade-in 0.2s ease;
+  }
+  .ai-panel {
+    inset: auto 0 0 0; height: 88dvh; z-index: 130;
+    border-radius: var(--radius-l) var(--radius-l) 0 0; border-top: 0;
+    box-shadow: 0 -20px 50px -20px rgba(11, 27, 43, 0.45);
+    animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .ai-panel::before { content: ""; display: block; flex: none; width: 44px; height: 5px; border-radius: 99px; background: var(--line-strong); margin: 8px auto 0; }
   .ai-panel .ai-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* what the assistant shows before the first question: where you are, quick actions, your latest threads */
+.ai-start { display: grid; gap: 10px; margin-top: 12px; text-align: start; }
+.ai-start-where { margin: 0; padding: 9px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--royal) 8%, var(--panel)); font-size: 0.86rem; }
+.ai-start-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-start-recent { display: grid; gap: 6px; }
+.ai-start-recent > .muted { font-size: 0.78rem; }
+.ai-start-thread {
+  display: block; width: 100%; text-align: start; font: inherit; font-size: 0.86rem; color: var(--ink);
+  padding: 9px 12px; border-radius: var(--radius-s); border: 1px solid var(--line); background: var(--panel);
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ai-start-thread:hover { border-color: var(--royal); }
 
 /* working hours: each day fits the screen, the two times share what is left */
 .availability-row { grid-template-columns: 64px minmax(0, 1fr) auto minmax(0, 1fr); }
@@ -7130,3 +7164,79 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
 .ai-thread-list .ai-thread-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .ai-thread-list .muted { font-size: 0.8rem; }
 .time-select { width: 100%; min-width: 0; }
+
+/* gallery and market cards (design lab 4): the first one large, the rest as masonry columns where each picture keeps its shape */
+.sc-card-item.is-lead { margin-bottom: 14px; }
+.sc-card-item.is-lead .sc-card-cover { aspect-ratio: 16 / 8; }
+.sc-card-item.is-lead .sc-card-title { font-size: 1.2rem; }
+@media (min-width: 760px) {
+  .sc-card-item.is-lead { flex-direction: row; }
+  .sc-card-item.is-lead .sc-card-cover { flex: 0 0 56%; aspect-ratio: 16 / 10; }
+  .sc-card-item.is-lead .sc-card-body { align-content: center; padding: 20px 22px; }
+}
+.sc-mason { columns: 2; column-gap: 10px; }
+.sc-mason > .sc-card-item { break-inside: avoid; margin-bottom: 10px; display: flex; width: 100%; }
+.sc-mason .sc-card-cover.has-img { aspect-ratio: auto; }
+.sc-mason .sc-card-cover.has-img img { position: static; display: block; height: auto; max-height: 420px; }
+@media (min-width: 760px) { .sc-mason { columns: 3; column-gap: 16px; } .sc-mason > .sc-card-item { margin-bottom: 16px; } }
+@media (min-width: 1200px) { .sc-mason { columns: 4; } }
+@media (max-width: 759px) {
+  .sc-mason .sc-card-body { padding: 9px 10px 11px; gap: 4px; }
+  .sc-mason .sc-card-title { font-size: 0.9rem; }
+  .sc-mason .sc-card-tagline, .sc-mason .sc-card-academy { font-size: 0.76rem; }
+  .sc-mason .sc-card-stats { gap: 6px; font-size: 0.72rem; }
+  .sc-mason .sc-card-price b { font-size: 1rem; }
+  .sc-mason .sc-card-type, .sc-mason .sc-card-discount { top: 7px; padding: 2px 8px; font-size: 0.66rem; }
+  .sc-mason .sc-card-type { inset-inline-start: 7px; } .sc-mason .sc-card-discount { inset-inline-end: 7px; }
+  .sc-mason .sc-card-initial { font-size: 1.8rem; }
+}
+
+/* how to pay (design lab 4): cards with each method's mark, the whole card is the choice */
+.method-logo { display: inline-grid; place-items: center; flex: none; border-radius: 12px; color: #fff; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.method-cards { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.method-card {
+  flex-direction: row; align-items: center; gap: 12px; width: 100%; text-align: start;
+  font: inherit; color: var(--ink); cursor: pointer; border-width: 1.5px; min-height: 64px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.method-card:hover:not(.is-current) { border-color: color-mix(in srgb, var(--royal) 45%, var(--line)); }
+.method-card:disabled { cursor: progress; opacity: 0.7; }
+.method-card.is-current { cursor: default; }
+.method-card-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.method-card-text small { color: var(--ink-soft); font-size: 0.76rem; }
+.method-card-check { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-size: 0.78rem; font-weight: 800; }
+.method-card.is-current .method-card-check { background: var(--royal); border-color: var(--royal); color: #fff; }
+.pay-to-head { display: flex; align-items: center; gap: 10px; font-size: 0.98rem; margin-bottom: 8px; }
+
+/* admin analytics (design lab 4): numbers with their change, a trend line, and the sign-up funnel */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+.kpi-card { display: grid; gap: 4px; padding: 14px; border-radius: var(--radius-s); background: var(--panel); border: 1px solid var(--line); }
+.kpi-label { font-size: 0.8rem; color: var(--ink-soft); }
+.kpi-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+.kpi-change { font-size: 0.76rem; font-weight: 700; }
+.kpi-change.is-up > .kpi-delta { color: var(--ok-ink); }
+.kpi-change.is-down > .kpi-delta { color: var(--danger); }
+.kpi-change.is-flat > .kpi-delta { color: var(--ink-soft); }
+.chart-line { fill: none; stroke: var(--royal); stroke-width: 2.25; stroke-linejoin: round; stroke-linecap: round; }
+.chart-area { fill: color-mix(in srgb, var(--royal) 14%, transparent); }
+.chart-dot { fill: var(--panel); stroke: var(--royal); stroke-width: 2; }
+.funnel { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.funnel li { display: grid; gap: 4px; justify-items: center; }
+.funnel-bar {
+  display: grid; place-items: center; min-height: 30px; border-radius: 8px; color: #fff; font-weight: 800; font-size: 0.86rem;
+  background: linear-gradient(90deg, var(--royal), color-mix(in srgb, var(--royal) 75%, #5BB0FF));
+}
+.funnel-label { font-size: 0.8rem; text-align: center; }
+
+/* booking (design lab 4): one step per screen; the summary joins on the last step on a phone */
+.booking-dots { margin: 0 0 18px; }
+.wizard-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.wizard-nav .btn-primary { margin-inline-start: auto; }
+@media (max-width: 760px) {
+  .booking-wizard:not(.is-final) .detail-grid > aside { display: none; }
+  .booking-wizard .wizard-nav .btn-primary { display: none; }
+}
+.choice-with-logo { display: flex; align-items: center; gap: 10px; }
+/* the dots already name the step; the heading inside it would repeat it */
+.booking-wizard .step-head { display: none; }

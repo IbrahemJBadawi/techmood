@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { money } from '@/lib/booking';
+import { MethodLogo } from '@/components/MethodLogo';
 import type { PayField, PayTo } from '@/lib/database.types';
 
 const LABEL: Record<PayField, { ar: string; en: string }> = {
@@ -63,7 +64,10 @@ export function PayToDetails({ payTo }: { payTo: PayTo }) {
 
   return (
     <div className="pay-to-details">
-      <h3 style={{ fontSize: '0.98rem', marginBottom: 6 }}>{payTo.icon} {payTo.name_ar}</h3>
+      <h3 className="pay-to-head">
+        <MethodLogo methodKey={payTo.method_key} icon={payTo.icon} size={34} />
+        {t(payTo.name_ar, payTo.name_en)}
+      </h3>
       {payTo.instructions_ar && (
         <p className="muted" style={{ fontSize: '0.86rem', marginBottom: 12 }}>{payTo.instructions_ar}</p>
       )}

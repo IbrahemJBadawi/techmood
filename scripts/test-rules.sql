@@ -10815,6 +10815,26 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- -----------------------------------------------------------------------------
+-- 107. The sign-up funnel on the admin analytics page (0146)
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  not exists (select 1 from public.admin_signup_funnel(365)),
+  '107.1 a member sees nothing');
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select count(*) from public.admin_signup_funnel(365)) = 5
+  and (select people from public.admin_signup_funnel(365) where step = 'signed_up')
+      = (select count(*) from public.profiles where created_at > now() - interval '365 days'),
+  '107.2 an admin sees five steps, starting from everyone who joined in the window');
+select public.assert(
+  (select array_agg(step) from public.admin_signup_funnel(365))
+    = array['signed_up', 'onboarded', 'enrolled', 'first_lesson', 'certified_or_session'],
+  '107.3 the steps come back in order');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

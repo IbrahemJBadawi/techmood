@@ -17,8 +17,10 @@ import type { PanelState } from './actions';
  * formatted, never as raw Markdown.
  */
 export function ChatThread({
-  state, sending, busyAction, onDecide, onRetry, onSuggestion, emptyHint,
+  state, sending, busyAction, onDecide, onRetry, onSuggestion, emptyHint, emptyExtra,
 }: {
+  /** more to offer under the suggestions when nothing has been asked yet */
+  emptyExtra?: React.ReactNode;
   state: PanelState;
   /** a question on its way: shown at once, with the typing bubble under it */
   sending: string | null;
@@ -49,6 +51,7 @@ export function ChatThread({
               ))}
             </div>
           )}
+          {emptyExtra}
         </div>
       )}
 
