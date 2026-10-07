@@ -199,7 +199,7 @@ export function ProjectCard({
           {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary btn-sm" disabled={pending}>
+            <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
               {pending ? t('جارٍ التقديم…', 'Submitting…') : t('قدّم للمعرض', 'Submit to the exhibition')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)}>{t('إلغاء', 'Cancel')}</button>

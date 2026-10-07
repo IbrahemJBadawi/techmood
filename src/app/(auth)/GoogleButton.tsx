@@ -21,7 +21,7 @@ export function GoogleButton({ next, label }: { next?: string; label: string }) 
     <>
       <form action={formAction}>
         {next && <input type="hidden" name="next" value={next} />}
-        <button className="btn btn-google" disabled={pending} type="submit">
+        <button className="btn btn-google" disabled={pending} type="submit" aria-busy={pending}>
           <GoogleMark />
           {pending ? t('جارٍ التحويل…', 'Redirecting…') : label}
         </button>

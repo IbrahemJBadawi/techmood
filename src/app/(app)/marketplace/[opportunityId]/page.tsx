@@ -16,6 +16,7 @@ import { closeOpportunity, recordBriefFile } from '../actions';
 import { WorkFileUpload } from '@/components/WorkFileUpload';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { BackLink } from '@/components/BackLink';
 
 export default async function OpportunityPage({
   params,
@@ -115,7 +116,7 @@ export default async function OpportunityPage({
     <>
       <AiSurface surface="opportunity" entityType="opportunity" entityId={opportunity.id} label={opportunity.title_ar} />
 
-      <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
+      <BackLink href="/marketplace" label={t('رجوع للسوق', 'Back to work')} />
       <AskAI prompt={`حلّل فرصة «${opportunity.title_ar}»: ما الذي تطلبه فعلاً، وهل أنا جاهز لها؟`} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>

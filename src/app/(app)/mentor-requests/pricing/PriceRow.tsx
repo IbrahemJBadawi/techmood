@@ -89,7 +89,7 @@ export function PriceRow({
               : t('خارج حدود مستواك', 'Outside your level’s range')}
           </span>
         </div>
-        <button className="btn btn-primary btn-sm" type="submit" disabled={pending || !valid}>
+        <button className="btn btn-primary btn-sm" type="submit" disabled={pending || !valid} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Working…') : t('احفظ', 'Save')}
         </button>
       </div>

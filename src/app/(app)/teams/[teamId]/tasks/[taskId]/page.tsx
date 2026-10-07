@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -11,6 +10,7 @@ import { MoveTask } from '../MoveTask';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { BackLink } from '@/components/BackLink';
 
 export default async function TaskDetailPage({
   params,
@@ -55,7 +55,7 @@ export default async function TaskDetailPage({
     <>
       <AiSurface surface="assignment" scope="team" entityType="team" entityId={teamId} label={task.title_ar} />
 
-      <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}/tasks`}>{t('→ رجوع للمهام', '← Back to tasks')}</Link>
+      <BackLink href={`/teams/${teamId}/tasks`} label={t('رجوع للمهام', 'Back to tasks')} />
       <AskAI prompt={`راجع مهمة «${task.title_ar}» وقل لي ما ينقصها قبل أن أعتبرها منتهية.`} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>

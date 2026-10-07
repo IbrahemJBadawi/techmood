@@ -141,13 +141,26 @@ export async function FollowingProgress() {
   );
 }
 
-/** Every achievement: the earned ones in colour first, the ones still ahead greyed (0128). */
+/**
+ * Every achievement with how far it is (design lab 3: «كل وسام مع تقدّمه»,
+ * 0145): earned ones first, then those closest to done, each with its bar.
+ */
 export async function AchievementsShelf() {
   const t = await getT();
   const supabase = await createClient();
-  const { data } = await supabase.rpc('my_achievements');
+  const [{ data }, { data: progress }] = await Promise.all([
+    supabase.rpc('my_achievements'),
+    supabase.rpc('my_achievement_progress'),
+  ]);
   const rows = data ?? [];
   if (rows.length === 0) return null;
+  const bySlug = new Map((progress ?? []).map((row) => [row.slug, row]));
+  const share = (slug: string) => {
+    const p = bySlug.get(slug);
+    return p && p.goal > 0 ? Math.min(1, p.current / p.goal) : 0;
+  };
+  const sorted = [...rows].sort((a, b) =>
+    Number(Boolean(b.awarded_at)) - Number(Boolean(a.awarded_at)) || share(b.slug) - share(a.slug));
   const earned = rows.filter((row) => row.awarded_at).length;
 
   return (
@@ -155,16 +168,33 @@ export async function AchievementsShelf() {
       <p className="muted" style={{ fontSize: '0.8rem', margin: '0 0 8px' }}>
         {t(`${earned} من ${rows.length} إنجازاً`, `${earned} of ${rows.length} achievements`)}
       </p>
-      <div className="ach-grid">
-        {rows.map((row) => (
-          <span className={`ach-item${row.awarded_at ? '' : ' is-locked'}`} key={row.slug}
-                title={`${t(row.name_ar, row.name_en ?? row.name_ar)} — ${t(row.description_ar ?? '', row.description_en ?? row.description_ar ?? '')}`}>
-            <span className="ach-icon" aria-hidden="true">{row.icon ?? '🏅'}</span>
-            <span className="ach-name">{t(row.name_ar, row.name_en ?? row.name_ar)}</span>
-            {(row.times ?? 0) > 1 && <span className="ach-times eng">×{row.times}</span>}
-          </span>
-        ))}
-      </div>
+      <ul className="ach-list">
+        {sorted.map((row) => {
+          const p = bySlug.get(row.slug);
+          const done = Boolean(row.awarded_at);
+          const pct = done ? 100 : Math.round(share(row.slug) * 100);
+          return (
+            <li className={`ach-row${done ? ' is-done' : ''}`} key={row.slug}>
+              <span className="ach-icon" aria-hidden="true">{row.icon ?? '🏅'}</span>
+              <span className="ach-body">
+                <span className="ach-top">
+                  <strong className="ach-name">{t(row.name_ar, row.name_en ?? row.name_ar)}</strong>
+                  <span className="ach-count eng">
+                    {done
+                      ? ((row.times ?? 0) > 1 ? `✓ ×${row.times}` : '✓')
+                      : p ? `${p.current}/${p.goal}` : ''}
+                  </span>
+                </span>
+                <span className="ach-desc">{t(row.description_ar ?? '', row.description_en ?? row.description_ar ?? '')}</span>
+                <span className="ach-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}
+                      aria-label={t(row.name_ar, row.name_en ?? row.name_ar)}>
+                  <span style={{ width: `${pct}%` }} />
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

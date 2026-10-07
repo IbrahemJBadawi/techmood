@@ -29,6 +29,7 @@ import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
 import { ShareButton } from '@/components/ShareButton';
 import { LinkedInPostButton } from '@/components/LinkedInButton';
 import { siteOrigin } from '@/lib/site';
+import { BackLink } from '@/components/BackLink';
 
 const STATUS: Record<ProjectStatus, { text: Text; className: string }> = {
   planning:    { text: { ar: 'تخطيط',  en: 'Planning' },    className: 'status-muted' },
@@ -176,9 +177,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
       <AiSurface surface="project" entityType="project" entityId={project.id} label={project.title_ar} />
 
       <div className="pj-top">
-        <Link className="sp-back" href={project.team_id ? `/teams/${project.team_id}/projects` : '/passport'}>
-          {t('→ رجوع', '← Back')}
-        </Link>
+        <BackLink href={project.team_id ? `/teams/${project.team_id}/projects` : '/passport'}
+                  label={project.team_id ? t('مشاريع الفريق', 'Team projects') : t('جوازي', 'My passport')} />
         <div className="pj-top-actions">
           <AskAI prompt={`قسّم مشروع «${project.title_ar}» إلى مهام صغيرة مرتّبة مع تقدير زمني لكل مهمة.`} />
           {isParty && (

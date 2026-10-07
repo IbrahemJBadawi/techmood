@@ -43,7 +43,7 @@ export function AnswerForm({ paymentId, bookingId, question }: {
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Sending…') : t('أرسل الجواب', 'Send the answer')}
       </button>
     </form>

@@ -7,6 +7,7 @@ import type { ListingStatus, SaleLicence } from '@/lib/database.types';
 import { useT } from '@/lib/i18n.client';
 
 import { deleteShowcase, saveShowcaseListing, withdrawShowcaseListing, type ShowcaseState } from '../../showcase-actions';
+import { NumberStepper } from '@/components/NumberStepper';
 
 export type EditorListing = {
   id: string; status: ListingStatus; price_usd: number; licence: SaleLicence; summary_ar: string;
@@ -43,7 +44,7 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
         <div className="field-row">
           <div className="field">
             <label htmlFor="price">{t('السعر (دولار)', 'Price (USD)')}</label>
-            <input id="price" name="price" type="number" min={1} step={1} required defaultValue={listing?.price_usd ?? ''} />
+            <NumberStepper id="price" name="price" min={1} step={1} required defaultValue={listing?.price_usd ?? ''} />
           </div>
           <div className="field">
             <label htmlFor="licence">{t('ما الذي يشتريه المشتري؟', 'What does the buyer get?')}</label>
@@ -74,7 +75,7 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
           </div>
           <div className="field">
             <label htmlFor="discount_pct">{t('خصم % (اختياري)', 'Discount % (optional)')}</label>
-            <input id="discount_pct" name="discount_pct" type="number" min={0} max={90} defaultValue={listing?.discount_pct ?? 0} />
+            <NumberStepper id="discount_pct" name="discount_pct" min={0} max={90} defaultValue={listing?.discount_pct ?? 0} />
           </div>
         </div>
         <label className="sc-switch">
@@ -92,7 +93,7 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
         {state?.error && <p className="notice notice-danger">{state.error}</p>}
         {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
         <div className="row-actions">
-          <button className="btn btn-primary btn-sm" disabled={pending}>
+          <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
             {pending ? t('جارٍ…', 'Working…') : listing ? t('حدّث العرض وأرسله للمراجعة', 'Update and send for review') : t('اعرضه للبيع', 'Put it up for sale')}
           </button>
         </div>
@@ -127,7 +128,7 @@ export function DeleteShowcase({ projectId }: { projectId: string }) {
           <input id="confirm" name="confirm" autoComplete="off" />
         </div>
         {state?.error && <p className="notice notice-danger">{state.error}</p>}
-        <div><button className="btn btn-ghost btn-sm is-danger" disabled={pending}>{t('احذف نهائياً', 'Delete for good')}</button></div>
+        <div><button className="btn btn-ghost btn-sm is-danger" disabled={pending} aria-busy={pending}>{t('احذف نهائياً', 'Delete for good')}</button></div>
       </form>
     </details>
   );

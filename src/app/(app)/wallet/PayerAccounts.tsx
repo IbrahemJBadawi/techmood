@@ -71,7 +71,7 @@ export function PayerAccounts({ accounts }: { accounts: Account[] }) {
         </label>
         {state?.error && <p className="notice notice-danger" style={{ marginTop: 10 }}>{state.error}</p>}
         {state?.ok && <p className="notice notice-ok" style={{ marginTop: 10 }}>{state.ok}</p>}
-        <button className="btn btn-primary btn-sm" style={{ marginTop: 10 }} disabled={pending}>
+        <button className="btn btn-primary btn-sm" style={{ marginTop: 10 }} disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Working…') : t('احفظ', 'Save')}
         </button>
       </form>

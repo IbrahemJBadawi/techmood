@@ -76,26 +76,18 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
              ' has already been issued and never changes, whatever you call yourself or which roles you take on.')}
         </p>
 
-        <div className="ob-progress" aria-hidden="true">
-          <div className="row-between">
-            <strong>{steps(t)[step]}</strong>
-            <span className="muted">{t(`الخطوة ${step + 1} من ${steps(t).length}`, `Step ${step + 1} of ${steps(t).length}`)}</span>
-          </div>
-          <div className="ob-bar"><span style={{ width: `${((step + 1) / steps(t).length) * 100}%` }} /></div>
+        {/* where you are, as dots only (design lab 3: «نقاط فقط») with the current step's name */}
+        <div className="step-dots-wrap">
+          <ol className="step-dots" aria-label={t(`الخطوة ${step + 1} من ${steps(t).length}`, `Step ${step + 1} of ${steps(t).length}`)}>
+            {steps(t).map((label, index) => (
+              <li key={label} className={index === step ? 'is-now' : index < step ? 'is-done' : ''}
+                  aria-current={index === step ? 'step' : undefined}>
+                <span className="sr-only">{label}</span>
+              </li>
+            ))}
+          </ol>
+          <strong className="step-dots-title">{steps(t)[step]}</strong>
         </div>
-
-        <ol className="stepper">
-          {steps(t).map((label, index) => (
-            <li
-              key={label}
-              className={index === step ? 'current' : index < step ? 'done' : ''}
-              aria-current={index === step ? 'step' : undefined}
-            >
-              <span className="stepper-dot">{index + 1}</span>
-              <span className="stepper-label">{label}</span>
-            </li>
-          ))}
-        </ol>
       </header>
 
       {step === 0 && (
@@ -245,7 +237,7 @@ function BasicsStep({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
 
       <div className="onboarding-actions">
-        <button className="btn btn-primary" disabled={pending}>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الحفظ…', 'Saving…') : t('التالي', 'Next')}
         </button>
       </div>
@@ -347,7 +339,7 @@ function RolesStep({
 
       <div className="onboarding-actions">
         <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
-        <button className="btn btn-primary" disabled={pending}>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('التالي', 'Next')}
         </button>
       </div>
@@ -466,7 +458,7 @@ function TermStep({
         <input type="hidden" name="kind" value={kind} />
         {value.map((id) => <input key={id} type="hidden" name="term" value={id} />)}
         <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
-        <button className="btn btn-primary" disabled={pending}>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الحفظ…', 'Saving…') : t('التالي', 'Next')}
         </button>
       </form>
@@ -499,7 +491,7 @@ function SuggestForm({ kind, onClose }: { kind: TaxonomyKind; onClose: () => voi
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الاقتراح', 'Send suggestion')}
         </button>
         <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>{t('إغلاق', 'Close')}</button>
@@ -618,7 +610,7 @@ function SummaryStep({
 
       <div className="onboarding-actions">
         <button className="btn btn-ghost" type="button" onClick={onBack}>{t('رجوع', 'Back')}</button>
-        <button className="btn btn-primary" disabled={pending}>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإنهاء…', 'Finishing…') : t('ابدأ رحلتك', 'Start your journey')}
         </button>
       </div>

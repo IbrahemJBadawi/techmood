@@ -13,6 +13,7 @@ import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { mentorLevelLabel } from '@/lib/mentor-levels';
+import { BackLink } from '@/components/BackLink';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -85,7 +86,7 @@ export default async function MentorProfilePage({
     <>
       <AiSurface surface="mentor" entityType="mentor" entityId={mentorId} label={profile?.full_name ?? undefined} />
 
-      <Link className="btn btn-ghost btn-sm" href="/mentors">{t('→ رجوع للمنتورز', '← Back to mentors')}</Link>
+      <BackLink href="/mentors" label={t('رجوع للمنتورز', 'Back to mentors')} />
       <AskAI prompt="جهّز لي خمسة أسئلة محدّدة أطرحها على هذا المنتور في الجلسة القادمة." />
 
       <section className="section-block pp-card mn-profile" style={{ marginTop: 16 }}>

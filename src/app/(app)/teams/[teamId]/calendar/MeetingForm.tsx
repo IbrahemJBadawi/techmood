@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n.client';
 
 import { scheduleTeamMeeting, type TeamState } from '../../actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { DateField } from '@/components/DateField';
 
 /**
  * The leader sets aside time for the team itself (0113). No mentor, no payment,
@@ -26,7 +27,7 @@ export function MeetingForm({ teamId, blockedDays = [] }: { teamId: string; bloc
 
       <div className="field">
         <label htmlFor="meeting-date">{t('اليوم', 'Day')}</label>
-        <input id="meeting-date" name="date" type="date" required min={today} value={day}
+        <DateField id="meeting-date" name="date" required min={today} value={day}
                onChange={(event) => setDay(event.target.value)} aria-describedby="meeting-gap" />
       </div>
 
@@ -45,7 +46,7 @@ export function MeetingForm({ teamId, blockedDays = [] }: { teamId: string; bloc
         </select>
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending || tooClose}>
+      <button className="btn btn-primary btn-sm" disabled={pending || tooClose} aria-busy={pending}>
         {pending ? t('جارٍ الحجز…', 'Booking…') : t('احجز جلسة للفريق', 'Book a team session')}
       </button>
 

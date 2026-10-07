@@ -41,7 +41,7 @@ export function NewProjectForm({ teamId }: { teamId: string }) {
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإنشاء…', 'Creating…') : t('أنشئ المشروع', 'Create project')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>

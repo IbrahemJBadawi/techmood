@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { submitMentorApplication, type RoleState } from '../actions';
+import { NumberStepper } from '@/components/NumberStepper';
 
 type Existing = {
   headline_ar: string | null;
@@ -78,12 +79,12 @@ export function MentorApplicationForm({
         <div className="field-row">
           <div className="field">
             <label htmlFor="years">{t('سنوات الخبرة *', 'Years of experience *')}</label>
-            <input id="years" name="years" type="number" min={0} max={60} required
+            <NumberStepper id="years" name="years" min={0} max={60} required
                    defaultValue={existing?.years_experience ?? ''} />
           </div>
           <div className="field">
             <label htmlFor="weekly_hours">{t('ساعات أسبوعياً (اختياري)', 'Hours a week (optional)')}</label>
-            <input id="weekly_hours" name="weekly_hours" type="number" min={1} max={40}
+            <NumberStepper id="weekly_hours" name="weekly_hours" min={1} max={40}
                    defaultValue={existing?.weekly_hours ?? ''} />
           </div>
         </div>
@@ -147,7 +148,7 @@ export function MentorApplicationForm({
         {state?.error && <p className="notice notice-danger">{state.error}</p>}
         {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-        <button className="btn btn-primary" disabled={pending}>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : isOpen ? t('حدّث طلبي', 'Update my application') : t('أرسل الطلب', 'Send application')}
         </button>
       </fieldset>

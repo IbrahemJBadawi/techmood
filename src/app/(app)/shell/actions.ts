@@ -49,3 +49,38 @@ export async function markNotificationsRead() {
 
   revalidatePath('/', 'layout');
 }
+
+/** One notification read, from the long-press menu (design lab 3). */
+export async function markNotificationRead(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('profile_id', user.id)
+    .eq('id', String(formData.get('notification_id') ?? ''));
+
+  revalidatePath('/', 'layout');
+}
+
+/**
+ * How many new notifications, or messages from others, arrived after `since` —
+ * read as the member, so RLS limits it to their own. The page polls this and
+ * offers «↑ جديد» instead of reloading under the reader's eyes.
+ */
+export async function newSince(scope: 'notifications' | 'messages', since: string): Promise<number> {
+  if (Number.isNaN(Date.parse(since))) return 0;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  if (scope === 'notifications') {
+    const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true })
+      .eq('profile_id', user.id).gt('created_at', since);
+    return count ?? 0;
+  }
+  const { count } = await supabase.from('messages').select('id', { count: 'exact', head: true })
+    .gt('created_at', since).neq('sender_id', user.id).is('deleted_at', null);
+  return count ?? 0;
+}

@@ -105,7 +105,7 @@ export function CaseActionForm({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className={`btn btn-sm ${spec.sensitive ? 'btn-danger' : 'btn-primary'}`} type="submit" disabled={pending || (spec.sensitive && !confirmed)}>
+      <button className={`btn btn-sm ${spec.sensitive ? 'btn-danger' : 'btn-primary'}`} type="submit" disabled={pending || (spec.sensitive && !confirmed)} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : t(spec.label)}
       </button>
     </form>

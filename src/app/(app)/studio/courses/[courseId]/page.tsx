@@ -11,6 +11,7 @@ import {
   saveStudioCourse, submitStudioItem, withdrawStudioItem,
 } from '../../actions';
 import { LEVELS, REVIEW_STATE, editable } from '../../review';
+import { NumberStepper } from '@/components/NumberStepper';
 
 export const generateMetadata = localizedTitle('تحرير دورة — استوديو TechMood', 'Edit a course — TechMood studio');
 
@@ -138,7 +139,7 @@ export default async function StudioCoursePage({ params }: { params: Promise<{ c
               </div>
               <div className="field">
                 <label htmlFor="estimated_hours">{t('الساعات التقديرية', 'Estimated hours')}</label>
-                <input id="estimated_hours" name="estimated_hours" type="number" min={1} max={500} defaultValue={course.estimated_hours ?? ''} />
+                <NumberStepper id="estimated_hours" name="estimated_hours" min={1} max={500} defaultValue={course.estimated_hours ?? ''} />
               </div>
             </div>
           </ActionForm>

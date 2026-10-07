@@ -13,6 +13,7 @@ import { ProgressRing } from '../ProgressRing';
 import { schoolLook } from '../schools';
 import { ShareButton } from '@/components/ShareButton';
 import { SubmissionPanel } from '../SubmissionPanel';
+import { BackLink } from '@/components/BackLink';
 
 export default async function PathPage({
   params,
@@ -154,7 +155,7 @@ export default async function PathPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/academy">{t('→ رجوع للأكاديمية', '← Back to the academy')}</Link>
+      <BackLink href="/academy" label={t('رجوع للأكاديمية', 'Back to the academy')} />
 
       {preview && (
         <p className="notice" style={{ marginTop: 16 }}>

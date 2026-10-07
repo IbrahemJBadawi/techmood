@@ -5,6 +5,8 @@ import { useActionState, useState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { swotToGoal, type StrategyDoorState } from './actions';
+import { NumberStepper } from '@/components/NumberStepper';
+import { DateField } from '@/components/DateField';
 
 export type SwotOption = { id: string; body_ar: string; quadrant: string };
 
@@ -41,14 +43,14 @@ export function SwotDoor({ items, revalidate }: { items: SwotOption[]; revalidat
       </div>
       <div className="field">
         <label htmlFor="swot-target">{t('الرقم', 'Target')}</label>
-        <input id="swot-target" name="target" type="number" min="1" step="1" required />
+        <NumberStepper id="swot-target" name="target" min="1" step="1" required />
       </div>
       <div className="field">
         <label htmlFor="swot-due">{t('بحلول', 'By')}</label>
-        <input id="swot-due" name="due" type="date" required />
+        <DateField id="swot-due" name="due" required />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : t('اجعلها هدفاً', 'Make it a goal')}
       </button>
 

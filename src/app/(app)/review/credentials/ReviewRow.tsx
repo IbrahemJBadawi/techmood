@@ -16,10 +16,10 @@ export function ReviewRow({ submissionId }: { submissionId: string }) {
     <form action={formAction} className="credential-review">
       <input type="hidden" name="submission_id" value={submissionId} />
       <input name="note" placeholder={t('ملاحظة — إلزامية عند الرفض', 'Note — required to refuse')} />
-      <button className="btn btn-primary btn-sm" name="decision" value="verify" disabled={pending}>
+      <button className="btn btn-primary btn-sm" name="decision" value="verify" disabled={pending} aria-busy={pending}>
         {t('وثّق', 'Verify')}
       </button>
-      <button className="btn btn-ghost btn-sm" name="decision" value="reject" disabled={pending}>
+      <button className="btn btn-ghost btn-sm" name="decision" value="reject" disabled={pending} aria-busy={pending}>
         {t('ارفض', 'Refuse')}
       </button>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

@@ -7,6 +7,7 @@ import type { ShareScope } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { createShare, type ShareState } from './actions';
+import { DateField } from '@/components/DateField';
 
 const SCOPE: Record<ShareScope, Text> = {
   canvas:   { ar: 'لوحة واحدة',    en: 'One canvas' },
@@ -57,10 +58,10 @@ export function ShareForm({
 
       <div className="field">
         <label htmlFor="expires_on">{t('ينتهي في', 'Expires on')}</label>
-        <input id="expires_on" name="expires_on" type="date" />
+        <DateField id="expires_on" name="expires_on" />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Creating…') : t('أنشئ رابطاً', 'Create a link')}
       </button>
 

@@ -6,11 +6,13 @@ import { useT } from '@/lib/i18n.client';
 import { PRIMARY_LINK_KINDS, PRIMARY_LINK_LABEL } from '@/lib/profile-links';
 
 import { savePrimaryLinks, saveUsername, type ProfileState } from './actions';
+import { useSavedFlash } from '@/lib/use-saved-flash';
 
 /** An optional @username, reserved whenever the member wants one. */
 export function UsernameForm({ username, techmoodId }: { username: string | null; techmoodId: string }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveUsername, undefined as ProfileState);
+  const done = useSavedFlash(state);
   return (
     <form action={formAction} className="hm-card st-section section-block">
       <h3 style={{ fontSize: '0.98rem' }}>{t('اسم المستخدم (اختياري)', 'Username (optional)')}</h3>
@@ -27,8 +29,8 @@ export function UsernameForm({ username, techmoodId }: { username: string | null
         <small className="muted">{t('حروف إنجليزية صغيرة وأرقام و_ (3–30). اتركه فارغاً لإزالته.', 'Lowercase letters, digits and _ (3–30). Leave empty to remove it.')}</small>
       </div>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
-      <button className="btn btn-primary btn-sm" disabled={pending}>{pending ? t('جارٍ…', 'Saving…') : t('احفظ', 'Save')}</button>
+      {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending} data-done={done || undefined}>{pending ? t('جارٍ…', 'Saving…') : done ? t('✓ حُفظ', '✓ Saved') : t('احفظ', 'Save')}</button>
     </form>
   );
 }
@@ -37,6 +39,7 @@ export function UsernameForm({ username, techmoodId }: { username: string | null
 export function PrimaryLinksForm({ current }: { current: Record<string, string> }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(savePrimaryLinks, undefined as ProfileState);
+  const done = useSavedFlash(state);
   return (
     <form action={formAction} className="hm-card st-section section-block">
       <h3 style={{ fontSize: '0.98rem' }}>⭐ {t('الحسابات الأساسية', 'Main accounts')}</h3>
@@ -53,8 +56,8 @@ export function PrimaryLinksForm({ current }: { current: Record<string, string> 
         ))}
       </div>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
-      <button className="btn btn-primary btn-sm" disabled={pending}>{pending ? t('جارٍ…', 'Saving…') : t('احفظ الحسابات', 'Save accounts')}</button>
+      {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending} data-done={done || undefined}>{pending ? t('جارٍ…', 'Saving…') : done ? t('✓ حُفظ', '✓ Saved') : t('احفظ الحسابات', 'Save accounts')}</button>
     </form>
   );
 }

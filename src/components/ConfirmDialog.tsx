@@ -70,7 +70,7 @@ function ConfirmWindow({ ask, onClose }: { ask: Ask; onClose: (yes: boolean) => 
  * including its own name/value.
  */
 export function ConfirmSubmit({
-  message, confirmLabel, danger = true, className, name, value, disabled, children,
+  message, confirmLabel, danger = true, className, name, value, disabled, busy, done, children,
 }: {
   message: string;
   confirmLabel?: string;
@@ -79,6 +79,10 @@ export function ConfirmSubmit({
   name?: string;
   value?: string;
   disabled?: boolean;
+  /** the action is running: the button shows its progress bar */
+  busy?: boolean;
+  /** the action just succeeded: the button shows its tick */
+  done?: boolean;
   children: ReactNode;
 }) {
   const { ask, dialog } = useConfirm();
@@ -92,6 +96,8 @@ export function ConfirmSubmit({
         name={name}
         value={value}
         disabled={disabled}
+        aria-busy={busy}
+        data-done={done || undefined}
         onClick={async (event) => {
           if (approved.current) { approved.current = false; return; }
           event.preventDefault();

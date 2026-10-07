@@ -7,6 +7,7 @@ import type { Team } from '@/lib/database.types';
 
 import { saveTeamSettings, type SettingsState } from './actions';
 import { useT } from '@/lib/i18n.client';
+import { NumberStepper } from '@/components/NumberStepper';
 
 export function SettingsForm({ team }: { team: Team }) {
   const t = useT();
@@ -45,7 +46,7 @@ export function SettingsForm({ team }: { team: Team }) {
 
         <div className="field">
           <label htmlFor="rate_from">{t('يبدأ من (دولار)', 'Starting from (USD)')}</label>
-          <input id="rate_from" name="rate_from" type="number" min="0" step="1"
+          <NumberStepper id="rate_from" name="rate_from" min="0" step="1"
                  defaultValue={team.rate_from_usd ?? ''} />
         </div>
       </fieldset>
@@ -108,7 +109,7 @@ export function SettingsForm({ team }: { team: Team }) {
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ الإعدادات', 'Save settings')}
       </button>
     </form>

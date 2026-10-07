@@ -7,6 +7,7 @@ import { kindLook } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
 import { saveNotificationPreferences, type PreferenceState } from './actions';
+import { useSavedFlash } from '@/lib/use-saved-flash';
 
 export type Category = {
   kind: NotificationKind;
@@ -27,6 +28,7 @@ export type Category = {
 export function PreferencesForm({ categories }: { categories: Category[] }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveNotificationPreferences, undefined as PreferenceState);
+  const done = useSavedFlash(state);
 
   const editable = categories.filter((row) => !row.is_mandatory);
   const mandatory = categories.filter((row) => row.is_mandatory);
@@ -92,10 +94,10 @@ export function PreferencesForm({ categories }: { categories: Category[] }) {
       </table>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
+      {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} disabled={pending}>
-        {pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ', 'Save')}
+      <button className="btn btn-primary btn-sm" style={{ marginTop: 16 }} disabled={pending} aria-busy={pending} data-done={done || undefined}>
+        {pending ? t('جارٍ الحفظ…', 'Saving…') : done ? t('✓ حُفظ', '✓ Saved') : t('احفظ', 'Save')}
       </button>
     </form>
   );

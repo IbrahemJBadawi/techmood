@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { grantMentorAccess, type MentorAccessState } from './actions';
+import { DateField } from '@/components/DateField';
 
 export function GrantForm({ startupId }: { startupId: string }) {
   const t = useT();
@@ -20,14 +21,14 @@ export function GrantForm({ startupId }: { startupId: string }) {
       </div>
       <div className="field">
         <label htmlFor="expires_on">{t('حتى تاريخ (اختياري)', 'Until (optional)')}</label>
-        <input id="expires_on" name="expires_on" type="date" />
+        <DateField id="expires_on" name="expires_on" />
       </div>
       <div className="field">
         <label htmlFor="note">{t('لماذا؟', 'Why?')}</label>
         <input id="note" name="note" placeholder={t('مراجعة نموذج العمل', 'To review the business model')} />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Granting…') : t('امنح الوصول', 'Grant access')}
       </button>
 

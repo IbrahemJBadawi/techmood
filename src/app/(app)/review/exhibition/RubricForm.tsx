@@ -58,10 +58,10 @@ export function RubricForm({ entryId }: { entryId: string }) {
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button className="btn btn-primary btn-sm" name="decision" value="approve" disabled={pending}>
+        <button className="btn btn-primary btn-sm" name="decision" value="approve" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Working…') : t('اعتمد المشروع', 'Approve the project')}
         </button>
-        <button className="btn btn-ghost btn-sm" name="decision" value="revision" disabled={pending}>
+        <button className="btn btn-ghost btn-sm" name="decision" value="revision" disabled={pending} aria-busy={pending}>
           {t('أعده للتعديل', 'Send back for revision')}
         </button>
       </div>

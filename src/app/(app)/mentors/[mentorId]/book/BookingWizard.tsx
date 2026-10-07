@@ -447,8 +447,7 @@ export function BookingWizard({
             <button
               className="btn btn-primary"
               style={{ width: '100%', marginTop: 16 }}
-              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)}
-            >
+              disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)} aria-busy={pending}>
               {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
             </button>
 
@@ -471,8 +470,7 @@ export function BookingWizard({
         <button
           className="btn btn-primary"
           type="submit"
-          disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)}
-        >
+          disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
         </button>
       </div>

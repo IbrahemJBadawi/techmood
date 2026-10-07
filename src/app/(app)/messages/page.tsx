@@ -13,6 +13,9 @@ import { Reactions } from './Reactions';
 import { markRead, setMuted } from './actions';
 import { ReplyButton } from './ReplyButton';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { Avatar } from '../shell/ProfileMenu';
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { LongPressMenu } from '@/components/LongPressMenu';
 
 export const generateMetadata = localizedTitle('الرسائل — TechMood', 'Messages — TechMood');
 
@@ -143,6 +146,7 @@ export default async function MessagesPage({
   }[] = [];
   let reactions: { message_id: string; profile_id: string; reaction: MessageReaction }[] = [];
   let nameById = new Map<string, string>();
+  let avatarById = new Map<string, string | null>();
   let olderHidden = false;
 
   if (active) {
@@ -171,13 +175,15 @@ export default async function MessagesPage({
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, avatar_url')
       .in('id', senderIds.length ? senderIds : placeholder);
     nameById = new Map((profiles ?? []).map((row) => [row.id, row.full_name]));
+    avatarById = new Map((profiles ?? []).map((row) => [row.id, row.avatar_url]));
 
     await markRead(active.id);
   }
 
+  const renderedAt = new Date().toISOString();
   const bodyById = new Map(messages.map((row) => [row.id, row.body_ar]));
   const senderById = new Map(messages.map((row) => [row.id, row.sender_id]));
   const activeMuted = active ? unreadById.get(active.id)?.is_muted === true : false;
@@ -214,8 +220,28 @@ export default async function MessagesPage({
               const muted = unreadById.get(conversation.id)?.is_muted === true;
 
               return (
-                <Link
+                <LongPressMenu
                   key={conversation.id}
+                  label={conversation.title_ar ?? t(KIND_LABEL[conversation.kind])}
+                  menu={(
+                    <>
+                      <Link className="lp-action" href={`/messages?c=${conversation.id}`}>{t('افتح المحادثة', 'Open the conversation')}</Link>
+                      <form action={setMuted}>
+                        <input type="hidden" name="conversation_id" value={conversation.id} />
+                        {muted ? (
+                          <button className="lp-action" name="hours" value="off">{t('إلغاء الكتم', 'Unmute')}</button>
+                        ) : (
+                          <>
+                            <button className="lp-action" name="hours" value="8">{t('كتم 8 ساعات', 'Mute for 8 hours')}</button>
+                            <button className="lp-action" name="hours" value="168">{t('كتم أسبوعاً', 'Mute for a week')}</button>
+                            <button className="lp-action" name="hours" value="always">{t('كتم حتى أُلغيه', 'Mute until I unmute')}</button>
+                          </>
+                        )}
+                      </form>
+                    </>
+                  )}
+                >
+                <Link
                   href={`/messages?c=${conversation.id}`}
                   className={`chat-item${conversation.id === activeId ? ' active' : ''}`}
                 >
@@ -238,6 +264,7 @@ export default async function MessagesPage({
                     </span>
                   </span>
                 </Link>
+                </LongPressMenu>
               );
             })}
           </nav>
@@ -321,7 +348,17 @@ export default async function MessagesPage({
                     return (
                       <div key={message.id} style={{ display: 'contents' }}>
                       {separator}
-                      <div className="bubble-row" id={`m-${message.id}`} style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                      <div className={`bubble-row${mine ? '' : ' has-avatar'}`} id={`m-${message.id}`} style={{ alignItems: mine ? 'flex-end' : 'flex-start' }}>
+                        {!mine && (() => {
+                          // the sender's face beside their bubble (design lab 3), once per run of their messages
+                          const next = messages[index + 1];
+                          const last = !next || next.is_system || next.sender_id !== message.sender_id
+                            || dayLabel(next.created_at, t.locale) !== day;
+                          if (!last) return <span className="b-avatar-gap" aria-hidden="true" />;
+                          return isChannel
+                            ? <span className="b-avatar"><Avatar name="TechMood" url="/logo-mark.png" size={30} /></span>
+                            : <span className="b-avatar"><Avatar name={nameById.get(message.sender_id ?? '') ?? '?'} url={avatarById.get(message.sender_id ?? '') ?? null} size={30} /></span>;
+                        })()}
                         <div className={`bubble ${mine ? 'me' : 'them'}`}>
                           {message.reply_to_id && bodyById.has(message.reply_to_id) && (
                             <a className="b-reply" href={`#m-${message.reply_to_id}`}>
@@ -358,6 +395,7 @@ export default async function MessagesPage({
                   })}
                 </div>
 
+                <LiveRefresh scope="messages" since={messages[messages.length - 1]?.created_at ?? renderedAt} />
                 {/* keyed: another conversation starts with an empty box and no reply */}
                 <Composer key={active.id} conversationId={active.id} readOnly={readOnly} note={readOnlyNote} />
               </>

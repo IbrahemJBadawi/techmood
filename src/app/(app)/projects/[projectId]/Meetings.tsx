@@ -98,7 +98,7 @@ export function Meetings({ projectId, meetings }: { projectId: string; meetings:
         {state?.error && <p className="notice notice-danger">{state.error}</p>}
         {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-        <button className="btn btn-ghost btn-sm" disabled={pending}>
+        <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Booking…') : t('احجز اجتماعاً', 'Book a meeting')}
         </button>
       </form>

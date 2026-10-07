@@ -49,7 +49,7 @@ export function NewCanvasForm({ startupId }: { startupId: string }) {
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : t('أنشئ اللوحة', 'Create it')}
       </button>
     </form>

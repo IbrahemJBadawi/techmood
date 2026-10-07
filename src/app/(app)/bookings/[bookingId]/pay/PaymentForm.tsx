@@ -126,8 +126,7 @@ export function PaymentForm({
         <button
           className="btn btn-primary"
           style={{ width: '100%' }}
-          disabled={pending || uploading || (method.requires_receipt && !proofPath)}
-        >
+          disabled={pending || uploading || (method.requires_receipt && !proofPath)} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('✓ تم الدفع', '✓ I have paid')}
         </button>
 

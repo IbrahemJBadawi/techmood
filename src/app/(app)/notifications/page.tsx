@@ -8,7 +8,10 @@ import { Icon } from '@/components/Icon';
 import { NOTIFICATION_KIND, NOTIFICATION_ORDER, PRIORITY, kindLook } from '@/lib/notifications';
 import type { NotificationKind } from '@/lib/database.types';
 
-import { markNotificationsRead } from '../shell/actions';
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { LongPressMenu } from '@/components/LongPressMenu';
+
+import { markNotificationRead, markNotificationsRead } from '../shell/actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export const generateMetadata = localizedTitle('الإشعارات — TechMood', 'Notifications — TechMood');
@@ -76,6 +79,7 @@ export default async function NotificationsPage({
   const timeOf = (iso: string) =>
     new Intl.DateTimeFormat(intlTag(locale), { timeZone: PLATFORM_TIME_ZONE, hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
 
+  const renderedAt = new Date().toISOString();
   const groups: { label: string; rows: NonNullable<typeof items> }[] = [];
   for (const item of items ?? []) {
     const label = dayOf(item.created_at);
@@ -86,6 +90,7 @@ export default async function NotificationsPage({
 
   return (
     <div className="nt-page">
+      <LiveRefresh scope="notifications" since={items?.[0]?.created_at ?? renderedAt} />
       <section className="nt-head section-block">
         <div>
           <h2>
@@ -167,9 +172,29 @@ export default async function NotificationsPage({
                 );
                 return (
                   <li key={item.id} className={item.is_read ? undefined : 'is-unread'}>
-                    {item.link
-                      ? <Link className="nt-row" href={item.link}>{body}</Link>
-                      : <div className="nt-row">{body}</div>}
+                    {/* hold the row for its actions (design lab 3: «ضغط مطوّل») */}
+                    <LongPressMenu
+                      label={item.title_ar}
+                      menu={(
+                        <>
+                          {item.link && <Link className="lp-action" href={item.link}>{t('افتح', 'Open')}</Link>}
+                          {!item.is_read && (
+                            <form action={markNotificationRead}>
+                              <input type="hidden" name="notification_id" value={item.id} />
+                              <button className="lp-action" type="submit">{t('علّمه كمقروء', 'Mark as read')}</button>
+                            </form>
+                          )}
+                          <Link className="lp-action" href={href({ kind: item.kind })}>
+                            {t(`كل إشعارات «${t(look.label)}»`, `All “${t(look.label)}” notifications`)}
+                          </Link>
+                          <Link className="lp-action" href="/settings/notifications">{t('إعدادات الإشعارات', 'Notification settings')}</Link>
+                        </>
+                      )}
+                    >
+                      {item.link
+                        ? <Link className="nt-row" href={item.link}>{body}</Link>
+                        : <div className="nt-row">{body}</div>}
+                    </LongPressMenu>
                   </li>
                 );
               })}

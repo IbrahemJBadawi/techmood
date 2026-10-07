@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { addDeliverable, addMilestone, type WorkState } from './actions';
+import { DateField } from '@/components/DateField';
 
 /** What was handed over, and the dates it was promised by. */
 export function DeliverableForm({ projectId }: { projectId: string }) {
@@ -32,7 +33,7 @@ export function DeliverableForm({ projectId }: { projectId: string }) {
         <label htmlFor="deliverable-url">{t('الرابط', 'Link')}</label>
         <input id="deliverable-url" name="url" type="url" dir="ltr" required />
       </div>
-      <button className="btn btn-ghost btn-sm" disabled={pending}>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Adding…') : t('أرفق', 'Attach')}
       </button>
 
@@ -56,9 +57,9 @@ export function MilestoneForm({ projectId }: { projectId: string }) {
       </div>
       <div className="field">
         <label htmlFor="milestone-due">{t('موعده', 'Due')}</label>
-        <input id="milestone-due" name="due_on" type="date" />
+        <DateField id="milestone-due" name="due_on" />
       </div>
-      <button className="btn btn-ghost btn-sm" disabled={pending}>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Adding…') : t('أضف', 'Add')}
       </button>
 

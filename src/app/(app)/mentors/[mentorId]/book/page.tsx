@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -7,6 +6,7 @@ import type { PaymentMethodPublic, SessionType, SlotState } from '@/lib/database
 
 import { BookingWizard } from './BookingWizard';
 import { PUBLIC_METHOD_COLUMNS } from '@/lib/database.types';
+import { BackLink } from '@/components/BackLink';
 
 /** How far ahead the picker looks. The notice and instant windows are the database's (0125). */
 const HORIZON_DAYS = 21;
@@ -72,7 +72,7 @@ export default async function BookSessionPage({
   if (sessionTypes.length === 0) {
     return (
       <>
-        <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>{t('→ رجوع', '← Back')}</Link>
+        <BackLink href={`/mentors/${mentorId}`} label={t('رجوع', 'Back')} />
         <p className="notice" style={{ marginTop: 16 }}>
           {t('لم يحدد هذا المنتور أنواع جلساته بعد، فلا يمكن الحجز حالياً.', 'This mentor has not set up session types yet, so booking is not possible right now.')}
         </p>
@@ -170,7 +170,7 @@ export default async function BookSessionPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href={`/mentors/${mentorId}`}>{t('→ رجوع لملف المنتور', '← Back to the mentor')}</Link>
+      <BackLink href={`/mentors/${mentorId}`} label={t('رجوع لملف المنتور', 'Back to the mentor')} />
 
       <section className="section-block" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: '1.2rem' }}>

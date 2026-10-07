@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { saveProfileBasics, type ProfileState } from './actions';
+import { useSavedFlash } from '@/lib/use-saved-flash';
 
 /** The three things that decide what a visitor meets first. */
 export function BasicsForm({
@@ -18,6 +19,7 @@ export function BasicsForm({
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveProfileBasics, undefined as ProfileState);
+  const done = useSavedFlash(state);
 
   return (
     <form action={formAction} className="hm-card st-section section-block">
@@ -43,10 +45,10 @@ export function BasicsForm({
       </label>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
+      {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ', 'Save')}
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending} data-done={done || undefined}>
+        {pending ? t('جارٍ الحفظ…', 'Saving…') : done ? t('✓ حُفظ', '✓ Saved') : t('احفظ', 'Save')}
       </button>
     </form>
   );

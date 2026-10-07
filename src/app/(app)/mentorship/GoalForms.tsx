@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { addMentorshipGoal, closeMentorshipGoal, linkSessionToGoal, type GoalState } from './actions';
+import { DateField } from '@/components/DateField';
 
 export function AddGoalForm({ mentors }: { mentors: { id: string; name: string }[] }) {
   const t = useT();
@@ -43,14 +44,14 @@ export function AddGoalForm({ mentors }: { mentors: { id: string; name: string }
         </div>
         <div className="field">
           <label htmlFor="target_on">{t('بحلول', 'By')}</label>
-          <input id="target_on" name="target_on" type="date" />
+          <DateField id="target_on" name="target_on" />
         </div>
       </div>
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Saving…') : t('أضف', 'Add')}
       </button>
     </form>
@@ -72,7 +73,7 @@ export function CloseGoalForm({ goalId }: { goalId: string }) {
         <option value="dropped">{t('توقّفت عنه', 'Dropped it')}</option>
       </select>
       <input name="outcome" placeholder={t('ماذا حدث؟', 'What happened?')} />
-      <button className="btn btn-ghost btn-sm" disabled={pending}>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
         {t('أغلق', 'Close')}
       </button>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
@@ -118,7 +119,7 @@ export function LinkSessionForm({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-ghost btn-sm" disabled={pending}>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
         {t('اربط', 'Link')}
       </button>
     </form>

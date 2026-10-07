@@ -18,6 +18,7 @@ import { CredentialPanel } from '../../../CredentialPanel';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { LessonPlayer } from '@/components/LessonPlayer';
+import { CelebrateSubmit } from '@/components/CelebrateSubmit';
 
 const KIND_LABEL: Record<string, Text> = {
   video:    { ar: 'فيديو',       en: 'Video' },
@@ -264,9 +265,9 @@ export default async function LessonPage({
                 <p className="muted lesson-done-hint">{t('اجتز الاختبار القصير أعلاه أولاً — إجابتان صحيحتان من ثلاث.', 'Pass the short quiz above first — two right answers of three.')}</p>
               </>
             ) : (
-              <button className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} type="submit">
+              <CelebrateSubmit className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} off={done}>
                 {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
-              </button>
+              </CelebrateSubmit>
             )}
           </form>
         )}
@@ -293,8 +294,8 @@ export default async function LessonPage({
       <div className="detail-grid">
           <section>
             {(skills ?? []).length > 0 && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem' }}>{t('ما يثبته هذا الدرس', 'What finishing this proves')}</h3>
+              <section className="panel section-block ls-tone is-proves">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">🎯</span>{t('ما يثبته هذا الدرس', 'What finishing this proves')}</h3>
                 <p className="muted" style={{ fontSize: '0.8rem', marginTop: 6 }}>
                   {t('تُضاف هذه المهارات إلى ملفك موثّقة حين يعتمد المنتور تكليف هذا الدرس — لا قبل ذلك.',
                      'These land on your profile as proven when a mentor approves this lesson\u2019s assignment — not before.')}
@@ -308,8 +309,8 @@ export default async function LessonPage({
             )}
   
             {lesson.outcomes_ar.length > 0 && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem' }}>{t('ما ستتعلمه', 'What you will learn')}</h3>
+              <section className="panel section-block ls-tone is-learn">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">💡</span>{t('ما ستتعلمه', 'What you will learn')}</h3>
                 <ul className="lesson-outcomes">
                   {lesson.outcomes_ar.map((outcome) => <li key={outcome}>{outcome}</li>)}
                 </ul>
@@ -317,8 +318,8 @@ export default async function LessonPage({
             )}
   
             {(videos ?? []).length > 0 && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('الشرح والتطبيق', 'Walkthroughs')}</h3>
+              <section className="panel section-block ls-tone is-watch">
+                <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}><span className="ls-chip" aria-hidden="true">▶</span>{t('الشرح والتطبيق', 'Walkthroughs')}</h3>
                 <LessonPlayer videos={((videos ?? []) as LessonVideo[]).map((video) => ({
                   id: video.id, title: contentText(locale, video.title_ar, video.title_en), url: video.url,
                   minutes: video.duration_minutes, description: video.description_ar,
@@ -327,8 +328,8 @@ export default async function LessonPage({
             )}
   
             {(resources ?? []).length > 0 && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem' }}>{t('مصادر المراجعة', 'Review material')}</h3>
+              <section className="panel section-block ls-tone is-links">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">📚</span>{t('مصادر المراجعة', 'Review material')}</h3>
                 <ul className="lesson-links">
                   {(resources ?? []).map((resource) => (
                     <li key={resource.id}>
@@ -340,8 +341,8 @@ export default async function LessonPage({
             )}
   
             {lesson.case_study_ar && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem' }}>{t('دراسة حالة', 'Case study')}</h3>
+              <section className="panel section-block ls-tone is-case">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">🧩</span>{t('دراسة حالة', 'Case study')}</h3>
                 <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.case_study_ar}</p>
                 {lesson.case_question_ar && <p className="quote lesson-text">{lesson.case_question_ar}</p>}
               </section>
@@ -350,8 +351,8 @@ export default async function LessonPage({
             {assignment && (
               <>
                 {assignment.required_evidence.length > 0 && (
-                  <section className="panel section-block">
-                    <h3 style={{ fontSize: '0.98rem' }}>{t('المطلوب تسليمه', 'What to hand in')}</h3>
+                  <section className="panel section-block ls-tone is-task">
+                    <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">📤</span>{t('المطلوب تسليمه', 'What to hand in')}</h3>
                     <ul className="lesson-outcomes">
                       {assignment.required_evidence.map((kind) => (
                         <li key={kind}>{EVIDENCE_LABEL[kind] ? t(EVIDENCE_LABEL[kind]) : kind}</li>
@@ -360,8 +361,8 @@ export default async function LessonPage({
                   </section>
                 )}
                 {preview ? (
-                  <section className="panel section-block">
-                    <h3 style={{ fontSize: '0.98rem' }}>{assignment.title_ar}</h3>
+                  <section className="panel section-block ls-tone is-task">
+                    <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">📝</span>{assignment.title_ar}</h3>
                     {assignment.brief_ar && <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{assignment.brief_ar}</p>}
                     <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
                       {t('هنا يسلّم المتعلم عمله بعد النشر.', 'This is where the learner hands in their work once published.')}
@@ -384,8 +385,8 @@ export default async function LessonPage({
             )}
   
             {lesson.challenge_ar && (
-              <section className="panel section-block">
-                <h3 style={{ fontSize: '0.98rem' }}>{t('تحدٍّ إضافي — اختياري', 'An extra challenge — optional')}</h3>
+              <section className="panel section-block ls-tone is-challenge">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">🚀</span>{t('تحدٍّ إضافي — اختياري', 'An extra challenge — optional')}</h3>
                 <p className="lesson-text" style={{ fontSize: '0.9rem', marginTop: 8 }}>{lesson.challenge_ar}</p>
               </section>
             )}

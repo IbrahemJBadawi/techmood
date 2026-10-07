@@ -46,7 +46,7 @@ export function InviteRow({
           aria-label={t('رسالة الدعوة', 'Invitation message')}
           className="invite-message"
         />
-        <button className="btn btn-ghost btn-sm" disabled={pending || alreadyInvited || Boolean(state?.ok)}>
+        <button className="btn btn-ghost btn-sm" disabled={pending || alreadyInvited || Boolean(state?.ok)} aria-busy={pending}>
           {alreadyInvited || state?.ok ? t('مدعوّ', 'Invited') : t('ادعُه', 'Invite')}
         </button>
       </div>

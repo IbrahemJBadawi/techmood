@@ -7,6 +7,7 @@ import type { ApplicationStage } from '@/lib/database.types';
 
 import { applyToOpportunity, decideApplication, type MarketState } from '../actions';
 import { useT } from '@/lib/i18n.client';
+import { NumberStepper } from '@/components/NumberStepper';
 
 /** What a person can put in front of a poster — all of it already theirs. */
 const SHAREABLE = [
@@ -97,11 +98,11 @@ export function ApplyForm({
         <div className="rules-grid">
           <div className="field">
             <label htmlFor="amount">{t('عرضك (دولار)', 'Your price (USD)')}</label>
-            <input id="amount" name="amount" type="number" min="0" step="1" />
+            <NumberStepper id="amount" name="amount" min="0" step="1" />
           </div>
           <div className="field">
             <label htmlFor="days">{t('المدة (أيام)', 'How long (days)')}</label>
-            <input id="days" name="days" type="number" min="1" max="365" step="1" />
+            <NumberStepper id="days" name="days" min="1" max="365" step="1" />
           </div>
         </div>
       )}
@@ -123,7 +124,7 @@ export function ApplyForm({
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
-      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
+      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الطلب', 'Send application')}
       </button>
     </form>

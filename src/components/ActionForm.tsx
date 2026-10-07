@@ -4,6 +4,7 @@ import { useActionState, type ReactNode } from 'react';
 
 import { ConfirmSubmit } from '@/components/ConfirmDialog';
 import { useT } from '@/lib/i18n.client';
+import { useSavedFlash } from '@/lib/use-saved-flash';
 
 export type ActionFormState = { error?: string; ok?: string } | undefined;
 
@@ -32,22 +33,26 @@ export function ActionForm({
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(action, undefined as ActionFormState);
+  const done = useSavedFlash(state);
+  const label = pending ? t('جارٍ…', 'Working…') : done ? `✓ ${t('تم', 'Done')}` : submitLabel;
 
   return (
     <form action={formAction} className={className}>
       {children}
       {confirm ? (
-        <ConfirmSubmit className={`btn btn-sm ${variant === 'primary' ? 'btn-primary' : 'btn-ghost'}`} disabled={pending}
-                       message={confirm} confirmLabel={submitLabel} danger={variant === 'ghost'}>
-          {pending ? t('جارٍ…', 'Working…') : submitLabel}
+        <ConfirmSubmit className={`btn btn-sm ${variant === 'primary' ? 'btn-primary' : 'btn-ghost'}`} disabled={pending} busy={pending}
+                       message={confirm} confirmLabel={submitLabel} danger={variant === 'ghost'} done={done}>
+          {label}
         </ConfirmSubmit>
       ) : (
-        <button className={`btn btn-sm ${variant === 'primary' ? 'btn-primary' : 'btn-ghost'}`} type="submit" disabled={pending}>
-          {pending ? t('جارٍ…', 'Working…') : submitLabel}
+        <button className={`btn btn-sm ${variant === 'primary' ? 'btn-primary' : 'btn-ghost'}`} type="submit" disabled={pending} aria-busy={pending}
+                data-done={done || undefined}>
+          {label}
         </button>
       )}
       {state?.error && <p className="notice notice-danger" style={{ marginTop: 8, flexBasis: '100%' }}>{state.error}</p>}
-      {state?.ok && <p className="notice notice-ok" style={{ marginTop: 8, flexBasis: '100%' }}>{state.ok}</p>}
+      {/* the tick is on the button; what the database said stays as one quiet line */}
+      {state?.ok && <p className="form-ok" role="status" style={{ marginTop: 6, flexBasis: '100%' }}>{state.ok}</p>}
     </form>
   );
 }

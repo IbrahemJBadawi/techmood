@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n.client';
 
 import { blockTime, unblockTime, type HubState } from './actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { DateField } from '@/components/DateField';
 
 export type Block = { id: string; starts_at: string; ends_at: string; reason: string | null };
 
@@ -49,7 +50,7 @@ export function BlockTime({ blocks }: { blocks: Block[] }) {
       <form action={formAction} className="meeting-form">
         <div className="field">
           <label htmlFor="block-date">{t('اليوم', 'Day')}</label>
-          <input id="block-date" name="date" type="date" required />
+          <DateField id="block-date" name="date" required />
         </div>
         <div className="field">
           <label htmlFor="block-from">{t('من', 'From')}</label>
@@ -59,7 +60,7 @@ export function BlockTime({ blocks }: { blocks: Block[] }) {
           <label htmlFor="block-to">{t('إلى', 'To')}</label>
           <input id="block-to" name="to" type="time" required />
         </div>
-        <button className="btn btn-ghost btn-sm" disabled={pending}>
+        <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Working…') : t('أغلق هذه الساعات', 'Block these hours')}
         </button>
 

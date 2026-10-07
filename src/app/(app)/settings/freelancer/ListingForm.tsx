@@ -5,6 +5,8 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { addService, saveListing, removeService, type ListingState } from './actions';
+import { useSavedFlash } from '@/lib/use-saved-flash';
+import { NumberStepper } from '@/components/NumberStepper';
 
 export type Listing = {
   is_available: boolean;
@@ -25,6 +27,7 @@ export type Service = { id: string; title_ar: string; detail_ar: string | null; 
 export function ListingForm({ listing, services }: { listing: Listing; services: Service[] }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveListing, undefined as ListingState);
+  const done = useSavedFlash(state);
   const [serviceState, serviceAction, addingService] = useActionState(addService, undefined as ListingState);
 
   return (
@@ -62,21 +65,21 @@ export function ListingForm({ listing, services }: { listing: Listing; services:
           </div>
           <div className="field">
             <label htmlFor="rate_min">{t('من (دولار)', 'From (USD)')}</label>
-            <input id="rate_min" name="rate_min" type="number" min="0" step="1"
+            <NumberStepper id="rate_min" name="rate_min" min="0" step="1"
                    defaultValue={listing?.rate_min_usd ?? ''} />
           </div>
           <div className="field">
             <label htmlFor="rate_max">{t('إلى (دولار)', 'To (USD)')}</label>
-            <input id="rate_max" name="rate_max" type="number" min="0" step="1"
+            <NumberStepper id="rate_max" name="rate_max" min="0" step="1"
                    defaultValue={listing?.rate_max_usd ?? ''} />
           </div>
         </div>
 
         {state?.error && <p className="notice notice-danger">{state.error}</p>}
-        {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
+        {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
 
-        <button className="btn btn-primary btn-sm" disabled={pending}>
-          {pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ', 'Save')}
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending} data-done={done || undefined}>
+          {pending ? t('جارٍ الحفظ…', 'Saving…') : done ? t('✓ حُفظ', '✓ Saved') : t('احفظ', 'Save')}
         </button>
       </form>
 
@@ -113,7 +116,7 @@ export function ListingForm({ listing, services }: { listing: Listing; services:
           </div>
           <div className="field">
             <label htmlFor="service-from">{t('يبدأ من', 'Starting from')}</label>
-            <input id="service-from" name="from_usd" type="number" min="0" step="1" />
+            <NumberStepper id="service-from" name="from_usd" min="0" step="1" />
           </div>
           <button className="btn btn-ghost btn-sm" disabled={addingService}>
             {addingService ? t('جارٍ…', 'Adding…') : t('أضف', 'Add')}

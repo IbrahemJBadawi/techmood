@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { createSprint, type TeamState } from '../../actions';
 import { useT } from '@/lib/i18n.client';
+import { DateField } from '@/components/DateField';
 
 export function NewSprintForm({
   teamId,
@@ -38,11 +39,11 @@ export function NewSprintForm({
       <div className="field-row">
         <div className="field">
           <label htmlFor="starts_on">{t('يبدأ', 'Starts')}</label>
-          <input id="starts_on" name="starts_on" type="date" defaultValue={defaultStart} required />
+          <DateField id="starts_on" name="starts_on" defaultValue={defaultStart} required />
         </div>
         <div className="field">
           <label htmlFor="ends_on">{t('ينتهي', 'Ends')}</label>
-          <input id="ends_on" name="ends_on" type="date" defaultValue={defaultEnd} required />
+          <DateField id="ends_on" name="ends_on" defaultValue={defaultEnd} required />
         </div>
       </div>
 
@@ -50,7 +51,7 @@ export function NewSprintForm({
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ البدء…', 'Starting…') : t('ابدأ السبرنت', 'Start the sprint')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>

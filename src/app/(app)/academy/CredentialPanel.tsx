@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n.client';
 import type { CredentialStatus } from '@/lib/database.types';
 
 import { submitCredential, type CredentialState } from './actions';
+import { DateField } from '@/components/DateField';
 
 export type CredentialLesson = {
   provider_name: string;
@@ -116,14 +117,14 @@ export function CredentialPanel({
             </div>
             <div className="field">
               <label htmlFor="cred-issued">{t('تاريخ الإصدار', 'Issue date')}</label>
-              <input id="cred-issued" name="issued_on" type="date" />
+              <DateField id="cred-issued" name="issued_on" />
             </div>
           </div>
 
           {result?.error && <p className="notice notice-danger">{result.error}</p>}
           {result?.ok && <p className="notice notice-ok">{result.ok}</p>}
 
-          <button className="btn btn-primary btn-sm" disabled={pending}>
+          <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
             {pending ? t('جارٍ…', 'Sending…') : t('سلّم للتوثيق', 'Submit for verification')}
           </button>
         </form>

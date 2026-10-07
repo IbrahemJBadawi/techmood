@@ -78,7 +78,7 @@ export function SupportComposer({
       </div>
       {uploadError && <p className="notice notice-danger">{uploadError}</p>}
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      <button className="btn btn-primary btn-sm" type="submit" disabled={pending || busy}>
+      <button className="btn btn-primary btn-sm" type="submit" disabled={pending || busy} aria-busy={pending}>
         {pending || busy ? t('جارٍ الإرسال…', 'Sending…') : submitLabel}
       </button>
     </form>

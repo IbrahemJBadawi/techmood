@@ -60,7 +60,7 @@ export function MemoryList({ rows }: { rows: MemoryRow[] }) {
                 }}
               >
                 <input value={draft} onChange={(event) => setDraft(event.target.value)} />
-                <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
                   {t('احفظ', 'Save')}
                 </button>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(null)}>
@@ -75,15 +75,15 @@ export function MemoryList({ rows }: { rows: MemoryRow[] }) {
                 )}
                 <span className="ai-memory-buttons">
                   <button type="button" className="btn btn-ghost btn-sm" disabled={pending}
-                          onClick={() => { setEditing(row.id); setDraft(row.content_ar); }}>
+                          onClick={() => { setEditing(row.id); setDraft(row.content_ar); }} aria-busy={pending}>
                     {t('عدّل', 'Edit')}
                   </button>
                   <button type="button" className="btn btn-ghost btn-sm" disabled={pending}
-                          onClick={() => run(() => setMemoryActive(row.id, !row.is_active))}>
+                          onClick={() => run(() => setMemoryActive(row.id, !row.is_active))} aria-busy={pending}>
                     {row.is_active ? t('أوقف', 'Mute') : t('شغّل', 'Unmute')}
                   </button>
                   <button type="button" className="btn btn-sm btn-danger" disabled={pending}
-                          onClick={() => run(() => forgetMemory(row.id))}>
+                          onClick={() => run(() => forgetMemory(row.id))} aria-busy={pending}>
                     {t('احذف', 'Delete')}
                   </button>
                 </span>

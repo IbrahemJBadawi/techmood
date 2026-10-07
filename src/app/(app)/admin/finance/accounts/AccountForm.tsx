@@ -175,7 +175,7 @@ export function AccountForm({ method }: { method: PaymentMethod }) {
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>{t('احفظ', 'Save')}</button>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>{t('احفظ', 'Save')}</button>
     </form>
   );
 }

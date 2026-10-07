@@ -82,7 +82,7 @@ export function TeamSplit({ projectId, rows, canEdit, locked }: {
           </p>
           {state?.error && <p className="notice notice-danger">{state.error}</p>}
           {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
-          <button className="btn btn-primary btn-sm" disabled={pending || Math.abs(total - 100) >= 0.001}>
+          <button className="btn btn-primary btn-sm" disabled={pending || Math.abs(total - 100) >= 0.001} aria-busy={pending}>
             {t('اعتمد التقسيم', 'Agree the split')}
           </button>
         </>

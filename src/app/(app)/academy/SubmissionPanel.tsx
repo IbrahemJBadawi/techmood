@@ -220,7 +220,7 @@ export function SubmissionPanel({
             </div>
           )}
 
-          <button className="btn btn-primary btn-sm" disabled={pending}>
+          <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
             {pending
               ? t('جارٍ الإرسال…', 'Sending…')
               : status === 'draft'

@@ -69,7 +69,7 @@ export function BroadcastForm() {
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Saving…') : t('احفظ كمسودّة', 'Save as a draft')}
       </button>
     </form>

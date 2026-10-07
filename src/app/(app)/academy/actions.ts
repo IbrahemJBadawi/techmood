@@ -271,6 +271,35 @@ export async function answerLessonQuiz(lessonId: string, answers: number[], reva
   return { result: data as QuizResult };
 }
 
+export type QuizAnswer = { index: number; answer: number; chosen: number; ok: boolean; why: string };
+
+/**
+ * One answer of the quiz (0144), final once given: it comes back right or
+ * wrong at once with that question's answer; the last one also carries the
+ * score, recorded and rewarded as a whole-quiz answer is.
+ */
+export async function answerQuizQuestion(
+  lessonId: string, index: number, choice: number, revalidate: string,
+): Promise<{ answer?: QuizAnswer; result?: QuizResult; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  const { data, error } = await supabase.rpc('answer_lesson_quiz_question', { p_lesson: lessonId, p_index: index, p_choice: choice });
+  if (error) return { error: dbError(await getT(), error.message) };
+  const out = data as QuizAnswer & { finished: boolean } & Partial<QuizResult>;
+  const answer = { index: out.index, answer: out.answer, chosen: out.chosen, ok: out.ok, why: out.why };
+  if (!out.finished) return { answer };
+  revalidatePath(revalidate);
+  return { answer, result: { correct: out.correct ?? 0, total: out.total ?? 0, passed: Boolean(out.passed), results: out.results ?? [] } };
+}
+
+/** The answers already given in an attempt still open, so a reopened page shows them. */
+export async function quizProgress(lessonId: string): Promise<QuizAnswer[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('lesson_quiz_progress', { p_lesson: lessonId });
+  return (data as QuizAnswer[] | null) ?? [];
+}
+
 export type Precheck = {
   status: 'pending' | 'done' | 'failed';
   result: {

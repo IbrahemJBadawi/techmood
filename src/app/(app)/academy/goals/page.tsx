@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { GoalCard, type Goal } from './GoalCard';
+import { BackLink } from '@/components/BackLink';
 
 export const generateMetadata = localizedTitle('أهدافي التعليمية — TechMood', 'My learning goals — TechMood');
 
@@ -28,7 +29,7 @@ export default async function GoalsPage() {
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/academy">{t('→ رجوع للأكاديمية', '← Back to the academy')}</Link>
+      <BackLink href="/academy" label={t('رجوع للأكاديمية', 'Back to the academy')} />
 
       <section className="section-block" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('ماذا تريد أن تصبح؟', 'What do you want to become?')}</h2>

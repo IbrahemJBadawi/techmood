@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n.client';
 import type { MentorPauseReason } from '@/lib/database.types';
 
 import { setAccepting, type MentorFormState } from './availability-actions';
+import { DateField } from '@/components/DateField';
 
 /**
  * The mentor's own "not now".
@@ -80,7 +81,7 @@ export function AvailabilitySwitch({
               {withDate && (
                 <div className="field">
                   <label htmlFor="pause-until">{t('أعود يوم', 'Back on')}</label>
-                  <input id="pause-until" name="until" type="date" min={today} required />
+                  <DateField id="pause-until" name="until" min={today} required />
                 </div>
               )}
               <div className="field">
@@ -88,14 +89,14 @@ export function AvailabilitySwitch({
                 <input id="pause-note" name="note" maxLength={300} placeholder={t('مثال: في إجازة قصيرة', 'e.g. on a short break')} />
               </div>
             </div>
-            <button className="btn btn-ghost btn-sm" type="submit" disabled={pending} style={{ marginTop: 10 }}>
+            <button className="btn btn-ghost btn-sm" type="submit" disabled={pending} style={{ marginTop: 10 }} aria-busy={pending}>
               {pending ? t('جارٍ…', 'Working…') : t('أوقف استقبال الطلبات', 'Stop taking requests')}
             </button>
           </>
         ) : (
           <>
             <input type="hidden" name="accepting" value="on" />
-            <button className="btn btn-primary btn-sm" type="submit" disabled={pending}>
+            <button className="btn btn-primary btn-sm" type="submit" disabled={pending} aria-busy={pending}>
               {pending ? t('جارٍ…', 'Working…') : t('فعّل استقبال الطلبات', 'Start taking requests')}
             </button>
           </>

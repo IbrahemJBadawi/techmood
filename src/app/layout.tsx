@@ -6,6 +6,7 @@ import { Analytics as VercelAnalytics } from '@vercel/analytics/next';
 import { DeviceBoot } from '@/components/DeviceSetup';
 import { OfflineStatus } from '@/components/OfflineStatus';
 import { SnackbarHost } from '@/components/Snackbar';
+import { ConfettiHost } from '@/components/Confetti';
 import { LocaleProvider } from '@/lib/i18n.client';
 import { dirFor } from '@/lib/i18n';
 import { getLocale, getT } from '@/lib/i18n.server';
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <OfflineStatus />
           {children}
           <SnackbarHost />
+          <ConfettiHost />
         </LocaleProvider>
       </body>
     </html>

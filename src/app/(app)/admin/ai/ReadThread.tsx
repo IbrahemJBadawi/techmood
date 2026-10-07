@@ -38,7 +38,7 @@ export function ReadThread({ threadId, cases }: { threadId: string; cases: { id:
         {cases.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select>
       <input name="reason" required minLength={10} placeholder={t('سبب الاطلاع (يُبلَّغ صاحب المحادثة)', 'Why (the owner is told)')} />
-      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending}>{pending ? t('جارٍ…', 'Working…') : t('اطّلع', 'Read')}</button>
+      <button className="btn btn-ghost btn-sm" type="submit" disabled={pending} aria-busy={pending}>{pending ? t('جارٍ…', 'Working…') : t('اطّلع', 'Read')}</button>
       {state?.error && <p className="notice notice-danger" style={{ flexBasis: '100%' }}>{state.error}</p>}
     </form>
   );

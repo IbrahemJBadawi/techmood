@@ -10751,6 +10751,70 @@ select public.assert(
 reset role;
 reset request.jwt.claim.sub;
 
+-- -----------------------------------------------------------------------------
+-- 105. The lesson quiz, one answer at a time (0144)
+select l.id as q1_lesson from public.lessons l where l.slug = 'aspnet-core-l2' \gset
+insert into public.lesson_quizzes (lesson_id, questions)
+values (:'q1_lesson', public.quiz_valid('{"questions":[{"q":"ما REST؟","options":["أسلوب","لغة","قاعدة","متصفح"],"answer":0,"why":"لأنه أسلوب"},{"q":"ما JSON؟","options":["صيغة","خادم","لغة","جدول"],"answer":0,"why":"صيغة"},{"q":"ما 404؟","options":["نجاح","غير موجود","خطأ خادم","تحويل"],"answer":1,"why":"غير موجود"}]}'::jsonb))
+on conflict (lesson_id) do update set questions = excluded.questions, created_at = now() - interval '1 minute';
+delete from public.lesson_quiz_jobs where lesson_id = :'q1_lesson';
+insert into public.lesson_progress (profile_id, lesson_id, status, completed_at)
+select '33333333-3333-3333-3333-333333333333', l.id, 'completed', now() from public.lessons l
+ where l.slug = 'aspnet-core-l1' on conflict do nothing;
+
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  public.lesson_is_open(:'q1_lesson'),
+  '105.0 (the second lesson is open to this member)');
+select public.assert(
+  (public.answer_lesson_quiz_question(:'q1_lesson', 0::smallint, 2::smallint) ->> 'ok')::boolean = false
+  and (public.answer_lesson_quiz_question(:'q1_lesson', 1::smallint, 0::smallint) ->> 'answer')::int = 0,
+  '105.1 each answer comes back right or wrong at once, with that question''s answer');
+select public.assert(
+  jsonb_array_length(public.lesson_quiz_progress(:'q1_lesson')) = 2
+  and not (public.lesson_quiz_progress(:'q1_lesson')::text like '%لأنه أسلوب%' and public.lesson_quiz_progress(:'q1_lesson')::text like '%غير موجود%'),
+  '105.2 a page opened again sees the answers already given, and only those');
+select public.assert_rejects(
+  format($$select public.answer_lesson_quiz_question(%L, 0::smallint, 0::smallint)$$, :'q1_lesson'),
+  '105.3 an answer is final', 'نهائية');
+select public.assert(
+  (public.answer_lesson_quiz_question(:'q1_lesson', 2::smallint, 1::smallint) ->> 'passed')::boolean,
+  '105.4 the last answer scores the attempt: two of three pass');
+select public.assert(
+  jsonb_array_length(public.lesson_quiz_progress(:'q1_lesson')) = 0,
+  '105.4b and the attempt in progress is cleared');
+reset role;
+select public.assert(
+  (select count(*) from public.lesson_quiz_attempts where profile_id = '33333333-3333-3333-3333-333333333333' and lesson_id = :'q1_lesson' and passed) = 1
+  and (select count(*) from public.xp_events where profile_id = '33333333-3333-3333-3333-333333333333' and source = 'lesson_quiz_passed' and ref_id = :'q1_lesson') = 1,
+  '105.5 recorded and rewarded like a whole-quiz answer');
+set role authenticated;
+select public.assert_rejects(
+  format($$select public.answer_lesson_quiz_question(%L, 3::smallint, 0::smallint)$$, :'q1_lesson'),
+  '105.6 no fourth question', 'غير صحيح');
+select public.assert(
+  not exists (select 1 from public.lesson_quizzes),
+  '105.7 and the answers themselves stay out of reach');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 106. How far each achievement is (0145)
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(
+  (select count(*) from public.my_achievement_progress()) = (select count(*) from public.achievements)
+  and (select goal from public.my_achievement_progress() where slug = 'lessons_10') = 10
+  and (select current from public.my_achievement_progress() where slug = 'lessons_10')
+      = least((select count(*) from public.lesson_progress where profile_id = '33333333-3333-3333-3333-333333333333' and status = 'completed'), 10),
+  '106.1 every achievement has a goal, and lessons count the lessons finished');
+select public.assert(
+  not exists (select 1 from public.my_achievement_progress() where current > goal or goal < 1),
+  '106.2 a bar is never over full');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

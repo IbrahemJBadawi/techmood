@@ -33,7 +33,7 @@ export function InviteForm({ teamId }: { teamId: string }) {
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الدعوة', 'Send invitation')}
       </button>
     </form>

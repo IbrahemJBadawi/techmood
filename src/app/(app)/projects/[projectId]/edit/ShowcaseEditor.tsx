@@ -152,7 +152,7 @@ export function ShowcaseEditor({ project, academicOptions }: { project: EditorPr
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
       <div className="sc-save-bar">
-        <button className="btn btn-primary" disabled={pending}>{pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ الصفحة', 'Save the page')}</button>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>{pending ? t('جارٍ الحفظ…', 'Saving…') : t('احفظ الصفحة', 'Save the page')}</button>
       </div>
     </form>
   );

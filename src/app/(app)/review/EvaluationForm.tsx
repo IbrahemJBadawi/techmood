@@ -99,7 +99,7 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
-      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
+      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الحفظ…', 'Saving…') : t('حفظ التقييم', 'Save evaluation')}
       </button>
 

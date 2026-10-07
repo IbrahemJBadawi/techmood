@@ -5,12 +5,14 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { saveAiPreferences, type AiSettingsState } from './actions';
+import { useSavedFlash } from '@/lib/use-saved-flash';
 
 export function PreferencesForm({ memory, actions }: { memory: boolean; actions: boolean }) {
   const t = useT();
   const [state, formAction, pending] = useActionState<AiSettingsState, FormData>(
     saveAiPreferences, undefined,
   );
+  const done = useSavedFlash(state);
 
   return (
     <form action={formAction} className="stack">
@@ -37,10 +39,10 @@ export function PreferencesForm({ memory, actions }: { memory: boolean; actions:
       </label>
 
       {state?.error && <p className="form-error">{state.error}</p>}
-      {state?.ok && <p className="form-ok">{state.ok}</p>}
+      {state?.ok && <p className="sr-only" role="status">{state.ok}</p>}
 
-      <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-        {t('احفظ', 'Save')}
+      <button type="submit" className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending} data-done={done || undefined}>
+        {done ? t('✓ حُفظ', '✓ Saved') : t('احفظ', 'Save')}
       </button>
     </form>
   );

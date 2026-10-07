@@ -8,6 +8,7 @@ import type { TermsStatus } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { acceptTerms, proposeTerms, type MarketState } from '../market-actions';
+import { NumberStepper } from '@/components/NumberStepper';
 
 const TERMS_STATUS: Record<TermsStatus, { text: Text; className: string }> = {
   offered:    { text: { ar: 'عرض قائم',   en: 'On the table' }, className: 'status-pending' },
@@ -96,17 +97,17 @@ export function Negotiation({
 
         <div className="field">
           <label htmlFor="terms-amount">{t('عرضك (دولار)', 'Your price (USD)')}</label>
-          <input id="terms-amount" name="amount" type="number" min="0" step="1" required />
+          <NumberStepper id="terms-amount" name="amount" min="0" step="1" required />
         </div>
         <div className="field">
           <label htmlFor="terms-days">{t('المدة (أيام)', 'Days')}</label>
-          <input id="terms-days" name="days" type="number" min="1" max="365" step="1" />
+          <NumberStepper id="terms-days" name="days" min="1" max="365" step="1" />
         </div>
         <div className="field">
           <label htmlFor="terms-message">{t('لماذا؟', 'Why?')}</label>
           <input id="terms-message" name="message" />
         </div>
-        <button className="btn btn-ghost btn-sm" disabled={pending}>
+        <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Sending…') : t('اعرض', 'Offer')}
         </button>
 

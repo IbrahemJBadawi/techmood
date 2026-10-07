@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { createTask, type TeamState } from '../../actions';
 import { useT } from '@/lib/i18n.client';
+import { DateField } from '@/components/DateField';
 
 export function NewTaskForm({
   teamId,
@@ -52,7 +53,7 @@ export function NewTaskForm({
         </div>
         <div className="field">
           <label htmlFor="due_on">{t('الموعد النهائي', 'Due date')}</label>
-          <input id="due_on" name="due_on" type="date" />
+          <DateField id="due_on" name="due_on" />
         </div>
       </div>
 
@@ -81,7 +82,7 @@ export function NewTaskForm({
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإضافة…', 'Adding…') : t('أضف المهمة', 'Add task')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>

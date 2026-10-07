@@ -1,10 +1,10 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
 import { NewOpportunityForm } from './NewOpportunityForm';
+import { BackLink } from '@/components/BackLink';
 
 export const generateMetadata = localizedTitle('فرصة جديدة — TechMood', 'New opportunity — TechMood');
 
@@ -37,7 +37,7 @@ export default async function NewOpportunityPage({
   if (canPost !== true && (teams?.length ?? 0) === 0 && companies.length === 0) {
     return (
       <>
-        <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
+        <BackLink href="/marketplace" label={t('رجوع للسوق', 'Back to work')} />
         <p className="notice" style={{ marginTop: 16 }}>
           {t('نشر الفرص يحتاج دوراً معتمداً: شركة، مؤسس، قائد فريق، أو فريلانسر. اطلب الدور من صفحة الجواز المهني — دور الطالب وحده يتيح لك التقدّم على الفرص لا نشرها.',
              'Posting needs an approved role: organisation, founder, team lead or freelancer. Ask for one from your passport — the student role lets you apply to openings, not publish them.')}
@@ -48,7 +48,7 @@ export default async function NewOpportunityPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/marketplace">{t('→ رجوع للسوق', '← Back to work')}</Link>
+      <BackLink href="/marketplace" label={t('رجوع للسوق', 'Back to work')} />
 
       <section className="section-block" style={{ marginTop: 16, maxWidth: 680 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('انشر فرصة', 'Post an opening')}</h2>

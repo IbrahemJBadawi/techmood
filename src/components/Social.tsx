@@ -73,8 +73,7 @@ export function FollowButton({
         className={`btn btn-sm ${on ? 'btn-ghost' : 'btn-primary'}`}
         onClick={toggle}
         disabled={pending}
-        aria-pressed={on}
-      >
+        aria-pressed={on} aria-busy={pending}>
         {on ? t("تتابعه", "Following") : t("تابِع", "Follow")} · <span>{label}</span>
       </button>
       {error && <span className="muted" style={{ fontSize: '0.76rem' }}>{error}</span>}
@@ -155,8 +154,7 @@ export function LikeButton({
         onClick={toggle}
         disabled={pending}
         aria-pressed={on}
-        aria-label={`${on ? t('إلغاء الإعجاب', 'Unlike') : t('أعجبني', 'Like')} — ${label}`}
-      >
+        aria-label={`${on ? t('إلغاء الإعجاب', 'Unlike') : t('أعجبني', 'Like')} — ${label}`} aria-busy={pending}>
         <span className="like-icon" key={burst}>{heart(on)}</span>
         <span className="eng">{count}</span>
         <span className="like-word">{on ? t('أعجبك', 'Liked') : t('أعجبني', 'Like')}</span>

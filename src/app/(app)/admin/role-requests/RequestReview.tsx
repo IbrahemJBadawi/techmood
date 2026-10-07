@@ -72,7 +72,7 @@ export function RequestReview({ requestId, status }: { requestId: string; status
           </div>
           {state?.error && <p className="notice notice-danger">{state.error}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary btn-sm" disabled={pending}>
+            <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
               {pending
                 ? t('جارٍ الحفظ…', 'Saving…')
                 : t(`تأكيد: ${t(LABEL[decision])}`, `Confirm: ${t(LABEL[decision])}`)}

@@ -8,6 +8,7 @@ import type { StudioReviewState } from '@/lib/database.types';
 
 import { deleteStudioLesson, saveStudioLesson } from '../../../../actions';
 import { editable } from '../../../../review';
+import { NumberStepper } from '@/components/NumberStepper';
 
 export const generateMetadata = localizedTitle('تحرير درس — استوديو TechMood', 'Edit a lesson — TechMood studio');
 
@@ -101,7 +102,7 @@ export default async function StudioLessonPage({
             </div>
             <div className="field">
               <label htmlFor="duration_minutes">{t('المدة بالدقائق', 'Length in minutes')}</label>
-              <input id="duration_minutes" name="duration_minutes" type="number" min={1} max={999} defaultValue={lesson?.duration_minutes ?? ''} />
+              <NumberStepper id="duration_minutes" name="duration_minutes" min={1} max={999} defaultValue={lesson?.duration_minutes ?? ''} />
             </div>
           </div>
           <div className="field">

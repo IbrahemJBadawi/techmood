@@ -14,6 +14,7 @@ import { schoolLook } from '../../schools';
 import { SubmissionPanel } from '../../SubmissionPanel';
 import { CourseRatingForm } from '../../CourseRatingForm';
 import { ShareButton } from '@/components/ShareButton';
+import { BackLink } from '@/components/BackLink';
 
 const LESSON_KIND_LABELS: Record<string, Text> = {
   video:    { ar: 'فيديو',        en: 'Video' },
@@ -187,7 +188,7 @@ export default async function CoursePage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href={`/academy/${pathSlug}`}>{t('→ رجوع للمسار', '← Back to the path')}</Link>
+      <BackLink href={`/academy/${pathSlug}`} label={t('رجوع للمسار', 'Back to the path')} />
 
       <section className="section-block ac-cover" style={{ marginTop: 16, '--hue': look.color } as React.CSSProperties}>
         <div className="ac-cover-top">

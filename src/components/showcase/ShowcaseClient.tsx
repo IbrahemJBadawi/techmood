@@ -11,6 +11,7 @@ import {
   addCommentAction, adminHideShowcase, buyShowcase, makeOfferAction, recordShowcaseHit,
   type ShowcaseState,
 } from '@/app/(app)/projects/showcase-actions';
+import { NumberStepper } from '@/components/NumberStepper';
 
 /** Counts the visit once the page is open (the database counts a visitor once a day). */
 export function ViewPing({ projectId }: { projectId: string }) {
@@ -69,7 +70,7 @@ export function BuyBox({
       </select>
       <TermsCheck id={`buy-terms-${listingId}`} />
       {state?.error && <p className="notice notice-danger" style={{ margin: 0 }}>{state.error}</p>}
-      <button className="btn btn-primary" disabled={pending}>
+      <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : agreed ? t('اشترِ بالسعر المتفق عليه', 'Buy at the agreed price') : t('اشترِ الآن', 'Buy now')}
       </button>
       <small className="muted">
@@ -94,7 +95,7 @@ export function OfferBox({ listingId, price, minPct }: { listingId: string; pric
       <input type="hidden" name="listing_id" value={listingId} />
       <div className="field" style={{ margin: 0 }}>
         <label htmlFor={`offer-${listingId}`}>{t(`عرضك بالدولار (من ${min} إلى أقل من ${price})`, `Your offer in USD (${min} to under ${price})`)}</label>
-        <input id={`offer-${listingId}`} name="amount" type="number" min={min} max={Math.max(min, price - 1)} step={1} required />
+        <NumberStepper id={`offer-${listingId}`} name="amount" min={min} max={Math.max(min, price - 1)} step={1} required />
       </div>
       <div className="field" style={{ margin: 0 }}>
         <label htmlFor={`offer-msg-${listingId}`}>{t('رسالة قصيرة للبائع (اختياري)', 'A short note to the seller (optional)')}</label>
@@ -103,7 +104,7 @@ export function OfferBox({ listingId, price, minPct }: { listingId: string; pric
       <TermsCheck id={`offer-terms-${listingId}`} />
       {state?.error && <p className="notice notice-danger" style={{ margin: 0 }}>{state.error}</p>}
       {state?.ok && <p className="notice notice-ok" style={{ margin: 0 }}>{state.ok}</p>}
-      <button className="btn btn-sky btn-sm" disabled={pending}>{pending ? t('جارٍ…', 'Sending…') : t('أرسل العرض', 'Send the offer')}</button>
+      <button className="btn btn-sky btn-sm" disabled={pending} aria-busy={pending}>{pending ? t('جارٍ…', 'Sending…') : t('أرسل العرض', 'Send the offer')}</button>
     </form>
   );
 }
@@ -125,7 +126,7 @@ export function CommentForm({ projectId, code, parentId, onDone }: { projectId: 
       <textarea name="body" rows={parentId ? 2 : 3} maxLength={1000} required
                 placeholder={parentId ? t('اكتب ردّك…', 'Write a reply…') : t('اكتب تعليقاً أو سؤالاً عن المشروع…', 'Comment or ask about the project…')} />
       {state?.error && <p className="notice notice-danger" style={{ margin: 0 }}>{state.error}</p>}
-      <div><button className="btn btn-primary btn-sm" disabled={pending}>{pending ? t('جارٍ…', 'Posting…') : parentId ? t('ردّ', 'Reply') : t('علّق', 'Comment')}</button></div>
+      <div><button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>{pending ? t('جارٍ…', 'Posting…') : parentId ? t('ردّ', 'Reply') : t('علّق', 'Comment')}</button></div>
     </form>
   );
 }
@@ -167,7 +168,7 @@ export function AdminHideForm({ projectId, hidden }: { projectId: string; hidden
       {!hidden && <input name="note" required minLength={10} placeholder={t('سبب الإخفاء — يصل لصاحب المشروع', 'Why — the owner reads it')} />}
       {state?.error && <p className="notice notice-danger" style={{ margin: 0 }}>{state.error}</p>}
       {state?.ok && <p className="notice notice-ok" style={{ margin: 0 }}>{state.ok}</p>}
-      <button className="btn btn-ghost btn-sm" disabled={pending}>{hidden ? t('أعد إظهاره', 'Show again') : t('أخفِ من المعرض والسوق', 'Hide from gallery and market')}</button>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>{hidden ? t('أعد إظهاره', 'Show again') : t('أخفِ من المعرض والسوق', 'Hide from gallery and market')}</button>
     </form>
   );
 }

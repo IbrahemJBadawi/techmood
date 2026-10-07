@@ -60,7 +60,7 @@ export function Composer({ conversationId, readOnly, note }: { conversationId: s
         <input type="hidden" name="conversation_id" value={conversationId} />
         {replyTo && <input type="hidden" name="reply_to_id" value={replyTo.id} />}
         <input ref={inputRef} name="body" placeholder={t('اكتب رسالة…', 'Write a message…')} autoComplete="off" required />
-        <button className="chat-send" disabled={pending} aria-label={t('إرسال', 'Send')}>
+        <button className="chat-send" disabled={pending} aria-label={t('إرسال', 'Send')} aria-busy={pending}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z" />
           </svg>

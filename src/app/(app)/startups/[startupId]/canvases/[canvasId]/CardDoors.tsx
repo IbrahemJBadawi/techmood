@@ -5,6 +5,8 @@ import { useActionState, useState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { cardToGoal, cardToProject, type CanvasState } from '../actions';
+import { NumberStepper } from '@/components/NumberStepper';
+import { DateField } from '@/components/DateField';
 
 export type DoorCard = {
   id: string;
@@ -65,11 +67,11 @@ export function CardDoors({ cards, revalidate }: { cards: DoorCard[]; revalidate
           </div>
           <div className="field">
             <label htmlFor="target">{t('الرقم المستهدف', 'Target')}</label>
-            <input id="target" name="target" type="number" min="1" step="1" required />
+            <NumberStepper id="target" name="target" min="1" step="1" required />
           </div>
           <div className="field">
             <label htmlFor="due">{t('بحلول', 'By')}</label>
-            <input id="due" name="due" type="date" required />
+            <DateField id="due" name="due" required />
           </div>
 
           {goalState?.error && <p className="notice notice-danger">{goalState.error}</p>}

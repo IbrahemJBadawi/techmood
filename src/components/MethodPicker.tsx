@@ -61,8 +61,7 @@ export function MethodPicker({ paymentId, options, revalidate }: {
                   const result = await choosePaymentMethod(paymentId, option.key, revalidate);
                   setError(result.ok ? '' : result.error ?? '');
                   router.refresh();
-                })}
-              >
+                })} aria-busy={pending}>
                 {revealLabel(option, t)}
               </button>
             )}

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { PrecheckBox } from '../../academy/PrecheckBox';
 import type { Precheck } from '../../academy/actions';
@@ -11,6 +10,7 @@ import { EvidenceKind } from '@/lib/database.types';
 
 import { EvaluationForm } from '../EvaluationForm';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { BackLink } from '@/components/BackLink';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
   github:    { ar: 'المستودع',        en: 'Repository' },
@@ -126,7 +126,7 @@ export default async function ReviewSubmissionPage({
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/review">{t('→ رجوع لقائمة المراجعة', '← Back to the review queue')}</Link>
+      <BackLink href="/review" label={t('رجوع لقائمة المراجعة', 'Back to the review queue')} />
 
       <section className="panel section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start' }}>

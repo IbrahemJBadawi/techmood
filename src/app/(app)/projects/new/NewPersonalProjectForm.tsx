@@ -65,7 +65,7 @@ export function NewPersonalProjectForm({
 
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       <div>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإنشاء…', 'Creating…') : t('التالي: الصور والتفاصيل ←', 'Next: pictures and details →')}
         </button>
       </div>

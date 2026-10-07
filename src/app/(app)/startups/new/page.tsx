@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { useActionState } from 'react';
 
 import { createStartup, type StartupState } from '../actions';
 import { useT } from '@/lib/i18n.client';
+import { BackLink } from '@/components/BackLink';
 
 export default function NewStartupPage() {
   const t = useT();
@@ -12,7 +12,7 @@ export default function NewStartupPage() {
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/startups">{t('→ رجوع', '← Back')}</Link>
+      <BackLink href="/startups" label={t('رجوع', 'Back')} />
 
       <section className="section-block" style={{ marginTop: 16, maxWidth: 620 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('مشروع ناشئ جديد', 'A new startup')}</h2>
@@ -59,7 +59,7 @@ export default function NewStartupPage() {
 
         {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
 
-        <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
+        <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإنشاء…', 'Creating…') : t('أنشئ المشروع', 'Create')}
         </button>
       </form>

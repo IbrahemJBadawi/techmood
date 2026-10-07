@@ -35,7 +35,7 @@ export function DocumentForm({ startupId }: { startupId: string }) {
         <input id="url" name="url" type="url" dir="ltr" required />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Saving…') : t('احفظ', 'Save')}
       </button>
 

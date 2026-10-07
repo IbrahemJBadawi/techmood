@@ -139,7 +139,20 @@ export async function League({
         </p>
       ) : (
         <ol className="hm-ranks" tabIndex={0} aria-label={t('الترتيب', 'Ranking')}>
-          {top.map(renderRow)}
+          {/* zones (design lab 3): the top three above a line, everyone else below it */}
+          <li className="hm-zone is-up" aria-hidden="true">▲ {t('منطقة الصدارة', 'The top three')}</li>
+          {top.filter((row) => row.rank <= 3).map(renderRow)}
+          {top.some((row) => row.rank > 3) && (
+            <li className="hm-zone is-line" aria-hidden="true">
+              <span>
+                {me && me.rank > 3 && top.find((row) => row.rank === 3) && query.metric !== 'rating'
+                  ? t(`تحتاج ${Math.max(1, Number(top.find((row) => row.rank === 3)!.score) - Number(me.score) + 1)} ${query.metric === 'points' ? 'XP' : 'يوماً'} لتدخل الصدارة`,
+                      `${Math.max(1, Number(top.find((row) => row.rank === 3)!.score) - Number(me.score) + 1)} ${query.metric === 'points' ? 'XP' : 'days'} more to reach the top three`)
+                  : t('خط الصدارة', 'The top-three line')}
+              </span>
+            </li>
+          )}
+          {top.filter((row) => row.rank > 3).map(renderRow)}
           {meOutside && (
             <>
               <li className="hm-ranks-gap" aria-hidden="true">⋯</li>

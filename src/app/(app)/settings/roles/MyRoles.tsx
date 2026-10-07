@@ -172,7 +172,7 @@ function AnswerForm({ requestId, ask }: { requestId: string; ask: string | null 
       </div>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل', 'Send')}
       </button>
     </form>
@@ -195,7 +195,7 @@ function ReapplyForm({ role }: { role: UserRole }) {
         <textarea id={`reapply_${role}`} name="note" rows={2} required />
       </div>
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
-      <button className="btn btn-ghost btn-sm" disabled={pending}>{t('تقدّم مرة أخرى', 'Apply again')}</button>
+      <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>{t('تقدّم مرة أخرى', 'Apply again')}</button>
     </form>
   );
 }
@@ -231,7 +231,7 @@ function ApplyCard({ role }: { role: RoleDefinition }) {
           {state?.error && <p className="notice notice-danger">{state.error}</p>}
           {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary btn-sm" disabled={pending}>
+            <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
               {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الطلب', 'Send request')}
             </button>
             <button className="btn btn-ghost btn-sm" type="button" onClick={() => setOpen(false)}>

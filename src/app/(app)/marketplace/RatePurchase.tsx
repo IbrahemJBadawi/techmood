@@ -17,7 +17,7 @@ export function RatePurchase({ saleId }: { saleId: string }) {
       <input type="hidden" name="sale_id" value={saleId} />
       <StarInput name="stars" required label={t('قيّم ما اشتريته', 'Rate what you bought')} />
       <input name="comment" maxLength={1000} placeholder={t('رأيك باختصار (يظهر على صفحة المشروع)', 'A short review (shown on the page)')} />
-      <button className="btn btn-primary btn-sm" disabled={pending}>{t('أرسل', 'Send')}</button>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>{t('أرسل', 'Send')}</button>
       {state?.error && <p className="notice notice-danger" style={{ margin: 0 }}>{state.error}</p>}
     </form>
   );

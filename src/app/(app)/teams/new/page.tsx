@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useActionState } from 'react';
 
 import { createTeam, type TeamState } from '../actions';
 import { useT } from '@/lib/i18n.client';
 import { IS_MVP } from '@/lib/scope';
+import { BackLink } from '@/components/BackLink';
 
 export default function NewTeamPage() {
   const t = useT();
@@ -13,7 +13,7 @@ export default function NewTeamPage() {
 
   return (
     <>
-      <Link className="btn btn-ghost btn-sm" href="/teams">{t('→ رجوع للفرق', '← Back to teams')}</Link>
+      <BackLink href="/teams" label={t('رجوع للفرق', 'Back to teams')} />
 
       <section className="section-block" style={{ marginTop: 16, maxWidth: 620 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('أنشئ فريقاً', 'Start a team')}</h2>
@@ -72,7 +72,7 @@ export default function NewTeamPage() {
 
         {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
 
-        <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
+        <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الإنشاء…', 'Creating…') : t('أنشئ الفريق', 'Create the team')}
         </button>
       </form>

@@ -17,7 +17,7 @@ export function AdvanceForm({ startupId, ready }: { startupId: string; ready: bo
       <input name="note" className="invite-message"
              placeholder={t('ما الذي أنجزتموه؟ (اختياري)', 'What did you finish? (optional)')}
              aria-label={t('ملاحظة المرحلة', 'Stage note')} />
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : t('انتقل للمرحلة التالية', 'Move to the next stage')}
       </button>
 

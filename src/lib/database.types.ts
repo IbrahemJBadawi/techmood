@@ -1947,6 +1947,8 @@ export type Database = {
       my_unread_messages: { Args: Record<string, never>; Returns: number };
       lesson_quiz: { Args: { p_lesson: string }; Returns: unknown };
       submit_lesson_quiz: { Args: { p_lesson: string; p_answers: number[] }; Returns: unknown };
+      answer_lesson_quiz_question: { Args: { p_lesson: string; p_index: number; p_choice: number }; Returns: unknown };
+      lesson_quiz_progress: { Args: { p_lesson: string }; Returns: unknown };
       claim_quiz_generation: { Args: { p_lesson: string }; Returns: boolean };
       claim_submission_precheck: { Args: { p_submission: string }; Returns: string };
       conversation_previews: { Args: { p_ids: string[] }; Returns: { conversation_id: string; body_ar: string; created_at: string }[] };
@@ -1958,6 +1960,7 @@ export type Database = {
         Args: Record<string, never>;
         Returns: { key: string; title_ar: string; title_en: string; icon: string; goal: number; progress: number; week_ends: string; days_left: number }[];
       };
+      my_achievement_progress: { Args: Record<string, never>; Returns: { slug: string; current: number; goal: number }[] };
       my_achievements: {
         Args: Record<string, never>;
         Returns: {

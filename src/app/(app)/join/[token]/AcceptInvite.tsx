@@ -32,7 +32,7 @@ export function AcceptInvite({ token }: { token: string }) {
   return (
     <>
       {error && <p className="notice notice-danger" style={{ marginTop: 14 }}>{error}</p>}
-      <button className="btn btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={accept} disabled={pending}>
+      <button className="btn btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={accept} disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ الانضمام…', 'Joining…') : t('انضم للفريق', 'Join the team')}
       </button>
     </>

@@ -111,7 +111,7 @@ export function MembersAdmin({
           {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary btn-sm" disabled={pending}>
+            <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
               {pending ? t('جارٍ النقل…', 'Transferring…') : t('انقل القيادة', 'Transfer leadership')}
             </button>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setTransferTo(null)}>{t('إلغاء', 'Cancel')}</button>

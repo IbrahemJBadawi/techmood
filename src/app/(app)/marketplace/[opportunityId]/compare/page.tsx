@@ -7,6 +7,7 @@ import { money } from '@/lib/booking';
 import { Stars } from '@/components/Stars';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
+import { BackLink } from '@/components/BackLink';
 
 export const generateMetadata = localizedTitle('مقارنة العروض — TechMood', 'Compare — TechMood');
 
@@ -50,9 +51,7 @@ export default async function ComparePage({
   if (error) {
     return (
       <>
-        <Link className="btn btn-ghost btn-sm" href={`/marketplace/${opportunityId}`}>
-          {t('→ رجوع للفرصة', '← Back to the brief')}
-        </Link>
+        <BackLink href={`/marketplace/${opportunityId}`} label={t('رجوع للفرصة', 'Back to the brief')} />
         <p className="notice" style={{ marginTop: 16 }}>
           {t('المقارنة لصاحب الفرصة وحده.', 'Comparing candidates is for whoever wrote the brief.')}
         </p>
@@ -67,9 +66,7 @@ export default async function ComparePage({
       <AiSurface surface="opportunity" entityType="opportunity" entityId={opportunityId}
                  label={opportunity.title_ar} />
 
-      <Link className="btn btn-ghost btn-sm" href={`/marketplace/${opportunityId}`}>
-        {t('→ رجوع للفرصة', '← Back to the brief')}
-      </Link>
+      <BackLink href={`/marketplace/${opportunityId}`} label={t('رجوع للفرصة', 'Back to the brief')} />
 
       <section className="section-block" style={{ marginTop: 16 }}>
         <div className="row-between" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>

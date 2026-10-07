@@ -7,6 +7,8 @@ import type { OpportunityKind } from '@/lib/database.types';
 
 import { postOpportunity, type MarketState } from '../actions';
 import { useT } from '@/lib/i18n.client';
+import { NumberStepper } from '@/components/NumberStepper';
+import { DateField } from '@/components/DateField';
 
 export function NewOpportunityForm({
   canPostGeneral,
@@ -104,11 +106,11 @@ export function NewOpportunityForm({
       <div className="field-row">
         <div className="field">
           <label htmlFor="amount_min">{t('من', 'From')}</label>
-          <input id="amount_min" name="amount_min" type="number" step="0.01" dir="ltr" />
+          <NumberStepper id="amount_min" name="amount_min" step="0.01" dir="ltr" />
         </div>
         <div className="field">
           <label htmlFor="amount_max">{t('إلى', 'To')}</label>
-          <input id="amount_max" name="amount_max" type="number" step="0.01" dir="ltr" />
+          <NumberStepper id="amount_max" name="amount_max" step="0.01" dir="ltr" />
         </div>
       </div>
 
@@ -119,7 +121,7 @@ export function NewOpportunityForm({
         </div>
         <div className="field">
           <label htmlFor="seats">{t('عدد المقاعد', 'Seats')}</label>
-          <input id="seats" name="seats" type="number" min={1} max={50} defaultValue={1} dir="ltr" />
+          <NumberStepper id="seats" name="seats" min={1} max={50} defaultValue={1} dir="ltr" />
         </div>
       </div>
 
@@ -130,7 +132,7 @@ export function NewOpportunityForm({
 
       <div className="field">
         <label htmlFor="closes_on">{t('آخر موعد للتقديم', 'Application deadline')}</label>
-        <input id="closes_on" name="closes_on" type="date" />
+        <DateField id="closes_on" name="closes_on" />
       </div>
 
       <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 4 }}>
@@ -146,7 +148,7 @@ export function NewOpportunityForm({
         <div className="field-row">
           <div className="field">
             <label htmlFor="min_stars">{t('أقل تقييم بالنجوم', 'Minimum star rating')}</label>
-            <input id="min_stars" name="min_stars" type="number" min={0} max={5} step="0.5" dir="ltr" />
+            <NumberStepper id="min_stars" name="min_stars" min={0} max={5} step="0.5" dir="ltr" />
           </div>
           <div className="field">
             <label htmlFor="required_path_id">{t('شهادة مسار مطلوبة', 'Path certificate required')}</label>
@@ -193,7 +195,7 @@ export function NewOpportunityForm({
 
       {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
 
-      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending}>
+      <button className="btn btn-primary" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ النشر…', 'Publishing…') : t('انشر الفرصة', 'Publish the opening')}
       </button>
     </form>

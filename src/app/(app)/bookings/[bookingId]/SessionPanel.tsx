@@ -39,7 +39,7 @@ export function MeetingLinkForm({ bookingId, current }: { bookingId: string; cur
           required
         />
       </div>
-      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={pending}>
+      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
         {current ? t('تحديث الرابط', 'Update the link') : t('حفظ الرابط', 'Save the link')}
       </button>
       <Result state={state} />
@@ -63,7 +63,7 @@ export function DeclineForm({ bookingId }: { bookingId: string }) {
           <label htmlFor="decline-reason">{t('سبب الاعتذار — يصل للطالب', 'Why — the learner will read this')}</label>
           <textarea id="decline-reason" name="reason" rows={3} minLength={10} maxLength={500} required />
         </div>
-        <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} disabled={pending}>
+        <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
           {t('اعتذر وأعِد المبلغ للطالب', 'Decline and refund the learner')}
         </button>
         <Result state={state} />
@@ -86,15 +86,15 @@ export function AttendanceForm({ bookingId, side }: { bookingId: string; side: '
       <input type="hidden" name="booking_id" value={bookingId} />
       {side === 'mentor' ? (
         <div style={{ display: 'grid', gap: 8 }}>
-          <button className="btn btn-primary btn-sm" name="outcome" value="held" disabled={pending}>
+          <button className="btn btn-primary btn-sm" name="outcome" value="held" disabled={pending} aria-busy={pending}>
             {t('انعقدت الجلسة', 'The session took place')}
           </button>
-          <button className="btn btn-ghost btn-sm" name="outcome" value="learner_absent" disabled={pending}>
+          <button className="btn btn-ghost btn-sm" name="outcome" value="learner_absent" disabled={pending} aria-busy={pending}>
             {t('لم يحضر الطالب', 'The learner did not come')}
           </button>
         </div>
       ) : (
-        <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} name="outcome" value="mentor_absent" disabled={pending}>
+        <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} name="outcome" value="mentor_absent" disabled={pending} aria-busy={pending}>
           {t('لم يحضر المنتور', 'The mentor did not come')}
         </button>
       )}
@@ -111,7 +111,7 @@ export function DisputeAbsenceForm({ bookingId }: { bookingId: string }) {
   return (
     <form action={action} style={{ marginTop: 10 }}>
       <input type="hidden" name="booking_id" value={bookingId} />
-      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} name="outcome" value="held" disabled={pending}>
+      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} name="outcome" value="held" disabled={pending} aria-busy={pending}>
         {t('الجلسة انعقدت — أعترض', 'The session took place — dispute')}
       </button>
       <Result state={state} />
@@ -142,7 +142,7 @@ export function RescheduleForm({ bookingId, slots }: { bookingId: string; slots:
           {slots.map((slot) => <option key={slot.value} value={slot.value}>{slot.label}</option>)}
         </select>
       </div>
-      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={pending}>
+      <button className="btn btn-primary btn-sm" style={{ width: '100%' }} disabled={pending} aria-busy={pending}>
         {t('ثبّت الموعد الجديد', 'Set the new time')}
       </button>
       <Result state={state} />

@@ -35,7 +35,7 @@ export function MemberForm({ startupId }: { startupId: string }) {
         <input id="title" name="title" />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Adding…') : t('أضف', 'Add')}
       </button>
 

@@ -36,7 +36,7 @@ export function RoadmapForm({ startupId, year }: { startupId: string; year: numb
         <input id="detail" name="detail" />
       </div>
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Adding…') : t('أضف', 'Add')}
       </button>
 

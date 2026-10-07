@@ -18,6 +18,7 @@ import { PhotoCard } from './PhotoCard';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { AutoSubmitSelect } from '@/components/AutoSubmitSelect';
+import { DateField } from '@/components/DateField';
 
 export const generateMetadata = localizedTitle('الملف الشخصي — TechMood', 'Profile — TechMood');
 
@@ -205,8 +206,8 @@ export default async function ProfileSettingsPage() {
           <select name="kind" defaultValue="job" aria-label={t('النوع', 'Kind')}>
             {EXPERIENCE_KINDS.map((kind) => <option value={kind} key={kind}>{kind}</option>)}
           </select>
-          <input name="started_on" type="date" aria-label={t('من', 'From')} />
-          <input name="ended_on" type="date" aria-label={t('إلى', 'To')} />
+          <DateField name="started_on" aria-label={t('من', 'From')} />
+          <DateField name="ended_on" aria-label={t('إلى', 'To')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
         </details>
@@ -231,8 +232,8 @@ export default async function ProfileSettingsPage() {
           <input name="institution" required placeholder={t('الجامعة أو المعهد', 'Institution')} />
           <input name="degree" placeholder={t('الدرجة', 'Degree')} />
           <input name="field" placeholder={t('التخصص', 'Field')} />
-          <input name="started_on" type="date" aria-label={t('من', 'From')} />
-          <input name="ended_on" type="date" aria-label={t('إلى', 'To')} />
+          <DateField name="started_on" aria-label={t('من', 'From')} />
+          <DateField name="ended_on" aria-label={t('إلى', 'To')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
         </details>
@@ -266,7 +267,7 @@ export default async function ProfileSettingsPage() {
           <input name="role" placeholder={t('دورك', 'Your role')} />
           <input name="result" placeholder={t('النتيجة', 'Result')} />
           <input name="evidence_url" type="url" placeholder={t('رابط الدليل', 'Evidence link')} />
-          <input name="held_on" type="date" aria-label={t('التاريخ', 'Date')} />
+          <DateField name="held_on" aria-label={t('التاريخ', 'Date')} />
           <button className="btn btn-primary btn-sm" type="submit">{t('أضف', 'Add')}</button>
         </form>
         </details>

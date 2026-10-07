@@ -9,6 +9,7 @@ import { SettingsForm } from './SettingsForm';
 import { PermissionsForm } from './PermissionsForm';
 import { MembersAdmin } from './MembersAdmin';
 import type { Team } from '@/lib/database.types';
+import { BackLink } from '@/components/BackLink';
 
 export default async function TeamSettingsPage({
   params,
@@ -30,7 +31,7 @@ export default async function TeamSettingsPage({
     if (isAdmin !== true) {
       return (
         <>
-          <Link className="btn btn-ghost btn-sm" href={`/teams/${teamId}`}>{t('→ رجوع', '← Back')}</Link>
+          <BackLink href={`/teams/${teamId}`} label={t('رجوع', 'Back')} />
           <p className="notice notice-danger" style={{ marginTop: 16 }}>
             {t('إعدادات الفريق لقائد الفريق فقط.', 'Team settings are for the team lead only.')}
           </p>

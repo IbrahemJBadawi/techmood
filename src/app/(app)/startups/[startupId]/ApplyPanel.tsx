@@ -84,7 +84,7 @@ export function ApplyPanel({
         {state?.error && <p className="notice notice-danger" style={{ marginBottom: 12 }}>{state.error}</p>}
         {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
-        <button className="btn btn-primary btn-sm" disabled={pending || !ready}>
+        <button className="btn btn-primary btn-sm" disabled={pending || !ready} aria-busy={pending}>
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الطلب', 'Send application')}
         </button>
       </form>

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { saveSmartGoal, type StartupState } from '../../actions';
 import { useT } from '@/lib/i18n.client';
+import { DateField } from '@/components/DateField';
 
 export function NewGoalForm({ startupId }: { startupId: string }) {
   const t = useT();
@@ -67,11 +68,11 @@ export function NewGoalForm({ startupId }: { startupId: string }) {
       <div className="field-row">
         <div className="field">
           <label htmlFor="starts_on">{t('محدد بزمن — من', 'Time-bound — from')}</label>
-          <input id="starts_on" name="starts_on" type="date" required />
+          <DateField id="starts_on" name="starts_on" required />
         </div>
         <div className="field">
           <label htmlFor="due_on">{t('إلى', 'to')}</label>
-          <input id="due_on" name="due_on" type="date" required />
+          <DateField id="due_on" name="due_on" required />
         </div>
       </div>
 
@@ -79,7 +80,7 @@ export function NewGoalForm({ startupId }: { startupId: string }) {
       {state?.ok && <p className="notice" style={{ marginBottom: 12 }}>{state.ok}</p>}
 
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-primary btn-sm" disabled={pending}>
+        <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ الحفظ…', 'Saving…') : t('أضف الهدف', 'Add goal')}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>{t('إغلاق', 'Close')}</button>

@@ -18,6 +18,7 @@ import {
 } from './money-actions';
 import { StarInput } from '@/components/StarInput';
 import { UploadCard } from '@/components/UploadCard';
+import { NumberStepper } from '@/components/NumberStepper';
 
 
 
@@ -66,7 +67,7 @@ export function OpenEscrowForm({
       <div className="rules-grid">
         <div className="field">
           <label htmlFor="amount">{t('المبلغ (دولار)', 'Amount (USD)')}</label>
-          <input id="amount" name="amount" type="number" min="1" step="1" defaultValue={suggested ?? ''} required />
+          <NumberStepper id="amount" name="amount" min="1" step="1" defaultValue={suggested ?? ''} required />
         </div>
         <div className="field">
           <label htmlFor="method_key">{t('طريقة الدفع', 'Payment method')}</label>
@@ -91,7 +92,7 @@ export function OpenEscrowForm({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Working…') : t('افتح الحجز المالي', 'Open the hold')}
       </button>
     </form>
@@ -192,7 +193,7 @@ export function EscrowProofForm({
       </div>
 
       <button className="btn btn-primary btn-sm"
-              disabled={pending || uploading || ((instructions?.requires_receipt ?? true) && !proofPath)}>
+              disabled={pending || uploading || ((instructions?.requires_receipt ?? true) && !proofPath)} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Sending…') : t('✓ تم الدفع', '✓ I have paid')}
       </button>
       <p className="muted" style={{ fontSize: '0.76rem' }}>
@@ -294,7 +295,7 @@ export function ClientReviewForm({ projectId }: { projectId: string }) {
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Sending…') : t('أرسل التقييم', 'Send the review')}
       </button>
     </form>
@@ -343,7 +344,7 @@ export function WorkerReviewForm({ projectId }: { projectId: string }) {
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
 
-      <button className="btn btn-primary btn-sm" disabled={pending}>
+      <button className="btn btn-primary btn-sm" disabled={pending} aria-busy={pending}>
         {pending ? t('جارٍ…', 'Sending…') : t('أرسل التقييم', 'Send the review')}
       </button>
     </form>
