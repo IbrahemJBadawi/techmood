@@ -16,6 +16,7 @@ import {
   AdminHideForm, BuyBox, CommentForm, OfferBox, ReplyToggle, ShareRow, TrackedLink, ViewPing,
 } from './ShowcaseClient';
 import { DeleteCommentButton } from './DeleteCommentButton';
+import { avatarColor } from '@/lib/mentor-look';
 
 /**
  * One project page (0121, 0122) — the same page in the public gallery link and
@@ -273,7 +274,7 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
                   {person.avatar_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={person.avatar_url} alt="" className="sc-avatar" />
-                    : <span className="sc-avatar is-initial">{(person.full_name ?? '?').charAt(0)}</span>}
+                    : <span className="sc-avatar is-initial" style={{ background: avatarColor(person.full_name ?? '?') }}>{(person.full_name ?? '?').charAt(0)}</span>}
                   <span>
                     {person.techmood_id ? <Link href={memberHref(person.techmood_id, inApp)}>{person.full_name}</Link> : person.full_name}
                     {person.is_leader && <span className="sc-leader">{t('القائد', 'Lead')}</span>}
@@ -325,7 +326,7 @@ function CommentItem({ comment, code, locale, t }: {
       {comment.author_avatar
         // eslint-disable-next-line @next/next/no-img-element
         ? <img src={comment.author_avatar} alt="" className="sc-avatar" />
-        : <span className="sc-avatar is-initial">{(comment.author_name ?? '?').charAt(0)}</span>}
+        : <span className="sc-avatar is-initial" style={{ background: avatarColor(comment.author_name ?? '?') }}>{(comment.author_name ?? '?').charAt(0)}</span>}
       <div>
         <p className="sc-comment-head">
           <b>{comment.author_name}</b>

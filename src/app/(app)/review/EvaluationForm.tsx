@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { evaluateSubmission, type ReviewState } from './actions';
+import { StarInput } from '@/components/StarInput';
 
 const DECISIONS = [
   {
@@ -71,23 +72,13 @@ export function EvaluationForm({ submissionId }: { submissionId: string }) {
 
       {decision === 'approved' && (
         <div className="field">
-          <label htmlFor="stars">
+          <span id="stars-label" className="field-label">
             {t(`جودة العمل — ${stars} من 5`, `Quality — ${stars} of 5`)}{' '}
             <span className="muted" style={{ fontSize: '0.76rem' }}>
               {t('(النجوم جودة، والنقاط تُحسب منها تلقائياً)', '(stars are quality; the points are computed from them)')}
             </span>
-          </label>
-          <input
-            id="stars"
-            name="stars"
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={stars}
-            onChange={(event) => setStars(Number(event.target.value))}
-          />
-          <span className="stars-filled" aria-hidden="true">{'★'.repeat(stars)}</span>
+          </span>
+          <StarInput name="stars" value={stars} onChange={setStars} required labelledBy="stars-label" size="lg" />
         </div>
       )}
 

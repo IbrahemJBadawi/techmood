@@ -15,9 +15,11 @@ import {
   resultCount, roadmapHaystack, STATUS_LABEL,
   type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
 } from './types';
+import { Pager } from '@/components/Pager';
+import { SheetSelect } from '@/components/FilterSheet';
 
 type Tab = 'all' | 'paths' | 'courses';
-const PAGE = 6;
+const PAGE = 9;
 
 /**
  * Discovery: one search box, the schools as categories, and the filters that
@@ -49,7 +51,7 @@ export function AcademyExplorer({
   const [domain, setDomain] = useState<string | null>(null);
   const [level, setLevel] = useState<CourseLevel | ''>('');
   const [status, setStatus] = useState<LearningStatus | ''>('');
-  const [shown, setShown] = useState(PAGE);
+  const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // A keystroke should not cost a re-filter of the whole catalogue.
@@ -75,7 +77,7 @@ export function AcademyExplorer({
   const [lastKey, setLastKey] = useState(filterKey);
   if (lastKey !== filterKey) {
     setLastKey(filterKey);
-    setShown(PAGE);
+    setPage(1);
   }
 
   // The categories are the schools the catalogue actually has, counted from it.
@@ -234,30 +236,19 @@ export function AcademyExplorer({
           <summary>{t('الفلاتر', 'Filters')}</summary>
           <div className="academy-filter-row">
             <div className="field">
-              <label htmlFor="academy-level">{t('المستوى', 'Level')}</label>
-              <select
-                id="academy-level"
-                value={level}
-                onChange={(event) => setLevel(event.target.value as CourseLevel | '')}
-              >
-                <option value="">{t('كل المستويات', 'All levels')}</option>
-                {LEVEL_ORDER.map((key) => (
-                  <option value={key} key={key}>{LEVEL_LABEL[key][t.locale]}</option>
-                ))}
-              </select>
+              <span className="field-label" id="academy-level">{t('المستوى', 'Level')}</span>
+              <SheetSelect label={t('المستوى', 'Level')} value={level}
+                           onChange={(next) => setLevel(next as CourseLevel | '')}
+                           options={[{ value: '', label: t('كل المستويات', 'All levels') },
+                             ...LEVEL_ORDER.map((key) => ({ value: key, label: LEVEL_LABEL[key][t.locale] }))]} />
             </div>
             <div className="field">
-              <label htmlFor="academy-status">{t('الحالة', 'Status')}</label>
-              <select
-                id="academy-status"
-                value={status}
-                onChange={(event) => setStatus(event.target.value as LearningStatus | '')}
-              >
-                <option value="">{t('كل الحالات', 'Any status')}</option>
-                {(['not_started', 'in_progress', 'completed'] as LearningStatus[]).map((key) => (
-                  <option value={key} key={key}>{STATUS_LABEL[key][t.locale]}</option>
-                ))}
-              </select>
+              <span className="field-label" id="academy-status">{t('الحالة', 'Status')}</span>
+              <SheetSelect label={t('الحالة', 'Status')} value={status}
+                           onChange={(next) => setStatus(next as LearningStatus | '')}
+                           options={[{ value: '', label: t('كل الحالات', 'Any status') },
+                             ...(['not_started', 'in_progress', 'completed'] as LearningStatus[])
+                               .map((key) => ({ value: key, label: STATUS_LABEL[key][t.locale] }))]} />
             </div>
           </div>
         </details>
@@ -287,23 +278,22 @@ export function AcademyExplorer({
           <>
             {showPaths && matchedPaths.length > 0 && (
               <div className="card-grid">
-                {matchedPaths.slice(0, shown).map((path) => <PathCard path={path} key={path.id} />)}
+                {matchedPaths.slice((page - 1) * PAGE, page * PAGE).map((path) => <PathCard path={path} key={path.id} />)}
               </div>
             )}
             {showCourses && matchedCourses.length > 0 && (
               <div className="card-grid" style={{ marginTop: showPaths && matchedPaths.length > 0 ? 16 : 0 }}>
-                {matchedCourses.slice(0, shown).map((course) => <CourseCard course={course} key={course.id} />)}
+                {matchedCourses.slice((page - 1) * PAGE, page * PAGE).map((course) => <CourseCard course={course} key={course.id} />)}
               </div>
             )}
-            {(matchedPaths.length > shown || matchedCourses.length > shown) && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm academy-more"
-                onClick={() => setShown((value) => value + PAGE)}
-              >
-                {t('عرض المزيد', 'Show more')}
-              </button>
-            )}
+            <Pager
+              page={page}
+              count={Math.ceil(Math.max(showPaths ? matchedPaths.length : 0, showCourses ? matchedCourses.length : 0) / PAGE)}
+              onChange={(next) => {
+                setPage(next);
+                document.getElementById('academy-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            />
           </>
         )}
         {showRoadmap && (
@@ -314,7 +304,7 @@ export function AcademyExplorer({
                  'These paths are announced and not written yet — they cannot be started today.')}
             </p>
             <div className="card-grid">
-              {matchedRoadmap.slice(0, shown).map((path) => <RoadmapCard path={path} key={path.id} />)}
+              {matchedRoadmap.map((path) => <RoadmapCard path={path} key={path.id} />)}
             </div>
           </div>
         )}

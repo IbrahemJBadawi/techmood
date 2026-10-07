@@ -1,9 +1,10 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
+import { UploadCard } from '@/components/UploadCard';
 
 /** 20 MB, and the bucket's own limit is the one that actually decides. */
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -29,7 +30,7 @@ export function WorkFileUpload({
   label?: string;
 }) {
   const t = useT();
-  const input = useRef<HTMLInputElement>(null);
+  const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [, startTransition] = useTransition();
@@ -65,25 +66,21 @@ export function WorkFileUpload({
       const result = await record(path, file.name);
       setBusy(false);
       if (!result.ok) setError(result.error ?? '');
-      if (input.current) input.current.value = '';
+      // stored and listed: the card goes back to an empty drop zone for the next file
+      else setRound((value) => value + 1);
     });
   }
 
   return (
     <div className="file-upload">
-      <label className="btn btn-ghost btn-sm" htmlFor={`upload-${folder}`}>
-        {busy ? t('جارٍ الرفع…', 'Uploading…') : label ?? t('+ ارفع ملفاً', '+ Upload a file')}
-      </label>
-      <input
-        ref={input}
+      <UploadCard
+        key={round}
         id={`upload-${folder}`}
-        type="file"
-        hidden
-        disabled={busy}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) void upload(file);
-        }}
+        label={label ?? t('ارفع ملفاً', 'Upload a file')}
+        hint={t('اضغط للاختيار أو اسحب الملف هنا — حتى 20 ميغابايت', 'Tap to pick, or drop the file here — up to 20 MB')}
+        status={busy ? 'busy' : error ? 'error' : 'idle'}
+        onPick={(file) => void upload(file)}
+        onClear={() => setError('')}
       />
       {error && <p className="notice notice-danger" style={{ marginTop: 8 }}>{error}</p>}
     </div>

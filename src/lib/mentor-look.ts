@@ -3,7 +3,8 @@
  * avatar (picked from the id, so it never changes between visits), and their
  * domains written for people rather than as slugs.
  */
-const AVATAR_COLORS = ['#2F6BFF', '#7C5CFF', '#0E9F6E', '#E8590C', '#D6336C', '#0B8FB3', '#C77700', '#5B6B7C'];
+// Each one carries white letters at 4.5:1 or better, so a small initial stays readable.
+const AVATAR_COLORS = ['#006BE0', '#6D4AE8', '#0B7A75', '#C2560F', '#0A7A99', '#0E7A4F', '#C2255C', '#5B6B7C'];
 
 export function avatarColor(id: string) {
   let hash = 0;

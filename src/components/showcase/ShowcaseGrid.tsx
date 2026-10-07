@@ -5,6 +5,8 @@ import { getT } from '@/lib/i18n.server';
 import { money } from '@/lib/booking';
 import type { ProductType, ShowcaseCard } from '@/lib/database.types';
 import { CATEGORIES, PRODUCT_TYPES, galleryPath, mediaUrl } from '@/lib/showcase';
+import { avatarColor } from '@/lib/mentor-look';
+import { ChoiceChips, FilterSheet, SheetSelect } from '@/components/FilterSheet';
 
 export type ShowcaseFilters = {
   q?: string; category?: string; type?: string; sort?: string;
@@ -52,26 +54,30 @@ export async function ShowcaseGrid({
 
   return (
     <>
-      <form className="sc-filters" action={action} role="search">
+      <form className="filter-form" action={action} role="search">
         {Object.entries(hidden).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
-        <input type="search" name="q" defaultValue={filters.q ?? ''} placeholder={t('ابحث باسم أو تقنية أو مهارة…', 'Search a name, technology or skill…')}
-               aria-label={t('بحث', 'Search')} />
-        <select name="category" defaultValue={category ?? ''} aria-label={t('التصنيف', 'Category')}>
-          <option value="">{t('كل التصنيفات', 'All categories')}</option>
-          {Object.entries(CATEGORIES).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
-        </select>
-        {group !== 'services' && (
-          <select name="type" defaultValue={type ?? ''} aria-label={t('نوع المنتج', 'Product type')}>
-            <option value="">{t('كل الأنواع', 'All types')}</option>
-            {Object.entries(PRODUCT_TYPES).filter(([key]) => key !== 'digital_service' || !group)
-              .map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
-          </select>
-        )}
-        <select name="sort" defaultValue={sort} aria-label={t('الترتيب', 'Sort')}>
-          {Object.entries(SORTS).filter(([key]) => showPrices || !key.startsWith('price'))
-            .map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}
-        </select>
-        <button className="btn btn-primary btn-sm">{t('تصفية', 'Filter')}</button>
+        <div className="filter-bar">
+          <input type="search" name="q" defaultValue={filters.q ?? ''} placeholder={t('ابحث باسم أو تقنية أو مهارة…', 'Search a name, technology or skill…')}
+                 aria-label={t('بحث', 'Search')} />
+          <FilterSheet count={[category, type].filter(Boolean).length} title={t('تصفية المشاريع', 'Filter projects')}
+                       clearHref={`${action}${Object.keys(hidden).length ? `?${new URLSearchParams(hidden)}` : ''}`}>
+            <ChoiceChips name="category" legend={t('التصنيف', 'Category')} defaultValue={category ?? ''}
+                         options={[{ value: '', label: t('الكل', 'All') },
+                           ...Object.entries(CATEGORIES).map(([key, label]) => ({ value: key, label: t(label) }))]} />
+            {group !== 'services' && (
+              <ChoiceChips name="type" legend={t('نوع المنتج', 'Product type')} defaultValue={type ?? ''}
+                           options={[{ value: '', label: t('الكل', 'All') },
+                             ...Object.entries(PRODUCT_TYPES).filter(([key]) => key !== 'digital_service' || !group)
+                               .map(([key, label]) => ({ value: key, label: t(label) }))]} />
+            )}
+          </FilterSheet>
+        </div>
+        <div className="result-bar">
+          <span className="result-count">{t(`${cards.length} نتيجة`, `${cards.length} results`)}</span>
+          <SheetSelect name="sort" variant="chip" autoSubmit label={t('الترتيب', 'Sort by')} defaultValue={sort}
+                       options={Object.entries(SORTS).filter(([key]) => showPrices || !key.startsWith('price'))
+                         .map(([key, label]) => ({ value: key, label: t(label) }))} />
+        </div>
       </form>
 
       {cards.length === 0 ? (
@@ -100,7 +106,7 @@ export async function ShowcaseGrid({
                     {card.owner_avatar
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={card.owner_avatar} alt="" className="sc-avatar is-xs" />
-                      : <span className="sc-avatar is-xs is-initial">{(card.owner_name ?? '?').charAt(0)}</span>}
+                      : <span className="sc-avatar is-xs is-initial" style={{ background: avatarColor(card.owner_name ?? '?') }}>{(card.owner_name ?? '?').charAt(0)}</span>}
                     {card.team_title ?? card.owner_name}
                   </span>
                   {(card.academic_title || card.mentor_rating !== null) && (

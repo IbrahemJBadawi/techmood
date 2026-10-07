@@ -4,7 +4,8 @@ import { redirect } from 'next/navigation';
 import { MemberAvatar } from '@/components/MemberAvatar';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
-import { IS_MVP } from '@/lib/scope';
+import { searchGroups } from '@/lib/search';
+import { SearchBox } from '@/components/SearchBox';
 
 /** People to follow, shown before anyone types — so «ابحث عن زملاء» is never an empty page. */
 async function SuggestedPeople() {
@@ -40,11 +41,9 @@ async function SuggestedPeople() {
 export const generateMetadata = localizedTitle('البحث — TechMood', 'Search — TechMood');
 
 /**
- * One search across the platform.
- *
- * Every list below is filtered by RLS before it reaches this page, so the
- * results are what this person may see — a private team, an unapproved mentor
- * or a hidden profile simply never arrives.
+ * One search across the platform (src/lib/search.ts), with a search box at
+ * the top that suggests as you type — on a phone this is the only box, since
+ * the one in the top bar is for wide screens.
  */
 export default async function SearchPage({
   searchParams,
@@ -61,7 +60,8 @@ export default async function SearchPage({
     return (
       <>
         <section className="section-block">
-          <h1 style={{ fontSize: '1.1rem', marginBottom: 6 }}>{t('بحث', 'Search')}</h1>
+          <h1 style={{ fontSize: '1.1rem', marginBottom: 10 }}>{t('بحث', 'Search')}</h1>
+          <SearchBox autoFocus />
           <p className="muted">{t('اكتب حرفين على الأقل للبحث في المسارات والدورات والمنتورز والأشخاص.',
                                   'Type at least two characters to search paths, courses, mentors and people.')}</p>
         </section>
@@ -70,81 +70,15 @@ export default async function SearchPage({
     );
   }
 
-  const like = `%${term}%`;
-
-  const [paths, courses, mentors, teams, opportunities, people] = await Promise.all([
-    supabase.from('learning_paths').select('id, slug, title_ar, description_ar')
-      .eq('status', 'published').ilike('title_ar', like).limit(6),
-    supabase.from('courses').select('id, slug, title_ar, description_ar')
-      .eq('status', 'published').ilike('title_ar', like).limit(6),
-    supabase.from('mentor_profiles').select('profile_id, headline_ar, level, rating_avg')
-      .not('approved_at', 'is', null).ilike('headline_ar', like).limit(6),
-    supabase.from('teams').select('id, title_ar, focus_ar, public_summary_ar')
-      .eq('visibility', 'listed').ilike('title_ar', like).limit(6),
-    supabase.from('opportunities').select('id, title_ar, organization_ar, kind')
-      .eq('status', 'published').ilike('title_ar', like).limit(6),
-    supabase.from('profiles').select('id, techmood_id, full_name, display_name, username, headline')
-      .eq('is_public', true).or(`full_name.ilike.${like},display_name.ilike.${like},username.ilike.${like}`)
-      .limit(6),
-  ]);
-
-  const mentorIds = (mentors.data ?? []).map((row) => row.profile_id);
-  const { data: mentorProfiles } = mentorIds.length
-    ? await supabase.from('profiles').select('id, full_name, display_name').in('id', mentorIds)
-    : { data: [] };
-  const mentorName = new Map((mentorProfiles ?? []).map((row) => [row.id, row.display_name ?? row.full_name]));
-
-  const groups = [
-    {
-      title: t('المسارات', 'Paths'),
-      rows: (paths.data ?? []).map((row) => ({
-        key: row.id, href: `/academy/${row.slug}`, title: row.title_ar, detail: row.description_ar,
-      })),
-    },
-    {
-      title: t('الدورات', 'Courses'),
-      rows: (courses.data ?? []).map((row) => ({
-        key: row.id, href: '/academy', title: row.title_ar, detail: row.description_ar,
-      })),
-    },
-    {
-      title: t('المنتورز', 'Mentors'),
-      rows: (mentors.data ?? []).map((row) => ({
-        key: row.profile_id,
-        href: `/mentors/${row.profile_id}`,
-        title: mentorName.get(row.profile_id) ?? t('منتور', 'Mentor'),
-        detail: row.headline_ar,
-      })),
-    },
-    {
-      title: t('الفرق', 'Teams'),
-      rows: (teams.data ?? []).map((row) => ({
-        key: row.id, href: `/teams/${row.id}`, title: row.title_ar,
-        detail: row.focus_ar ?? row.public_summary_ar,
-      })),
-    },
-    {
-      title: t('الفرص', 'Openings'),
-      // Openings are outside the MVP (src/lib/scope.ts).
-      rows: (IS_MVP ? [] : opportunities.data ?? []).map((row) => ({
-        key: row.id, href: `/marketplace/${row.id}`, title: row.title_ar, detail: row.organization_ar,
-      })),
-    },
-    {
-      title: t('أشخاص', 'People'),
-      rows: (people.data ?? []).map((row) => ({
-        key: row.id, href: `/m/${row.techmood_id}`, title: row.display_name ?? row.full_name,
-        detail: row.headline ?? row.techmood_id,
-      })),
-    },
-  ].filter((group) => group.rows.length > 0);
+  const groups = await searchGroups(supabase, t, term);
 
   const total = groups.reduce((sum, group) => sum + group.rows.length, 0);
 
   return (
     <>
       <section className="section-block">
-        <h1 style={{ fontSize: '1.15rem', marginBottom: 4 }}>
+        <SearchBox initial={term} />
+        <h1 style={{ fontSize: '1.15rem', margin: '14px 0 4px' }}>
           {t('نتائج البحث عن «', 'Results for “')}{term}{t('»', '”')}
         </h1>
         <p className="muted" style={{ fontSize: '0.86rem' }}>
@@ -153,7 +87,7 @@ export default async function SearchPage({
       </section>
 
       {groups.map((group) => (
-        <section className="section-block" key={group.title}>
+        <section className="section-block" key={group.kind}>
           <h2 style={{ fontSize: '1rem', marginBottom: 10 }}>{group.title}</h2>
           <div className="stack">
             {group.rows.map((row) => (

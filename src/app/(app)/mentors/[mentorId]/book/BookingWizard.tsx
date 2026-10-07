@@ -255,20 +255,29 @@ export function BookingWizard({
               })}
             </div>
 
-            <div className="slot-grid">
+            {/* Each time as its whole span, start to end (design lab: «قائمة بالفترة كاملة»). */}
+            <div className="slot-list" role="radiogroup" aria-label={t('المواعيد المتاحة', 'Available times')}>
               {daySlots.map((slot) => {
                 const info = SLOT_STATE[slot.state];
+                const minutes = selectedType?.duration_minutes ?? 60;
+                const end = new Date(Date.parse(slot.slot_start) + minutes * 60_000).toISOString();
+                const on = slot.slot_start === slotStart;
                 return (
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={on}
                     key={slot.slot_start}
-                    className={`slot${slot.state === 'instant' ? ' slot-instant' : ''}${slot.slot_start === slotStart ? ' selected' : ''}`}
+                    className={`slot-row${slot.state === 'instant' ? ' slot-instant' : ''}${on ? ' selected' : ''}`}
                     disabled={!info.selectable}
-                    title={slot.state === 'instant' ? t(`حجز فوري +${instantPct}%`, `Instant booking +${instantPct}%`) : t(info.label)}
                     onClick={() => setSlotStart(slot.slot_start)}
                   >
-                    {formatSlot(slot.slot_start).time}
-                    {slot.state === 'instant' && <span className="slot-tag">⚡ +{instantPct}%</span>}
+                    <span className="slot-span"><bdi>{formatSlot(slot.slot_start).time}</bdi> – <bdi>{formatSlot(end).time}</bdi></span>
+                    <span className="slot-state">
+                      {slot.state === 'instant'
+                        ? t(`⚡ حجز فوري +${instantPct}%`, `⚡ Instant +${instantPct}%`)
+                        : info.selectable ? t('متاح', 'Free') : t(info.label)}
+                    </span>
                   </button>
                 );
               })}
@@ -450,6 +459,22 @@ export function BookingWizard({
             </p>
           </div>
         </aside>
+      </div>
+
+      {/* On a phone the summary sits at the very end; this bar keeps the total and
+          the send button in reach while the steps above are filled in. */}
+      <div className="sticky-actions">
+        <span className="sticky-total">
+          <span className="muted">{t('الإجمالي', 'Total')}</span>
+          <strong className="eng">{money(total)}</strong>
+        </span>
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={pending || !slotStart || !methodKey || !sessionTypeId || (Boolean(activeGroup) && seats.length === 0)}
+        >
+          {pending ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال طلب الحجز', 'Send the booking request')}
+        </button>
       </div>
     </form>
   );

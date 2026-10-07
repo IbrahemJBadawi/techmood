@@ -9,6 +9,7 @@ import { DOCUMENT_KIND } from '@/lib/incubator';
 import { StartupNav } from '../StartupNav';
 import { DocumentForm } from './DocumentForm';
 import { removeDocument } from './actions';
+import { ConfirmSubmit } from '@/components/ConfirmDialog';
 
 /**
  * The company's papers. Not a drive: a shelf where a new version of a document
@@ -88,7 +89,9 @@ export default async function DocumentsPage({
                       <form action={removeDocument}>
                         <input type="hidden" name="startup_id" value={startupId} />
                         <input type="hidden" name="document_id" value={document.id} />
-                        <button className="btn btn-ghost btn-sm">{t('احذف', 'Remove')}</button>
+                        <ConfirmSubmit className="btn btn-ghost btn-sm" message={t('حذف هذا المستند؟', 'Remove this document?')} confirmLabel={t('احذف', 'Remove')}>
+                          {t('احذف', 'Remove')}
+                        </ConfirmSubmit>
                       </form>
                     )}
                   </td>

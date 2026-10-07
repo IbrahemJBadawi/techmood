@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { useT } from '@/lib/i18n.client';
 
 import { addPayerAccount, payerAccountAction, type WalletState } from './actions';
+import { ConfirmSubmit } from '@/components/ConfirmDialog';
 
 type Account = { id: string; label: string | null; holder_name: string; account_ref: string; is_default: boolean };
 
@@ -37,7 +38,11 @@ export function PayerAccounts({ accounts }: { accounts: Account[] }) {
               )}
               <form action={payerAccountAction}>
                 <input type="hidden" name="account_id" value={account.id} />
-                <button className="btn btn-ghost btn-sm" name="action" value="delete">{t('حذف', 'Delete')}</button>
+                <ConfirmSubmit className="btn btn-ghost btn-sm" name="action" value="delete"
+                               message={t('حذف هذا الحساب من حساباتك المحفوظة؟', 'Remove this account from your saved ones?')}
+                               confirmLabel={t('احذف', 'Delete')}>
+                  {t('حذف', 'Delete')}
+                </ConfirmSubmit>
               </form>
             </li>
           ))}

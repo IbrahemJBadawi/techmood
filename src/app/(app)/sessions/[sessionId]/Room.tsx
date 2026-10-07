@@ -8,6 +8,7 @@ import type { SessionRole } from '@/lib/database.types';
 import type { Text } from '@/lib/i18n';
 
 import { joinSession, leaveSession } from './actions';
+import { avatarColor } from '@/lib/mentor-look';
 
 export type RoomParticipant = {
   profile_id: string;
@@ -231,7 +232,7 @@ export function Room({
 
         {others.map((person) => (
           <figure className="call-tile" key={person.profile_id}>
-            <div className="call-tile-avatar">{person.full_name.slice(0, 1)}</div>
+            <div className="call-tile-avatar" style={{ background: avatarColor(person.full_name) }}>{person.full_name.slice(0, 1)}</div>
             <figcaption className="call-tile-name">
               {person.full_name}
               {' · '}

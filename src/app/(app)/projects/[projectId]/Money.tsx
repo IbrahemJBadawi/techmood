@@ -16,6 +16,8 @@ import type { WorkerCriterion, ClientCriterion, EscrowStatus, PaymentMethodPubli
 import {
   escrowAction, openEscrow, reviewClient, reviewWork, submitEscrowProof, type MoneyState,
 } from './money-actions';
+import { StarInput } from '@/components/StarInput';
+import { UploadCard } from '@/components/UploadCard';
 
 
 
@@ -177,13 +179,16 @@ export function EscrowProofForm({
       </div>
 
       <div className="field">
-        <label htmlFor={`receipt-${escrowId}`}>{t('إيصال التحويل', 'Transfer receipt')}</label>
-        <input id={`receipt-${escrowId}`} type="file" accept="image/png,image/jpeg,application/pdf"
-               disabled={uploading}
-               onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); }} />
-        {uploading && <p className="muted">{t('جارٍ الرفع…', 'Uploading…')}</p>}
-        {proofPath && <p className="notice notice-ok">{t('رُفع الإيصال.', 'Receipt uploaded.')}</p>}
-        {uploadError && <p className="notice notice-danger">{uploadError}</p>}
+        <span className="field-label">{t('إيصال التحويل', 'Transfer receipt')}</span>
+        <UploadCard
+          id={`receipt-${escrowId}`}
+          accept="image/png,image/jpeg,application/pdf"
+          label={t('اختر الإيصال أو اسحبه هنا', 'Pick the receipt, or drop it here')}
+          hint={t('صورة أو PDF', 'An image or a PDF')}
+          status={uploading ? 'busy' : uploadError ? 'error' : proofPath ? 'done' : 'idle'}
+          onPick={(file) => void upload(file)}
+        />
+        {uploadError && <p className="notice notice-danger" style={{ marginTop: 8 }}>{uploadError}</p>}
       </div>
 
       <button className="btn btn-primary btn-sm"
@@ -271,14 +276,9 @@ export function ClientReviewForm({ projectId }: { projectId: string }) {
         <tbody>
           {CRITERIA.map((criterion) => (
             <tr key={criterion}>
-              <th scope="row"><label htmlFor={`c-${criterion}`}>{t(CLIENT_CRITERION[criterion])}</label></th>
+              <th scope="row"><span id={`c-${criterion}`}>{t(CLIENT_CRITERION[criterion])}</span></th>
               <td>
-                <select id={`c-${criterion}`} name={criterion} defaultValue="">
-                  <option value="">—</option>
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option value={value} key={value}>{'★'.repeat(value)}</option>
-                  ))}
-                </select>
+                <StarInput name={criterion} labelledBy={`c-${criterion}`} size="sm" />
               </td>
             </tr>
           ))}
@@ -325,14 +325,9 @@ export function WorkerReviewForm({ projectId }: { projectId: string }) {
         <tbody>
           {WORKER_CRITERIA.map((criterion) => (
             <tr key={criterion}>
-              <th scope="row"><label htmlFor={`w-${criterion}`}>{t(WORKER_CRITERION[criterion])}</label></th>
+              <th scope="row"><span id={`w-${criterion}`}>{t(WORKER_CRITERION[criterion])}</span></th>
               <td>
-                <select id={`w-${criterion}`} name={criterion} defaultValue="">
-                  <option value="">—</option>
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option value={value} key={value}>{'★'.repeat(value)}</option>
-                  ))}
-                </select>
+                <StarInput name={criterion} labelledBy={`w-${criterion}`} size="sm" />
               </td>
             </tr>
           ))}

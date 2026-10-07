@@ -7,6 +7,7 @@ import type { ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL } from '../../../exhibition/types';
 import { reviewEntry, type ReviewState } from './actions';
+import { StarInput } from '@/components/StarInput';
 
 const CRITERIA: ReviewCriterion[] = [
   'requirements', 'technical_quality', 'ui_ux', 'problem_solving', 'documentation', 'completeness',
@@ -38,15 +39,10 @@ export function RubricForm({ entryId }: { entryId: string }) {
           {CRITERIA.map((criterion) => (
             <tr key={criterion}>
               <th scope="row">
-                <label htmlFor={`c-${criterion}`}>{CRITERION_LABEL[criterion][t.locale]}</label>
+                <span id={`c-${criterion}`}>{CRITERION_LABEL[criterion][t.locale]}</span>
               </th>
               <td>
-                <select id={`c-${criterion}`} name={criterion} defaultValue="">
-                  <option value="">—</option>
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option value={value} key={value}>{'★'.repeat(value)}</option>
-                  ))}
-                </select>
+                <StarInput name={criterion} labelledBy={`c-${criterion}`} size="sm" />
               </td>
             </tr>
           ))}

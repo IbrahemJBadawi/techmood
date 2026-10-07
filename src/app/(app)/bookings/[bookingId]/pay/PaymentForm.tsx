@@ -10,6 +10,7 @@ import { PayerAccountFields, type PayerAccountOption } from '@/components/PayerA
 import { useT } from '@/lib/i18n.client';
 
 import { submitPaymentProof, type PaymentState } from '../../actions';
+import { UploadCard } from '@/components/UploadCard';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED = ['image/png', 'image/jpeg'];
@@ -32,10 +33,8 @@ export function PaymentForm({
   const [state, formAction, pending] = useActionState(submitPaymentProof, undefined as PaymentState);
 
   const [proofPath, setProofPath] = useState('');
-  const [fileName, setFileName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [preview, setPreview] = useState('');
 
   async function upload(file: File) {
     setUploadError('');
@@ -68,14 +67,11 @@ export function PaymentForm({
     }
 
     setProofPath(key);
-    setFileName(file.name);
-    setPreview(URL.createObjectURL(file));
   }
 
   function removeFile() {
     setProofPath('');
-    setFileName('');
-    setPreview('');
+    setUploadError('');
   }
 
   return (
@@ -111,34 +107,17 @@ export function PaymentForm({
 
         {method.requires_receipt && (
           <div className="field">
-            <label htmlFor="receipt">{t('صورة الإيصال — PNG أو JPG، بحد أقصى 5 ميغابايت', 'Receipt image — PNG or JPG, 5 MB max')}</label>
-            <input
+            <span className="field-label">{t('صورة الإيصال', 'Receipt image')}</span>
+            <UploadCard
               id="receipt"
-              type="file"
               accept="image/png,image/jpeg"
-              disabled={uploading}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void upload(file);
-              }}
+              label={t('اختر صورة الإيصال أو اسحبها هنا', 'Pick the receipt image, or drop it here')}
+              hint={t('PNG أو JPG، بحد أقصى 5 ميغابايت', 'PNG or JPG, 5 MB max')}
+              status={uploading ? 'busy' : uploadError ? 'error' : proofPath ? 'done' : 'idle'}
+              onPick={(file) => void upload(file)}
+              onClear={removeFile}
             />
-            {uploading && <p className="muted" style={{ fontSize: '0.82rem' }}>{t('جارٍ الرفع…', 'Uploading…')}</p>}
-            {uploadError && <p className="notice notice-danger">{uploadError}</p>}
-
-            {proofPath && (
-              <div className="card" style={{ marginTop: 10 }}>
-                {preview && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt={t('معاينة الإيصال', 'Receipt preview')} style={{ maxHeight: 200, objectFit: 'contain', borderRadius: 8 }} />
-                )}
-                <div className="row-between">
-                  <span style={{ fontSize: '0.84rem' }}>
-                    {fileName} <span style={{ color: 'var(--ok-ink)' }}>{t('✓ جاهز', '✓ ready')}</span>
-                  </span>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={removeFile}>{t('إزالة', 'Remove')}</button>
-                </div>
-              </div>
-            )}
+            {uploadError && <p className="notice notice-danger" style={{ marginTop: 8 }}>{uploadError}</p>}
           </div>
         )}
 

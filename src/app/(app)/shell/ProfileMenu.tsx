@@ -9,6 +9,7 @@ import type { UiLanguage } from '@/lib/database.types';
 import { signOut } from '../../(auth)/actions';
 import { identifyMember } from '@/lib/analytics';
 import { forgetOfflinePages } from '@/lib/offline-client';
+import { avatarColor } from '@/lib/mentor-look';
 import { setLanguage } from './actions';
 
 export function ProfileMenu({
@@ -122,7 +123,8 @@ export function Avatar({ name, url, size = 32 }: { name: string; url: string | n
     );
   }
   return (
-    <span className="avatar avatar-initial" style={{ width: size, height: size, fontSize: size / 2.4 }}>
+    <span className="avatar avatar-initial"
+          style={{ width: size, height: size, fontSize: size / 2.4, background: avatarColor(name.trim() || '?') }}>
       {name.trim().slice(0, 1)}
     </span>
   );

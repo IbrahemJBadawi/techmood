@@ -4,6 +4,7 @@ import { useActionState, useRef, useState, useTransition, type ReactNode } from 
 
 import { browserClient } from '@/lib/supabase/lazy-client';
 import { useT } from '@/lib/i18n.client';
+import { UploadCard } from '@/components/UploadCard';
 
 type State = { error?: string; ok?: string } | undefined;
 
@@ -30,6 +31,8 @@ export function SupportComposer({
   const [uploadError, setUploadError] = useState('');
   const [busy, startTransition] = useTransition();
   const form = useRef<HTMLFormElement>(null);
+  // a new key empties the attachment card after a sent message
+  const [attachmentKey, setAttachmentKey] = useState(0);
 
   async function submit(formData: FormData) {
     setUploadError('');
@@ -54,7 +57,7 @@ export function SupportComposer({
     }
     startTransition(() => {
       formAction(formData);
-      if (resetOnSuccess) form.current?.reset();
+      if (resetOnSuccess) { form.current?.reset(); setAttachmentKey((key) => key + 1); }
     });
   }
 
@@ -62,8 +65,16 @@ export function SupportComposer({
     <form ref={form} action={submit} className="stack">
       {children}
       <div className="field">
-        <label htmlFor="support-file">{t('📎 مرفق (صورة تحويل، لقطة شاشة، ملف) — اختياري', '📎 Attachment (transfer receipt, screenshot, file) — optional')}</label>
-        <input id="support-file" name="file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/heic,application/pdf" />
+        <span className="field-label">{t('مرفق — اختياري', 'Attachment — optional')}</span>
+        <UploadCard
+          key={attachmentKey}
+          id="support-file"
+          name="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/heic,application/pdf"
+          label={t('أرفق صورة تحويل أو لقطة شاشة أو ملفاً', 'Attach a receipt, a screenshot or a file')}
+          hint={t('حتى 10 ميغابايت', 'Up to 10 MB')}
+          status={busy || pending ? 'busy' : uploadError ? 'error' : 'idle'}
+        />
       </div>
       {uploadError && <p className="notice notice-danger">{uploadError}</p>}
       {state?.error && <p className="notice notice-danger">{state.error}</p>}

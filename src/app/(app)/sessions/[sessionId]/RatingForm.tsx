@@ -9,6 +9,7 @@ import { SESSION_CRITERION as LABEL } from '@/lib/criteria';
 
 import { rateSession, type RateState } from './actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { StarInput } from '@/components/StarInput';
 
 
 /**
@@ -65,15 +66,10 @@ export function RatingForm({
           {criteria.map((criterion) => (
             <tr key={criterion}>
               <th scope="row">
-                <label htmlFor={`c-${criterion}`}>{t(LABEL[criterion])}</label>
+                <span id={`c-${criterion}`}>{t(LABEL[criterion])}</span>
               </th>
               <td>
-                <select id={`c-${criterion}`} name={criterion} defaultValue="">
-                  <option value="">—</option>
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option value={value} key={value}>{'★'.repeat(value)}</option>
-                  ))}
-                </select>
+                <StarInput name={criterion} labelledBy={`c-${criterion}`} size="sm" />
               </td>
             </tr>
           ))}

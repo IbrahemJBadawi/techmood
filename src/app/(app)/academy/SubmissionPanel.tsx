@@ -13,6 +13,7 @@ import { requestReevaluation } from '../review/actions';
 import { submitWork, type ActionState, type Precheck } from './actions';
 import { PrecheckBox } from './PrecheckBox';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { avatarColor } from '@/lib/mentor-look';
 
 const EVIDENCE_LABELS: Record<EvidenceKind, Text> = {
   github:    { ar: 'رابط المستودع (GitHub)',          en: 'Repository link (GitHub)' },
@@ -119,7 +120,7 @@ export function SubmissionPanel({
                   {evaluation.evaluator.avatar_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={evaluation.evaluator.avatar_url} alt="" className="sc-avatar is-xs" />
-                    : <span className="sc-avatar is-xs is-initial">{(evaluation.evaluator.display_name ?? evaluation.evaluator.full_name).charAt(0)}</span>}
+                    : <span className="sc-avatar is-xs is-initial" style={{ background: avatarColor(evaluation.evaluator.full_name) }}>{(evaluation.evaluator.display_name ?? evaluation.evaluator.full_name).charAt(0)}</span>}
                   {t('قيّمه المنتور ', 'Evaluated by mentor ')}
                   <Link href={`/m/${evaluation.evaluator.techmood_id}`}>{evaluation.evaluator.display_name ?? evaluation.evaluator.full_name}</Link>
                 </p>

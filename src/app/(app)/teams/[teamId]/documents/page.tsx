@@ -9,6 +9,7 @@ import { TeamNav } from '../TeamNav';
 import { NewDocumentForm } from './NewDocumentForm';
 import { removeDocument } from './actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { ConfirmSubmit } from '@/components/ConfirmDialog';
 
 export default async function TeamDocumentsPage({
   params,
@@ -94,9 +95,10 @@ export default async function TeamDocumentsPage({
                       <form action={removeDocument}>
                         <input type="hidden" name="document_id" value={document.id} />
                         <input type="hidden" name="team_id" value={teamId} />
-                        <button className="btn btn-ghost btn-sm" style={{ padding: '3px 9px', fontSize: '0.72rem' }}>
+                        <ConfirmSubmit className="btn btn-ghost btn-sm" message={t('حذف هذا المستند من الفريق؟', 'Remove this document from the team?')}
+                                       confirmLabel={t('احذف', 'Delete')}>
                           {t('حذف', 'Delete')}
-                        </button>
+                        </ConfirmSubmit>
                       </form>
                     )}
                   </div>

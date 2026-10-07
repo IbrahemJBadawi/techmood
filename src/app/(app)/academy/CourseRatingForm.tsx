@@ -8,6 +8,7 @@ import type { CourseCriterion } from '@/lib/database.types';
 import { useT } from '@/lib/i18n.client';
 
 import { rateCourse, type ActionState } from './actions';
+import { StarInput } from '@/components/StarInput';
 
 /** «كيف كانت الدورة؟» — offered once the course is finished, once. */
 export function CourseRatingForm({ courseId, revalidate }: { courseId: string; revalidate: string }) {
@@ -25,12 +26,9 @@ export function CourseRatingForm({ courseId, revalidate }: { courseId: string; r
         <tbody>
           {(Object.keys(COURSE_CRITERION) as CourseCriterion[]).map((criterion) => (
             <tr key={criterion}>
-              <th scope="row"><label htmlFor={`cc-${criterion}`}>{t(COURSE_CRITERION[criterion])}</label></th>
+              <th scope="row"><span id={`cc-${criterion}`}>{t(COURSE_CRITERION[criterion])}</span></th>
               <td>
-                <select id={`cc-${criterion}`} name={criterion} defaultValue="">
-                  <option value="">—</option>
-                  {[1, 2, 3, 4, 5].map((value) => <option value={value} key={value}>{'★'.repeat(value)}</option>)}
-                </select>
+                <StarInput name={criterion} labelledBy={`cc-${criterion}`} size="sm" />
               </td>
             </tr>
           ))}
