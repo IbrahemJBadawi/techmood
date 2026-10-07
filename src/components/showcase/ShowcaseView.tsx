@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import { Countdown } from '@/components/Countdown';
+import { AuctionBox } from './AuctionBox';
 import { money } from '@/lib/booking';
 import { siteOrigin } from '@/lib/site';
 import { PUBLIC_METHOD_COLUMNS, type PaymentMethodPublic, type ProjectLink, type ShowcasePage } from '@/lib/database.types';
@@ -55,6 +56,11 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
     canBuy && listing ? supabase.rpc('my_listing_price', { p_listing: listing.listing_id! }) : Promise.resolve({ data: [] }),
   ]);
   const myPrice = myPriceRows?.[0] ?? null;
+  // an auction on this listing (0153): running, or just won by this member
+  const { data: auctionRows } = listing?.listing_id ? await supabase.rpc('auction_state', { p_listing: listing.listing_id }) : { data: [] };
+  const auction = auctionRows?.[0] ?? null;
+  const liveAuction = auction?.status === 'open' ? auction : null;
+  const { data: auctionBids } = liveAuction ? await supabase.rpc('auction_bids_public', { p_auction: liveAuction.id }) : { data: [] };
   const discountRunning = Boolean(listing && listing.discount_pct > 0 && listing.discount_ends_at && new Date(listing.discount_ends_at) > new Date());
   const agreed = agreedRows?.[0] ? { offerId: agreedRows[0].id as string, amount: Number(agreedRows[0].agreed_usd) } : null;
 
@@ -119,8 +125,9 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
           {/* On a phone the buy box sits below the page; this jumps to it. */}
           {listing && (
             <a className="sc-mobile-buy" href="#buy">
-              <b className="eng">{money(listing.effective_price ?? 0)}</b>
-              <span>{listing.listing_status === 'listed' ? t('اشترِ أو قدّم عرضاً ↓', 'Buy or make an offer ↓') : t('تفاصيل البيع ↓', 'Sale details ↓')}</span>
+              <b className="eng">{money(liveAuction ? Number(liveAuction.top_usd ?? liveAuction.start_usd) : listing.effective_price ?? 0)}</b>
+              <span>{liveAuction ? t('🔨 مزاد مفتوح — زايد ↓', '🔨 Open auction — bid ↓')
+                : listing.listing_status === 'listed' ? t('اشترِ أو قدّم عرضاً ↓', 'Buy or make an offer ↓') : t('تفاصيل البيع ↓', 'Sale details ↓')}</span>
             </a>
           )}
 
@@ -236,12 +243,12 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
         <aside className="sc-side">
           {listing && (
             <section className="sc-card sc-buybox" id="buy">
-              <p className="sc-price eng">
+              {!liveAuction && <p className="sc-price eng">
                 {money(myPrice?.returning_buyer ? Number(myPrice.price) : listing.effective_price ?? 0)}
                 {(listing.discount_pct > 0 || myPrice?.returning_buyer) && <s>{money(listing.price_usd ?? 0)}</s>}
                 {listing.discount_pct > 0 && <span className="sc-badge">-{listing.discount_pct}%</span>}
-              </p>
-              {discountRunning && listing.discount_ends_at && <Countdown endsAt={listing.discount_ends_at} />}
+              </p>}
+              {!liveAuction && discountRunning && listing.discount_ends_at && <Countdown endsAt={listing.discount_ends_at} />}
               {myPrice?.returning_buyer && (
                 <p className="sc-bundle">🎁 {t(`اشتريت من هذا البائع من قبل: خصم إضافي ${myPrice.repeat_buyer_pct}% لك`, `You bought from this seller before: an extra ${myPrice.repeat_buyer_pct}% off for you`)}</p>
               )}
@@ -259,7 +266,14 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
               )}
               {listing.listing_status === 'sold' && <p className="notice">{t('بيع بنقل كامل — غير متاح.', 'Sold as a full transfer — unavailable.')}</p>}
               {listing.listing_status === 'reserved' && <p className="notice">{t('محجوز لشراء جارٍ.', 'Reserved for a purchase in progress.')}</p>}
-              {canBuy && listing.listing_id && (
+              {liveAuction && listing.listing_id && (
+                <AuctionBox auction={liveAuction} bids={auctionBids ?? []} signedIn={Boolean(user)} revalidate={here}
+                            loginHref={`/login?next=${encodeURIComponent(here)}`} />
+              )}
+              {auction?.i_won && agreed && (
+                <p className="notice notice-ok">{t(`🏆 فزت بالمزاد بـ ${money(Number(auction.winning_usd))} — ادفع خلال 48 ساعة.`, `🏆 You won the auction at ${money(Number(auction.winning_usd))} — pay within 48 hours.`)}</p>
+              )}
+              {!liveAuction && canBuy && listing.listing_id && (
                 <>
                   <BuyBox listingId={listing.listing_id} methods={(methods ?? []) as PaymentMethodPublic[]} agreed={agreed} />
                   {listing.negotiable && !agreed && (
@@ -268,7 +282,7 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
                   )}
                 </>
               )}
-              {!user && listing.listing_status === 'listed' && (
+              {!user && !liveAuction && listing.listing_status === 'listed' && (
                 <Link className="btn btn-primary" href={`/login?next=${encodeURIComponent(here)}`}>{t('سجّل الدخول للشراء', 'Sign in to buy')}</Link>
               )}
               <p className="muted" style={{ fontSize: '0.74rem', marginTop: 8 }}>

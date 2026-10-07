@@ -57,6 +57,12 @@ export async function ShowcaseGrid({
     ? await supabase.from('project_listings').select('id, discount_ends_at').in('id', listingIds).gt('discount_ends_at', new Date().toISOString())
     : { data: [] };
   const endsBy = new Map((timed ?? []).map((row) => [row.id, row.discount_ends_at as string]));
+  // a running auction shows on its card (0153)
+  const listedIds = showPrices ? cards.filter((card) => card.listing_id).map((card) => card.listing_id!) : [];
+  const { data: auctions } = listedIds.length
+    ? await supabase.from('listing_auctions').select('listing_id').in('listing_id', listedIds).eq('status', 'open')
+    : { data: [] };
+  const inAuction = new Set((auctions ?? []).map((row) => row.listing_id as string));
   const href = (code: string) => (inApp ? `/p/${code}` : galleryPath(code));
 
   const [lead, ...rest] = cards;
@@ -73,6 +79,7 @@ export async function ShowcaseGrid({
             : <span className="sc-card-initial">{card.title.trim().charAt(0)}</span>}
           {card.product_type && <span className="sc-card-type">{t(PRODUCT_TYPES[card.product_type])}</span>}
           {showPrices && card.discount_pct > 0 && <span className="sc-card-discount eng">-{card.discount_pct}%</span>}
+          {card.listing_id && inAuction.has(card.listing_id) && <span className="sc-card-auction">🔨 {t('مزاد', 'Auction')}</span>}
         </span>
         <span className="sc-card-body">
           <strong className="sc-card-title">{card.title}</strong>

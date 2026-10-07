@@ -14,7 +14,7 @@ import { PayerAccounts } from './PayerAccounts';
 
 export const generateMetadata = localizedTitle('المحفظة — TechMood', 'Wallet — TechMood');
 
-const TABS = ['overview', 'transactions', 'payments', 'invoices', 'earnings', 'withdrawals', 'methods', 'paying'] as const;
+const TABS = ['overview', 'balance', 'transactions', 'payments', 'invoices', 'earnings', 'withdrawals', 'methods', 'paying'] as const;
 type Tab = (typeof TABS)[number];
 
 /** A status a person can read, for anything the statement lists. */
@@ -78,6 +78,16 @@ export default async function WalletPage({
       supabase.from('platform_settings').select('value').eq('key', 'payout_minimum_usd').maybeSingle(),
     ]);
 
+  // رصيد TechMood (0151): its number, what is still being topped up, and on its tab the history and packages
+  const [{ data: balanceRaw }, { data: openTopups }, { data: creditRows }, { data: packages }] = await Promise.all([
+    supabase.rpc('my_credit_balance'),
+    supabase.from('credit_topups').select('id, topup_code, amount_usd, status, created_at')
+      .eq('profile_id', user.id).in('status', ['pending', 'under_review', 'rejected']).order('created_at', { ascending: false }),
+    supabase.rpc('my_credit_history', { p_limit: tab === 'balance' ? 100 : 5 }),
+    tab === 'balance' ? supabase.rpc('my_session_packages') : Promise.resolve({ data: [] }),
+  ]);
+  const balance = Number(balanceRaw ?? 0);
+
   const o = overviewRows?.[0];
   const pays = (o?.paid_usd ?? 0) > 0 || (o?.under_review_usd ?? 0) > 0 || (o?.open_payments ?? 0) > 0;
   const earns = (o?.total_earned_usd ?? 0) > 0 || (o?.pending_usd ?? 0) > 0 || (o?.withdrawn_usd ?? 0) > 0;
@@ -86,6 +96,7 @@ export default async function WalletPage({
 
   const tabLabel: Record<Tab, string> = {
     overview: t('نظرة عامة', 'Overview'),
+    balance: t('الرصيد', 'Balance'),
     transactions: t('المعاملات', 'Transactions'),
     payments: t('المدفوعات', 'Payments'),
     earnings: t('الأرباح', 'Earnings'),
@@ -148,9 +159,41 @@ export default async function WalletPage({
     )
   );
 
+  const TOPUP_STATUS: Record<string, { ar: string; en: string; tone: string }> = {
+    pending: { ar: 'بانتظار تحويلك', en: 'Awaiting your transfer', tone: 'status-muted' },
+    under_review: { ar: 'قيد المراجعة', en: 'Being checked', tone: 'status-pending' },
+    rejected: { ar: 'لم يُقبل — أعد الرفع', en: 'Not accepted — upload again', tone: 'status-danger' },
+  };
+
   return (
     <>
-      <section className="section-block wallet-card">
+      {/* the balance (design lab 4: «شحن بتحويل + إيصال» and «يختار الرصيد أو التحويل») */}
+      <section className="section-block wallet-card is-credit">
+        <p className="wallet-card-label">{t('رصيدك في TechMood', 'Your TechMood balance')}</p>
+        <p className="wallet-card-amount eng">{money(balance)}</p>
+        <p className="wallet-card-sub">{t('تدفع منه الجلسات والسوق وPremium فوراً — يُصرف داخل المنصة ولا يُسحب نقداً.', 'Pays for sessions, the market and Premium at once — spent on the platform, not withdrawable.')}</p>
+        <nav className="wallet-actions" aria-label={t('إجراءات الرصيد', 'Balance actions')}>
+          <Link href="/wallet/topup" className="wallet-action is-main"><span aria-hidden>＋</span>{t('اشحن', 'Top up')}</Link>
+          <Link href="/wallet?tab=balance" className="wallet-action"><span><Icon name="layers" size={20} /></span>{t('سجل الرصيد', 'History')}</Link>
+          <Link href="/mentors" className="wallet-action"><span aria-hidden>🎟️</span>{t('باقات الجلسات', 'Packages')}</Link>
+          <Link href="/premium" className="wallet-action"><span aria-hidden>✦</span>Premium</Link>
+        </nav>
+      </section>
+
+      {(openTopups ?? []).length > 0 && (
+        <ul className="topup-open section-block">
+          {(openTopups ?? []).map((row) => (
+            <li key={row.id}>
+              <Link href={`/wallet/topup/${row.id}`}>
+                <span>{t('شحن ', 'Top-up ')}<b className="eng">{money(Number(row.amount_usd))}</b> <span className="id-chip">{row.topup_code}</span></span>
+                <span className={`status-pill ${TOPUP_STATUS[row.status]?.tone ?? ''}`}>{t(TOPUP_STATUS[row.status]?.ar ?? row.status, TOPUP_STATUS[row.status]?.en ?? row.status)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <section className="section-block wallet-card is-secondary">
         <p className="wallet-card-label">
           {earns ? t('متاح للسحب', 'Available to withdraw') : t('إجمالي ما دفعته', 'Total you have paid')}
         </p>
@@ -187,6 +230,55 @@ export default async function WalletPage({
           </Link>
         ))}
       </nav>
+
+      {tab === 'balance' && (
+        <>
+          {(packages ?? []).length > 0 && (
+            <section className="panel section-block">
+              <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>🎟️ {t('باقات جلساتك', 'Your session packages')}</h3>
+              <ul className="pkg-list">
+                {(packages ?? []).map((k) => (
+                  <li key={k.id}>
+                    <span>
+                      <strong>{k.session_name}</strong> {t('مع ', 'with ')}{k.mentor_name}
+                      <small className="muted"> · {t(`خصم ${k.discount_pct}%`, `${k.discount_pct}% off`)}</small>
+                    </span>
+                    <span className={`status-pill ${k.sessions_left > 0 ? 'status-ok' : 'status-muted'}`}>
+                      {t(`${k.sessions_left} من ${k.sessions_total} متبقية`, `${k.sessions_left} of ${k.sessions_total} left`)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <section className="panel section-block">
+            <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('سجل الرصيد', 'Balance history')}</h3>
+            {(creditRows ?? []).length === 0 ? (
+              <p className="muted" style={{ fontSize: '0.86rem' }}>{t('لا حركات بعد — اشحن رصيدك لتدفع منه بنقرة.', 'Nothing yet — top up to pay in one tap.')}</p>
+            ) : (
+              <ul className="txn-list">
+                {(creditRows ?? []).map((row) => {
+                  const out = Number(row.amount_usd) < 0;
+                  return (
+                    <li key={row.id}>
+                      <div className="txn">
+                        <span className={`txn-icon ${out ? 'is-out' : 'is-in'}`} aria-hidden="true"><Icon name="arrow" size={18} /></span>
+                        <span className="txn-main">
+                          <strong>{row.description_ar}</strong>
+                          <span className="txn-meta"><span className="date">{formatDateTime(locale, row.created_at)}</span></span>
+                        </span>
+                        <span className="txn-side">
+                          <span className={`eng txn-amount ${out ? 'is-out' : 'is-in'}`}>{signedMoney(Number(row.amount_usd))}</span>
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
 
       {tab === 'overview' && (
         <>

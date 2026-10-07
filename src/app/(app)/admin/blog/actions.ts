@@ -34,7 +34,7 @@ export async function savePost(_prev: PostState, formData: FormData): Promise<Po
 
 export async function deletePost(formData: FormData) {
   const supabase = await createClient();
-  await supabase.rpc('delete_blog_post', { p_id: String(formData.get('id') ?? '') });
+  await supabase.rpc('remove_blog_post', { p_id: String(formData.get('id') ?? '') });
   revalidatePath('/blog');
   redirect('/admin/blog');
 }

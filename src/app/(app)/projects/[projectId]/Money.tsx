@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { createClient } from '@/lib/supabase/client';
 import { MethodPicker } from '@/components/MethodPicker';
+import { PayFromBalance } from '@/components/PayFromBalance';
 import { PayerAccountFields, type PayerAccountOption } from '@/components/PayerAccountFields';
 import { PayToDetails } from '@/components/PayToDetails';
 import { RatingExtras } from '@/components/RatingExtras';
@@ -109,13 +110,15 @@ export function OpenEscrowForm({
  * payment does, into the payer's own folder of the private proofs bucket.
  */
 export function EscrowProofForm({
-  escrowId, revalidate, userId, payment, payerAccounts = [],
+  escrowId, revalidate, userId, payment, payerAccounts = [], balance,
 }: {
   escrowId: string;
   revalidate: string;
   userId: string;
   payment: EscrowPayTo | null;
   payerAccounts?: PayerAccountOption[];
+  /** the payer's TechMood balance (0151), to pay from it instead of a transfer */
+  balance?: number;
 }) {
   const instructions = payment?.payTo ?? null;
   const t = useT();
@@ -149,6 +152,10 @@ export function EscrowProofForm({
   }
 
   return (
+    <>
+    {payment && balance !== undefined && (
+      <PayFromBalance paymentId={payment.paymentId} amount={Number(instructions?.amount_usd ?? 0)} balance={balance} next={revalidate} />
+    )}
     <form action={formAction} className="meeting-form">
       <input type="hidden" name="escrow_id" value={escrowId} />
       <input type="hidden" name="revalidate" value={revalidate} />
@@ -204,6 +211,7 @@ export function EscrowProofForm({
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       {state?.ok && <p className="notice notice-ok">{state.ok}</p>}
     </form>
+    </>
   );
 }
 

@@ -42,8 +42,8 @@ export default async function AdminPostPage({ params, searchParams }: {
       {post && (
         <form action={deletePost} className="section-block">
           <input type="hidden" name="id" value={post.id} />
-          <ConfirmSubmit className="btn btn-ghost btn-sm" message={t('حذف هذا المقال نهائياً؟', 'Delete this post for good?')} confirmLabel={t('احذف', 'Delete')}>
-            {t('احذف المقال', 'Delete the post')}
+          <ConfirmSubmit className="btn btn-ghost btn-sm" message={t('إزالة هذا المقال من المدونة؟ يُخفى ولا يُمحى.', 'Take this post off the blog? It is hidden, not erased.')} confirmLabel={t('أزله', 'Remove')}>
+            {t('أزل المقال', 'Remove the post')}
           </ConfirmSubmit>
         </form>
       )}

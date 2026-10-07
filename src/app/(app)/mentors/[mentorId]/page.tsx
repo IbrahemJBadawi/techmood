@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { money } from '@/lib/booking';
+import { PackageOffer } from './PackageOffer';
 import { AiSurface } from '@/components/AiSurface';
 import { AskAI } from '@/components/AskAI';
 import { FeedbackSummary } from '@/components/FeedbackSummary';
@@ -56,6 +57,20 @@ export default async function MentorProfilePage({
     supabase.rpc('follow_stats', { p_profile: mentorId }),
   ]);
   const follow = followRows?.[0];
+
+  // packages with this mentor (0152): offered to a member who is not this mentor, while they take bookings
+  const canBuyPackages = Boolean(user && user.id !== mentorId && mentor.is_accepting);
+  const [packageRows, { data: balanceRaw }] = canBuyPackages
+    ? await Promise.all([
+        Promise.all(((offered ?? []).map((row) => row.session_types as unknown as { id: string; name_ar: string })).map(async (type) => {
+          const { data } = await supabase.rpc('package_quote', { p_mentor: mentorId, p_session_type: type.id });
+          return { sessionTypeId: type.id, sessionName: type.name_ar, tiers: data ?? [] };
+        })),
+        supabase.rpc('my_credit_balance'),
+      ])
+    : [[], { data: 0 }];
+  const packageQuotes = packageRows.filter((q) => q.tiers.length > 0);
+  const myBalance = Number(balanceRaw ?? 0);
 
   // The gallery (0115): what this mentor wrote in the studio and TechMood
   // approved — open courses and paths, and the ones announced as coming.
@@ -199,6 +214,8 @@ export default async function MentorProfilePage({
           )}
         </section>
       )}
+
+      {packageQuotes.length > 0 && <PackageOffer mentorId={mentorId} quotes={packageQuotes} balance={myBalance} />}
 
       <div className="detail-grid">
         <section className="panel">

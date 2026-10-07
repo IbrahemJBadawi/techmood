@@ -1,5 +1,8 @@
 import Image from 'next/image';
 
+import { PremiumBadge } from '@/components/PremiumBadge';
+import { createClient } from '@/lib/supabase/server';
+
 import { Stars } from '@/components/Stars';
 import { contentText, type Locale } from '@/lib/i18n';
 import { getT } from '@/lib/i18n.server';
@@ -36,6 +39,9 @@ export async function ProfileCard({
 }) {
   const t = await getT();
   const name = card.display_name ?? card.full_name;
+  // the Premium mark (0154), public like any badge
+  const supabase = await createClient();
+  const { data: premium } = await supabase.rpc('is_premium', { p_profile: card.profile_id });
   const initial = name.trim().charAt(0);
 
   const stats: { value: string; label: string }[] = [
@@ -66,7 +72,7 @@ export async function ProfileCard({
         )}
 
         <div className="identity-who">
-          <h1>{name}</h1>
+          <h1>{name}{premium && <> <PremiumBadge /></>}</h1>
           {card.headline && <p className="identity-title">{card.headline}</p>}
           {card.primary_field && <p className="identity-field">{card.primary_field}</p>}
         </div>

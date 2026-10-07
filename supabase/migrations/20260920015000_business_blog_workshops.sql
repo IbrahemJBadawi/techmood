@@ -102,6 +102,7 @@ create table public.blog_posts (
   category     text not null default 'news' check (category in ('news', 'stories', 'guides', 'careers')),
   author_id    uuid references public.profiles (id) on delete set null,
   published_at timestamptz,
+  removed_at   timestamptz,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
@@ -111,7 +112,7 @@ create index blog_posts_published_idx on public.blog_posts (published_at desc) w
 alter table public.blog_posts enable row level security;
 create policy blog_posts_read on public.blog_posts
   for select to anon, authenticated
-  using ((published_at is not null and published_at <= now()) or public.is_admin());
+  using (removed_at is null and ((published_at is not null and published_at <= now()) or public.is_admin()));
 revoke all on public.blog_posts from anon, authenticated;
 grant select on public.blog_posts to anon, authenticated;
 
@@ -155,7 +156,8 @@ $$;
 revoke execute on function public.save_blog_post(uuid, text, text, text, text, text, text, boolean) from public, anon;
 grant execute on function public.save_blog_post(uuid, text, text, text, text, text, text, boolean) to authenticated;
 
-create or replace function public.delete_blog_post(p_id uuid)
+-- Taking a post down hides it rather than erasing it; its address is freed for a new post.
+create or replace function public.remove_blog_post(p_id uuid)
 returns void
 language plpgsql
 security definer
@@ -165,12 +167,15 @@ begin
   if not public.is_admin() then
     raise exception 'للإدارة فقط';
   end if;
-  delete from public.blog_posts where id = p_id;
+  update public.blog_posts
+     set removed_at = now(), published_at = null,
+         slug = rtrim(left(slug, 50), '-') || '-removed-' || to_char(now(), 'YYYYMMDDHH24MISS')
+   where id = p_id and removed_at is null;
 end;
 $$;
 
-revoke execute on function public.delete_blog_post(uuid) from public, anon;
-grant execute on function public.delete_blog_post(uuid) to authenticated;
+revoke execute on function public.remove_blog_post(uuid) from public, anon;
+grant execute on function public.remove_blog_post(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3. Workshops

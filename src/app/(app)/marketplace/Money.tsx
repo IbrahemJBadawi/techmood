@@ -22,6 +22,9 @@ export async function MoneyTab() {
   const { data: rows } = await supabase.rpc('my_escrows');
   const escrows = rows ?? [];
 
+  // the payer's balance, to pay a hold from it (0151)
+  const { data: balanceRaw } = await supabase.rpc('my_credit_balance');
+  const balance = Number(balanceRaw ?? 0);
   const payTo = new Map<string, EscrowPayTo>();
   for (const escrow of escrows.filter((row) => row.status === 'awaiting_payment' && row.side === 'paying')) {
     const found = await escrowPayTo(supabase, escrow.id);
@@ -62,7 +65,7 @@ export async function MoneyTab() {
             {escrow.status === 'awaiting_payment' && escrow.side === 'paying' && (
               <div style={{ marginTop: 10 }}>
                 <EscrowProofForm escrowId={escrow.id} revalidate="/marketplace?tab=money"
-                                 userId={user?.id ?? ''} payment={payTo.get(escrow.id) ?? null} />
+                                 userId={user?.id ?? ''} payment={payTo.get(escrow.id) ?? null} balance={balance} />
               </div>
             )}
           </div>

@@ -338,6 +338,7 @@ const ROLE_NAV: Record<UserRole, NavGroup[]> = {
         { href: '/admin/users', label: { ar: 'المستخدمون', en: 'Users' }, icon: 'team' },
         { href: '/admin/analytics', label: { ar: 'التحليلات', en: 'Analytics' }, icon: 'review' },
         { href: '/admin/business', label: { ar: 'طلبات الشركات', en: 'Business inquiries' }, icon: 'company' },
+        { href: '/admin/topups', label: { ar: 'شحن الأرصدة', en: 'Top-ups' }, icon: 'wallet' },
         { href: '/admin/blog', label: { ar: 'المدونة', en: 'Blog' }, icon: 'review' },
       ],
     },

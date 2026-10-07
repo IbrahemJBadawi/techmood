@@ -9,6 +9,7 @@ import { formatSlot, money } from '@/lib/booking';
 import { PaymentForm } from './PaymentForm';
 import { AnswerForm } from './AnswerForm';
 import { MethodPicker } from '@/components/MethodPicker';
+import { PayFromBalance } from '@/components/PayFromBalance';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
 export default async function PayBookingPage({
@@ -55,14 +56,18 @@ export default async function PayBookingPage({
   // The receiving details come only from payment_instructions(): the fields
   // the chosen method shows, to the person who owes this payment, while it is
   // open. The options are the methods they may switch to.
-  const [{ data: instructions }, { data: options }, { data: payerAccounts }] = await Promise.all([
+  const [{ data: instructions }, { data: options }, { data: payerAccounts }, { data: balanceRaw }, { data: myPackages }] = await Promise.all([
     supabase.rpc('payment_instructions', { p_payment: payment.id }),
     supabase.rpc('payment_options', { p_payment: payment.id }),
     supabase.from('payer_accounts')
       .select('id, label, holder_name, account_ref, is_default')
       .eq('profile_id', user.id)
       .order('is_default', { ascending: false }),
+    supabase.rpc('my_credit_balance'),
+    supabase.rpc('my_session_packages'),
   ]);
+  // a package with this mentor, for this kind of session (0152)
+  const packages = (myPackages ?? []).filter((k) => k.mentor_id === booking.mentor_id && k.session_type_id === booking.session_type_id);
   const payTo = instructions?.[0] ?? null;
 
   const when = formatSlot(booking.scheduled_start);
@@ -109,6 +114,10 @@ export default async function PayBookingPage({
           {!expired && payment.status === 'needs_info' && (
             <AnswerForm paymentId={payment.id} bookingId={booking.id}
                         question={payment.info_request_ar ?? ''} />
+          )}
+          {!expired && (payment.status === 'pending' || payment.status === 'rejected') && (
+            <PayFromBalance paymentId={payment.id} amount={Number(payment.amount_usd)} balance={Number(balanceRaw ?? 0)}
+                            next={`/bookings/${booking.id}`} packages={packages} />
           )}
           {!expired && payment.status !== 'needs_info' && (
             <MethodPicker paymentId={payment.id} options={options ?? []}

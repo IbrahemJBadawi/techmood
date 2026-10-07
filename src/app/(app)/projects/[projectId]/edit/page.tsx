@@ -52,6 +52,8 @@ export default async function EditShowcasePage({
     supabase.from('enrollments').select('path_id, course_id, learning_paths(title_ar), courses(title_ar)').eq('profile_id', user.id),
   ]);
   // The hidden delivery link, readable by its seller (0099).
+  const { data: auctionRows } = listing ? await supabase.rpc('auction_state', { p_listing: listing.id }) : { data: [] };
+  const auctionRunning = auctionRows?.[0]?.status === 'open';
   const { data: realDelivery } = listing
     ? await supabase.rpc('listing_delivery_url', { p_listing: listing.id })
     : { data: null };
@@ -128,7 +130,8 @@ export default async function EditShowcasePage({
       />
 
       {wantsMarket ? (
-        <ListingEditor projectId={projectId} listing={listing ? { ...listing, delivery_url: (realDelivery as string | null) ?? null } : null} />
+        <ListingEditor projectId={projectId} listing={listing ? { ...listing, delivery_url: (realDelivery as string | null) ?? null } : null}
+                     auctionRunning={auctionRunning} />
       ) : (
         <section className="panel section-block">
           <h3 className="sc-h">🛒 {t('البيع في السوق', 'Selling in the market')}</h3>

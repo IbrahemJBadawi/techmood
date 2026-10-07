@@ -10,6 +10,7 @@ import { deleteShowcase, saveShowcaseListing, withdrawShowcaseListing, type Show
 import { NumberStepper } from '@/components/NumberStepper';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 import { SheetSelect } from '@/components/FilterSheet';
+import { AuctionStarter } from './AuctionStarter';
 
 export type EditorListing = {
   id: string; status: ListingStatus; price_usd: number; licence: SaleLicence; summary_ar: string;
@@ -28,7 +29,7 @@ const STATUS_NOTE: Partial<Record<ListingStatus, { ar: string; en: string; tone:
 };
 
 /** 🛒 Selling the page's work (0099, 0121): reviewed by TechMood before it shows. */
-export function ListingEditor({ projectId, listing }: { projectId: string; listing: EditorListing }) {
+export function ListingEditor({ projectId, listing, auctionRunning = false }: { projectId: string; listing: EditorListing; auctionRunning?: boolean }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveShowcaseListing, undefined as ShowcaseState);
   const note = listing ? STATUS_NOTE[listing.status] : null;
@@ -123,6 +124,11 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
           </button>
         </div>
       </form>
+
+      {listing && listing.status === 'listed' && (
+        <AuctionStarter listingId={listing.id} price={Number(listing.price_usd)} running={auctionRunning}
+                        revalidate={`/projects/${projectId}/edit`} />
+      )}
 
       {listing && (listing.status === 'listed' || listing.status === 'pending_review') && (
         <form action={withdrawShowcaseListing} style={{ marginTop: 10 }}>

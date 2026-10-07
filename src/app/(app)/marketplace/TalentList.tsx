@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 
 import { SaveButton } from './SaveButton';
+import { PremiumBadge } from '@/components/PremiumBadge';
 
 /**
  * Who is available, with the record they earned.
@@ -30,6 +31,12 @@ export async function TalentList({
     p_skill: null,
     p_limit: 24,
   });
+  // Premium members come first and carry the mark (0154)
+  const ids = (talent ?? []).map((person) => person.profile_id);
+  const { data: premiumRows } = ids.length
+    ? await supabase.from('premium_memberships').select('profile_id').in('profile_id', ids).gt('until', new Date().toISOString())
+    : { data: [] };
+  const premium = new Set((premiumRows ?? []).map((row) => row.profile_id));
 
   if ((talent ?? []).length === 0) {
     return (
@@ -52,7 +59,7 @@ export async function TalentList({
         <article className="panel talent-card" key={person.profile_id}>
           <div className="row-between">
             <div>
-              <h3 style={{ fontSize: '0.98rem' }}>{person.full_name}</h3>
+              <h3 style={{ fontSize: '0.98rem' }}>{person.full_name}{premium.has(person.profile_id) && <> <PremiumBadge /></>}</h3>
               <p className="muted" style={{ fontSize: '0.82rem', marginTop: 3 }}>
                 {person.headline ?? t('عضو في TechMood', 'A TechMood member')}
               </p>

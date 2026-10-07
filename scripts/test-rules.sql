@@ -896,9 +896,10 @@ select public.assert(
 reset role;
 
 -- Nine since 0076 added PayPal — switched off until an admin gives it an
--- address, so the student's count above is unchanged.
+-- address, so the student's count above is unchanged — and ten since 0151's
+-- «رصيد TechMood» and eleven since 0152's «باقة جلسات», neither ever offered as a transfer.
 select public.assert(
-  (select count(*) from public.payment_methods) = 9,
+  (select count(*) from public.payment_methods) = 11,
   '12.22 an admin still sees the disabled method in order to enable it');
 
 -- ===========================================================================
@@ -8536,7 +8537,11 @@ select public.assert(
          -- and who evaluated the work on show (0127)
          'showcase_evaluator',
          -- a company's message from the «for business» page (0150)
-         'submit_business_inquiry')
+         'submit_business_inquiry',
+         -- a running auction and its bids, as initials (0153)
+         'auction_state', 'auction_bids_public',
+         -- who is Premium, like a badge (0154)
+         'is_premium')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -10604,7 +10609,10 @@ select public.assert(
   (select bool_and(pg_get_functiondef(p.oid) ~* 'for update')
      from pg_proc p
     where p.pronamespace = 'public'::regnamespace
-      and p.proname in ('verify_payment','release_escrow','refund_escrow','review_payout','refund_booking_now','request_payout')),
+      -- verify_payment's lock lives in settle_payment since 0151, which the balance uses too
+      and p.proname in ('settle_payment','release_escrow','refund_escrow','review_payout','refund_booking_now','request_payout',
+                        'pay_with_credit','review_topup','submit_topup_proof','pay_with_package',
+                        'place_bid','close_due_auctions')),
   '101.4 every function that moves money locks what it decides on');
 
 -- -----------------------------------------------------------------------------
@@ -10947,6 +10955,20 @@ select public.assert(
   (select count(*) from public.blog_posts) = 1 and exists (select 1 from public.blog_posts where slug = 'first-post'),
   '110.7 a visitor reads the published post and not the draft');
 reset role;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.remove_blog_post(:'post1');
+select public.save_blog_post(null, 'first-post', 'Its address is free again', null, 'Body', null, 'news', false);
+reset role;
+reset request.jwt.claim.sub;
+set role anon;
+select public.assert(
+  not exists (select 1 from public.blog_posts),
+  '110.7b a removed post is hidden from everyone, and its address can be reused');
+reset role;
+select public.assert(
+  exists (select 1 from public.blog_posts where id = :'post1' and removed_at is not null),
+  '110.7c but kept, not erased');
 
 -- workshops
 set role authenticated;
@@ -10991,6 +11013,217 @@ select public.assert(
   exists (select 1 from public.notifications where profile_id = '11111111-1111-1111-1111-111111111111'
             and entity_type = 'workshop' and title_ar like 'أُلغيت ورشة%'),
   '110.15 cancelling tells everyone registered');
+
+-- -----------------------------------------------------------------------------
+-- 111. رصيد TechMood: top up by transfer, pay from it (0151)
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(public.my_credit_balance() = 0, '111.1 a balance starts at zero');
+select public.assert_rejects($$select public.request_topup(2, 'jawwal_pay')$$, '111.2 a top-up is 5$ to 500$', 'بين 5$');
+select public.assert_rejects($$select public.request_topup(50, 'techmood_credit')$$, '111.3 and is paid by a real transfer method', 'غير متاحة للشحن');
+select public.request_topup(100, 'jawwal_pay') as top1 \gset
+select public.assert(
+  (select amount_usd = 100 and payment_code like 'TMTOP-%' from public.topup_instructions(:'top1')),
+  '111.4 the top-up shows where to send the money, with its own code');
+select public.assert_rejects(
+  format($$select public.submit_topup_proof(%L, '11111111-1111-1111-1111-111111111111/x.png', 'JP-1')$$, :'top1'),
+  '111.5 a receipt must be the member''s own file', 'غير صالح');
+select public.submit_topup_proof(:'top1', '22222222-2222-2222-2222-222222222222/top.png', 'JP-TOP-1');
+select public.assert(public.my_credit_balance() = 0, '111.6 nothing is credited before an admin checks the receipt');
+select public.assert_rejects(format($$select public.review_topup(%L, true)$$, :'top1'), '111.7 only an admin approves it', 'للإدارة فقط');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_topup(:'top1', true);
+select public.assert_rejects(format($$select public.review_topup(%L, true)$$, :'top1'), '111.8 and only once', 'رُوجع بالفعل');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(public.my_credit_balance() = 100, '111.9 approved: the balance is 100$');
+
+-- paying a session from it
+select slot_start as slot111 from public.mentor_available_slots('33333333-3333-3333-3333-333333333333',
+       current_date + 2, current_date + 10)
+ where state = 'available' order by slot_start limit 1 \gset
+select (public.create_booking_request(
+  '33333333-3333-3333-3333-333333333333',
+  (select id from public.session_types where slug = 'career_guidance'),
+  :'slot111'::timestamptz, 'jawwal_pay', 'أريد مراجعة سيرتي الذاتية من الرصيد.')).id as bk111 \gset
+select id as pay111, amount_usd as price111 from public.payments where booking_id = :'bk111' \gset
+select public.pay_with_credit(:'pay111');
+select public.assert(
+  public.my_credit_balance() = 100 - :'price111'::numeric
+  and (select status = 'verified' and method_key = 'techmood_credit' from public.payments where id = :'pay111'),
+  '111.10 paid from the balance: the amount comes off and the payment is settled at once');
+select public.assert(
+  (select status in ('confirmed', 'mentor_pending') from public.bookings where id = :'bk111'),
+  '111.11 and the booking moves on as an approved transfer would');
+select public.assert_rejects(format($$select public.pay_with_credit(%L)$$, :'pay111'), '111.12 a payment is paid once', 'رُوجعت بالفعل');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(format($$select public.pay_with_credit(%L)$$, :'pay111'), '111.13 nobody pays somebody else''s payment', 'الدافع فقط');
+select public.assert(not exists (select 1 from public.credit_entries where profile_id = '22222222-2222-2222-2222-222222222222'),
+  '111.14 nor reads their balance');
+reset role;
+reset request.jwt.claim.sub;
+-- a refund of it goes back to the balance, once
+update public.payments set status = 'refunded' where id = :'pay111';
+select public.assert(
+  public.credit_balance_of('22222222-2222-2222-2222-222222222222') = 100,
+  '111.15 a refund of a balance payment goes back to the balance');
+select public.assert(
+  not exists (select 1 from public.wallet_entries where ref_table = 'credit_topups' or ref_id = :'top1'),
+  '111.16 and a balance is never withdrawable earnings: a top-up writes nothing to the earnings ledger');
+
+-- -----------------------------------------------------------------------------
+-- 112. Session packages with a discount, paid from the balance (0152)
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select (select id from public.session_types where slug = 'career_guidance') as st112 \gset
+select public.assert(
+  (select count(*) from public.package_quote('33333333-3333-3333-3333-333333333333', :'st112')) = 2
+  and (select total_usd = round(unit_usd * 5 * 0.85, 2) from public.package_quote('33333333-3333-3333-3333-333333333333', :'st112') where sessions = 5),
+  '112.1 three sessions 10% off, five sessions 15% off');
+select public.assert_rejects(
+  format($$select public.buy_session_package('33333333-3333-3333-3333-333333333333', %L, 4)$$, :'st112'),
+  '112.2 only the offered sizes', 'الباقات 3 أو 5');
+reset role;
+-- enough balance for a package of three
+insert into public.credit_entries (profile_id, amount_usd, kind, description_ar)
+values ('22222222-2222-2222-2222-222222222222', 500, 'adjust', 'اختبار');
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.my_credit_balance() as bal112 \gset
+select public.buy_session_package('33333333-3333-3333-3333-333333333333', :'st112', 3) as pkg112 \gset
+select public.assert(
+  public.my_credit_balance() = :'bal112'::numeric - (select paid_usd from public.session_packages where id = :'pkg112'),
+  '112.3 the package is paid from the balance');
+select slot_start as slot112 from public.mentor_available_slots('33333333-3333-3333-3333-333333333333',
+       current_date + 2, current_date + 12)
+ where state = 'available' order by slot_start limit 1 \gset
+select (public.create_booking_request('33333333-3333-3333-3333-333333333333', :'st112',
+  :'slot112'::timestamptz, 'jawwal_pay', 'جلسة من الباقة لمتابعة خطتي.')).id as bk112 \gset
+select id as pay112 from public.payments where booking_id = :'bk112' \gset
+select public.pay_with_package(:'pay112', :'pkg112');
+select public.assert(
+  (select sessions_used = 1 from public.session_packages where id = :'pkg112')
+  and (select status = 'verified' and method_key = 'session_package' from public.payments where id = :'pay112'),
+  '112.4 a booking paid from the package uses one session and is settled at once');
+select public.assert(
+  (select sessions_left from public.my_session_packages() where id = :'pkg112') = 2,
+  '112.5 and the member sees two left');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(not exists (select 1 from public.session_packages), '112.6 nobody else sees the package');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert(exists (select 1 from public.session_packages where id = :'pkg112'), '112.7 the mentor sees it');
+reset role;
+reset request.jwt.claim.sub;
+update public.payments set status = 'refunded' where id = :'pay112';
+select public.assert((select sessions_used = 0 from public.session_packages where id = :'pkg112'),
+  '112.8 a refunded session goes back into the package');
+
+-- -----------------------------------------------------------------------------
+-- 113. Open auctions with an end time (0153)
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(format($$select public.start_auction(%L, 40, 5, 24)$$, :'l109'),
+  '113.1 only the seller starts an auction', 'صاحب العرض فقط');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert_rejects(format($$select public.start_auction(%L, 40, 5, 5)$$, :'l109'),
+  '113.2 it runs a day, three days or a week', 'مدة المزاد');
+select public.start_auction(:'l109', 40, 5, 24) as auc113 \gset
+select public.assert_rejects(format($$select public.place_bid(%L, 100)$$, :'auc113'),
+  '113.3 the seller does not bid', 'لا تزايد');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(format($$select public.place_bid(%L, 30)$$, :'auc113'),
+  '113.4 the first bid is at least the starting price', 'أقل مزايدة');
+select public.place_bid(:'auc113', 40);
+select public.assert_rejects(format($$select public.buy_project(%L, 'jawwal_pay', null, true)$$, :'l109'),
+  '113.5 nobody buys around a running auction', 'مزاد مفتوح');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(format($$select public.place_bid(%L, 42)$$, :'auc113'),
+  '113.6 a bid beats the top one by the step', 'أقل مزايدة الآن 45');
+select public.place_bid(:'auc113', 60);
+select public.assert(
+  (select top_usd = 60 and bids = 2 and i_lead and next_min_usd = 65 from public.auction_state(:'l109')),
+  '113.7 everyone sees the top bid, the count and the next minimum');
+select public.assert(
+  (select bool_and(bidder like '_***') from public.auction_bids_public(:'auc113')),
+  '113.8 and bidders only as initials');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '22222222-2222-2222-2222-222222222222'
+            and entity_id = :'auc113' and title_ar like '%أعلى منك%'),
+  '113.9 the outbid bidder is told');
+-- the last two minutes stretch
+update public.listing_auctions set ends_at = now() + interval '30 seconds' where id = :'auc113';
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.place_bid(:'auc113', 70);
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select ends_at > now() + interval '100 seconds' from public.listing_auctions where id = :'auc113'),
+  '113.10 a bid in the last two minutes adds two minutes');
+update public.listing_auctions set ends_at = now() - interval '1 second' where id = :'auc113';
+select public.assert(public.close_due_auctions() = 1, '113.11 a due auction is closed');
+select public.assert(
+  (select status = 'won' and winner_id = '22222222-2222-2222-2222-222222222222' and winning_usd = 70
+     from public.listing_auctions where id = :'auc113')
+  and (select status = 'accepted' and agreed_usd = 70 from public.listing_offers
+        where id = (select offer_id from public.listing_auctions where id = :'auc113')),
+  '113.12 the top bidder wins an agreed price');
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert((select i_won and my_offer_id is not null from public.auction_state(:'l109')),
+  '113.12b the winner is told, with the price agreement to pay');
+select (public.buy_project(:'l109', 'jawwal_pay', (select my_offer_id from public.auction_state(:'l109')), true)).id as sale113 \gset
+select public.assert(
+  (select amount_usd = 70 from public.project_sales where id = :'sale113'),
+  '113.13 and pays what won it, even above the list price');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 114. TechMood Premium (0154)
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects($$select public.subscribe_premium('month')$$, '114.1 Premium is paid from the balance', 'رصيدك لا يكفي');
+reset role;
+insert into public.credit_entries (profile_id, amount_usd, kind, description_ar)
+values ('55555555-5555-5555-5555-555555555555', 60, 'adjust', 'اختبار');
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.subscribe_premium('month');
+select public.assert(public.is_premium('55555555-5555-5555-5555-555555555555') and public.my_credit_balance() = 55,
+  '114.2 a month costs 5$ and the badge is on');
+select public.subscribe_premium('month');
+select public.assert(
+  (select until > now() + interval '55 days' from public.premium_memberships where profile_id = '55555555-5555-5555-5555-555555555555'),
+  '114.3 renewing adds to what is left');
+select public.assert_rejects(
+  $$update public.premium_memberships set until = now() + interval '10 years'$$,
+  '114.4 nobody writes their own membership', 'permission denied');
+reset role;
+set role anon;
+select public.assert(public.is_premium('55555555-5555-5555-5555-555555555555'), '114.5 who is Premium is public, like a badge');
+reset role;
+reset request.jwt.claim.sub;
+update public.premium_memberships set until = now() + interval '2 days' where profile_id = '55555555-5555-5555-5555-555555555555';
+select public.assert(public.premium_reminders() = 1 and public.premium_reminders() = 0,
+  '114.6 one reminder before it ends, and no automatic charge');
 
 \echo ''
 \echo '================================================'

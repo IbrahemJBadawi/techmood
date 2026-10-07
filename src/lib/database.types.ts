@@ -1287,6 +1287,18 @@ export type Database = {
         worker_id: string; stars: number; comment_ar: string | null; created_at: string;
       }>;
       client_review_scores: Table<{ review_id: string; criterion: ClientCriterion; stars: number }>;
+      credit_topups: Table<{
+        id: string; topup_code: string; profile_id: string; amount_usd: number; method_key: string;
+        reference: string | null; proof_path: string | null;
+        status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'cancelled';
+        rejection_reason: string | null; created_at: string; submitted_at: string | null;
+        reviewed_by: string | null; reviewed_at: string | null;
+      }>;
+      listing_auctions: Table<{
+        id: string; listing_id: string; start_usd: number; step_usd: number; ends_at: string;
+        status: 'open' | 'won' | 'no_bids' | 'cancelled'; winning_usd: number | null; created_at: string; closed_at: string | null;
+      }>;
+      premium_memberships: Table<{ profile_id: string; until: string; since: string }>;
       business_inquiries: Table<{
         id: string; company: string; contact_name: string; email: string; phone: string | null; need: BusinessNeed;
         message: string; profile_id: string | null; status: 'new' | 'contacted' | 'closed'; created_at: string;
@@ -1294,7 +1306,7 @@ export type Database = {
       }>;
       blog_posts: Table<{
         id: string; slug: string; title: string; excerpt: string | null; body: string; cover_url: string | null;
-        category: BlogCategory; author_id: string | null; published_at: string | null; created_at: string; updated_at: string;
+        category: BlogCategory; author_id: string | null; published_at: string | null; removed_at: string | null; created_at: string; updated_at: string;
       }>;
       project_listings: Table<{
         id: string; listing_code: string; project_id: string; seller_id: string;
@@ -2267,7 +2279,7 @@ export type Database = {
                 p_cover_url: string | null; p_category: BlogCategory; p_publish: boolean };
         Returns: string;
       };
-      delete_blog_post: { Args: { p_id: string }; Returns: undefined };
+      remove_blog_post: { Args: { p_id: string }; Returns: undefined };
       can_host_workshop: { Args: Record<string, never>; Returns: boolean };
       save_workshop: {
         Args: { p_id: string | null; p_title: string; p_description: string; p_starts_at: string; p_duration: number;
@@ -2789,6 +2801,49 @@ export type Database = {
           link: string | null; at: string | null;
         }[];
       };
+      // رصيد TechMood (0151), packages (0152), auctions (0153), Premium (0154)
+      my_credit_balance: { Args: Record<string, never>; Returns: number };
+      my_credit_history: {
+        Args: { p_limit?: number };
+        Returns: { id: string; amount_usd: number; kind: 'topup' | 'spend' | 'refund' | 'adjust'; description_ar: string; created_at: string }[];
+      };
+      request_topup: { Args: { p_amount: number; p_method: string }; Returns: string };
+      topup_instructions: { Args: { p_topup: string }; Returns: Database['public']['Functions']['payment_instructions']['Returns'] };
+      submit_topup_proof: { Args: { p_topup: string; p_proof_path: string | null; p_reference: string | null }; Returns: undefined };
+      cancel_topup: { Args: { p_topup: string }; Returns: undefined };
+      review_topup: { Args: { p_topup: string; p_approve: boolean; p_reason?: string | null }; Returns: undefined };
+      pay_with_credit: { Args: { p_payment: string }; Returns: undefined };
+      package_quote: {
+        Args: { p_mentor: string; p_session_type: string };
+        Returns: { sessions: number; discount_pct: number; unit_usd: number; total_usd: number; saves_usd: number }[];
+      };
+      buy_session_package: { Args: { p_mentor: string; p_session_type: string; p_sessions: number }; Returns: string };
+      my_session_packages: {
+        Args: Record<string, never>;
+        Returns: { id: string; package_code: string; mentor_id: string; mentor_name: string | null; session_type_id: string;
+                   session_name: string; sessions_total: number; sessions_left: number; discount_pct: number;
+                   paid_usd: number; created_at: string }[];
+      };
+      pay_with_package: { Args: { p_payment: string; p_package: string }; Returns: undefined };
+      start_auction: { Args: { p_listing: string; p_start: number; p_step: number; p_hours: number }; Returns: string };
+      cancel_auction: { Args: { p_auction: string }; Returns: undefined };
+      place_bid: { Args: { p_auction: string; p_amount: number }; Returns: undefined };
+      auction_state: {
+        Args: { p_listing: string };
+        Returns: { id: string; start_usd: number; step_usd: number; ends_at: string; status: 'open' | 'won' | 'no_bids' | 'cancelled';
+                   top_usd: number | null; bids: number; next_min_usd: number; i_lead: boolean; i_won: boolean;
+                   is_seller: boolean; winning_usd: number | null; my_offer_id: string | null }[];
+      };
+      auction_bids_public: {
+        Args: { p_auction: string };
+        Returns: { amount_usd: number; bidder: string; created_at: string; is_me: boolean }[];
+      };
+      is_premium: { Args: { p_profile: string }; Returns: boolean };
+      premium_offer: {
+        Args: Record<string, never>;
+        Returns: { monthly_usd: number; yearly_usd: number; my_until: string | null; ai_daily: number; ai_daily_premium: number }[];
+      };
+      subscribe_premium: { Args: { p_plan: 'month' | 'year' }; Returns: string };
       payment_instructions: {
         Args: { p_payment: string };
         Returns: {

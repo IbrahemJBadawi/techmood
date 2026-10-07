@@ -112,6 +112,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
 
   // Where the client sends the money for a hold they opened — shown only to
   // the payer of that payment (see escrowPayTo).
+  // the payer's balance, to pay a hold from it (0151)
+  const { data: balanceRaw } = await supabase.rpc('my_credit_balance');
+  const balance = Number(balanceRaw ?? 0);
   const instructionsFor = new Map<string, EscrowPayTo>();
   for (const hold of holds.filter((row) => row.status === 'awaiting_payment' && row.payer_id === user.id)) {
     const payTo = await escrowPayTo(supabase, hold.id);
@@ -343,7 +346,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                     {hold.status === 'awaiting_payment' && hold.payer_id === user.id && (
                       <div style={{ marginTop: 10 }}>
                         <EscrowProofForm escrowId={hold.id} revalidate={`/projects/${projectId}`}
-                                         userId={user.id} payment={instructionsFor.get(hold.id) ?? null}
+                                         userId={user.id} payment={instructionsFor.get(hold.id) ?? null} balance={balance}
                                          payerAccounts={payerAccounts ?? []} />
                       </div>
                     )}
