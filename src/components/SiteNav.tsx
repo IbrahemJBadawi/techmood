@@ -26,6 +26,8 @@ export async function SiteNav() {
     { href: '/mentors', label: t('المنتورز', 'Mentors'), icon: 'mentor' },
     { href: '/exhibition', label: t('المعرض', 'Gallery'), icon: 'gallery' },
     { href: '/marketplace', label: t('السوق', 'Market'), icon: 'work' },
+    { href: '/business', label: t('للأعمال', 'For business'), icon: 'company' },
+    { href: '/blog', label: t('المدونة', 'Blog'), icon: 'layers' },
     { href: '/about', label: t('عن TechMood', 'About'), icon: 'review' },
   ];
 
@@ -103,6 +105,8 @@ export async function SiteFooter() {
       title: 'TechMood',
       links: [
         { href: '/about', label: t('عن TechMood', 'About TechMood') },
+        { href: '/business', label: t('TechMood للأعمال', 'TechMood for business') },
+        { href: '/blog', label: t('المدونة', 'Blog') },
         { href: '/guide', label: t('دليل التقييمات والمستويات', 'Ratings & levels guide') },
         { href: '/policies', label: t('السياسات والشروط', 'Policies and terms') },
       ],

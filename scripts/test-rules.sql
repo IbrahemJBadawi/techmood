@@ -5491,9 +5491,9 @@ reset request.jwt.claim.sub;
 -- 11111111 has been notified by half the platform by now; those rows are the
 -- fixture.
 select public.assert(
-  -- twelve, and 0114's daily reminders (a reply to your own ticket has no
-  -- category: it always arrives)
-  (select count(*) from public.notification_categories) = 13
+  -- twelve, 0114's daily reminders and 0148's admin-only new members (a
+  -- reply to your own ticket has no category: it always arrives)
+  (select count(*) from public.notification_categories) = 14
   and (select count(*) from public.notification_categories where is_mandatory) = 3,
   '51.1 every category is named, and three of them are nobody''s to silence');
 
@@ -8534,7 +8534,9 @@ select public.assert(
          -- and its comments and the people behind a page (0122)
          'showcase_comments', 'showcase_people',
          -- and who evaluated the work on show (0127)
-         'showcase_evaluator')
+         'showcase_evaluator',
+         -- a company's message from the «for business» page (0150)
+         'submit_business_inquiry')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -10834,6 +10836,161 @@ select public.assert(
   '107.3 the steps come back in order');
 reset role;
 reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 108. The admins hear about new members: each one, and a morning digest (0148)
+insert into auth.users (id, email, raw_user_meta_data)
+values ('a1080000-0000-0000-0000-000000000001', 'newcomer108@example.com', '{"full_name":"Newcomer 108"}');
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = '44444444-4444-4444-4444-444444444444' and n.kind = 'new_members'
+             and n.entity_id = 'a1080000-0000-0000-0000-000000000001' and n.title_ar like '%Newcomer 108%'),
+  '108.1 an admin is told the moment someone joins');
+select public.assert(
+  not exists (select 1 from public.notifications n
+               where n.kind = 'new_members' and n.profile_id <> all (array(select public.admin_ids()))),
+  '108.2 and nobody who is not an admin is');
+update public.profiles set created_at = now() - interval '1 day' where id = 'a1080000-0000-0000-0000-000000000001';
+select public.assert(public.admin_new_members_digest() = (select count(*) from public.admin_ids()),
+  '108.3 the morning digest goes to each admin when somebody joined yesterday');
+select public.assert(
+  exists (select 1 from public.notifications n
+           where n.profile_id = '44444444-4444-4444-4444-444444444444' and n.kind = 'new_members' and n.title_ar like '📈%'),
+  '108.4 as one line counting them');
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select admin_only from public.notification_categories where kind = 'new_members'),
+  '108.5 the category is marked as the admins'' own');
+select public.assert_rejects('select public.admin_new_members_digest()', '108.6 a member cannot run the digest', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 109. Offers in the market: a timed discount, and a returning buyer's (0149)
+select id as l109 from public.project_listings
+ where seller_id = '84848484-8484-8484-8484-848484848484' and status = 'listed' limit 1 \gset
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(
+  format($$select public.set_repeat_buyer_discount(%L, 20)$$, :'l109'),
+  '109.1 only the seller sets the returning buyer''s discount', 'صاحب العرض');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '84848484-8484-8484-8484-848484848484';
+select public.assert_rejects(
+  format($$select public.set_repeat_buyer_discount(%L, 60)$$, :'l109'),
+  '109.2 at most half', 'بين 0 و50');
+select public.set_repeat_buyer_discount(:'l109', 20);
+select public.assert_rejects(
+  format($$select public.set_listing_discount(%L, 10, now() - interval '1 hour')$$, :'l109'),
+  '109.3 a timed discount ends in the future', 'موعد انتهاء الخصم');
+select public.set_listing_discount(:'l109', 10, now() + interval '2 days');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  public.listing_price_for(:'l109', '55555555-5555-5555-5555-555555555555')
+    = round(public.listing_price_for(:'l109', '22222222-2222-2222-2222-222222222222') * 0.8, 2)
+  and public.listing_price_for(:'l109', '22222222-2222-2222-2222-222222222222')
+    = round((select price_usd from public.project_listings where id = :'l109') * 0.9, 2),
+  '109.4 the running discount for everyone, and 20% more for whoever already bought from this seller');
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select returning_buyer and repeat_buyer_pct = 20 and discount_ends_at > now() from public.my_listing_price(:'l109')),
+  '109.5 the buyer is told why their price is lower, and when the discount ends');
+select public.assert_rejects(
+  format($$select public.listing_price_for(%L, '22222222-2222-2222-2222-222222222222')$$, :'l109'),
+  '109.6 nobody asks for somebody else''s price', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+update public.project_listings set discount_pct = 0, discount_ends_at = null, repeat_buyer_pct = 0 where id = :'l109';
+
+-- -----------------------------------------------------------------------------
+-- 110. For business, the blog and workshops (0150)
+set role anon;
+select public.submit_business_inquiry('Acme Gaza', 'Rami', 'rami@acme.example', null, 'hire', 'We need two front-end developers.') as inq \gset
+select public.assert_rejects(
+  $$select public.submit_business_inquiry('Acme', 'Rami', 'not-an-email', null, 'hire', 'We need two developers.')$$,
+  '110.1 a company message needs a real email', 'تحقق من الحقول');
+select public.assert_rejects(
+  'select 1 from public.business_inquiries',
+  '110.2 a visitor sends one but cannot read any', 'permission denied');
+reset role;
+select public.submit_business_inquiry('Acme Gaza', 'Rami', 'RAMI@acme.example', null, 'project', 'Second message about a project.');
+select public.submit_business_inquiry('Acme Gaza', 'Rami', 'rami@acme.example', null, 'training', 'Third message about training.');
+select public.assert_rejects(
+  $$select public.submit_business_inquiry('Acme Gaza', 'Rami', 'rami@acme.example', null, 'other', 'A fourth one the same day.')$$,
+  '110.3 three a day per email', 'وصلتنا رسائلك');
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '44444444-4444-4444-4444-444444444444'
+            and entity_type = 'business_inquiry' and entity_id = :'inq'),
+  '110.4 the admins are told at once');
+
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.save_blog_post(null, 'hello', 'Hello', null, 'Body', null, 'news', true)$$,
+  '110.5 only an admin writes on the blog', 'للإدارة فقط');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.save_blog_post(null, 'first-post', 'First post', 'Short', 'The body of the post.', null, 'news', true) as post1 \gset
+select public.save_blog_post(null, 'a-draft', 'A draft', null, 'Not yet.', null, 'guides', false);
+select public.assert_rejects(
+  $$select public.save_blog_post(null, 'first-post', 'Again', null, 'Body', null, 'news', true)$$,
+  '110.6 one address per post', 'مستخدم لمقال آخر');
+reset role;
+reset request.jwt.claim.sub;
+set role anon;
+select public.assert(
+  (select count(*) from public.blog_posts) = 1 and exists (select 1 from public.blog_posts where slug = 'first-post'),
+  '110.7 a visitor reads the published post and not the draft');
+reset role;
+
+-- workshops
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert_rejects(
+  $$select public.save_workshop(null, 'My workshop', 'A description long enough.', now() + interval '2 days', 60, null, null, null)$$,
+  '110.8 a student does not announce workshops', 'المعتمدون فقط');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.save_workshop(null, 'Intro to React', 'Components, state and hooks, live.', now() + interval '20 minutes', 60, 1,
+                            'https://www.youtube.com/live/abc123', null) as ws \gset
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(
+  (select live_url is null from public.workshop_detail(:'ws')),
+  '110.9 the stream link is not shown before registering');
+select public.register_workshop(:'ws');
+select public.assert(
+  (select live_url = 'https://www.youtube.com/live/abc123' and is_registered and registered = 1 from public.workshop_detail(:'ws')),
+  '110.10 a registered member gets the stream link');
+select public.assert_rejects(
+  format($$select live_url from public.workshops where id = %L$$, :'ws'),
+  '110.11 and nobody reads it from the table', 'permission denied');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  format($$select public.register_workshop(%L)$$, :'ws'),
+  '110.12 seats run out', 'اكتملت المقاعد');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(public.workshop_reminders() = 1, '110.13 registrants are reminded half an hour before');
+select public.assert(public.workshop_reminders() = 0, '110.14 once');
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.cancel_workshop(:'ws');
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '11111111-1111-1111-1111-111111111111'
+            and entity_type = 'workshop' and title_ar like 'أُلغيت ورشة%'),
+  '110.15 cancelling tells everyone registered');
 
 \echo ''
 \echo '================================================'

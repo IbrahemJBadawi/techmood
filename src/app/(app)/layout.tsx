@@ -22,10 +22,11 @@ import { LogoMark } from '@/components/Logo';
 import { MobileTabBar } from './shell/MobileNav';
 import { roleInScope } from '@/lib/scope';
 
-/** On the sidebar as "coming soon": not links, nothing behind them yet. */
-const COMING_SOON = [
-  { ar: 'ورش العمل', en: 'Workshops', icon: 'calendar' as const },
-  { ar: 'للأعمال', en: 'For business', icon: 'company' as const },
+/** What used to be «قريباً» and is open now (0150): for every role, under its own heading. */
+const MORE_PLACES = [
+  { href: '/workshops', ar: 'ورش العمل', en: 'Workshops', icon: 'calendar' as const },
+  { href: '/blog', ar: 'المدونة', en: 'Blog', icon: 'review' as const },
+  { href: '/business', ar: 'للأعمال', en: 'For business', icon: 'company' as const },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -106,6 +107,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: t(group.label),
       items: group.items.map((item) => ({ href: item.href, label: t(item.label), icon: item.icon })),
     })),
+    { label: t('المزيد من TechMood', 'More from TechMood'),
+      items: MORE_PLACES.map((item) => ({ href: item.href, label: t(item.ar, item.en), icon: item.icon })) },
     accountGroup,
   ];
   const tabs = mobileTabsFor(active).map((item) => ({ href: item.href, label: t(item.label), icon: item.icon }));
@@ -135,15 +138,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         ))}
 
-        {/* announced, not open yet: shown so members know what is coming */}
         <div className="nav-group">
-          <div className="nav-group-label">{t('قريباً', 'Coming soon')}</div>
-          {COMING_SOON.map((item) => (
-            <span className="navlink is-soon" key={item.en} aria-disabled="true" title={t(`${item.ar} — قريباً`, `${item.en} — coming soon`)}>
-              <Icon name={item.icon} />
-              <span className="navlink-label">{t(item.ar, item.en)}</span>
-              <span className="soon-pill">{t('قريباً', 'Soon')}</span>
-            </span>
+          <div className="nav-group-label">{t('المزيد من TechMood', 'More from TechMood')}</div>
+          {MORE_PLACES.map((item) => (
+            <NavLink href={item.href} icon={item.icon} key={item.href} siblings={navHrefs}>{t(item.ar, item.en)}</NavLink>
           ))}
         </div>
 
@@ -235,11 +233,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         moreLabel={t('المزيد', 'More')}
         closeLabel={t('إغلاق', 'Close')}
         unread={unreadMessages ?? 0}
-        soon={{
-          title: t('قريباً', 'Coming soon'),
-          tag: t('قريباً', 'Soon'),
-          items: COMING_SOON.map((item) => ({ label: t(item.ar, item.en), icon: item.icon })),
-        }}
       >
         <div className="sheet-role">
           <span className="muted">{t('تتصفّح بدور', 'Browsing as')}</span>

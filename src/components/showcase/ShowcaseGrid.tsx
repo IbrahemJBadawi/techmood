@@ -7,6 +7,7 @@ import type { ProductType, ShowcaseCard } from '@/lib/database.types';
 import { CATEGORIES, PRODUCT_TYPES, galleryPath, mediaUrl } from '@/lib/showcase';
 import { avatarColor } from '@/lib/mentor-look';
 import { ChoiceChips, FilterSheet, SheetSelect } from '@/components/FilterSheet';
+import { Countdown } from '@/components/Countdown';
 
 export type ShowcaseFilters = {
   q?: string; category?: string; type?: string; sort?: string;
@@ -50,6 +51,12 @@ export async function ShowcaseGrid({
     p_sort: sort, p_limit: 48, p_group: group ?? null,
   });
   const cards = (data ?? []) as ShowcaseCard[];
+  // a discount for a limited time shows its countdown on the card (design lab 4)
+  const listingIds = showPrices ? cards.filter((card) => card.listing_id && card.discount_pct > 0).map((card) => card.listing_id!) : [];
+  const { data: timed } = listingIds.length
+    ? await supabase.from('project_listings').select('id, discount_ends_at').in('id', listingIds).gt('discount_ends_at', new Date().toISOString())
+    : { data: [] };
+  const endsBy = new Map((timed ?? []).map((row) => [row.id, row.discount_ends_at as string]));
   const href = (code: string) => (inApp ? `/p/${code}` : galleryPath(code));
 
   const [lead, ...rest] = cards;
@@ -95,6 +102,7 @@ export async function ShowcaseGrid({
               <b className="eng">{money(card.effective_price)}</b>
               {card.discount_pct > 0 && card.price_usd !== null && <s className="eng">{money(card.price_usd)}</s>}
               {card.negotiable && <small>{t('قابل للتفاوض', 'Negotiable')}</small>}
+              {card.listing_id && endsBy.get(card.listing_id) && <Countdown endsAt={endsBy.get(card.listing_id)!} compact />}
               {card.listing_status === 'sold' && <small>{t('مباع', 'Sold')}</small>}
             </span>
           )}

@@ -170,7 +170,16 @@ export async function saveShowcaseListing(_prev: ShowcaseState, formData: FormDa
   if (!user) redirect('/login');
 
   const projectId = text(formData, 'project_id');
-  const { error } = await supabase.rpc('list_project_for_sale', {
+  // how long the discount runs: kept, open-ended, or a number of days from now (0149's countdown)
+  const discountFor = text(formData, 'discount_for');
+  let discountEndsAt: string | null = null;
+  if (discountFor === 'keep') {
+    const { data: current } = await supabase.from('project_listings').select('discount_ends_at').eq('project_id', projectId).maybeSingle();
+    discountEndsAt = current?.discount_ends_at ?? null;
+  } else if (['1', '3', '7', '14'].includes(discountFor)) {
+    discountEndsAt = new Date(Date.now() + Number(discountFor) * 86_400_000).toISOString();
+  }
+  const { data: saved, error } = await supabase.rpc('list_project_for_sale', {
     p_project: projectId,
     p_price: Number(formData.get('price') ?? 0),
     p_summary: text(formData, 'summary'),
@@ -179,14 +188,21 @@ export async function saveShowcaseListing(_prev: ShowcaseState, formData: FormDa
     p_includes: list(text(formData, 'includes')).slice(0, 12),
     p_demo_url: text(formData, 'demo_url') || null,
     p_discount_pct: Number(formData.get('discount_pct') ?? 0) || 0,
+    p_discount_ends_at: discountEndsAt,
     p_negotiable: formData.get('negotiable') === 'on',
     p_accept_terms: formData.get('accept_terms') === 'on',
   });
+  const repeatPct = Number(formData.get('repeat_buyer_pct') ?? 0) || 0;
+  const listingId = (saved as { id?: string } | null)?.id;
+  const repeat = !error && listingId
+    ? await supabase.rpc('set_repeat_buyer_discount', { p_listing: listingId, p_pct: repeatPct })
+    : { error: null };
 
   revalidatePath(`/projects/${projectId}`);
   revalidatePath(`/projects/${projectId}/edit`);
   revalidatePath('/marketplace');
   if (error) return { error: dbError(t, error.message) };
+  if (repeat.error) return { error: dbError(t, repeat.error.message) };
   return { ok: t('أُرسل العرض للمراجعة — يظهر في السوق بعد تحقق الإدارة منه ومن رابط التسليم.',
                  'Sent for review — it shows in the market once TechMood has checked it and its delivery link.') };
 }

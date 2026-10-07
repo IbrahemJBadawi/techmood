@@ -45,7 +45,7 @@ export default async function EditShowcasePage({
 
   const [{ data: listing }, { data: stats }, { data: subs }, { data: enrolments }] = await Promise.all([
     supabase.from('project_listings')
-      .select('id, status, price_usd, licence, summary_ar, includes, demo_url, discount_pct, negotiable, review_note_ar')
+      .select('id, status, price_usd, licence, summary_ar, includes, demo_url, discount_pct, discount_ends_at, repeat_buyer_pct, negotiable, review_note_ar')
       .eq('project_id', projectId).maybeSingle(),
     supabase.rpc('my_project_stats', { p_project: projectId }),
     supabase.from('submissions').select('id, assignments(title_ar)').eq('profile_id', user.id).order('updated_at', { ascending: false }).limit(40),

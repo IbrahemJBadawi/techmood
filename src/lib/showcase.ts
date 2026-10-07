@@ -61,7 +61,8 @@ export function videoEmbed(url: string | null | undefined): string | null {
     const host = u.hostname.replace(/^www\.|^m\./, '');
     if (host === 'youtu.be') return `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}`;
     if (host === 'youtube.com') {
-      const id = u.searchParams.get('v') ?? (u.pathname.startsWith('/shorts/') ? u.pathname.split('/')[2] : null);
+      const id = u.searchParams.get('v')
+        ?? (u.pathname.startsWith('/shorts/') || u.pathname.startsWith('/live/') ? u.pathname.split('/')[2] : null);
       return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
     }
     if (host === 'vimeo.com' && /^\/\d+/.test(u.pathname)) return `https://player.vimeo.com/video${u.pathname}`;

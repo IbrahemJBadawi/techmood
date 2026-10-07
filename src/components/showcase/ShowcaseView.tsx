@@ -7,6 +7,7 @@ import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
+import { Countdown } from '@/components/Countdown';
 import { money } from '@/lib/booking';
 import { siteOrigin } from '@/lib/site';
 import { PUBLIC_METHOD_COLUMNS, type PaymentMethodPublic, type ProjectLink, type ShowcasePage } from '@/lib/database.types';
@@ -44,13 +45,17 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
   const isPeople = (people ?? []).some((person) => person.profile_id === user?.id);
   const canBuy = Boolean(user && listing?.listing_status === 'listed' && !page.can_edit && !isPeople);
 
-  const [{ data: methods }, { data: agreedRows }, { data: minPctRow }] = await Promise.all([
+  const [{ data: methods }, { data: agreedRows }, { data: minPctRow }, { data: myPriceRows }] = await Promise.all([
     canBuy ? supabase.from('payment_methods').select(PUBLIC_METHOD_COLUMNS).eq('is_enabled', true).order('sort_order') : Promise.resolve({ data: [] }),
     canBuy && listing ? supabase.from('listing_offers').select('id, agreed_usd, expires_at')
       .eq('listing_id', listing.listing_id!).eq('buyer_id', user!.id).eq('status', 'accepted')
       .gt('expires_at', new Date().toISOString()).limit(1) : Promise.resolve({ data: [] }),
     canBuy && listing?.negotiable ? supabase.from('platform_settings').select('value').eq('key', 'offer_min_pct').maybeSingle() : Promise.resolve({ data: null }),
+    // what this buyer would pay, with a returning buyer's discount when they have one (0149)
+    canBuy && listing ? supabase.rpc('my_listing_price', { p_listing: listing.listing_id! }) : Promise.resolve({ data: [] }),
   ]);
+  const myPrice = myPriceRows?.[0] ?? null;
+  const discountRunning = Boolean(listing && listing.discount_pct > 0 && listing.discount_ends_at && new Date(listing.discount_ends_at) > new Date());
   const agreed = agreedRows?.[0] ? { offerId: agreedRows[0].id as string, amount: Number(agreedRows[0].agreed_usd) } : null;
 
   const like = likeRows?.[0];
@@ -232,10 +237,17 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
           {listing && (
             <section className="sc-card sc-buybox" id="buy">
               <p className="sc-price eng">
-                {money(listing.effective_price ?? 0)}
-                {listing.discount_pct > 0 && <s>{money(listing.price_usd ?? 0)}</s>}
+                {money(myPrice?.returning_buyer ? Number(myPrice.price) : listing.effective_price ?? 0)}
+                {(listing.discount_pct > 0 || myPrice?.returning_buyer) && <s>{money(listing.price_usd ?? 0)}</s>}
                 {listing.discount_pct > 0 && <span className="sc-badge">-{listing.discount_pct}%</span>}
               </p>
+              {discountRunning && listing.discount_ends_at && <Countdown endsAt={listing.discount_ends_at} />}
+              {myPrice?.returning_buyer && (
+                <p className="sc-bundle">🎁 {t(`اشتريت من هذا البائع من قبل: خصم إضافي ${myPrice.repeat_buyer_pct}% لك`, `You bought from this seller before: an extra ${myPrice.repeat_buyer_pct}% off for you`)}</p>
+              )}
+              {!myPrice?.returning_buyer && (myPrice?.repeat_buyer_pct ?? 0) > 0 && (
+                <p className="sc-bundle is-hint">🎁 {t(`اشترِ من هذا البائع واحصل على خصم ${myPrice?.repeat_buyer_pct}% على مشترياتك التالية منه`, `Buy from this seller and get ${myPrice?.repeat_buyer_pct}% off your next purchases from them`)}</p>
+              )}
               <p className="muted" style={{ fontSize: '0.84rem' }}>
                 {listing.licence && t(LICENCE[listing.licence])}
                 {listing.verified && <> · ✓ {t('تحقّقت منه TechMood', 'Checked by TechMood')}</>}

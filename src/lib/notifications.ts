@@ -24,6 +24,7 @@ export const NOTIFICATION_KIND: Record<NotificationKind, { label: Text; icon: st
   system:      { label: { ar: 'إعلانات المنصة',   en: 'Announcements' },  icon: '📣' },
   support:     { label: { ar: 'الدعم والبلاغات',  en: 'Support' },        icon: '🛟' },
   reminder:    { label: { ar: 'التذكيرات اليومية', en: 'Daily reminders' }, icon: '🔔' },
+  new_members: { label: { ar: 'أعضاء جدد',        en: 'New members' },    icon: '👋' },
 };
 
 /**
@@ -50,8 +51,8 @@ export const PRIORITY: Record<NotifyPriority, { label: Text; className: string }
 export const NOTIFICATION_ORDER: NotificationKind[] = [
   'academy', 'evaluation', 'booking', 'team', 'work', 'project',
   'message', 'certificate', 'payment', 'role_review', 'security', 'system',
-  'support', 'reminder',
+  'support', 'reminder', 'new_members',
 ];
 
-/** The kinds an admin may send an announcement as (not support replies or the daily reminders). */
-export const BROADCAST_KINDS: NotificationKind[] = NOTIFICATION_ORDER.filter((kind) => kind !== 'support' && kind !== 'reminder');
+/** The kinds an admin may send an announcement as (not support replies, the daily reminders or the admins' own alerts). */
+export const BROADCAST_KINDS: NotificationKind[] = NOTIFICATION_ORDER.filter((kind) => !['support', 'reminder', 'new_members'].includes(kind));

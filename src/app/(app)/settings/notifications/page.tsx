@@ -18,19 +18,21 @@ export default async function NotificationSettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: categories }, { data: preferences }, { data: pushKey }] = await Promise.all([
+  const [{ data: categories }, { data: preferences }, { data: pushKey }, { data: isAdmin }] = await Promise.all([
     supabase.from('notification_categories')
-      .select('kind, title_ar, detail_ar, in_app_default, email_default, push_default, is_mandatory, sort_order')
+      .select('kind, title_ar, detail_ar, in_app_default, email_default, push_default, is_mandatory, sort_order, admin_only')
       .order('sort_order'),
     supabase.from('notification_preferences')
       .select('kind, in_app, email, push')
       .eq('profile_id', user.id),
     supabase.rpc('push_public_key'),
+    supabase.rpc('is_admin'),
   ]);
 
   const chosen = new Map((preferences ?? []).map((row) => [row.kind, row]));
 
-  const rows: Category[] = (categories ?? []).map((row) => ({
+  // the admins' own categories (new members, 0148) are not a member's to see
+  const rows: Category[] = (categories ?? []).filter((row) => isAdmin || !row.admin_only).map((row) => ({
     kind: row.kind,
     title_ar: row.title_ar,
     detail_ar: row.detail_ar,

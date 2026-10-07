@@ -8,10 +8,13 @@ import { useT } from '@/lib/i18n.client';
 
 import { deleteShowcase, saveShowcaseListing, withdrawShowcaseListing, type ShowcaseState } from '../../showcase-actions';
 import { NumberStepper } from '@/components/NumberStepper';
+import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { SheetSelect } from '@/components/FilterSheet';
 
 export type EditorListing = {
   id: string; status: ListingStatus; price_usd: number; licence: SaleLicence; summary_ar: string;
   includes: string[]; demo_url: string | null; discount_pct: number; negotiable: boolean;
+  discount_ends_at: string | null; repeat_buyer_pct: number;
   review_note_ar: string | null; delivery_url: string | null;
 } | null;
 
@@ -29,6 +32,9 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
   const t = useT();
   const [state, formAction, pending] = useActionState(saveShowcaseListing, undefined as ShowcaseState);
   const note = listing ? STATUS_NOTE[listing.status] : null;
+  const runningEnd = listing?.discount_ends_at && new Date(listing.discount_ends_at) > new Date()
+    ? new Date(listing.discount_ends_at).toLocaleString(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'medium', timeStyle: 'short' })
+    : null;
 
   return (
     <section className="panel section-block" id="sell">
@@ -76,6 +82,25 @@ export function ListingEditor({ projectId, listing }: { projectId: string; listi
           <div className="field">
             <label htmlFor="discount_pct">{t('خصم % (اختياري)', 'Discount % (optional)')}</label>
             <NumberStepper id="discount_pct" name="discount_pct" min={0} max={90} defaultValue={listing?.discount_pct ?? 0} />
+          </div>
+        </div>
+        {/* offers (design lab 4): a discount for a limited time, with a countdown on the page, and one for returning buyers */}
+        <div className="field-row">
+          <div className="field">
+            <span className="field-label">{t('مدة الخصم', 'How long the discount runs')}</span>
+            <SheetSelect name="discount_for" label={t('مدة الخصم', 'How long the discount runs')} defaultValue={runningEnd ? 'keep' : 'none'}
+                         options={[
+                           ...(runningEnd ? [{ value: 'keep', label: t(`كما هو — ينتهي ${runningEnd}`, `As it is — ends ${runningEnd}`) }] : []),
+                           { value: 'none', label: t('بلا موعد انتهاء', 'No end date') },
+                           { value: '1', label: t('24 ساعة — مع عدّاد', '24 hours — with a countdown') },
+                           { value: '3', label: t('3 أيام — مع عدّاد', '3 days — with a countdown') },
+                           { value: '7', label: t('أسبوع — مع عدّاد', 'A week — with a countdown') },
+                           { value: '14', label: t('أسبوعان — مع عدّاد', 'Two weeks — with a countdown') },
+                         ]} />
+          </div>
+          <div className="field">
+            <label htmlFor="repeat_buyer_pct">{t('خصم لمن اشترى منك من قبل %', 'Off for people who bought from you before %')}</label>
+            <NumberStepper id="repeat_buyer_pct" name="repeat_buyer_pct" min={0} max={50} defaultValue={listing?.repeat_buyer_pct ?? 0} />
           </div>
         </div>
         <label className="sc-switch">

@@ -152,7 +152,8 @@ export type OrgKind = 'startup' | 'company';
 export type NotificationKind =
   | 'evaluation' | 'academy' | 'booking' | 'payment' | 'team' | 'work' | 'project'
   | 'message' | 'certificate' | 'role_review' | 'security' | 'system' | 'support'
-  | 'reminder'; // the daily reminders (0114)
+  | 'reminder' // the daily reminders (0114)
+  | 'new_members'; // the admins' new-member alerts (0148)
 
 /** Help & Reports (0082–0083). */
 export type TicketCategory =
@@ -227,6 +228,16 @@ export type SaleLicence = 'usage_rights' | 'full_transfer';
 export type ProductType = 'full_project' | 'template' | 'design' | 'code' | 'file' | 'digital_service';
 export type OfferStatus = 'pending' | 'countered' | 'accepted' | 'rejected' | 'withdrawn' | 'expired' | 'used';
 export type ProjectLink = { kind: string; url: string };
+
+/** What a company asks TechMood for (0150). */
+export type BusinessNeed = 'hire' | 'project' | 'training' | 'sponsor' | 'other';
+export type BlogCategory = 'news' | 'stories' | 'guides' | 'careers';
+/** One workshop as the list shows it (workshop_list, 0150). */
+export type WorkshopRow = {
+  id: string; title: string; description: string; starts_at: string; duration_minutes: number;
+  capacity: number | null; registered: number; is_registered: boolean; is_live: boolean; status: 'scheduled' | 'cancelled';
+  host_id: string; host_name: string | null; host_avatar: string | null; has_recording?: boolean;
+};
 
 /** One card in the gallery or the market (gallery_projects, 0121). */
 export type ShowcaseCard = {
@@ -1276,6 +1287,15 @@ export type Database = {
         worker_id: string; stars: number; comment_ar: string | null; created_at: string;
       }>;
       client_review_scores: Table<{ review_id: string; criterion: ClientCriterion; stars: number }>;
+      business_inquiries: Table<{
+        id: string; company: string; contact_name: string; email: string; phone: string | null; need: BusinessNeed;
+        message: string; profile_id: string | null; status: 'new' | 'contacted' | 'closed'; created_at: string;
+        handled_at: string | null; handled_by: string | null;
+      }>;
+      blog_posts: Table<{
+        id: string; slug: string; title: string; excerpt: string | null; body: string; cover_url: string | null;
+        category: BlogCategory; author_id: string | null; published_at: string | null; created_at: string; updated_at: string;
+      }>;
       project_listings: Table<{
         id: string; listing_code: string; project_id: string; seller_id: string;
         team_id: string | null; price_usd: number; licence: SaleLicence;
@@ -1283,6 +1303,8 @@ export type Database = {
         created_at: string; sold_at: string | null;
         /** Public demo or preview (0099). The delivery link is not readable here. */
         demo_url: string | null; discount_pct: number; discount_ends_at: string | null;
+        /** A returning buyer's extra discount, 0–50% (0149). */
+        repeat_buyer_pct: number;
         verified_at: string | null; review_note_ar: string | null; reviewed_at: string | null;
         negotiable: boolean;
       }>;
@@ -1394,6 +1416,7 @@ export type Database = {
       notification_categories: Table<{
         kind: NotificationKind; title_ar: string; detail_ar: string | null;
         in_app_default: boolean; email_default: boolean; push_default: boolean; is_mandatory: boolean; sort_order: number;
+        admin_only: boolean;
       }>;
       notification_preferences: Table<{
         profile_id: string; kind: NotificationKind; in_app: boolean; email: boolean; push: boolean; updated_at: string;
@@ -2233,6 +2256,34 @@ export type Database = {
       };
       review_listing: { Args: { p_listing: string; p_approve: boolean; p_note?: string | null }; Returns: undefined };
       set_listing_discount: { Args: { p_listing: string; p_pct: number; p_ends_at?: string | null }; Returns: undefined };
+      // business, blog and workshops (0150)
+      submit_business_inquiry: {
+        Args: { p_company: string; p_contact_name: string; p_email: string; p_phone: string | null; p_need: BusinessNeed; p_message: string };
+        Returns: string;
+      };
+      set_business_inquiry_status: { Args: { p_id: string; p_status: 'new' | 'contacted' | 'closed' }; Returns: undefined };
+      save_blog_post: {
+        Args: { p_id: string | null; p_slug: string; p_title: string; p_excerpt: string | null; p_body: string;
+                p_cover_url: string | null; p_category: BlogCategory; p_publish: boolean };
+        Returns: string;
+      };
+      delete_blog_post: { Args: { p_id: string }; Returns: undefined };
+      can_host_workshop: { Args: Record<string, never>; Returns: boolean };
+      save_workshop: {
+        Args: { p_id: string | null; p_title: string; p_description: string; p_starts_at: string; p_duration: number;
+                p_capacity: number | null; p_live_url: string | null; p_recording_url: string | null };
+        Returns: string;
+      };
+      cancel_workshop: { Args: { p_id: string }; Returns: undefined };
+      register_workshop: { Args: { p_id: string; p_register?: boolean }; Returns: undefined };
+      workshop_list: { Args: { p_past?: boolean }; Returns: WorkshopRow[] };
+      workshop_detail: { Args: { p_id: string }; Returns: (WorkshopRow & { can_edit: boolean; live_url: string | null; recording_url: string | null })[] };
+      // offers in the market (0149): a returning buyer's discount, and this buyer's own price
+      set_repeat_buyer_discount: { Args: { p_listing: string; p_pct: number }; Returns: undefined };
+      my_listing_price: {
+        Args: { p_listing: string };
+        Returns: { price: number; list_price: number; returning_buyer: boolean; repeat_buyer_pct: number; discount_ends_at: string | null }[];
+      };
       listing_delivery_url: { Args: { p_listing: string }; Returns: string | null };
       can_manage_startup: { Args: { p_startup: string }; Returns: boolean };
       my_notifications: {
