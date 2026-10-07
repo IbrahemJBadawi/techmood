@@ -66,7 +66,7 @@ export function LessonQuiz({
       <section className="panel section-block lq">
         <h3 className="lq-title">✦ {t('اختبر فهمك — 3 أسئلة', 'Check your understanding — 3 questions')}</h3>
         {writing || state.generating ? (
-          <p className="muted lq-wait"><span className="ai-dots" aria-hidden><i /><i /><i /></span> {t('يكتب الذكاء الاصطناعي ثلاثة أسئلة من هذا الدرس…', 'Writing three questions from this lesson…')}</p>
+          <div className="lq-wait" role="status"><p className="muted">{t('يكتب الذكاء الاصطناعي ثلاثة أسئلة من هذا الدرس…', 'Writing three questions from this lesson…')}</p><div className="sk-lines" aria-hidden="true"><div className="sk" /><div className="sk" /><div className="sk" /></div></div>
         ) : (
           <>
             {error && <p className="notice">{error}</p>}

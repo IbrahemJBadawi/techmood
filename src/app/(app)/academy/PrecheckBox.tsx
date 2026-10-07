@@ -66,7 +66,7 @@ export function PrecheckBox({
       </div>
 
       {running || precheck?.status === 'pending' ? (
-        <p className="muted pc-wait"><span className="ai-dots" aria-hidden><i /><i /><i /></span> {t('يقرأ الذكاء الاصطناعي ما سلّمته ويقارنه بالتكليف…', 'Reading what you submitted against the brief…')}</p>
+        <div className="pc-wait" role="status"><p className="muted">{t('يقرأ الذكاء الاصطناعي ما سلّمته ويقارنه بالتكليف…', 'Reading what you submitted against the brief…')}</p><div className="sk-lines" aria-hidden="true"><div className="sk" /><div className="sk" /><div className="sk" /></div></div>
       ) : precheck?.status === 'done' && precheck.result ? (
         <>
           <p className="pc-summary">{precheck.result.summary}</p>

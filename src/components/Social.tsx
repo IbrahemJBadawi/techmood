@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { useT } from '@/lib/i18n.client';
 import { toggleFollow, toggleProjectLike } from '@/app/actions/social';
+import { showSnack } from '@/components/Snackbar';
 
 /**
  * Follow a member. Signed-out visitors see the count and a way in; the count
@@ -39,9 +40,9 @@ export function FollowButton({
     );
   }
 
-  function toggle() {
+  // `offerUndo` is false for the undo itself, so undoing never offers to undo again.
+  function run(next: boolean, offerUndo: boolean) {
     setError('');
-    const next = !on;
     setOn(next);
     setCount((value) => value + (next ? 1 : -1));
     start(async () => {
@@ -50,11 +51,20 @@ export function FollowButton({
         setOn(!next);
         setCount((value) => value + (next ? -1 : 1));
         setError(result.error);
-      } else if (result.on !== next) {
-        setOn(result.on);
+        return;
+      }
+      if (result.on !== next) setOn(result.on);
+      if (offerUndo) {
+        showSnack({
+          text: result.on
+            ? t('تابعته — سترى تقدّمه في رئيستك', 'Following — you will see their progress on your home')
+            : t('ألغيت المتابعة', 'Unfollowed'),
+          onAction: () => run(!result.on, false),
+        });
       }
     });
   }
+  const toggle = () => run(!on, true);
 
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>
@@ -115,9 +125,8 @@ export function LikeButton({
     );
   }
 
-  function toggle() {
+  function run(next: boolean, offerUndo: boolean) {
     setError('');
-    const next = !on;
     setOn(next);
     if (next) setBurst((value) => value + 1);
     setCount((value) => value + (next ? 1 : -1));
@@ -127,11 +136,16 @@ export function LikeButton({
         setOn(!next);
         setCount((value) => value + (next ? -1 : 1));
         setError(result.error);
-      } else if (result.on !== next) {
-        setOn(result.on);
+        return;
+      }
+      if (result.on !== next) setOn(result.on);
+      // A like needs no confirmation; taking one back is offered an undo.
+      if (offerUndo && !result.on) {
+        showSnack({ text: t('أزلت إعجابك', 'Like removed'), onAction: () => run(true, false) });
       }
     });
   }
+  const toggle = () => run(!on, true);
 
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>

@@ -29,8 +29,9 @@ const SOURCE_LABEL: Record<string, Text> = {
 
 /**
  * The top of the home page: who you are, and the three numbers a learner
- * checks first — the streak, the points, the stars. They sit here rather than
- * in the side column so a phone shows them before anything else.
+ * checks first — the streak, the points, the stars — on one coloured card
+ * (design lab: greeting and indicators merged with the large card). They sit
+ * here rather than in the side column so a phone shows them before anything else.
  */
 export async function StudentHero({
   name,
@@ -56,45 +57,56 @@ export async function StudentHero({
   const firstName = name.trim().split(/\s+/)[0];
 
   return (
-    <section className="hm-hello section-block">
-      <div className="hm-hello-id">
-        <Avatar name={name} url={avatarUrl} size={56} />
-        <div style={{ minWidth: 0 }}>
-          <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
-          <p className="muted">
-            {primaryField ?? t('لم تحدّد مجالك الرئيسي بعد', 'No primary field chosen yet')}
-            {currentPath && <> · {currentPath.title}</>}
-          </p>
+    <>
+      {/* The greeting and the day's numbers on one coloured card, the streak first
+          and largest — the number a learner keeps coming back to protect. */}
+      <section className="hm-hello hm-hero section-block">
+        <div className="hm-hello-id">
+          <Avatar name={name} url={avatarUrl} size={56} />
+          <div style={{ minWidth: 0 }}>
+            <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
+            <p className="hm-hero-sub">
+              {primaryField ?? t('لم تحدّد مجالك الرئيسي بعد', 'No primary field chosen yet')}
+              {currentPath && <> · {currentPath.title}</>}
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="hm-pills">
-        <span className={`hm-pill is-streak${streak > 0 ? ' is-on' : ''}`} title={t('أيام متتالية من الإنجاز', 'Days in a row with something finished')}>
-          <span aria-hidden="true">🔥</span>
-          <strong>{streak}</strong>
-          <span className="hm-pill-label">{t(streak === 1 ? 'يوم' : 'أيام', streak === 1 ? 'day' : 'days')}</span>
-        </span>
-        <span className="hm-pill is-xp" title={t('نقاط TechMood', 'TechMood points')}>
-          <span aria-hidden="true">⚡</span>
-          <strong>{totalXp}</strong>
-          <span className="hm-pill-label">XP</span>
-        </span>
-        <span className="hm-pill is-stars" title={t('متوسط تقييم أعمالك', 'Average rating of your work')}>
-          <span aria-hidden="true">⭐</span>
-          <strong>{stars > 0 ? stars.toFixed(1) : '—'}</strong>
-        </span>
-        <span className="hm-pill is-level">{t(level.current.title)}</span>
-      </div>
+        <div className="hm-hero-row">
+          <p className="hm-hero-streak" title={t('أيام متتالية من الإنجاز', 'Days in a row with something finished')}>
+            <span aria-hidden="true">🔥</span>
+            <strong>{streak}</strong>
+            <span>
+              {streak > 0
+                ? t(streak === 1 ? 'يوم إنجاز' : 'أيام متتالية', streak === 1 ? 'day in a row' : 'days in a row')
+                : t('ابدأ حماستك اليوم', 'Start your streak today')}
+            </span>
+          </p>
+
+          <div className="hm-pills">
+            <span className="hm-pill is-xp" title={t('نقاط TechMood', 'TechMood points')}>
+              <span aria-hidden="true">⚡</span>
+              <strong>{totalXp}</strong>
+              <span className="hm-pill-label">XP</span>
+            </span>
+            <span className="hm-pill is-stars" title={t('متوسط تقييم أعمالك', 'Average rating of your work')}>
+              <span aria-hidden="true">⭐</span>
+              <strong>{stars > 0 ? stars.toFixed(1) : '—'}</strong>
+            </span>
+            <span className="hm-pill is-level">{t(level.current.title)}</span>
+          </div>
+        </div>
+      </section>
 
       {!primaryField && (
-        <p className="notice hm-hello-note">
+        <p className="notice section-block">
           {t('حدّد مجالك الرئيسي من ', 'Choose your primary field in ')}
           <Link href="/settings/fields">{t('مجالاتي', 'My fields')}</Link>
           {t(' — عليه تُبنى مطابقة المنتورز والفرق والفرص.',
              ' — mentor, team and opening matching are all built on it.')}
         </p>
       )}
-    </section>
+    </>
   );
 }
 
