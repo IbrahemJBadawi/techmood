@@ -38,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const [
     { data: profile }, { data: roles }, { data: notifications }, { data: restrictions }, { data: mentorApplication },
-    { count: unreadCount }, { data: unreadMessages },
+    { count: unreadCount }, { data: unreadMessages }, { data: premium },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -65,6 +65,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .eq('is_read', false),
     // Unread messages in threads that are not muted (0126), on the Messages tab.
     supabase.rpc('my_unread_messages'),
+    // Premium members see no promotional spots (0154): the shell marks them once.
+    supabase.rpc('is_premium', { p_profile: user.id }),
   ]);
 
   // An account that has not finished onboarding has no username, no fields and
@@ -115,7 +117,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tabs = mobileTabsFor(active).map((item) => ({ href: item.href, label: t(item.label), icon: item.icon }));
 
   return (
-    <div className="app">
+    <div className="app" data-premium={premium ? '' : undefined}>
       <a className="skip-link" href="#main">{t('تخطَّ إلى المحتوى', 'Skip to content')}</a>
       <aside className="sidebar" aria-label={t('التنقّل', 'Navigation')}>
         <div className="sidebar-logo">

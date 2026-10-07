@@ -104,25 +104,27 @@ export function Assistant() {
       {isOpen && (
         <aside className="ai-panel" role="dialog" aria-label={t('مساعد TechMood', 'TechMood AI')}>
           <header className="ai-panel-head">
-            <div>
-              <strong>✦ {t('مساعد TechMood', 'TechMood AI')}</strong>
+            <span className="ai-head-mark" aria-hidden>✦</span>
+            <div className="ai-head-text">
+              <strong>{t('مساعد TechMood', 'TechMood AI')}</strong>
               <span className="ai-surface-chip">
                 {surface.icon} {t(surface.label)}
                 {where.label ? ` — ${where.label}` : ''}
               </span>
             </div>
             <div className="ai-panel-tools">
-              <button type="button" className="btn btn-ghost btn-sm"
-                      onClick={() => setState({ ...EMPTY, live: state.live,
-                                                suggestions: state.suggestions })}>
-                ＋ {t('محادثة جديدة', 'New chat')}
+              <button type="button" className="ai-head-btn" title={t('محادثة جديدة', 'New chat')}
+                      aria-label={t('محادثة جديدة', 'New chat')}
+                      onClick={() => setState({ ...EMPTY, live: state.live, suggestions: state.suggestions, recent: state.recent })}>
+                ＋
               </button>
-              <button type="button" className="icon-button" onClick={assistant.close}
+              <button type="button" className="ai-head-btn" onClick={assistant.close}
                       aria-label={t('إغلاق', 'Close')}>×</button>
             </div>
           </header>
 
           <div className="ai-scope-row" role="group" aria-label={t('نطاق السياق', 'Context')}>
+            <span className="ai-scope-label">{t('يعرف عن:', 'Knows about:')}</span>
             {SCOPES_FOR[where.surface].map((scope: AiScope) => (
               <button
                 key={scope}
@@ -156,21 +158,24 @@ export function Assistant() {
             emptyExtra={(
               // design lab 4: suggestions, where you are, quick actions and your latest threads, together
               <div className="ai-start">
-                <p className="ai-start-where">
-                  {t('أنت في: ', 'You are in: ')}<strong>{surface.icon} {t(surface.label)}{where.label ? ` — ${where.label}` : ''}</strong>
-                </p>
                 <div className="ai-start-actions">
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('لخّص لي هذه الصفحة في نقاط قصيرة.', 'Summarise this page for me in short points.'))}>📝 {t('لخّص', 'Summarise')}</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('اشرح لي ما في هذه الصفحة ببساطة.', 'Explain what is on this page simply.'))}>💡 {t('اشرح', 'Explain')}</button>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => send(t('ضع لي خطة خطوات قصيرة انطلاقاً من هذه الصفحة.', 'Give me a short step-by-step plan from this page.'))}>🗺️ {t('خطة', 'Plan')}</button>
+                  <button type="button" className="ai-tile" onClick={() => send(t('لخّص لي هذه الصفحة في نقاط قصيرة.', 'Summarise this page for me in short points.'))}>
+                    <span aria-hidden>📝</span>{t('لخّص الصفحة', 'Summarise')}
+                  </button>
+                  <button type="button" className="ai-tile" onClick={() => send(t('اشرح لي ما في هذه الصفحة ببساطة.', 'Explain what is on this page simply.'))}>
+                    <span aria-hidden>💡</span>{t('اشرحها', 'Explain')}
+                  </button>
+                  <button type="button" className="ai-tile" onClick={() => send(t('ضع لي خطة خطوات قصيرة انطلاقاً من هذه الصفحة.', 'Give me a short step-by-step plan from this page.'))}>
+                    <span aria-hidden>🗺️</span>{t('خطة', 'Plan')}
+                  </button>
                 </div>
                 {(state.recent ?? []).length > 0 && (
                   <div className="ai-start-recent">
-                    <span className="muted">{t('تابع من حيث توقفت', 'Pick up where you left off')}</span>
+                    <span className="ai-start-label">{t('تابع من حيث توقفت', 'Pick up where you left off')}</span>
                     {(state.recent ?? []).map((thread) => (
                       <button type="button" key={thread.id} className="ai-start-thread"
                               onClick={() => startTransition(async () => setState(await openPanel(wire, thread.id)))}>
-                        ✦ {thread.title}
+                        <span aria-hidden>💬</span><span className="ai-start-thread-title">{thread.title}</span>
                       </button>
                     ))}
                   </div>

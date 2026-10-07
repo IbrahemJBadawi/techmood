@@ -29,6 +29,16 @@ const SETTINGS: { key: string; label: Text; unit: Text }[] = [
   { key: 'level_upgrade_cooldown_days', label: { ar: 'الانتظار بعد رفض طلب ترقية مستوى', en: 'Wait after a declined level upgrade' }, unit: { ar: 'يوماً', en: 'days' } },
 ];
 
+// Premium, the packages and the assistant's daily questions (0154, 0155)
+const MEMBER_SETTINGS: { key: string; label: Text; unit: Text; step: number; max: number }[] = [
+  { key: 'premium_monthly_usd',       label: { ar: 'سعر Premium لشهر', en: 'Premium, a month' }, unit: { ar: 'دولار', en: 'USD' }, step: 0.5, max: 500 },
+  { key: 'premium_yearly_usd',        label: { ar: 'سعر Premium لسنة', en: 'Premium, a year' }, unit: { ar: 'دولار', en: 'USD' }, step: 0.5, max: 5000 },
+  { key: 'package_3_discount_pct',    label: { ar: 'خصم باقة 3 جلسات', en: 'Discount, 3-session package' }, unit: { ar: '٪', en: '%' }, step: 1, max: 50 },
+  { key: 'package_5_discount_pct',    label: { ar: 'خصم باقة 5 جلسات', en: 'Discount, 5-session package' }, unit: { ar: '٪', en: '%' }, step: 1, max: 50 },
+  { key: 'ai_daily_messages',         label: { ar: 'أسئلة المساعد في اليوم — العضو العادي', en: 'Assistant questions a day — members' }, unit: { ar: 'سؤال', en: 'questions' }, step: 1, max: 2000 },
+  { key: 'ai_daily_messages_premium', label: { ar: 'أسئلة المساعد في اليوم — Premium', en: 'Assistant questions a day — Premium' }, unit: { ar: 'سؤال', en: 'questions' }, step: 1, max: 5000 },
+];
+
 const PAUSE_LABEL: Record<string, Text> = {
   manual:       { ar: 'أوقفه المنتور', en: 'Paused by the mentor' },
   vacation:     { ar: 'في إجازة',      en: 'On holiday' },
@@ -238,6 +248,25 @@ export default async function AdminPricingPage() {
               <span style={{ minWidth: 260 }}>{t(setting.label)}</span>
               <input name="value" type="number" min={0} defaultValue={settingOf.get(setting.key) ?? ''} style={{ width: 100 }}
                      aria-label={t(setting.label)} />
+              <span className="muted" style={{ fontSize: '0.8rem' }}>{t(setting.unit)}</span>
+            </ActionForm>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-block">
+        <h3 className="academy-heading">{t('Premium والباقات والمساعد', 'Premium, packages and the assistant')}</h3>
+        <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 8 }}>
+          {t('يسري التغيير فوراً على الاشتراكات والباقات الجديدة. من دفع بتحويل قبل التغيير يحصل على السعر الذي رآه.',
+             'A change applies at once to new subscriptions and packages. Whoever already paid by transfer keeps the price they saw.')}
+        </p>
+        <div className="stack">
+          {MEMBER_SETTINGS.map((setting) => (
+            <ActionForm action={saveSetting} className="admin-inline-form panel" key={setting.key} submitLabel={t('احفظ', 'Save')}>
+              <input type="hidden" name="key" value={setting.key} />
+              <span style={{ minWidth: 260 }}>{t(setting.label)}</span>
+              <input name="value" type="number" required min={setting.step === 1 ? 0 : 0.5} max={setting.max} step={setting.step}
+                     defaultValue={settingOf.get(setting.key) ?? ''} style={{ width: 100 }} aria-label={t(setting.label)} />
               <span className="muted" style={{ fontSize: '0.8rem' }}>{t(setting.unit)}</span>
             </ActionForm>
           ))}

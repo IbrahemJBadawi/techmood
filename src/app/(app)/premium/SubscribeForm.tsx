@@ -33,8 +33,13 @@ export function SubscribeForm({ monthly, yearly, balance, member }: { monthly: n
           {member ? t(`جدّد من رصيدك — ${money(price)}`, `Renew from your balance — ${money(price)}`) : t(`اشترك من رصيدك — ${money(price)}`, `Subscribe from your balance — ${money(price)}`)}
         </button>
       ) : (
-        <Link className="btn btn-primary premium-cta" href="/wallet/topup">{t(`اشحن رصيدك أولاً (لديك ${money(balance)})`, `Top up first (you have ${money(balance)})`)}</Link>
+        <Link className="btn btn-primary premium-cta" href={`/wallet/topup?for=premium&plan=${plan}`}>
+          {t(`ادفع بتحويل — ${money(price)}`, `Pay by transfer — ${money(price)}`)}
+        </Link>
       )}
+      {balance >= price
+        ? <Link className="btn btn-ghost btn-sm" href={`/wallet/topup?for=premium&plan=${plan}`}>{t('أو ادفع بتحويل', 'Or pay by transfer')}</Link>
+        : balance > 0 && <p className="muted" style={{ fontSize: '0.78rem' }}>{t(`رصيدك ${money(balance)} لا يكفي — ادفع بتحويل، أو `, `Your balance of ${money(balance)} is not enough — pay by transfer, or `)}<Link href="/wallet/topup">{t('اشحن رصيدك', 'top up')}</Link>.</p>}
       {state?.error && <p className="notice notice-danger">{state.error}</p>}
       <p className="muted" style={{ fontSize: '0.78rem' }}>{t('لا تجديد تلقائي: نذكّرك قبل الانتهاء بثلاثة أيام، وتجدد إن أردت.', 'No automatic renewal: we remind you three days before it ends, and you renew if you want.')}</p>
     </form>

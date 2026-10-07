@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useT } from '@/lib/i18n.client';
 import { formatDate } from '@/lib/i18n';
@@ -31,6 +32,67 @@ export type NotificationRow = {
 export function Notifications({ items, unread }: { items: NotificationRow[]; unread: number }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  // On a phone the panel opens from the bottom of the screen. The top bar blurs
+  // what is behind it (backdrop-filter), and that makes a fixed panel inside
+  // it measure from the bar instead of the screen — so it went up and out of
+  // sight. On a phone the panel is therefore drawn at the end of the page.
+  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
+
+  const layer = (
+    <>
+      {/* a tap outside closes it; on a phone this is the dimmed page behind the bottom panel */}
+      <button type="button" className="menu-backdrop" aria-label={t('إغلاق', 'Close')} onClick={() => setOpen(false)} />
+      <div className="header-dropdown is-sheet" role="menu"
+           onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
+        <span className="sheet-grip" aria-hidden="true" />
+        <div className="header-dropdown-head">
+          <strong>{t('الإشعارات', 'Notifications')}</strong>
+          {unread > 0 && (
+            <form action={markNotificationsRead}>
+              <button className="link-button" type="submit">
+                {t('تعليم الكل كمقروء', 'Mark all as read')}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {items.length === 0 && (
+          <p className="header-dropdown-empty">{t('لا إشعارات بعد.', 'Nothing yet.')}</p>
+        )}
+
+        <ul className="notification-list">
+          {items.map((item) => {
+            const body = (
+              <>
+                <i className="nl-icon" aria-hidden="true">{kindLook(item.kind).icon}</i>
+                <span className="nl-text">
+                  <strong dir="rtl">{item.title_ar}</strong>
+                  {item.body_ar && <small className="muted" dir="rtl">{item.body_ar}</small>}
+                  <time dateTime={item.created_at}>{formatDate(t.locale, item.created_at)}</time>
+                </span>
+              </>
+            );
+            return (
+              <li key={item.id} className={item.is_read ? '' : 'is-unread'}>
+                {item.link
+                  ? <Link href={item.link} onClick={() => setOpen(false)}>{body}</Link>
+                  : <span>{body}</span>}
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="header-dropdown-foot">
+          <Link href="/notifications" onClick={() => setOpen(false)}>
+            {t('كل الإشعارات ←', 'All notifications →')}
+          </Link>
+          <Link href="/settings/notifications" className="muted" onClick={() => setOpen(false)}>
+            {t('الإعدادات', 'Settings')}
+          </Link>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <div className="header-menu">
@@ -47,63 +109,19 @@ export function Notifications({ items, unread }: { items: NotificationRow[]; unr
         {unread > 0 && <span className="dot-badge" dir="ltr">{unread > 9 ? '9+' : unread}</span>}
       </button>
 
-      {open && (
-        // a tap outside closes it; on a phone this is the dimmed page behind the bottom panel
-        <button type="button" className="menu-backdrop" aria-label={t('إغلاق', 'Close')} onClick={() => setOpen(false)} />
-      )}
-      {open && (
-        <div className="header-dropdown is-sheet" role="menu"
-             onKeyDown={(event) => { if (event.key === 'Escape') setOpen(false); }}>
-          <span className="sheet-grip" aria-hidden="true" />
-          <div className="header-dropdown-head">
-            <strong>{t('الإشعارات', 'Notifications')}</strong>
-            {unread > 0 && (
-              <form action={markNotificationsRead}>
-                <button className="link-button" type="submit">
-                  {t('تعليم الكل كمقروء', 'Mark all as read')}
-                </button>
-              </form>
-            )}
-          </div>
-
-          {items.length === 0 && (
-            <p className="header-dropdown-empty">{t('لا إشعارات بعد.', 'Nothing yet.')}</p>
-          )}
-
-          <ul className="notification-list">
-            {items.map((item) => {
-              const body = (
-                <>
-                  <strong dir="rtl">
-                    <span aria-hidden="true">{kindLook(item.kind).icon} </span>
-                    {item.title_ar}
-                  </strong>
-                  {item.body_ar && <span className="muted" dir="rtl">{item.body_ar}</span>}
-                  <time dateTime={item.created_at}>{formatDate(t.locale, item.created_at)}</time>
-                </>
-              );
-              return (
-                <li key={item.id} className={item.is_read ? '' : 'is-unread'}>
-                  {item.link
-                    ? <Link href={item.link} onClick={() => setOpen(false)}>{body}</Link>
-                    : <span>{body}</span>}
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="header-dropdown-foot">
-            <Link href="/notifications" onClick={() => setOpen(false)}>
-              {t('كل الإشعارات ←', 'All notifications →')}
-            </Link>
-            <Link href="/settings/notifications" className="muted" onClick={() => setOpen(false)}>
-              {t('الإعدادات', 'Settings')}
-            </Link>
-          </div>
-        </div>
-      )}
+      {open && (phone ? createPortal(layer, document.body) : layer)}
     </div>
   );
+}
+
+const PHONE = '(max-width: 760px)';
+function subscribePhone(onChange: () => void) {
+  const query = window.matchMedia(PHONE);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+function isPhone() {
+  return window.matchMedia(PHONE).matches;
 }
 
 function Bell() {

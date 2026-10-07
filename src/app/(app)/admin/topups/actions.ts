@@ -19,5 +19,5 @@ export async function reviewTopup(_prev: ReviewState, formData: FormData): Promi
   });
   if (error) return { error: dbError(t, error.message) };
   revalidatePath('/admin/topups');
-  return { ok: approve ? t('✓ شُحن الرصيد', '✓ Credited') : t('رُفض، ووصل السبب للعضو', 'Turned down; the member was told why') };
+  return { ok: approve ? t('✓ تمّت الموافقة', '✓ Approved') : t('رُفض، ووصل السبب للعضو', 'Turned down; the member was told why') };
 }

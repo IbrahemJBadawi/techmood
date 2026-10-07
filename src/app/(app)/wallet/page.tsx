@@ -81,7 +81,7 @@ export default async function WalletPage({
   // رصيد TechMood (0151): its number, what is still being topped up, and on its tab the history and packages
   const [{ data: balanceRaw }, { data: openTopups }, { data: creditRows }, { data: packages }] = await Promise.all([
     supabase.rpc('my_credit_balance'),
-    supabase.from('credit_topups').select('id, topup_code, amount_usd, status, created_at')
+    supabase.from('credit_topups').select('id, topup_code, amount_usd, status, created_at, purpose, purpose_label')
       .eq('profile_id', user.id).in('status', ['pending', 'under_review', 'rejected']).order('created_at', { ascending: false }),
     supabase.rpc('my_credit_history', { p_limit: tab === 'balance' ? 100 : 5 }),
     tab === 'balance' ? supabase.rpc('my_session_packages') : Promise.resolve({ data: [] }),
@@ -185,7 +185,7 @@ export default async function WalletPage({
           {(openTopups ?? []).map((row) => (
             <li key={row.id}>
               <Link href={`/wallet/topup/${row.id}`}>
-                <span>{t('شحن ', 'Top-up ')}<b className="eng">{money(Number(row.amount_usd))}</b> <span className="id-chip">{row.topup_code}</span></span>
+                <span>{row.purpose === 'balance' ? t('شحن ', 'Top-up ') : `${row.purpose_label} · `}<b className="eng">{money(Number(row.amount_usd))}</b> <span className="id-chip">{row.topup_code}</span></span>
                 <span className={`status-pill ${TOPUP_STATUS[row.status]?.tone ?? ''}`}>{t(TOPUP_STATUS[row.status]?.ar ?? row.status, TOPUP_STATUS[row.status]?.en ?? row.status)}</span>
               </Link>
             </li>

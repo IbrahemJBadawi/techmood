@@ -11225,6 +11225,87 @@ update public.premium_memberships set until = now() + interval '2 days' where pr
 select public.assert(public.premium_reminders() = 1 and public.premium_reminders() = 0,
   '114.6 one reminder before it ends, and no automatic charge');
 
+
+-- -----------------------------------------------------------------------------
+-- 115. Premium and packages paid by transfer (0155)
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects($$select public.premium_grant('55555555-5555-5555-5555-555555555555', 'year')$$,
+  '115.1 nobody grants themselves Premium directly', 'permission denied');
+select public.assert_rejects($$select public.request_purchase_topup('gift', 'jawwal_pay')$$, '115.2 only known purposes', 'غير معروف');
+select public.my_credit_balance() as bal115 \gset
+select public.request_purchase_topup('premium', 'jawwal_pay', 'year') as top115 \gset
+select public.assert(
+  (select amount_usd = 48 and purpose = 'premium' and purpose_label like '%سنة%' from public.credit_topups where id = :'top115'),
+  '115.3 a plan by transfer costs exactly its price, and says what it is for');
+select public.submit_topup_proof(:'top115', '55555555-5555-5555-5555-555555555555/p.png', 'JP-PREM');
+select (select until from public.premium_memberships where profile_id = '55555555-5555-5555-5555-555555555555') as until115 \gset
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_topup(:'top115', true);
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert(
+  (select until > :'until115'::timestamptz + interval '360 days' from public.premium_memberships
+    where profile_id = '55555555-5555-5555-5555-555555555555')
+  and public.my_credit_balance() = :'bal115'::numeric
+  and (select fulfilled_at is not null from public.credit_topups where id = :'top115'),
+  '115.4 approving the transfer completes the year, and the balance is as it was');
+
+-- a package by transfer
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.my_credit_balance() as bal115b \gset
+select (select id from public.session_types where slug = 'career_guidance') as st115 \gset
+select public.request_purchase_topup('package', 'jawwal_pay', null, '33333333-3333-3333-3333-333333333333', :'st115', 5) as top115b \gset
+select public.assert(
+  (select t.amount_usd = q.total_usd from public.credit_topups t,
+          public.package_quote('33333333-3333-3333-3333-333333333333', :'st115') q
+    where t.id = :'top115b' and q.sessions = 5),
+  '115.5 a package by transfer costs its discounted price');
+select public.submit_topup_proof(:'top115b', '22222222-2222-2222-2222-222222222222/k.png', 'JP-PKG');
+reset role;
+-- the price changes before the admin looks: the member keeps the price they were shown
+update public.platform_settings set value = '30' where key = 'package_5_discount_pct';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_topup(:'top115b', true);
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select count(*) from public.session_packages k join public.credit_topups t on t.id = :'top115b'
+    where k.profile_id = '22222222-2222-2222-2222-222222222222' and k.sessions_total = 5 and k.paid_usd = t.amount_usd) = 1
+  and public.my_credit_balance() = :'bal115b'::numeric,
+  '115.6 approving it buys the package at the price shown');
+select public.assert(
+  (select discount_pct = 30 from public.package_quote('33333333-3333-3333-3333-333333333333', :'st115') where sessions = 5),
+  '115.7 the discounts are settings');
+reset role;
+update public.platform_settings set value = '15' where key = 'package_5_discount_pct';
+
+-- a purchase that cannot complete leaves the money in the balance
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.request_purchase_topup('package', 'jawwal_pay', null, '33333333-3333-3333-3333-333333333333', :'st115', 3) as top115c \gset
+select public.submit_topup_proof(:'top115c', '22222222-2222-2222-2222-222222222222/k2.png', 'JP-PKG2');
+reset role;
+update public.profile_roles set status = 'suspended' where profile_id = '33333333-3333-3333-3333-333333333333' and role = 'mentor';
+set role authenticated;
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.review_topup(:'top115c', true);
+reset role;
+update public.profile_roles set status = 'approved' where profile_id = '33333333-3333-3333-3333-333333333333' and role = 'mentor';
+select public.assert(
+  public.credit_balance_of('22222222-2222-2222-2222-222222222222') = :'bal115b'::numeric
+    + (select amount_usd from public.credit_topups where id = :'top115c')
+  and (select status = 'approved' and fulfilled_at is null from public.credit_topups where id = :'top115c')
+  and exists (select 1 from public.notifications where profile_id = '22222222-2222-2222-2222-222222222222'
+                and entity_id = :'top115c' and body_ar like '%المبلغ في رصيدك%'),
+  '115.8 if the purchase cannot complete, the money stays in the balance and the member is told');
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

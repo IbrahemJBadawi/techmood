@@ -1293,6 +1293,8 @@ export type Database = {
         status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'cancelled';
         rejection_reason: string | null; created_at: string; submitted_at: string | null;
         reviewed_by: string | null; reviewed_at: string | null;
+        purpose: 'balance' | 'premium' | 'package'; purpose_detail: Record<string, unknown> | null;
+        purpose_label: string | null; fulfilled_at: string | null;
       }>;
       listing_auctions: Table<{
         id: string; listing_id: string; start_usd: number; step_usd: number; ends_at: string;
@@ -2808,6 +2810,11 @@ export type Database = {
         Returns: { id: string; amount_usd: number; kind: 'topup' | 'spend' | 'refund' | 'adjust'; description_ar: string; created_at: string }[];
       };
       request_topup: { Args: { p_amount: number; p_method: string }; Returns: string };
+      request_purchase_topup: {
+        Args: { p_purpose: 'premium' | 'package'; p_method: string; p_plan?: string | null; p_mentor?: string | null;
+                p_session_type?: string | null; p_sessions?: number | null };
+        Returns: string;
+      };
       topup_instructions: { Args: { p_topup: string }; Returns: Database['public']['Functions']['payment_instructions']['Returns'] };
       submit_topup_proof: { Args: { p_topup: string; p_proof_path: string | null; p_reference: string | null }; Returns: undefined };
       cancel_topup: { Args: { p_topup: string }; Returns: undefined };

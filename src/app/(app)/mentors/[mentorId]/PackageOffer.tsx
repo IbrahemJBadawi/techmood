@@ -12,7 +12,7 @@ export type PackageQuote = {
   tiers: { sessions: number; discount_pct: number; unit_usd: number; total_usd: number; saves_usd: number }[];
 };
 
-/** «باقات بخصم» (design lab 4): several sessions with this mentor at once, for less, from the balance. */
+/** «باقات بخصم» (design lab 4): several sessions with this mentor at once, for less, from the balance or by transfer (0155). */
 export function PackageOffer({ mentorId, quotes, balance }: { mentorId: string; quotes: PackageQuote[]; balance: number }) {
   const t = useT();
   const [state, action, pending] = useActionState(buyPackage, undefined as CreditState);
@@ -25,7 +25,7 @@ export function PackageOffer({ mentorId, quotes, balance }: { mentorId: string; 
   return (
     <section className="panel section-block pkg-offer">
       <h3 style={{ fontSize: '0.98rem' }}>🎟️ {t('باقات بخصم', 'Packages, for less')}</h3>
-      <p className="muted" style={{ fontSize: '0.84rem' }}>{t('اشترِ عدة جلسات مرة واحدة من رصيدك، واستخدمها عند كل حجز مع هذا المنتور.', 'Buy several sessions at once from your balance, and use one each time you book this mentor.')}</p>
+      <p className="muted" style={{ fontSize: '0.84rem' }}>{t('اشترِ عدة جلسات مرة واحدة — من رصيدك أو بتحويل — واستخدمها عند كل حجز مع هذا المنتور.', 'Buy several sessions at once — from your balance or by transfer — and use one each time you book this mentor.')}</p>
       {quotes.length > 1 && (
         <div className="choice-chips-row">
           {quotes.map((q) => (
@@ -53,12 +53,16 @@ export function PackageOffer({ mentorId, quotes, balance }: { mentorId: string; 
           <input type="hidden" name="mentor_id" value={mentorId} />
           <input type="hidden" name="session_type_id" value={typeId} />
           <input type="hidden" name="sessions" value={size} />
-          {tier && balance >= tier.total_usd ? (
+          {tier && balance >= tier.total_usd && (
             <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
               {t(`اشترِ الباقة من رصيدك — ${money(tier.total_usd)}`, `Buy from your balance — ${money(tier.total_usd)}`)}
             </button>
-          ) : (
-            <Link className="btn btn-primary" href="/wallet/topup">{t(`اشحن رصيدك (لديك ${money(balance)})`, `Top up (you have ${money(balance)})`)}</Link>
+          )}
+          {tier && (
+            <Link className={`btn ${balance >= tier.total_usd ? 'btn-ghost' : 'btn-primary'}`}
+                  href={`/wallet/topup?for=package&mentor=${mentorId}&type=${typeId}&sessions=${size}`}>
+              {balance >= tier.total_usd ? t('أو ادفع بتحويل', 'Or pay by transfer') : t(`ادفع بتحويل — ${money(tier.total_usd)}`, `Pay by transfer — ${money(tier.total_usd)}`)}
+            </Link>
           )}
         </form>
       )}

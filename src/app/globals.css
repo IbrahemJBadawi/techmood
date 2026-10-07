@@ -1935,20 +1935,38 @@ a.stat-tile:hover { border-color: var(--royal); }
 }
 
 .notification-list { list-style: none; display: grid; gap: 2px; margin-top: 6px; }
-.notification-list a,
-.notification-list span {
+/* one row: the kind's icon beside the title, the line and the time */
+.notification-list li > a,
+.notification-list li > span {
   display: grid;
-  gap: 3px;
-  padding: 9px 10px;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 10px;
+  padding: 10px;
   border-radius: var(--radius-s);
   text-decoration: none;
   color: inherit;
   font-size: 0.84rem;
 }
-.notification-list a:hover { background: var(--sky-tint); }
-.notification-list .muted { font-size: 0.78rem; }
+.notification-list li > a:hover { background: var(--sky-tint); }
+.notification-list .nl-icon {
+  display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--bg-deep); font-style: normal; font-size: 1rem; line-height: 1;
+}
+.notification-list .nl-text { display: grid; gap: 2px; min-width: 0; }
+.notification-list .nl-text strong { font-size: 0.86rem; line-height: 1.35; }
+.notification-list .nl-text .muted {
+  font-size: 0.78rem; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 .notification-list time { font-size: 0.7rem; color: var(--ink-soft); }
-.notification-list li.is-unread > * { border-inline-start: 2px solid var(--royal); }
+/* unread: a tinted row and a blue dot on the icon */
+.notification-list li.is-unread > * { background: var(--sky-tint); }
+.notification-list li.is-unread .nl-icon { position: relative; background: var(--panel); }
+.notification-list li.is-unread .nl-icon::after {
+  content: ''; position: absolute; top: 0; inset-inline-end: 0; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--royal); border: 2px solid var(--sky-tint);
+}
 
 .profile-trigger {
   display: flex;
@@ -7123,18 +7141,7 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
   .ai-panel .ai-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 }
 
-/* what the assistant shows before the first question: where you are, quick actions, your latest threads */
-.ai-start { display: grid; gap: 10px; margin-top: 12px; text-align: start; }
-.ai-start-where { margin: 0; padding: 9px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--royal) 8%, var(--panel)); font-size: 0.86rem; }
-.ai-start-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.ai-start-recent { display: grid; gap: 6px; }
-.ai-start-recent > .muted { font-size: 0.78rem; }
-.ai-start-thread {
-  display: block; width: 100%; text-align: start; font: inherit; font-size: 0.86rem; color: var(--ink);
-  padding: 9px 12px; border-radius: var(--radius-s); border: 1px solid var(--line); background: var(--panel);
-  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.ai-start-thread:hover { border-color: var(--royal); }
+
 
 /* working hours: each day fits the screen, the two times share what is left */
 .availability-row { grid-template-columns: 64px minmax(0, 1fr) auto minmax(0, 1fr); }
@@ -7417,3 +7424,75 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
 .premium-cta { background: linear-gradient(135deg, #6D4AE8, #8B5CF6); border: 0; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .premium-plans .tier.is-on, :root:not([data-theme="light"]) .premium-perks li > span { background: rgba(109, 74, 232, 0.22); color: #C4B5FD; } }
 :root[data-theme="dark"] .premium-plans .tier.is-on, :root[data-theme="dark"] .premium-perks li > span { background: rgba(109, 74, 232, 0.22); color: #C4B5FD; }
+
+/* the greeting card, smaller (founder's review): name and streak on one line, the three numbers in one even row */
+.hm-hero { gap: 12px; padding: 14px 16px; border-radius: var(--radius-m); }
+.hm-hero-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.hm-hero-who { flex: 1; min-width: 0; }
+.hm-hero h1 { font-size: 1.08rem; line-height: 1.3; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-hero-sub { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-hero .hm-hero-streak {
+  flex: none; display: grid; grid-template-columns: auto auto; align-items: center; justify-items: center; column-gap: 4px;
+  padding: 6px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.14); line-height: 1.1;
+}
+.hm-hero .hm-hero-streak > span[aria-hidden] { font-size: 1.1rem; }
+.hm-hero .hm-hero-streak strong { font-size: 1.45rem; }
+.hm-hero .hm-hero-streak small { grid-column: 1 / -1; font-size: 0.68rem; opacity: 0.85; }
+.hm-hero .hm-hero-streak small { display: inline-flex; align-items: center; gap: 4px; }
+.hm-hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hm-hero-stats .hm-pill { justify-content: center; padding: 6px 8px; font-size: 0.82rem; min-width: 0; }
+.hm-hero-stats .hm-pill.is-level { overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 900px) { .hm-hero-stats { display: flex; } .hm-hero-stats .hm-pill { padding: 7px 14px; } }
+
+
+/* the assistant's window, tidied (founder's review): a compact head with round buttons, one scrolling row of
+   context, then three quick-action tiles, the page's suggestions as a list, and the latest conversations */
+.ai-panel-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.ai-head-mark { flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-size: 1.05rem; background: linear-gradient(140deg, var(--royal), var(--sky-deep)); }
+.ai-head-text { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+.ai-head-text strong { font-size: 0.98rem; }
+.ai-head-text .ai-surface-chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.74rem; }
+.ai-head-btn { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 1.15rem; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.ai-head-btn:hover { border-color: var(--royal); color: var(--royal-dark); }
+.ai-scope-row { flex-wrap: nowrap; overflow-x: auto; align-items: center; padding: 8px 12px; scrollbar-width: none; }
+.ai-scope-row::-webkit-scrollbar { display: none; }
+.ai-scope-label { flex: none; font-size: 0.72rem; color: var(--ink-soft); }
+.ai-scope { flex: none; white-space: nowrap; padding: 5px 11px; }
+.ai-panel .ai-stream { padding: 12px; }
+.ai-panel .ai-empty { justify-items: stretch; text-align: start; gap: 12px; padding: 4px 0 8px; }
+.ai-panel .ai-empty-mark { display: none; }
+.ai-panel .ai-empty > p { max-width: none; font-size: 0.9rem; color: var(--ink); padding: 12px 14px; border-radius: 16px; border-end-start-radius: 6px; background: var(--bg-deep); justify-self: start; }
+.ai-panel .ai-start { order: 2; display: grid; gap: 12px; }
+.ai-panel .ai-suggestions { order: 3; display: grid; gap: 6px; justify-content: stretch; margin: 0; }
+.ai-panel .ai-suggestion { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-radius: 12px; padding: 9px 12px; font-size: 0.84rem; }
+.ai-panel .ai-suggestion::after { content: "↖"; color: var(--ink-faint); }
+[dir="ltr"] .ai-panel .ai-suggestion::after { content: "↗"; }
+.ai-start-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ai-tile {
+  display: grid; justify-items: center; gap: 4px; padding: 12px 6px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+}
+.ai-tile > span { font-size: 1.3rem; }
+.ai-tile:hover { border-color: var(--royal); background: var(--sky-tint); }
+.ai-start-recent { display: grid; gap: 6px; }
+.ai-start-label { font-size: 0.74rem; font-weight: 700; color: var(--ink-soft); }
+.ai-start-thread {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: start; font: inherit; font-size: 0.84rem; color: var(--ink);
+  padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); cursor: pointer;
+}
+.ai-start-thread:hover { border-color: var(--royal); }
+.ai-start-thread-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-panel .ai-composer { border-top: 1px solid var(--line); background: var(--panel); }
+.ai-panel-foot { padding: 8px 14px; font-size: 0.74rem; }
+
+/* Premium: no promotional spots (0154). Anything promotional carries `.promo`. */
+.app[data-premium] .promo { display: none !important; }
+
+/* Paying for Premium or a package by transfer (0155): what, and how much. */
+.topup-purchase {
+  display: grid; gap: 2px; padding: 12px 14px; border-radius: 14px;
+  background: var(--sky-tint); border: 1px solid var(--line);
+}
+.topup-purchase .muted { font-size: 0.78rem; }
+.topup-purchase strong { font-size: 0.98rem; }
+.topup-purchase b { font-size: 1.3rem; color: var(--royal); }

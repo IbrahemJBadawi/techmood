@@ -62,51 +62,48 @@ export async function StudentHero({
       {/* The greeting and the day's numbers on one coloured card, the streak first
           and largest — the number a learner keeps coming back to protect. */}
       <section className="hm-hello hm-hero section-block">
-        <div className="hm-hello-id">
-          <Avatar name={name} url={avatarUrl} size={56} />
-          <div style={{ minWidth: 0 }}>
+        <div className="hm-hero-top">
+          <Avatar name={name} url={avatarUrl} size={44} />
+          <div className="hm-hero-who">
             <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
             <p className="hm-hero-sub">
               {primaryField ?? t('لم تحدّد مجالك الرئيسي بعد', 'No primary field chosen yet')}
               {currentPath && <> · {currentPath.title}</>}
             </p>
           </div>
-        </div>
-
-        <div className="hm-hero-row">
-          <p className="hm-hero-streak">
+          <p className="hm-hero-streak" title={streak > 0
+            ? t(streak === 1 ? 'يوم إنجاز' : 'أيام متتالية', streak === 1 ? 'day in a row' : 'days in a row')
+            : t('ابدأ حماستك اليوم', 'Start your streak today')}>
             <span aria-hidden="true">🔥</span>
             <strong>{streak}</strong>
-            <span>
-              {streak > 0
-                ? t(streak === 1 ? 'يوم إنجاز' : 'أيام متتالية', streak === 1 ? 'day in a row' : 'days in a row')
-                : t('ابدأ حماستك اليوم', 'Start your streak today')}
-            </span>
-            <InfoTip label={t('السلسلة', 'the streak')}>
-              {t('عدد الأيام المتتالية التي أنهيت فيها شيئاً: درساً أو تسليماً أو اختباراً أو جلسة أو مهمة فريق. يوم كامل بلا إنجاز يعيدها للصفر، واليوم لا يُحسب عليك قبل أن ينتهي.',
-                 'Days in a row on which you finished something — a lesson, a hand-in, a test, a session or a team task. A whole day without one resets it; today never counts against you before it ends.')}
-            </InfoTip>
+            <small>
+              {streak > 0 ? t('يوم', streak === 1 ? 'day' : 'days') : t('ابدأ', 'start')}
+              <InfoTip label={t('السلسلة', 'the streak')}>
+                {t('عدد الأيام المتتالية التي أنهيت فيها شيئاً: درساً أو تسليماً أو اختباراً أو جلسة أو مهمة فريق. يوم كامل بلا إنجاز يعيدها للصفر، واليوم لا يُحسب عليك قبل أن ينتهي.',
+                   'Days in a row on which you finished something — a lesson, a hand-in, a test, a session or a team task. A whole day without one resets it; today never counts against you before it ends.')}
+              </InfoTip>
+            </small>
           </p>
+        </div>
 
-          <div className="hm-pills">
-            <span className="hm-pill is-xp">
-              <span aria-hidden="true">⚡</span>
-              <strong>{totalXp}</strong>
-              <span className="hm-pill-label">XP</span>
-              <InfoTip label="XP">
-                {t('نقاط الخبرة: تكسبها من الدروس والتسليمات والتحديات، ومنها يُحسب مستواك وترتيبك في الدوري.',
-                   'Experience points: earned from lessons, hand-ins and challenges; your level and league place come from them.')}
-              </InfoTip>
-            </span>
-            <span className="hm-pill is-stars">
-              <span aria-hidden="true">⭐</span>
-              <strong>{stars > 0 ? stars.toFixed(1) : '—'}</strong>
-              <InfoTip label={t('النجوم', 'the stars')}>
-                {t('متوسط تقييم المنتورز لأعمالك المسلّمة، من 5.', 'The average mentor rating of the work you handed in, out of 5.')}
-              </InfoTip>
-            </span>
-            <span className="hm-pill is-level">{t(level.current.title)}</span>
-          </div>
+        <div className="hm-pills hm-hero-stats">
+          <span className="hm-pill is-xp">
+            <span aria-hidden="true">⚡</span>
+            <strong>{totalXp}</strong>
+            <span className="hm-pill-label">XP</span>
+            <InfoTip label="XP">
+              {t('نقاط الخبرة: تكسبها من الدروس والتسليمات والتحديات، ومنها يُحسب مستواك وترتيبك في الدوري.',
+                 'Experience points: earned from lessons, hand-ins and challenges; your level and league place come from them.')}
+            </InfoTip>
+          </span>
+          <span className="hm-pill is-stars">
+            <span aria-hidden="true">⭐</span>
+            <strong>{stars > 0 ? stars.toFixed(1) : '—'}</strong>
+            <InfoTip label={t('النجوم', 'the stars')}>
+              {t('متوسط تقييم المنتورز لأعمالك المسلّمة، من 5.', 'The average mentor rating of the work you handed in, out of 5.')}
+            </InfoTip>
+          </span>
+          <span className="hm-pill is-level">{t(level.current.title)}</span>
         </div>
       </section>
 

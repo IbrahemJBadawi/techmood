@@ -21,6 +21,25 @@ export async function requestTopup(_prev: CreditState, formData: FormData): Prom
   redirect(`/wallet/topup/${data}`);
 }
 
+/** Pay for Premium or a package by transfer: a top-up for exactly its price, completed on approval (0155). */
+export async function requestPurchase(_prev: CreditState, formData: FormData): Promise<CreditState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const method = String(formData.get('method') ?? '');
+  if (!method) return { error: t('اختر طريقة التحويل.', 'Choose how you will transfer.') };
+  const purpose = String(formData.get('purpose')) === 'package' ? 'package' : 'premium';
+  const { data, error } = await supabase.rpc('request_purchase_topup', purpose === 'premium'
+    ? { p_purpose: 'premium', p_method: method, p_plan: String(formData.get('plan')) === 'month' ? 'month' : 'year' }
+    : {
+        p_purpose: 'package', p_method: method,
+        p_mentor: String(formData.get('mentor_id') ?? ''),
+        p_session_type: String(formData.get('session_type_id') ?? ''),
+        p_sessions: Number(formData.get('sessions') ?? 0),
+      });
+  if (error) return { error: dbError(t, error.message) };
+  redirect(`/wallet/topup/${data}`);
+}
+
 /** The receipt of a top-up, for an admin to check. */
 export async function submitTopupProof(_prev: CreditState, formData: FormData): Promise<CreditState> {
   const t = await getT();

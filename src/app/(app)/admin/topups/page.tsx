@@ -20,10 +20,10 @@ export default async function AdminTopupsPage() {
 
   const [{ data: waiting }, { data: recent }] = await Promise.all([
     supabase.from('credit_topups')
-      .select('id, topup_code, profile_id, amount_usd, method_key, reference, proof_path, submitted_at, profiles!credit_topups_profile_id_fkey(full_name, techmood_id)')
+      .select('id, topup_code, profile_id, amount_usd, method_key, reference, proof_path, submitted_at, purpose, purpose_label, profiles!credit_topups_profile_id_fkey(full_name, techmood_id)')
       .eq('status', 'under_review').order('submitted_at'),
     supabase.from('credit_topups')
-      .select('id, topup_code, amount_usd, status, reviewed_at')
+      .select('id, topup_code, amount_usd, status, reviewed_at, purpose, purpose_label, fulfilled_at')
       .in('status', ['approved', 'rejected']).order('reviewed_at', { ascending: false }).limit(20),
   ]);
   // the receipts are private: a link that works for a few minutes, for the admin only
@@ -38,9 +38,9 @@ export default async function AdminTopupsPage() {
   return (
     <>
       <section className="section-block">
-        <h2 style={{ fontSize: '1.2rem' }}>{t('شحن الأرصدة', 'Balance top-ups')}</h2>
+        <h2 style={{ fontSize: '1.2rem' }}>{t('شحن الأرصدة والدفع بتحويل', 'Top-ups and transfers')}</h2>
         <p className="muted" style={{ fontSize: '0.86rem', marginTop: 6 }}>
-          {t('قارن الإيصال بما وصل فعلاً إلى الحساب قبل الشحن. الرصيد يُصرف داخل المنصة ولا يُسحب.', 'Match the receipt with what actually arrived before crediting. The balance is spent on the platform and is not withdrawable.')}
+          {t('قارن الإيصال بما وصل فعلاً إلى الحساب قبل الموافقة. شحن الرصيد يُضاف للرصيد (يُصرف داخل المنصة ولا يُسحب)، والدفع لـ Premium أو باقة يُفعّلهما فور موافقتك.', 'Match the receipt with what actually arrived before approving. A top-up goes into the balance (spent on the platform, not withdrawable); a payment for Premium or a package activates it as soon as you approve.')}
         </p>
       </section>
 
@@ -56,13 +56,18 @@ export default async function AdminTopupsPage() {
                   <strong className="eng">{money(Number(row.amount_usd))}</strong>
                   <span className="id-chip">{row.topup_code}</span>
                 </div>
+                <p style={{ fontSize: '0.86rem' }}>
+                  {row.purpose === 'balance'
+                    ? <span className="status-pill status-muted">{t('شحن رصيد', 'Balance top-up')}</span>
+                    : <span className="status-pill status-ok">💳 {row.purpose_label}</span>}
+                </p>
                 <p className="muted" style={{ fontSize: '0.84rem' }}>
                   {person?.full_name} <span className="id-chip">{person?.techmood_id}</span> · {row.method_key}
                   {row.reference && <> · <span dir="ltr">{row.reference}</span></>}
                   {row.submitted_at && <> · {time.format(new Date(row.submitted_at))}</>}
                 </p>
                 {links.get(row.id) && <a className="btn btn-ghost btn-sm" href={links.get(row.id)} target="_blank" rel="noopener noreferrer">🧾 {t('افتح الإيصال', 'Open the receipt')}</a>}
-                <TopupReviewForm topupId={row.id} />
+                <TopupReviewForm topupId={row.id} purchase={row.purpose !== 'balance'} />
               </li>
             );
           })}
@@ -78,7 +83,14 @@ export default async function AdminTopupsPage() {
                 <tr key={row.id}>
                   <td className="eng">{row.topup_code}</td>
                   <td className="eng">{money(Number(row.amount_usd))}</td>
-                  <td><span className={`status-pill ${row.status === 'approved' ? 'status-ok' : 'status-danger'}`}>{row.status === 'approved' ? t('شُحن', 'Credited') : t('رُفض', 'Turned down')}</span></td>
+                  <td style={{ fontSize: '0.82rem' }}>{row.purpose === 'balance' ? t('شحن رصيد', 'Top-up') : row.purpose_label}</td>
+                  <td>
+                    <span className={`status-pill ${row.status === 'approved' ? 'status-ok' : 'status-danger'}`}>
+                      {row.status !== 'approved' ? t('رُفض', 'Turned down')
+                        : row.purpose === 'balance' ? t('شُحن', 'Credited')
+                        : row.fulfilled_at ? t('اكتمل الشراء', 'Purchase done') : t('في الرصيد — لم يكتمل الشراء', 'In balance — not bought')}
+                    </span>
+                  </td>
                   <td className="muted" style={{ fontSize: '0.8rem' }}>{row.reviewed_at ? time.format(new Date(row.reviewed_at)) : ''}</td>
                 </tr>
               ))}
