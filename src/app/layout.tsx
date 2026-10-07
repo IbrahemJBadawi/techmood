@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { IBM_Plex_Sans_Arabic, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@/components/Analytics';
+import { Analytics as VercelAnalytics } from '@vercel/analytics/next';
 
 import { DeviceBoot } from '@/components/DeviceSetup';
 import { OfflineStatus } from '@/components/OfflineStatus';
@@ -82,6 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               and offers «Install app» rather than a shortcut. */}
           <DeviceBoot />
           <Analytics />
+          <VercelAnalytics />
           <OfflineStatus />
           {children}
         </LocaleProvider>
