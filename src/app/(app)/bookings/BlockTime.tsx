@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n.client';
 import { blockTime, unblockTime, type HubState } from './actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 import { DateField } from '@/components/DateField';
+import { TimeField } from '@/components/TimeField';
 
 export type Block = { id: string; starts_at: string; ends_at: string; reason: string | null };
 
@@ -54,11 +55,11 @@ export function BlockTime({ blocks }: { blocks: Block[] }) {
         </div>
         <div className="field">
           <label htmlFor="block-from">{t('من', 'From')}</label>
-          <input id="block-from" name="from" type="time" required />
+          <TimeField id="block-from" name="from" required />
         </div>
         <div className="field">
           <label htmlFor="block-to">{t('إلى', 'To')}</label>
-          <input id="block-to" name="to" type="time" required />
+          <TimeField id="block-to" name="to" required />
         </div>
         <button className="btn btn-ghost btn-sm" disabled={pending} aria-busy={pending}>
           {pending ? t('جارٍ…', 'Working…') : t('أغلق هذه الساعات', 'Block these hours')}

@@ -7,6 +7,7 @@ import { useT } from '@/lib/i18n.client';
 import { scheduleTeamMeeting, type TeamState } from '../../actions';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 import { DateField } from '@/components/DateField';
+import { TimeField } from '@/components/TimeField';
 
 /**
  * The leader sets aside time for the team itself (0113). No mentor, no payment,
@@ -33,7 +34,7 @@ export function MeetingForm({ teamId, blockedDays = [] }: { teamId: string; bloc
 
       <div className="field">
         <label htmlFor="meeting-time">{t('الساعة (فلسطين)', 'Hour (Palestine)')}</label>
-        <input id="meeting-time" name="time" type="time" required />
+        <TimeField id="meeting-time" name="time" required />
       </div>
 
       <div className="field">

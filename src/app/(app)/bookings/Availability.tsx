@@ -7,6 +7,7 @@ import { WEEKDAYS } from '@/lib/calendar';
 import type { Text } from '@/lib/i18n';
 
 import { saveAvailability, saveSchedulingRules, type HubState } from './actions';
+import { TimeField } from '@/components/TimeField';
 
 export type Window = { day_of_week: number; start_time: string; end_time: string };
 
@@ -51,10 +52,10 @@ export function Availability({
             return (
               <div className="availability-row" key={day}>
                 <span className="availability-day">{t(WEEKDAYS[(day + 1) % 7])}</span>
-                <input type="time" name={`from-${day}`} defaultValue={window?.start_time.slice(0, 5) ?? ''}
+                <TimeField name={`from-${day}`} defaultValue={window?.start_time.slice(0, 5) ?? ''}
                        aria-label={t('من', 'From')} />
                 <span className="muted">—</span>
-                <input type="time" name={`to-${day}`} defaultValue={window?.end_time.slice(0, 5) ?? ''}
+                <TimeField name={`to-${day}`} defaultValue={window?.end_time.slice(0, 5) ?? ''}
                        aria-label={t('إلى', 'To')} />
               </div>
             );

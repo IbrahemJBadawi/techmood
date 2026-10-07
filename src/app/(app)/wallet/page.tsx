@@ -294,7 +294,7 @@ export default async function WalletPage({
                     <span className="wallet-label">
                       <span className="id-chip">{request.request_code}</span>
                       {request.paid_reference && (
-                        <span className="muted eng" style={{ display: 'block', fontSize: '0.76rem' }}>
+                        <span className="muted" style={{ display: 'block', fontSize: '0.76rem' }}>
                           {t('مرجع التحويل: ', 'Reference: ')}{request.paid_reference}
                         </span>
                       )}
@@ -340,7 +340,7 @@ export default async function WalletPage({
                   <span className="wallet-label">
                     {invoice.description_ar}
                     <span className="id-chip" style={{ marginInlineStart: 6 }}>{invoice.invoice_no}</span>
-                    <span className="muted eng" style={{ display: 'block', fontSize: '0.76rem' }}>
+                    <span className="muted" style={{ display: 'block', fontSize: '0.76rem' }}>
                       {formatDateTime(locale, invoice.issued_at)}
                     </span>
                   </span>

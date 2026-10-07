@@ -7078,3 +7078,55 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
 }
 .lp-action:hover, .lp-action:focus-visible { background: var(--bg-deep); }
 @media (prefers-reduced-motion: reduce) { .live-pill { animation: none; } }
+
+/* ===================== screen review fixes (from the founder's phone) ===================== */
+
+/* the bell and profile menus never leave the screen on a phone */
+@media (max-width: 760px) {
+  .header-dropdown {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 66px);
+    inset-inline: 10px; width: auto;
+    max-height: calc(100dvh - 66px - var(--tabbar-h) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-m);
+    z-index: 140;
+  }
+}
+
+/* the assistant on a phone: the whole screen, above the tab bar, so its send button is never covered */
+@media (max-width: 720px) {
+  .ai-panel {
+    inset: env(safe-area-inset-top, 0px) 0 0 0; height: auto; z-index: 130;
+    border-radius: 0; border-top: 0; box-shadow: none;
+  }
+  .ai-panel .ai-composer { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* working hours: each day fits the screen, the two times share what is left */
+.availability-row { grid-template-columns: 64px minmax(0, 1fr) auto minmax(0, 1fr); }
+.availability-row input, .availability-row select { width: 100%; min-width: 0; }
+
+/* statements and invoices on a phone: what it was and the amount on one line, status and action under it */
+@media (max-width: 760px) {
+  .wallet-statement li { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 0; }
+  .wallet-statement li > .wallet-label { grid-column: 1; grid-row: 1; }
+  .wallet-statement li > .wallet-amount { grid-column: 2; grid-row: 1; align-self: start; font-size: 1rem; }
+  .wallet-statement li > .status-pill { grid-column: 1; grid-row: 2; justify-self: start; }
+  .wallet-statement li > .btn { grid-column: 2; grid-row: 2; justify-self: end; }
+}
+.wallet-label .id-chip { display: inline-block; margin-top: 4px; font-size: 0.72rem; }
+
+/* a pill never breaks its icon from its word */
+.status-pill { white-space: nowrap; }
+
+/* the member card: the link stays on one line; the story-sized card shows the QR and the ID instead */
+.identity-url { overflow-wrap: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+.identity-story .identity-url { display: none; }
+
+/* time pickers drawn as a list of times */
+.time-field { position: relative; }
+
+/* the assistant's conversations: the question on its own line, where and when under it */
+.ai-thread-list a { flex-direction: column; align-items: flex-start; gap: 3px; min-height: 52px; }
+.ai-thread-list .ai-thread-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ai-thread-list .muted { font-size: 0.8rem; }
+.time-select { width: 100%; min-width: 0; }

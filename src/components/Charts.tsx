@@ -14,11 +14,17 @@ const W = 320;
 const H = 150;
 const PAD = { top: 18, right: 8, bottom: 22, left: 8 };
 
-/** The axis ceiling: the next half-power of ten (31 → 35, 180 → 200), never below 5. */
+/**
+ * The axis ceiling: a round number (1, 2, 2.5 or 5 × a power of ten) with a
+ * little room above the tallest bar, so the ceiling's own label never sits on
+ * top of the bar's value (8 → 10, 31 → 50, 180 → 250); never below 5.
+ */
 function niceMax(max: number) {
-  if (max <= 5) return 5;
-  const half = (10 ** Math.floor(Math.log10(max))) / 2;
-  return Math.ceil(max / half) * half;
+  if (max <= 4) return 5;
+  const power = 10 ** Math.floor(Math.log10(max));
+  const target = max * 1.15;
+  for (const k of [1, 2, 2.5, 5, 10]) if (k * power >= target) return k * power;
+  return 10 * power;
 }
 
 /** A column path with a rounded top and a square base. */
