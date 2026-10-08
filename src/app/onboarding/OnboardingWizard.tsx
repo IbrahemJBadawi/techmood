@@ -9,13 +9,15 @@ import { useT } from '@/lib/i18n.client';
 import type { T } from '@/lib/i18n';
 import type { RoleStatus, TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
 
-import { finishOnboarding, requestRoles, saveBasics, saveTerms, suggestTerm } from './actions';
+import { finishOnboarding, requestRoles, saveBasics, saveGoal, saveTerms, suggestTerm } from './actions';
+import { LEARNING_GOALS, recommendedPath, type LearningGoal } from '@/lib/goals';
 import { LogoMark } from '@/components/Logo';
 import { UsernameField } from '@/components/UsernameField';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 type Term = { id: string; slug: string; name_ar: string; name_en: string; status: string };
 type RoleRow = { id: string; role: UserRole; status: RoleStatus; application_note: string | null };
+type GoalPath = { slug: string; title_ar: string; title_en: string | null; description_ar: string | null };
 
 type Props = {
   userId: string;
@@ -29,14 +31,17 @@ type Props = {
     country: string | null;
     city: string | null;
     language: UiLanguage;
+    learning_goal: string | null;
   };
   roles: RoleRow[];
+  paths: GoalPath[];
   catalogues: Record<TaxonomyKind, Term[]>;
   selected: Record<TaxonomyKind, string[]>;
 };
 
 const steps = (t: T) => [
   t('أنت وصورتك', 'You and your photo'),
+  t('هدفك', 'Your goal'),
   t('الأدوار', 'Roles'),
   t('المجالات', 'Fields'),
   t('الاهتمامات', 'Interests'),
@@ -44,7 +49,7 @@ const steps = (t: T) => [
   t('الملخّص', 'Summary'),
 ];
 
-export function OnboardingWizard({ userId, profile, roles, catalogues, selected }: Props) {
+export function OnboardingWizard({ userId, profile, roles, paths, catalogues, selected }: Props) {
   const t = useT();
   const [step, setStep] = useState(0);
   const [picked, setPicked] = useState(selected);
@@ -95,16 +100,25 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
       )}
 
       {step === 1 && (
-        <RolesStep
-          roles={roles}
-          requested={requested}
-          setRequested={setRequested}
+        <GoalStep
+          initial={profile.learning_goal}
+          paths={paths}
           onBack={() => setStep(0)}
           onDone={() => setStep(2)}
         />
       )}
 
       {step === 2 && (
+        <RolesStep
+          roles={roles}
+          requested={requested}
+          setRequested={setRequested}
+          onBack={() => setStep(1)}
+          onDone={() => setStep(3)}
+        />
+      )}
+
+      {step === 3 && (
         <TermStep
           kind="field"
           title={t('المجالات', 'Fields')}
@@ -114,12 +128,12 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
           terms={catalogues.field}
           value={picked.field}
           onChange={(ids) => setPicked((prev) => ({ ...prev, field: ids }))}
-          onBack={() => setStep(1)}
-          onDone={() => setStep(3)}
+          onBack={() => setStep(2)}
+          onDone={() => setStep(4)}
         />
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <TermStep
           kind="interest"
           title={t('الاهتمامات', 'Interests')}
@@ -128,12 +142,12 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
           terms={catalogues.interest}
           value={picked.interest}
           onChange={(ids) => setPicked((prev) => ({ ...prev, interest: ids }))}
-          onBack={() => setStep(2)}
-          onDone={() => setStep(4)}
+          onBack={() => setStep(3)}
+          onDone={() => setStep(5)}
         />
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <TermStep
           kind="skill"
           title={t('المهارات', 'Skills')}
@@ -142,12 +156,12 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
           terms={catalogues.skill}
           value={picked.skill}
           onChange={(ids) => setPicked((prev) => ({ ...prev, skill: ids }))}
-          onBack={() => setStep(3)}
-          onDone={() => setStep(5)}
+          onBack={() => setStep(4)}
+          onDone={() => setStep(6)}
         />
       )}
 
-      {step === 5 && (
+      {step === 6 && (
         <SummaryStep
           profile={profile}
           roles={roles}
@@ -155,7 +169,7 @@ export function OnboardingWizard({ userId, profile, roles, catalogues, selected 
           requested={requested}
           picked={picked}
           catalogues={catalogues}
-          onBack={() => setStep(4)}
+          onBack={() => setStep(5)}
         />
       )}
     </main>
@@ -495,6 +509,61 @@ function SuggestForm({ kind, onClose }: { kind: TaxonomyKind; onClose: () => voi
           {pending ? t('جارٍ الإرسال…', 'Sending…') : t('أرسل الاقتراح', 'Send suggestion')}
         </button>
         <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>{t('إغلاق', 'Close')}</button>
+      </div>
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------ step 2 */
+
+/** «شو هدفك؟» (0156) — one goal, and the path we suggest starting with for it. */
+function GoalStep({ initial, paths, onBack, onDone }: {
+  initial: string | null;
+  paths: GoalPath[];
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const t = useT();
+  const [state, formAction, pending] = useActionState(saveGoal, undefined);
+  const [goal, setGoal] = useState<LearningGoal | ''>((LEARNING_GOALS.find((item) => item.key === initial)?.key) ?? '');
+  const suggestion = recommendedPath(goal, paths);
+
+  useEffect(() => { if (state?.ok) onDone(); }, [state, onDone]);
+
+  return (
+    <form action={formAction} className="hm-card onboarding-card">
+      <h2>{t('شو هدفك؟', 'What is your goal?')}</h2>
+      <p className="muted">
+        {t('اختر الأقرب لما تريد الوصول إليه — نرشّح لك على أساسه مساراً تبدأ به، وتغيّره متى شئت.',
+           'Pick what is closest to where you want to get — we suggest a path to start with, and you can change it any time.')}
+      </p>
+      <input type="hidden" name="goal" value={goal} />
+      <div className="ob-goals" role="radiogroup" aria-label={t('هدفك', 'Your goal')}>
+        {LEARNING_GOALS.map((item) => (
+          <button type="button" key={item.key} role="radio" aria-checked={goal === item.key}
+                  className={`ob-goal${goal === item.key ? ' is-on' : ''}`} onClick={() => setGoal(item.key)}>
+            <span className="ob-goal-icon" aria-hidden="true">{item.icon}</span>
+            <strong>{t(item.label)}</strong>
+            <small>{t(item.hint)}</small>
+          </button>
+        ))}
+      </div>
+
+      {suggestion && (
+        <div className="ob-suggest" aria-live="polite">
+          <span className="ob-suggest-kicker">{t('✨ نرشّح لك أن تبدأ بـ', '✨ We suggest starting with')}</span>
+          <strong>{t.locale === 'ar' ? suggestion.title_ar : (suggestion.title_en ?? suggestion.title_ar)}</strong>
+          {suggestion.description_ar && <p className="muted">{suggestion.description_ar}</p>}
+          <small className="muted">{t('تجده في صفحتك الرئيسية بعد إنهاء الإعداد.', 'You will find it on your home page once you finish.')}</small>
+        </div>
+      )}
+
+      {state?.error && <p className="notice notice-danger">{state.error}</p>}
+      <div className="row-actions" style={{ marginTop: 16 }}>
+        <button type="button" className="btn btn-ghost" onClick={onBack}>{t('رجوع', 'Back')}</button>
+        <button className="btn btn-primary" disabled={pending} aria-busy={pending}>
+          {goal ? t('التالي', 'Next') : t('تخطَّ الآن', 'Skip for now')}
+        </button>
       </div>
     </form>
   );

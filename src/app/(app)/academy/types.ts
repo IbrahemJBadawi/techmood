@@ -9,8 +9,11 @@ import { contentText, plural } from '@/lib/i18n';
  * never hold a rule of its own: completion, percent and status are computed
  * once, in SQL, by the same helpers the path and course pages use.
  */
-// author_name: the mentor who wrote it in the studio (0115), added by the page.
-export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number] & { author_name?: string | null };
+// author_name: the mentor who wrote it in the studio (0115), added by the page;
+// hours_total, projects_total and skills: what the path gives (0156), likewise.
+export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number] & {
+  author_name?: string | null; hours_total?: number | null; projects_total?: number; skills?: string[];
+};
 export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number] & { author_name?: string | null };
 export type AcademyRoadmapPath = Database['public']['Functions']['academy_roadmap']['Returns'][number];
 
@@ -120,4 +123,19 @@ export function resultCount(locale: Locale, n: number) {
   return counted(locale, n,
     { one: 'نتيجة واحدة', two: 'نتيجتان', few: `${n} نتائج`, many: `${n} نتيجة` },
     { one: '1 result', other: `${n} results` });
+}
+
+/** How long, in buckets a learner thinks in (0156). */
+export type Duration = '' | 'short' | 'medium' | 'long';
+export const DURATION_LABEL: Record<Exclude<Duration, ''>, Text> = {
+  short:  { ar: 'قصير (حتى 10 ساعات)', en: 'Short (up to 10 hours)' },
+  medium: { ar: 'متوسط (10–40 ساعة)', en: 'Medium (10–40 hours)' },
+  long:   { ar: 'طويل (أكثر من 40 ساعة)', en: 'Long (over 40 hours)' },
+};
+export function inDuration(hours: number | null | undefined, duration: Duration) {
+  if (!duration) return true;
+  if (hours === null || hours === undefined) return false;
+  if (duration === 'short') return hours <= 10;
+  if (duration === 'medium') return hours > 10 && hours <= 40;
+  return hours > 40;
 }

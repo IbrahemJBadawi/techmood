@@ -6,16 +6,19 @@ import { useT } from '@/lib/i18n.client';
 
 import { saveProfileBasics, type ProfileState } from './actions';
 import { useSavedFlash } from '@/lib/use-saved-flash';
+import { LEARNING_GOALS } from '@/lib/goals';
 
-/** The three things that decide what a visitor meets first. */
+/** The three things that decide what a visitor meets first, and the goal that picks your suggested path. */
 export function BasicsForm({
   headline,
   bio,
   isPublic,
+  goal,
 }: {
   headline: string | null;
   bio: string | null;
   isPublic: boolean;
+  goal: string | null;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(saveProfileBasics, undefined as ProfileState);
@@ -33,6 +36,15 @@ export function BasicsForm({
       <div className="field">
         <label htmlFor="bio">{t('نبذة قصيرة', 'A short about')}</label>
         <textarea id="bio" name="bio" rows={3} defaultValue={bio ?? ''} maxLength={600} />
+      </div>
+
+      <div className="field">
+        <label htmlFor="learning_goal">{t('هدفك', 'Your goal')}</label>
+        <select id="learning_goal" name="learning_goal" defaultValue={goal ?? ''}>
+          <option value="">{t('— لم تحدّد —', '— not set —')}</option>
+          {LEARNING_GOALS.map((item) => <option key={item.key} value={item.key}>{item.icon} {t(item.label)}</option>)}
+        </select>
+        <small className="muted">{t('يحدّد المسار المقترح لك في الرئيسية.', 'Decides the path suggested to you on the home page.')}</small>
       </div>
 
       <label className="radio-row switch-row" htmlFor="is_public">

@@ -27,6 +27,20 @@ export default async function LandingPage() {
 
   if (user) redirect('/home');
 
+  // The numbers under the headline are counted from the platform, never typed
+  // (0156). A small count is shown as it is; a large one rounded down with «+».
+  const { data: statRows } = await supabase.rpc('platform_stats');
+  const stats = statRows?.[0];
+  const round = (n: number) => (n >= 50 ? `+${Math.floor(n / 10) * 10}` : String(n));
+  const figures = stats ? [
+    { value: stats.paths, label: t('مساراً تعليمياً', 'learning paths'), show: stats.paths > 0 },
+    { value: stats.courses, label: t('دورة', 'courses'), show: stats.courses > 0 },
+    { value: stats.lessons, label: t('درساً عملياً', 'hands-on lessons'), show: stats.lessons > 0 },
+    { value: stats.projects, label: t('مشروعاً منشوراً', 'projects published'), show: stats.projects >= 10 },
+    { value: stats.members, label: t('عضواً', 'members'), show: stats.members >= 100 },
+    { value: stats.mentors, label: t('منتوراً', 'mentors'), show: stats.mentors >= 5 },
+  ].filter((figure) => figure.show).slice(0, 4) : [];
+
   const steps: { icon: IconName; title: string; body: string }[] = [
     {
       icon: 'academy',
@@ -126,7 +140,7 @@ export default async function LandingPage() {
           <div className="home-hero-copy">
             <p className="home-pill">
               <span className="home-pill-dot" />
-              {t('منصة عربية للتعلّم والإرشاد والعمل', 'Arabic-first: learn, get mentored, work')}
+              <span className="eng">Learn. Build. Showcase. Grow.</span>
             </p>
             <h1>
               {t('من أول درس', 'From your first lesson')}
@@ -138,7 +152,10 @@ export default async function LandingPage() {
                  'Learn in short paths, build projects with a team, and book a mentor who reviews your work — and everything you do lands in one professional identity anyone can verify.')}
             </p>
             <div className="home-cta">
-              <Link className="btn btn-primary btn-lg" href="/signup">{t('ابدأ مجاناً', 'Start free')}</Link>
+              <Link className="btn btn-lg home-cta-main" href="/signup">
+                {t('ابدأ الآن مجاناً', 'Start now — free')}
+                <span className="home-cta-arrow" aria-hidden="true"><Icon name="arrow" size={18} /></span>
+              </Link>
               <Link className="btn btn-ghost btn-lg" href="/mentors">{t('تصفّح المنتورز', 'Browse mentors')}</Link>
             </div>
             <ul className="home-trust">
@@ -187,15 +204,27 @@ export default async function LandingPage() {
           </div>
         </section>
 
+        {figures.length > 0 && (
+          <section className="home-figures" data-count={figures.length} aria-label={t('TechMood بالأرقام', 'TechMood in numbers')}>
+            {figures.map((figure) => (
+              <div key={figure.label}>
+                <strong className="eng">{round(figure.value)}</strong>
+                <span>{figure.label}</span>
+              </div>
+            ))}
+          </section>
+        )}
+
         {/* ---------------------------------------------------------- how */}
         <section className="home-section">
           <header className="home-head">
             <p className="kicker">{t('كيف تعمل', 'How it works')}</p>
             <h2>{t('أربع خطوات من الفكرة إلى الدليل', 'Four steps from idea to proof')}</h2>
           </header>
-          <ol className="home-steps">
+          <ol className="home-steps home-journey">
             {steps.map((step, index) => (
               <li key={step.title}>
+                <StepArt index={index} />
                 <span className="home-step-icon"><Icon name={step.icon} size={22} /></span>
                 <span className="home-step-no eng">0{index + 1}</span>
                 <h3>{step.title}</h3>
@@ -333,5 +362,52 @@ export default async function LandingPage() {
 
       <SiteFooter />
     </>
+  );
+}
+
+/**
+ * A small drawing for each step of the journey — a lesson, code, a review,
+ * a certificate — in the theme's own colours, so it reads in light and dark.
+ */
+function StepArt({ index }: { index: number }) {
+  const common = { width: 120, height: 72, viewBox: '0 0 120 72', 'aria-hidden': true, className: 'home-step-art' } as const;
+  if (index === 0) return (
+    <svg {...common}>
+      <rect x="18" y="10" width="84" height="52" rx="10" className="art-card" />
+      <rect x="28" y="20" width="40" height="6" rx="3" className="art-ink" />
+      <rect x="28" y="32" width="64" height="5" rx="2.5" className="art-soft" />
+      <rect x="28" y="42" width="52" height="5" rx="2.5" className="art-soft" />
+      <circle cx="88" cy="24" r="7" className="art-accent" />
+      <path d="M85 24l2.2 2.2L91 22" className="art-tick" />
+    </svg>
+  );
+  if (index === 1) return (
+    <svg {...common}>
+      <rect x="14" y="10" width="92" height="52" rx="10" className="art-dark" />
+      <circle cx="24" cy="19" r="2.5" className="art-dot-r" /><circle cx="32" cy="19" r="2.5" className="art-dot-y" /><circle cx="40" cy="19" r="2.5" className="art-dot-g" />
+      <path d="M30 34l-7 6 7 6" className="art-code" /><path d="M52 32l-6 16" className="art-code" /><path d="M68 34l7 6-7 6" className="art-code" />
+      <rect x="80" y="38" width="16" height="4" rx="2" className="art-accent" />
+    </svg>
+  );
+  if (index === 2) return (
+    <svg {...common}>
+      <rect x="16" y="14" width="60" height="44" rx="10" className="art-card" />
+      <circle cx="34" cy="30" r="8" className="art-mentor" />
+      <rect x="46" y="26" width="22" height="5" rx="2.5" className="art-ink" />
+      <rect x="26" y="44" width="42" height="5" rx="2.5" className="art-soft" />
+      <path d="M92 18l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2 1.2-6.8-5-4.9 6.9-1z" className="art-star" />
+      <path d="M86 46l4 4 10-10" className="art-tick art-tick-lg" />
+    </svg>
+  );
+  return (
+    <svg {...common}>
+      <rect x="16" y="10" width="72" height="52" rx="8" className="art-card" />
+      <rect x="26" y="20" width="36" height="5" rx="2.5" className="art-ink" />
+      <rect x="26" y="31" width="52" height="4" rx="2" className="art-soft" />
+      <rect x="26" y="40" width="44" height="4" rx="2" className="art-soft" />
+      <circle cx="94" cy="44" r="12" className="art-accent" />
+      <path d="M88 54l-3 10 9-4 9 4-3-10" className="art-accent" />
+      <path d="M89 44l3.5 3.5L99 41" className="art-tick" />
+    </svg>
   );
 }

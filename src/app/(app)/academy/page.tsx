@@ -49,6 +49,7 @@ export default async function AcademyPage() {
     { data: roadmapRows },
     { data: schoolRows },
     { data: goalRows },
+    { data: factRows },
   ] = await Promise.all([
     supabase.rpc('academy_paths'),
     supabase.rpc('academy_courses'),
@@ -56,6 +57,8 @@ export default async function AcademyPage() {
     supabase.rpc('academy_roadmap'),
     supabase.from('schools').select('slug, name_ar, name_en').order('sort_order'),
     supabase.rpc('career_goals_catalogue'),
+    // what each path gives: hours, projects, skills (0156)
+    supabase.rpc('academy_path_facts'),
   ]);
 
   // The chosen goal, and the one rung in front of it. A learner who has chosen
@@ -81,7 +84,14 @@ export default async function AcademyPage() {
   const pathAuthor = new Map((authoredPaths ?? []).map((row) => [row.id, nameOf.get(row.author_id as string) ?? null]));
   const courseAuthor = new Map((authoredCourses ?? []).map((row) => [row.id, nameOf.get(row.author_id as string) ?? null]));
 
-  const paths = ((pathRows ?? []) as AcademyPath[]).map((path) => ({ ...path, author_name: pathAuthor.get(path.id) ?? null }));
+  const factsOf = new Map((factRows ?? []).map((row) => [row.path_id, row]));
+  const paths = ((pathRows ?? []) as AcademyPath[]).map((path) => ({
+    ...path,
+    author_name: pathAuthor.get(path.id) ?? null,
+    hours_total: factsOf.get(path.id)?.hours ?? path.estimated_hours,
+    projects_total: factsOf.get(path.id)?.projects ?? 0,
+    skills: factsOf.get(path.id)?.skills ?? path.tags,
+  }));
   const courses = ((courseRows ?? []) as AcademyCourse[]).map((course) => ({ ...course, author_name: courseAuthor.get(course.id) ?? null }));
   const roadmap = (roadmapRows ?? []) as AcademyRoadmapPath[];
   const schools = schoolRows ?? [];

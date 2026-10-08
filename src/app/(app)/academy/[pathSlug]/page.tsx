@@ -71,6 +71,12 @@ export default async function PathPage({
     })
     .filter((course) => course.status !== 'archived');
 
+  // What the path gives (0156): its hours when the path names none, and its projects.
+  const { data: factRows } = await supabase.rpc('academy_path_facts');
+  const facts = (factRows ?? []).find((row) => row.path_id === path.id);
+  const hoursTotal = path.estimated_hours ?? facts?.hours ?? null;
+  const projectsTotal = facts?.projects ?? 0;
+
   // Completion is asked of the database so the UI and the certificate rule can
   // never disagree about what "complete" means.
   const completion = await Promise.all(
@@ -194,7 +200,8 @@ export default async function PathPage({
 
         <ul className="ac-cover-meta">
           <li><Icon name="layers" size={15} />{t(`${doneCount} من ${courses.length} دورات مكتملة`, `${doneCount} of ${courses.length} courses done`)}</li>
-          {path.estimated_hours && <li><Icon name="clock" size={15} /><span className="eng">~{path.estimated_hours}h</span></li>}
+          {hoursTotal ? <li><Icon name="clock" size={15} />{t(`~${hoursTotal} ساعة`, `~${hoursTotal} h`)}</li> : null}
+          {projectsTotal > 0 && <li><Icon name="work" size={15} />{t(`${projectsTotal} ${projectsTotal > 2 && projectsTotal < 11 ? 'مشاريع' : 'مشروع'} تطبيقية`, `${projectsTotal} hands-on project${projectsTotal === 1 ? '' : 's'}`)}</li>}
           {path.tags?.slice(0, 4).map((tag) => <li className="eng" key={tag}>{tag}</li>)}
         </ul>
 

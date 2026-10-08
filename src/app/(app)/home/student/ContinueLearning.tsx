@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import { Icon } from '@/components/Icon';
 import { getT } from '@/lib/i18n.server';
+import { createClient } from '@/lib/supabase/server';
+import { LEARNING_GOALS, recommendedPath } from '@/lib/goals';
 import { formatDate } from '@/lib/i18n';
 
 import { ProgressRing } from '../../academy/ProgressRing';
@@ -25,17 +27,32 @@ export async function ContinueLearning({ resume }: { resume: Resume }) {
   const t = await getT();
 
   if (!resume) {
+    // The goal named at onboarding (0156) points at the path to start with.
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const [{ data: me }, { data: published }] = await Promise.all([
+      supabase.from('profiles').select('learning_goal').eq('id', user?.id ?? '').maybeSingle(),
+      supabase.from('learning_paths').select('slug, title_ar, title_en').eq('status', 'published'),
+    ]);
+    const goal = LEARNING_GOALS.find((item) => item.key === me?.learning_goal);
+    const pick = recommendedPath(me?.learning_goal, published ?? []);
     return (
       <article className="hm-resume is-empty">
         <div className="hm-resume-body">
-          <p className="hm-resume-kicker">{t('ابدأ من هنا', 'Start here')}</p>
-          <h2>{t('ابدأ أول مسار', 'Start your first path')}</h2>
-          <p className="hm-resume-lesson">
-            {t('المسارات مفتوحة دائماً — لا دفعات ولا انتظار.', 'Paths are always open — no cohorts, nothing to wait for.')}
+          <p className="hm-resume-kicker">
+            {goal ? <>{goal.icon} {t('لهدفك: ', 'For your goal: ')}{t(goal.label)}</> : t('ابدأ من هنا', 'Start here')}
           </p>
-          <Link className="btn hm-resume-cta" href="/academy">
-            {t('تصفّح المسارات', 'Browse paths')}
-          </Link>
+          <h2>{pick ? (t.locale === 'ar' ? pick.title_ar : (pick.title_en ?? pick.title_ar)) : t('ابدأ أول مسار', 'Start your first path')}</h2>
+          <p className="hm-resume-lesson">
+            {pick ? t('هذا المسار المقترح لك — ابدأ أول درس الآن.', 'The path suggested for you — start its first lesson now.')
+              : t('المسارات مفتوحة دائماً — لا دفعات ولا انتظار.', 'Paths are always open — no cohorts, nothing to wait for.')}
+          </p>
+          <div className="row-actions">
+            <Link className="btn hm-resume-cta" href={pick ? `/academy/${pick.slug}` : '/academy'}>
+              {pick ? t('ابدأ هذا المسار', 'Start this path') : t('تصفّح المسارات', 'Browse paths')}
+            </Link>
+            {pick && <Link className="btn btn-ghost btn-sm hm-resume-alt" href="/academy">{t('مسارات أخرى', 'Other paths')}</Link>}
+          </div>
         </div>
         <span className="hm-resume-art" aria-hidden="true"><Icon name="academy" size={56} /></span>
       </article>

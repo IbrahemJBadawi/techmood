@@ -11,9 +11,9 @@ import { PathCard } from './PathCard';
 import { RoadmapCard } from './RoadmapCard';
 import { schoolLook } from './schools';
 import {
-  courseCount, courseHaystack, LEVEL_LABEL, LEVEL_ORDER, pathCount, pathHaystack,
+  courseCount, courseHaystack, DURATION_LABEL, inDuration, LEVEL_LABEL, LEVEL_ORDER, pathCount, pathHaystack,
   resultCount, roadmapHaystack, STATUS_LABEL,
-  type AcademyCourse, type AcademyPath, type AcademyRoadmapPath,
+  type AcademyCourse, type AcademyPath, type AcademyRoadmapPath, type Duration,
 } from './types';
 import { Pager } from '@/components/Pager';
 import { SheetSelect } from '@/components/FilterSheet';
@@ -51,6 +51,7 @@ export function AcademyExplorer({
   const [domain, setDomain] = useState<string | null>(null);
   const [level, setLevel] = useState<CourseLevel | ''>('');
   const [status, setStatus] = useState<LearningStatus | ''>('');
+  const [duration, setDuration] = useState<Duration>('');
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -73,7 +74,7 @@ export function AcademyExplorer({
   // Changing what is being looked for starts the list again from the top. This
   // is the adjust-during-render pattern rather than an effect: the first page
   // is a function of the filters, not a reaction to them.
-  const filterKey = `${query}|${tab}|${domain ?? ''}|${level}|${status}`;
+  const filterKey = `${query}|${tab}|${domain ?? ''}|${level}|${status}|${duration}`;
   const [lastKey, setLastKey] = useState(filterKey);
   if (lastKey !== filterKey) {
     setLastKey(filterKey);
@@ -111,37 +112,39 @@ export function AcademyExplorer({
     if (level && !(path.level_from && path.level_to
       && LEVEL_ORDER.indexOf(path.level_from) <= LEVEL_ORDER.indexOf(level)
       && LEVEL_ORDER.indexOf(path.level_to) >= LEVEL_ORDER.indexOf(level))) return false;
+    if (!inDuration(path.hours_total ?? path.estimated_hours, duration)) return false;
     return true;
-  }), [paths, haystacks, query, domain, status, level]);
+  }), [paths, haystacks, query, domain, status, level, duration]);
 
   const matchedCourses = useMemo(() => courses.filter((course) => {
     if (query && !(haystacks.courses.get(course.id) ?? '').includes(query)) return false;
     if (domain && !course.school_slugs.includes(domain)) return false;
     if (status && course.status !== status) return false;
     if (level && course.level !== level) return false;
+    if (!inDuration(course.estimated_hours, duration)) return false;
     return true;
-  }), [courses, haystacks, query, domain, status, level]);
+  }), [courses, haystacks, query, domain, status, level, duration]);
 
   // An announced path has no progress and no level of its own, so it answers
   // a search and a category — the two questions it can honestly answer — and
   // steps out of the way of a level or status filter.
   const matchedRoadmap = useMemo(() => {
-    if (level !== '' || status !== '') return [];
+    if (level !== '' || status !== '' || duration !== '') return [];
     return roadmap.filter((path) => {
       if (query && !(haystacks.roadmap.get(path.id) ?? '').includes(query)) return false;
       if (domain && path.school_slug !== domain) return false;
       return true;
     });
-  }, [roadmap, haystacks, query, domain, level, status]);
+  }, [roadmap, haystacks, query, domain, level, status, duration]);
 
-  const narrowed = query !== '' || domain !== null || level !== '' || status !== '';
+  const narrowed = query !== '' || domain !== null || level !== '' || status !== '' || duration !== '';
   const showPaths = tab !== 'courses';
   const showCourses = tab !== 'paths';
   const showRoadmap = tab !== 'courses' && narrowed && matchedRoadmap.length > 0;
   const total = (showPaths ? matchedPaths.length : 0) + (showCourses ? matchedCourses.length : 0);
 
   const clear = () => {
-    setTyped(''); setQuery(''); setDomain(null); setLevel(''); setStatus(''); setTab('all');
+    setTyped(''); setQuery(''); setDomain(null); setLevel(''); setStatus(''); setDuration(''); setTab('all');
   };
 
   return (
@@ -241,6 +244,14 @@ export function AcademyExplorer({
                            onChange={(next) => setLevel(next as CourseLevel | '')}
                            options={[{ value: '', label: t('كل المستويات', 'All levels') },
                              ...LEVEL_ORDER.map((key) => ({ value: key, label: LEVEL_LABEL[key][t.locale] }))]} />
+            </div>
+            <div className="field">
+              <span className="field-label" id="academy-duration">{t('المدة', 'Duration')}</span>
+              <SheetSelect label={t('المدة', 'Duration')} value={duration}
+                           onChange={(next) => setDuration(next as Duration)}
+                           options={[{ value: '', label: t('أي مدة', 'Any length') },
+                             ...(Object.keys(DURATION_LABEL) as Exclude<Duration, ''>[])
+                               .map((key) => ({ value: key, label: DURATION_LABEL[key][t.locale] }))]} />
             </div>
             <div className="field">
               <span className="field-label" id="academy-status">{t('الحالة', 'Status')}</span>

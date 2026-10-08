@@ -18,6 +18,7 @@ import {
   AdminHideForm, BuyBox, CommentForm, OfferBox, ReplyToggle, ShareRow, TrackedLink, ViewPing,
 } from './ShowcaseClient';
 import { DeleteCommentButton } from './DeleteCommentButton';
+import { JoinTeamBox } from './JoinTeam';
 import { avatarColor } from '@/lib/mentor-look';
 
 /**
@@ -41,6 +42,9 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
     page.mentor_rating !== null ? supabase.rpc('showcase_evaluator', { p_project: page.project_id }) : Promise.resolve({ data: [] }),
   ]);
   const evaluator = evaluatorRows?.[0] ?? null;
+  // the team behind the project, and where this member stands with it (0156)
+  const { data: joinRows } = user ? await supabase.rpc('project_team_join_state', { p_project: page.project_id }) : { data: [] };
+  const join = joinRows?.[0] ?? null;
 
   const listing = page.listing_id && page.listing_status && ['listed', 'reserved', 'sold'].includes(page.listing_status) ? page : null;
   const isPeople = (people ?? []).some((person) => person.profile_id === user?.id);
@@ -309,6 +313,26 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
                 </li>
               ))}
             </ul>
+            {!page.can_edit && !isPeople && (
+              <div className="sc-contact">
+                <a className="btn btn-ghost btn-sm" href={user ? '#comments' : `/login?next=${encodeURIComponent(here)}`}>
+                  💬 {t('اسأل صاحب المشروع', 'Ask the owner')}
+                </a>
+                {join && !join.am_member && join.is_open && join.my_request !== 'pending' && (
+                  <JoinTeamBox teamId={join.team_id} teamTitle={join.team_title} back={here} />
+                )}
+                {join && !join.am_member && join.my_request === 'pending' && (
+                  <p className="muted" style={{ fontSize: '0.8rem' }}>⏳ {t('طلبك للانضمام قيد المراجعة عند قائد الفريق.', 'Your request to join is with the team lead.')}</p>
+                )}
+                {!user && page.team_title && (
+                  <a className="btn btn-primary btn-sm" href={`/login?next=${encodeURIComponent(here)}`}>🙋 {t('سجّل الدخول لتطلب الانضمام', 'Sign in to ask to join')}</a>
+                )}
+                <p className="muted" style={{ fontSize: '0.72rem' }}>
+                  {t('الأسئلة تُطرح علناً في التعليقات — لا تواصل خاص حين يكون بين الطرفين بيع، حمايةً لكما.',
+                     'Questions are asked openly in the comments — no private contact where a sale may follow, to protect you both.')}
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="sc-card">

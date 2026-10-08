@@ -539,14 +539,12 @@ insert into public.team_members (team_id, profile_id, role)
 values (:'team', '11111111-1111-1111-1111-111111111111', 'leader');
 
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
-insert into public.team_applications (team_id, profile_id, role_wanted)
-values (:'team', '22222222-2222-2222-2222-222222222222', 'Backend')
-returning id as application \gset
+select public.request_to_join_team(:'team', 'Backend') as application \gset
 
 select public.assert_rejects(
   format($$select public.decide_team_application(%L, true)$$, :'application'),
   '8.1 an applicant cannot accept their own join request',
-  'only the team leader');
+  'قائد الفريق فقط');
 
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.decide_team_application(:'application', true);
@@ -8541,7 +8539,9 @@ select public.assert(
          -- a running auction and its bids, as initials (0153)
          'auction_state', 'auction_bids_public',
          -- who is Premium, like a badge (0154)
-         'is_premium')
+         'is_premium',
+         -- the front page's counted numbers, and a profile's activity graph (0156)
+         'platform_stats', 'profile_activity')
   ),
   '73.1 a signed-out visitor can call only the functions on the public list');
 
@@ -11304,6 +11304,72 @@ select public.assert(
   and exists (select 1 from public.notifications where profile_id = '22222222-2222-2222-2222-222222222222'
                 and entity_id = :'top115c' and body_ar like '%المبلغ في رصيدك%'),
   '115.8 if the purchase cannot complete, the money stays in the balance and the member is told');
+reset request.jwt.claim.sub;
+
+
+-- -----------------------------------------------------------------------------
+-- 116. Direct writes closed; numbers, path facts, joining a team (0156)
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(
+  $$update public.profiles set techmood_id = 'TMU-HACKED01' where id = '22222222-2222-2222-2222-222222222222'$$,
+  '116.1 nobody changes their own TechMood ID', 'permission denied');
+update public.profiles set headline = 'Backend learner', learning_goal = 'web' where id = '22222222-2222-2222-2222-222222222222';
+select public.assert(
+  (select learning_goal = 'web' from public.profiles where id = '22222222-2222-2222-2222-222222222222'),
+  '116.2 but still edits what is theirs, the goal included');
+select public.assert_rejects(
+  $$update public.submissions set status = 'approved' where profile_id = '22222222-2222-2222-2222-222222222222'$$,
+  '116.3 nobody approves their own submission', 'permission denied');
+select public.assert_rejects(
+  $$update public.enrollments set completed_at = now() where profile_id = '22222222-2222-2222-2222-222222222222'$$,
+  '116.4 nor completes an enrolment by hand', 'permission denied');
+select public.assert_rejects(
+  $$update public.opportunity_applications set stage = 'accepted' where profile_id = '22222222-2222-2222-2222-222222222222'$$,
+  '116.5 nor accepts themselves into an opportunity', 'permission denied');
+select public.assert_rejects(
+  $$update public.team_applications set status = 'accepted' where profile_id = '22222222-2222-2222-2222-222222222222'$$,
+  '116.6 nor into a team', 'permission denied');
+select public.assert(
+  (select paths > 0 and courses > 0 and lessons > 0 from public.platform_stats()),
+  '116.7 the front page numbers are counted');
+select public.assert(
+  (select count(*) from public.academy_path_facts()) = (select count(*) from public.learning_paths where status = 'published'),
+  '116.8 every published path has its facts');
+reset role;
+set role anon;
+select public.assert((select members >= 0 from public.platform_stats()), '116.9 a visitor sees the numbers');
+reset role;
+
+-- joining a team from its project (its leader may have changed by now)
+select leader_id as lead116 from public.teams where id = :'team' \gset
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.request_to_join_team(:'team', 'أستطيع المساعدة في الواجهة') as join116 \gset
+select public.assert_rejects(format($$select public.request_to_join_team(%L)$$, :'team'),
+  '116.10 one pending request at a time', 'قيد الانتظار');
+reset role;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = :'lead116'
+            and entity_id = :'join116' and title_ar like '🙋%'),
+  '116.11 the leader is told');
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert((select count(*) from public.team_join_requests(:'team')) = 0,
+  '116.12 only the leader sees the requests');
+select set_config('request.jwt.claim.sub', :'lead116', false);
+select public.assert((select count(*) from public.team_join_requests(:'team')) = 1, '116.13 the leader does');
+select public.decide_team_application(:'join116', false);
+reset role;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+            and title_ar like 'لم يُقبل طلبك للانضمام%'),
+  '116.14 a declined member is told');
+set role authenticated;
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert_rejects(format($$select public.request_to_join_team(%L)$$, :'team'),
+  '116.15 and waits a week before asking again', 'بعد أسبوع');
+reset role;
 reset request.jwt.claim.sub;
 
 \echo ''

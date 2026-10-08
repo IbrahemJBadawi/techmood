@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/i18n';
 import { TeamNav } from '../TeamNav';
 import { InviteForm } from './InviteForm';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { decideJoin } from '../../join-actions';
 
 export default async function TeamMembersPage({
   params,
@@ -25,11 +26,13 @@ export default async function TeamMembersPage({
   const { data: team } = await supabase.from('teams').select('id, title_ar, leader_id').eq('id', teamId).maybeSingle();
   if (!team) notFound();
 
-  const [{ data: members }, { data: invites }, { data: tasks }, { data: canInvite }] = await Promise.all([
+  const [{ data: members }, { data: invites }, { data: tasks }, { data: canInvite }, { data: requests }] = await Promise.all([
     supabase.from('team_members').select('profile_id, role, responsibility_ar, joined_at').eq('team_id', teamId),
     supabase.from('team_invites').select('id, invitee_id, responsibility_ar, status, expires_at').eq('team_id', teamId).eq('status', 'pending'),
     supabase.from('team_tasks').select('id, assignee_id, column_key').eq('team_id', teamId),
     supabase.rpc('team_permission', { p_team: teamId, p_permission: 'members_invite' }),
+    // people asking to join from a project page (0156) — the leader's to answer
+    supabase.rpc('team_join_requests', { p_team: teamId }),
   ]);
 
   const peopleIds = [
@@ -94,6 +97,29 @@ export default async function TeamMembersPage({
           );
         })}
       </div>
+
+      {(requests ?? []).length > 0 && (
+        <section className="section-block" style={{ marginTop: 24 }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: 12 }}>🙋 {t(`طلبات انضمام (${requests!.length})`, `Join requests (${requests!.length})`)}</h3>
+          <ul className="join-requests">
+            {requests!.map((request) => (
+              <li key={request.id} className="panel">
+                <div>
+                  <strong>{request.techmood_id ? <Link href={`/u/${request.techmood_id}`}>{request.full_name}</Link> : request.full_name}</strong>
+                  {request.headline && <span className="muted"> · {request.headline}</span>}
+                  {request.message_ar && <p style={{ fontSize: '0.86rem', marginTop: 6 }}>«{request.message_ar}»</p>}
+                </div>
+                <form action={decideJoin} className="row-actions">
+                  <input type="hidden" name="application_id" value={request.id} />
+                  <input type="hidden" name="team_id" value={teamId} />
+                  <button className="btn btn-primary btn-sm" name="decision" value="accept">{t('✓ اقبل', '✓ Accept')}</button>
+                  <button className="btn btn-ghost btn-sm" name="decision" value="decline">{t('اعتذر', 'Decline')}</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {(invites?.length ?? 0) > 0 && (
         <section className="section-block" style={{ marginTop: 24 }}>

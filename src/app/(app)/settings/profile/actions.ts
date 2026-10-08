@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
 import { PRIMARY_LINK_KINDS } from '@/lib/profile-links';
+import { isLearningGoal } from '@/lib/goals';
 import type {
   ExperienceKind, LinkKind, ProfileAudience, ProfileSection,
 } from '@/lib/database.types';
@@ -36,6 +37,7 @@ export async function saveProfileBasics(_prev: ProfileState, formData: FormData)
       headline: String(formData.get('headline') ?? '').trim() || null,
       bio: String(formData.get('bio') ?? '').trim() || null,
       is_public: formData.get('is_public') === 'on',
+      learning_goal: isLearningGoal(formData.get('learning_goal')) ? String(formData.get('learning_goal')) : null,
     })
     .eq('id', user.id);
 

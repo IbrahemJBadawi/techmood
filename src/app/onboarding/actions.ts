@@ -9,6 +9,7 @@ import { dbError } from '@/lib/db-errors';
 import { isEnglishName, tidyName } from '@/lib/names';
 import { SELECTABLE_ROLES } from '@/lib/roles';
 import type { TaxonomyKind, UiLanguage, UserRole } from '@/lib/database.types';
+import { isLearningGoal } from '@/lib/goals';
 
 export type StepState = { error?: string; ok?: string } | undefined;
 
@@ -184,6 +185,17 @@ export async function suggestTerm(_prev: StepState, formData: FormData): Promise
 }
 
 /** Step 6 — the account is ready. */
+/** «شو هدفك؟» (0156): the goal, which picks the path recommended to start with. Skipping is fine. */
+export async function saveGoal(_prev: StepState, formData: FormData): Promise<StepState> {
+  const t = await getT();
+  const { supabase, user } = await me();
+  const goal = String(formData.get('goal') ?? '');
+  const { error } = await supabase.from('profiles')
+    .update({ learning_goal: isLearningGoal(goal) ? goal : null }).eq('id', user.id);
+  if (error) return { error: t('تعذّر حفظ هدفك.', 'Could not save your goal.') };
+  return { ok: 'saved' };
+}
+
 export async function finishOnboarding(_prev: StepState, formData: FormData): Promise<StepState> {
   const t = await getT();
   const { supabase, user } = await me();

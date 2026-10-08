@@ -21,10 +21,11 @@ export default async function OnboardingPage() {
     { data: myFields },
     { data: myInterests },
     { data: mySkills },
+    { data: publishedPaths },
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('techmood_id, full_name, display_name, username, avatar_url, headline, country, city, language')
+      .select('techmood_id, full_name, display_name, username, avatar_url, headline, country, city, language, learning_goal')
       .eq('id', user.id)
       .single(),
     supabase.from('profile_roles').select('id, role, status, application_note').eq('profile_id', user.id),
@@ -34,6 +35,8 @@ export default async function OnboardingPage() {
     supabase.from('profile_fields').select('field_id').eq('profile_id', user.id),
     supabase.from('profile_interests').select('interest_id').eq('profile_id', user.id),
     supabase.from('profile_skills').select('skill_id').eq('profile_id', user.id),
+    // the paths a goal can point to (0156)
+    supabase.from('learning_paths').select('slug, title_ar, title_en, description_ar').eq('status', 'published'),
   ]);
 
   if (!profile) redirect('/login');
@@ -45,6 +48,7 @@ export default async function OnboardingPage() {
       userId={user.id}
       profile={profile}
       roles={roles ?? []}
+      paths={publishedPaths ?? []}
       catalogues={{
         field: fields ?? [],
         interest: interests ?? [],

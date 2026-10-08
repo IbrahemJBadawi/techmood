@@ -78,7 +78,7 @@ export default async function ProfileSettingsPage() {
     { data: experience },
     { data: external },
   ] = await Promise.all([
-    supabase.from('profiles').select('headline, bio, is_public, techmood_id, avatar_url, full_name, display_name, username').eq('id', user.id).single(),
+    supabase.from('profiles').select('headline, bio, is_public, techmood_id, avatar_url, full_name, display_name, username, learning_goal').eq('id', user.id).single(),
     supabase.from('profile_section_visibility').select('section, audience').eq('profile_id', user.id),
     supabase.from('profile_links').select('id, kind, label, url').eq('profile_id', user.id).order('sort_order'),
     supabase.from('profile_education').select('id, institution, degree, field, started_on, ended_on').eq('profile_id', user.id),
@@ -124,7 +124,7 @@ export default async function ProfileSettingsPage() {
       )}
 
       {profile && (
-        <BasicsForm headline={profile.headline} bio={profile.bio} isPublic={profile.is_public} />
+        <BasicsForm headline={profile.headline} bio={profile.bio} isPublic={profile.is_public} goal={profile.learning_goal} />
       )}
 
       {profile && <UsernameForm username={profile.username} techmoodId={profile.techmood_id} />}

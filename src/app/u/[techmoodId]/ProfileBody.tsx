@@ -14,6 +14,7 @@ import { siteOrigin } from '@/lib/site';
 import { PRIMARY_LINK_KINDS, isPrimaryLink } from '@/lib/profile-links';
 import { roleLabel } from '@/lib/roles';
 import { ShareButton } from '@/components/ShareButton';
+import { ActivityGraph } from './ActivityGraph';
 
 const LINK_LABEL: Record<LinkKind, string> = {
   cv: 'CV', linkedin: 'LinkedIn', github: 'GitHub', behance: 'Behance', dribbble: 'Dribbble',
@@ -121,7 +122,7 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
     { data: focusRows },
     { data: clientRecord },
     { data: externalCredentials },
-    { data: skillEvidence },
+    { data: skillEvidence }, { data: activityDays },
   ] = await Promise.all([
     can('identity')
       ? supabase.from('profile_roles').select('role, status').eq('profile_id', card.profile_id).eq('status', 'approved')
@@ -160,6 +161,8 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
     supabase.rpc('profile_credentials', { p_profile: card.profile_id }),
     // Why each skill is here: the credential, the practice, the mentor's stars.
     supabase.rpc('profile_skill_evidence', { p_profile: card.profile_id }),
+    // a square a day for six months, like a contribution graph (0156)
+    can('learning') ? supabase.rpc('profile_activity', { p_profile: card.profile_id }) : { data: [] },
   ]);
 
   const evidenceFor = new Map<string, { kind: string; label: string; provider: string | null; stars: number | null }[]>();
@@ -292,6 +295,31 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
              'Every number here is counted from the platform’s own record: work a mentor approved, a certificate issued, a project exhibited, a session completed.')}
         </p>
       </section>
+
+      {can('projects') && (projects ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">📌 {t('مشاريع مثبّتة', 'Pinned projects')}</h2>
+          <ul className="pinned-grid">
+            {(projects ?? []).slice(0, 6).map((project) => (
+              <li key={project.entry_code}>
+                <Link href={`/exhibition/${project.entry_code}`} className="pinned-card">
+                  <strong>{project.project_title}</strong>
+                  {project.team_title && <span className="muted">👥 {project.team_title}</span>}
+                  <span className="muted eng">{formatDate(locale, project.published_at)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {can('learning') && (activityDays ?? []).length > 0 && (
+        <section className="panel section-block">
+          <h2 className="profile-heading">{t('النشاط', 'Activity')}</h2>
+          <ActivityGraph days={activityDays ?? []} locale={locale} />
+        </section>
+      )}
+
 
       {can('skills') && (skills ?? []).length > 0 && (
         <section className="panel section-block">
@@ -439,20 +467,6 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
         </section>
       )}
 
-      {can('projects') && (projects ?? []).length > 0 && (
-        <section className="panel section-block">
-          <h2 className="profile-heading">{t('مشاريع في المعرض', 'Projects in the exhibition')}</h2>
-          <ul className="profile-list">
-            {(projects ?? []).map((project) => (
-              <li key={project.entry_code}>
-                <Link href={`/exhibition/${project.entry_code}`}>{project.project_title}</Link>
-                {project.team_title && <span className="muted">{project.team_title}</span>}
-                <span className="muted eng">{formatDate(locale, project.published_at)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {can('evaluations') && (reputation ?? []).length > 0 && (
         <section className="panel section-block">

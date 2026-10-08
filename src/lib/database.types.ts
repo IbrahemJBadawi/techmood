@@ -767,6 +767,8 @@ export type Profile = {
   onboarding_completed_at: string | null;
   /** Finished or skipped the welcome guide (0129). */
   welcomed_at: string | null;
+  /** What they want to reach, asked at onboarding (0156); drives the recommended path. */
+  learning_goal: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -2810,6 +2812,28 @@ export type Database = {
         Returns: { id: string; amount_usd: number; kind: 'topup' | 'spend' | 'refund' | 'adjust'; description_ar: string; created_at: string }[];
       };
       request_topup: { Args: { p_amount: number; p_method: string }; Returns: string };
+      platform_stats: {
+        Args: Record<string, never>;
+        Returns: { paths: number; courses: number; lessons: number; members: number; projects: number; mentors: number }[];
+      };
+      academy_path_facts: {
+        Args: Record<string, never>;
+        Returns: { path_id: string; hours: number | null; projects: number; skills: string[] }[];
+      };
+      request_to_join_team: { Args: { p_team: string; p_message?: string | null }; Returns: string };
+      decide_team_application: { Args: { p_application_id: string; p_accept: boolean }; Returns: undefined };
+      team_join_requests: {
+        Args: { p_team: string };
+        Returns: {
+          id: string; profile_id: string; full_name: string | null; techmood_id: string | null; avatar_url: string | null;
+          headline: string | null; message_ar: string | null; created_at: string;
+        }[];
+      };
+      project_team_join_state: {
+        Args: { p_project: string };
+        Returns: { team_id: string; team_title: string; is_open: boolean; am_member: boolean; my_request: string | null }[];
+      };
+      profile_activity: { Args: { p_profile: string }; Returns: { day: string; events: number; xp: number }[] };
       request_purchase_topup: {
         Args: { p_purpose: 'premium' | 'package'; p_method: string; p_plan?: string | null; p_mentor?: string | null;
                 p_session_type?: string | null; p_sessions?: number | null };

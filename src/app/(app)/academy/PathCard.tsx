@@ -18,6 +18,10 @@ export function PathCard({ path }: { path: AcademyPath }) {
   const range = levelRange(t.locale, path.level_from, path.level_to);
   const started = path.status !== 'not_started';
   const look = schoolLook(path.school_slug);
+  // what the path gives (0156): its hours, its projects, the skills it builds
+  const hours = path.hours_total ?? path.estimated_hours;
+  const projects = path.projects_total ?? 0;
+  const skills = path.skills ?? path.tags ?? [];
   const school = path.school_name_ar
     ? (t.locale === 'ar' ? path.school_name_ar : (path.school_name_en ?? path.school_name_ar))
     : t('مسار', 'Path');
@@ -42,9 +46,15 @@ export function PathCard({ path }: { path: AcademyPath }) {
 
         <ul className="lcard-meta">
           <li><Icon name="layers" size={14} />{courseCount(t.locale, path.courses_total)}</li>
-          {path.estimated_hours && <li><Icon name="clock" size={14} /><span className="eng">~{path.estimated_hours}h</span></li>}
+          {hours ? <li><Icon name="clock" size={14} />{t(`~${hours} ساعة`, `~${hours} h`)}</li> : null}
+          {projects > 0 && <li><Icon name="work" size={14} />{t(projects === 1 ? 'مشروع واحد' : projects === 2 ? 'مشروعان' : `${projects} مشاريع`, `${projects} project${projects === 1 ? '' : 's'}`)}</li>}
           {range && <li><Icon name="chart" size={14} />{range}</li>}
         </ul>
+        {skills.length > 0 && (
+          <ul className="lcard-skills" aria-label={t('المهارات التي تكتسبها', 'Skills you gain')}>
+            {skills.slice(0, 4).map((skill) => <li key={skill} className="eng">{skill}</li>)}
+          </ul>
+        )}
 
         {started && (
           <p className="lcard-progress-note">
