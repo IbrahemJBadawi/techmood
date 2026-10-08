@@ -6,6 +6,8 @@
 // role the platform injects, so no key lives in this file or in the app.
 // Claims a batch from the outbox, sends each message through Resend, and
 // reports back. Until a key and a sender exist it does nothing.
+// The sender is the no-reply address (0157); a reply goes to support instead
+// (the `email_reply_to` setting).
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 type Item = { id: string; to_email: string; subject: string; body_ar: string; action_url: string | null };
@@ -24,7 +26,7 @@ function linkFor(site: string, actionUrl: string | null): string {
   return `${base}/notifications`;
 }
 
-function html(item: Item, link: string, site: string): string {
+function html(item: Item, link: string, site: string, replyTo: string | null): string {
   const base = site.replace(/\/+$/, '');
   const body = escape(item.body_ar).replace(/\n/g, '<br>');
   return `<!doctype html>
@@ -42,7 +44,8 @@ function html(item: Item, link: string, site: string): string {
     </td></tr>
     <tr><td style="padding:16px 24px;border-top:1px solid #e3e9f2;font-size:13px;color:#627284;line-height:1.7">
       وصلتك هذه الرسالة لأن إشعارات البريد مفعّلة في حسابك.
-      <a href="${base}/settings/notifications" style="color:#006BE0">غيّر تفضيلات الإشعارات</a>
+      <a href="${base}/settings/notifications" style="color:#006BE0">غيّر تفضيلات الإشعارات</a>${replyTo ? `<br>
+      رسالة تلقائية — للمساعدة راسلنا على <a href="mailto:${escape(replyTo)}" style="color:#006BE0">${escape(replyTo)}</a>` : ''}
     </td></tr>
   </table>
 </body>
@@ -65,6 +68,9 @@ Deno.serve(async (req: Request) => {
     return Response.json({ sent: 0, reason: 'no mail provider key or sender is configured' });
   }
 
+  const { data: replyRow } = await supabase.from('platform_settings').select('value').eq('key', 'email_reply_to').maybeSingle();
+  const replyTo = (replyRow?.value as string | undefined)?.trim() || null;
+
   const { data: batch, error } = await supabase.rpc('claim_email_batch', { p_limit: 30 });
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
@@ -83,7 +89,8 @@ Deno.serve(async (req: Request) => {
           from: cfg.from_address,
           to: [item.to_email],
           subject: item.subject,
-          html: html(item, link, cfg.site_url),
+          ...(replyTo ? { reply_to: replyTo } : {}),
+          html: html(item, link, cfg.site_url, replyTo),
           text: `${item.subject}\n\n${item.body_ar}\n\n${link}`,
           headers: { 'X-Entity-Ref-ID': item.id },
         }),

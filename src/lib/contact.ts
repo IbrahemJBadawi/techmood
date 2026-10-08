@@ -1,5 +1,12 @@
-/** TechMood's public contact: one address, used wherever the site says how to reach the team. */
+/**
+ * TechMood's addresses (0157), each with one job:
+ *   - support: help with an account, a payment, a session — what members write to;
+ *   - contact: official contact — companies, partnerships, legal and privacy;
+ *   - noreply: the sender of automatic emails and notifications (set in the
+ *     `email_from` setting; replies to it go to support).
+ */
 export const SUPPORT_EMAIL = 'support@techmoodtech.com';
+export const CONTACT_EMAIL = 'contact@techmoodtech.com';
 
 /**
  * The official address. Canonical links, link previews, robots.txt and the

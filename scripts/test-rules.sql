@@ -11372,6 +11372,16 @@ select public.assert_rejects(format($$select public.request_to_join_team(%L)$$, 
 reset role;
 reset request.jwt.claim.sub;
 
+
+-- -----------------------------------------------------------------------------
+-- 117. The three addresses (0157)
+select public.assert(
+  (select value from public.platform_settings where key = 'email_from') = 'TechMood <noreply@techmoodtech.com>'
+  and (select value from public.platform_settings where key = 'email_reply_to') = 'support@techmoodtech.com'
+  and (select value from public.platform_settings where key = 'support_email') = 'support@techmoodtech.com'
+  and (select value from public.platform_settings where key = 'contact_email') = 'contact@techmoodtech.com',
+  '117.1 automatic mail from noreply, replies to support, an official contact address');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

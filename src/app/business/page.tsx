@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 
+import { CONTACT_EMAIL } from '@/lib/contact';
+
 import { InquiryForm } from './InquiryForm';
 
 export const generateMetadata = localizedTitle('TechMood للأعمال', 'TechMood for business', {
@@ -74,6 +76,9 @@ export default async function BusinessPage() {
           <h2>{t('تواصل معنا', 'Contact us')}</h2>
           <p className="muted">{t('اكتبوا لنا ما تحتاجونه، ويرد عليكم فريق TechMood مباشرة.', 'Write what you need, and the TechMood team gets back to you directly.')}</p>
           <InquiryForm />
+          <p className="muted" style={{ fontSize: '0.84rem', marginTop: 12 }}>
+            {t('أو راسلونا مباشرة على ', 'Or write to us directly at ')}<a className="eng" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          </p>
         </section>
       </main>
       <SiteFooter />

@@ -274,6 +274,29 @@ export default async function AdminPricingPage() {
       </section>
 
       <section className="section-block">
+        <h3 className="academy-heading">{t('عناوين البريد', 'Email addresses')}</h3>
+        <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 8 }}>
+          {t('المرسل يجب أن يكون على نطاق موثّق لدى مزوّد البريد (Resend). لا يُرسل شيء قبل إضافة مفتاح المزوّد.',
+             'The sender must be on a domain verified with the mail provider (Resend). Nothing is sent before the provider key is added.')}
+        </p>
+        <div className="stack">
+          {[
+            { key: 'email_from', label: t('مرسل الرسائل التلقائية والإشعارات', 'Sender of automatic emails') },
+            { key: 'email_reply_to', label: t('الردود على الرسائل التلقائية تصل إلى', 'Replies to automatic emails go to') },
+            { key: 'support_email', label: t('بريد الدعم', 'Support address') },
+            { key: 'contact_email', label: t('بريد التواصل الرسمي', 'Official contact address') },
+          ].map((setting) => (
+            <ActionForm action={saveSetting} className="admin-inline-form panel" key={setting.key} submitLabel={t('احفظ', 'Save')}>
+              <input type="hidden" name="key" value={setting.key} />
+              <span style={{ minWidth: 220 }}>{setting.label}</span>
+              <input name="value" maxLength={160} required defaultValue={settingOf.get(setting.key) ?? ''} style={{ flex: 1 }}
+                     dir="ltr" aria-label={setting.label} />
+            </ActionForm>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-block">
         <h3 className="academy-heading">{t('بيانات الفواتير', 'Invoice details')}</h3>
         <p className="muted" style={{ fontSize: '0.82rem', marginBottom: 8 }}>
           {t('ما يظهر كجهة مُصدِرة على كل فاتورة. يُكتب هنا، لا في الكود.', 'What every invoice shows as its issuer. Written here, never in the code.')}

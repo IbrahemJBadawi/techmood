@@ -8,7 +8,7 @@ import type { IconName } from '@/lib/roles';
 
 import { ThemeToggle } from './ThemeToggle';
 import { SiteMenu } from './SiteMenu';
-import { SUPPORT_EMAIL } from '@/lib/contact';
+import { CONTACT_EMAIL, SUPPORT_EMAIL } from '@/lib/contact';
 
 /**
  * The public header.
@@ -126,7 +126,9 @@ export async function SiteFooter() {
                'An Arabic-first platform bringing learning, mentoring and teamwork into one verifiable professional identity.')}
           </p>
           <p className="site-footer-contact">
-            {t('تواصل معنا: ', 'Contact us: ')}<a className="eng" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            {t('الدعم: ', 'Support: ')}<a className="eng" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            <br />
+            {t('التواصل الرسمي: ', 'Official contact: ')}<a className="eng" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
           <LanguagePicker current={t.locale} />
         </div>

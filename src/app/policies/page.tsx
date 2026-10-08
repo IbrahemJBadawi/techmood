@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
-import { SUPPORT_EMAIL } from '@/lib/contact';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 export const generateMetadata = localizedTitle('السياسات والشروط — TechMood', 'Policies and terms — TechMood', undefined, '/policies');
 
@@ -128,7 +128,7 @@ export default async function PoliciesPage() {
         ))}
         <p className="muted" style={{ fontSize: '0.84rem', margin: '18px 0 40px' }}>
           {t('سؤال عن سياسة؟ ', 'A question about a policy? ')}<Link href="/support">{t('تواصل مع الدعم', 'Contact Support')}</Link>
-          {t(' أو راسلنا على ', ' or write to ')}<a className="eng" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+          {t(' أو راسلنا على ', ' or write to ')}<a className="eng" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
         </p>
       </main>
       <SiteFooter />
