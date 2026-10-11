@@ -8,6 +8,7 @@ import { CATEGORIES, PRODUCT_TYPES, galleryPath, mediaUrl } from '@/lib/showcase
 import { avatarColor } from '@/lib/mentor-look';
 import { ChoiceChips, FilterSheet, SheetSelect } from '@/components/FilterSheet';
 import { Countdown } from '@/components/Countdown';
+import { LikeButton } from '@/components/Social';
 
 export type ShowcaseFilters = {
   q?: string; category?: string; type?: string; sort?: string;
@@ -64,6 +65,13 @@ export async function ShowcaseGrid({
     : { data: [] };
   const inAuction = new Set((auctions ?? []).map((row) => row.listing_id as string));
   const href = (code: string) => (inApp ? `/p/${code}` : galleryPath(code));
+  // a like can be given from the card itself, without opening the project
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: likeRows } = user && cards.length
+    ? await supabase.rpc('project_like_stats', { p_projects: cards.map((card) => card.project_id) })
+    : { data: [] };
+  const iLike = new Set((likeRows ?? []).filter((row) => row.i_like).map((row) => row.project_id));
+  const here = action;
 
   const [lead, ...rest] = cards;
   // a card without a picture still varies in height, so the columns do not read as a grid
@@ -71,7 +79,8 @@ export async function ShowcaseGrid({
   const renderCard = (card: ShowcaseCard, index: number, isLead: boolean) => {
     const cover = mediaUrl(card.cover);
     return (
-      <Link className={`sc-card-item${isLead ? ' is-lead' : ''}`} href={href(card.code)} key={card.project_id}>
+      <div className={`sc-card-shell${isLead ? ' is-lead' : ''}`} key={card.project_id}>
+      <Link className={`sc-card-item${isLead ? ' is-lead' : ''}`} href={href(card.code)}>
         <span className={`sc-card-cover${cover ? ' has-img' : ''}`} style={cover || isLead ? undefined : { aspectRatio: SHAPES[index % SHAPES.length] }}>
           {cover
             // eslint-disable-next-line @next/next/no-img-element
@@ -98,7 +107,6 @@ export async function ShowcaseGrid({
             </span>
           )}
           <span className="sc-card-stats">
-            <span>❤️ <span className="eng">{card.likes}</span></span>
             <span>👁️ <span className="eng">{card.views}</span></span>
             <span>💬 <span className="eng">{card.comments_count}</span></span>
             {card.listing_id && <span>🛒 <span className="eng">{card.sales_count}</span></span>}
@@ -115,6 +123,11 @@ export async function ShowcaseGrid({
           )}
         </span>
       </Link>
+      <span className="sc-card-like">
+        <LikeButton projectId={card.project_id} likes={card.likes} liked={iLike.has(card.project_id)} compact
+                    canLike={!user || card.owner_id !== user.id} signedIn={Boolean(user)} path={here} />
+      </span>
+      </div>
     );
   };
 

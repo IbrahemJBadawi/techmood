@@ -14,6 +14,8 @@ import { TeamNav } from './TeamNav';
 import { TeamSessions } from './TeamSessions';
 import { AiSurface } from '@/components/AiSurface';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { ShareButton } from '@/components/ShareButton';
+import { JoinTeamBox } from '@/components/showcase/JoinTeam';
 
 export default async function TeamOverviewPage({
   params,
@@ -29,6 +31,63 @@ export default async function TeamOverviewPage({
 
   const { data: team } = await supabase.from('teams').select('*').eq('id', teamId).maybeSingle();
   if (!team) notFound();
+
+  // A shared link opened by someone outside the team (0156): what the team is,
+  // who is in it, and «ask to join» — not the workspace.
+  const [{ data: membership }, { data: isAdmin }] = await Promise.all([
+    supabase.from('team_members').select('profile_id').eq('team_id', teamId).eq('profile_id', user.id).maybeSingle(),
+    supabase.rpc('is_admin'),
+  ]);
+  if (!membership && team.leader_id !== user.id && !isAdmin) {
+    const [{ data: people }, { data: mine }] = await Promise.all([
+      supabase.from('team_members').select('profile_id, role').eq('team_id', teamId),
+      supabase.from('team_applications').select('status').eq('team_id', teamId).eq('profile_id', user.id).maybeSingle(),
+    ]);
+    const ids = (people ?? []).map((row) => row.profile_id);
+    const { data: names } = await supabase.from('profiles').select('id, full_name, techmood_id')
+      .in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+    return (
+      <>
+        <section className="section-block ac-cover" style={{ '--hue': avatarColor(team.id) } as React.CSSProperties}>
+          <div className="ac-cover-top">
+            <span className="ac-cover-icon"><Icon name="team" size={26} /></span>
+            <div className="ac-cover-titles">
+              <p className="ac-cover-school">{t(TEAM_KIND[team.kind])} · {t(TEAM_STATUS[team.status].text)}</p>
+              <h2>{team.title_ar}</h2>
+            </div>
+          </div>
+          {team.description_ar && <p className="ac-cover-desc">{team.description_ar}</p>}
+          <ul className="ac-cover-meta">
+            <li className="eng">{team.team_code}</li>
+            <li><Icon name="team" size={15} />{t(`${ids.length} أعضاء`, `${ids.length} members`)}</li>
+            {(team.needs ?? []).map((need: string) => <li key={need}>{t('يحتاج: ', 'Needs: ')}{need}</li>)}
+          </ul>
+          <div className="ac-cover-actions">
+            <ShareButton path={`/teams/${teamId}`} title={team.title_ar} className="btn btn-sm ac-cover-ghost"
+                         text={t(`فريق «${team.title_ar}» على TechMood`, `The “${team.title_ar}” team on TechMood`)} />
+          </div>
+        </section>
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '0.98rem', marginBottom: 10 }}>{t('أعضاء الفريق', 'The members')}</h3>
+          <ul className="profile-list">
+            {(names ?? []).map((person) => (
+              <li key={person.id}>
+                {person.techmood_id ? <Link href={`/u/${person.techmood_id}`}>{person.full_name}</Link> : person.full_name}
+                {person.id === team.leader_id && <span className="sc-leader">{t('القائد', 'Lead')}</span>}
+              </li>
+            ))}
+          </ul>
+          <div style={{ marginTop: 14 }}>
+            {mine?.status === 'pending'
+              ? <p className="muted" style={{ fontSize: '0.86rem' }}>⏳ {t('طلبك للانضمام قيد المراجعة عند قائد الفريق.', 'Your request to join is with the team lead.')}</p>
+              : team.is_open
+                ? <JoinTeamBox teamId={team.id} teamTitle={team.title_ar} back={`/teams/${teamId}`} />
+                : <p className="muted" style={{ fontSize: '0.86rem' }}>{t('هذا الفريق لا يستقبل طلبات انضمام الآن.', 'This team is not taking join requests right now.')}</p>}
+          </div>
+        </section>
+      </>
+    );
+  }
 
   const [{ data: members }, { data: tasks }, { data: sprint }, { data: xp }, { data: stars }, { data: activity }] =
     await Promise.all([
@@ -78,6 +137,8 @@ export default async function TeamOverviewPage({
         </ul>
         <div className="ac-cover-actions">
           <Link className="btn btn-sm ac-cover-ghost" href="/messages"><Icon name="message" size={16} />{t('محادثة الفريق', 'Team conversation')}</Link>
+          <ShareButton path={`/teams/${teamId}`} title={team.title_ar} className="btn btn-sm ac-cover-ghost"
+                       text={t(`فريق «${team.title_ar}» على TechMood`, `The “${team.title_ar}” team on TechMood`)} />
           <Link className="btn btn-sm ac-cover-cta" href={`/teams/${teamId}/tasks`}>{t('لوحة المهام', 'Task board')}</Link>
         </div>
       </section>

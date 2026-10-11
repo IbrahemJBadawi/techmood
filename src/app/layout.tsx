@@ -4,6 +4,8 @@ import { Analytics } from '@/components/Analytics';
 import { Analytics as VercelAnalytics } from '@vercel/analytics/next';
 
 import { DeviceBoot } from '@/components/DeviceSetup';
+import { NavProgress } from '@/components/NavProgress';
+import { Suspense } from 'react';
 import { OfflineStatus } from '@/components/OfflineStatus';
 import { SnackbarHost } from '@/components/Snackbar';
 import { ConfettiHost } from '@/components/Confetti';
@@ -84,6 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               browser sees an installable app wherever a person installs from,
               and offers «Install app» rather than a shortcut. */}
           <DeviceBoot />
+          <Suspense fallback={null}><NavProgress /></Suspense>
           <Analytics />
           <VercelAnalytics />
           <OfflineStatus />

@@ -1289,6 +1289,10 @@ export type Database = {
         worker_id: string; stars: number; comment_ar: string | null; created_at: string;
       }>;
       client_review_scores: Table<{ review_id: string; criterion: ClientCriterion; stars: number }>;
+      team_applications: Table<{
+        id: string; team_id: string; profile_id: string; role_wanted: string | null; message_ar: string | null;
+        status: 'pending' | 'accepted' | 'declined' | 'withdrawn'; decided_by: string | null; decided_at: string | null; created_at: string;
+      }>;
       credit_topups: Table<{
         id: string; topup_code: string; profile_id: string; amount_usd: number; method_key: string;
         reference: string | null; proof_path: string | null;

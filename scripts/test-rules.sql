@@ -11382,6 +11382,25 @@ select public.assert(
   and (select value from public.platform_settings where key = 'contact_email') = 'contact@techmoodtech.com',
   '117.1 automatic mail from noreply, replies to support, an official contact address');
 
+
+-- -----------------------------------------------------------------------------
+-- 118. Every course ends in a project; unfinished sign-ups; foreign-key indexes (0158, 0159)
+select public.assert(
+  (select count(*) from public.courses c
+    where c.slug in ('access','clean-code','word','flutter','sql-server','wordpress','linux','uiux-bootcamp')
+      and exists (select 1 from public.assignments a where a.course_id = c.id and a.kind::text = 'course_project' and a.is_required))
+  = (select count(*) from public.courses where slug in ('access','clean-code','word','flutter','sql-server','wordpress','linux','uiux-bootcamp')),
+  '118.1 the courses that had none now end in a required project');
+select public.assert(public.onboarding_reminders_run() = 0,
+  '118.2 no reminder is queued while no mail provider key exists');
+select public.assert(
+  not exists (
+    select 1 from pg_constraint c
+     where c.contype = 'f' and c.connamespace = 'public'::regnamespace
+       and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1]
+                         and c.conkey::int2[] <@ i.indkey::int2[])),
+  '118.3 every foreign key has an index');
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

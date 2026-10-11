@@ -6108,8 +6108,8 @@ input[type="file"]::file-selector-button:hover { border-color: var(--royal); col
    ========================================================================= */
 .ac-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-l, 18px); padding: 16px; }
 .ac-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-.ac-stats { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.86rem; align-items: baseline; }
-.ac-stats strong { font-size: 1.05rem; }
+.act-stats { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.86rem; align-items: baseline; }
+.act-stats strong { font-size: 1.05rem; }
 .ac-switch, .ac-range { display: inline-flex; gap: 4px; padding: 3px; background: var(--sky-tint); border-radius: 999px; }
 .ac-range { margin-bottom: 8px; background: none; padding: 0; }
 .ac-switch button, .ac-range button { border: 0; background: none; padding: 5px 12px; border-radius: 999px; font: inherit; font-size: 0.8rem; color: var(--ink-soft); cursor: pointer; }
@@ -7183,10 +7183,11 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
   .sc-card-item.is-lead .sc-card-body { align-content: center; padding: 20px 22px; }
 }
 .sc-mason { columns: 2; column-gap: 10px; }
-.sc-mason > .sc-card-item { break-inside: avoid; margin-bottom: 10px; display: flex; width: 100%; }
+.sc-mason > .sc-card-shell { break-inside: avoid; margin-bottom: 10px; }
+.sc-mason > .sc-card-shell > .sc-card-item { display: flex; width: 100%; }
 .sc-mason .sc-card-cover.has-img { aspect-ratio: auto; }
 .sc-mason .sc-card-cover.has-img img { position: static; display: block; height: auto; max-height: 420px; }
-@media (min-width: 760px) { .sc-mason { columns: 3; column-gap: 16px; } .sc-mason > .sc-card-item { margin-bottom: 16px; } }
+@media (min-width: 760px) { .sc-mason { columns: 3; column-gap: 16px; } .sc-mason > .sc-card-shell { margin-bottom: 16px; } }
 @media (min-width: 1200px) { .sc-mason { columns: 4; } }
 @media (max-width: 759px) {
   .sc-mason .sc-card-body { padding: 9px 10px 11px; gap: 4px; }
@@ -7624,3 +7625,41 @@ button.lq-option { width: 100%; text-align: start; font: inherit; color: var(--i
 .pinned-card:hover { border-color: var(--royal); }
 .pinned-card strong { color: var(--royal); font-size: 0.92rem; }
 .pinned-card .muted { font-size: 0.76rem; }
+
+/* Long labels never widen their card (a course's «تابع: …» on a narrow phone
+   pushed the whole cover off-screen): grid columns may shrink, buttons wrap. */
+.ac-cover, .ac-resume, .hm-resume { grid-template-columns: minmax(0, 1fr); }
+.ac-cover-cta, .ac-resume .btn, .hm-resume-cta { white-space: normal; max-width: 100%; text-align: center; line-height: 1.4; }
+.ac-cover h2, .ac-cover-desc, .ac-cover-school { overflow-wrap: anywhere; }
+@media (max-width: 400px) {
+  .ac-cover-top { gap: 10px; }
+  .ac-cover-icon { width: 42px; height: 42px; border-radius: 12px; }
+  .ac-cover-top .progress-ring { transform: scale(0.85); transform-origin: center; }
+}
+
+/* Tapping answers at once (lab 5 notes): a bar while the next page loads,
+   and no double-tap-to-zoom delay on buttons and links. */
+a, button, [role="button"], label, summary, input, select, textarea { touch-action: manipulation; }
+.nav-progress {
+  position: fixed; top: 0; inset-inline: 0; z-index: 1000; height: 3px; pointer-events: none;
+  background: linear-gradient(90deg, var(--sky), var(--royal));
+  transform-origin: right; transform: scaleX(0); opacity: 0;
+}
+[dir='ltr'] .nav-progress { transform-origin: left; }
+.nav-progress.is-busy { opacity: 1; animation: nav-progress 8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; }
+.nav-progress.is-done { opacity: 0; transform: scaleX(1); transition: opacity 0.3s 0.1s; }
+@keyframes nav-progress { from { transform: scaleX(0); } 20% { transform: scaleX(0.45); } to { transform: scaleX(0.92); } }
+@media (prefers-reduced-motion: reduce) { .nav-progress.is-busy { animation: none; transform: scaleX(0.6); } }
+.lesson-jump { margin-top: 12px; }
+
+/* a like from the card itself (lab 5 notes) — over the cover, outside the link */
+.sc-card-shell { position: relative; break-inside: avoid; }
+.sc-card-like { position: absolute; top: 10px; inset-inline-end: 10px; z-index: 2; }
+.sc-card-like .like-btn {
+  min-height: 34px; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem;
+  background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+/* a lesson row's details wrap instead of running past a narrow screen */
+.lesson-meta { flex-wrap: wrap; min-width: 0; }
+.lesson-meta > * { min-width: 0; overflow-wrap: anywhere; }

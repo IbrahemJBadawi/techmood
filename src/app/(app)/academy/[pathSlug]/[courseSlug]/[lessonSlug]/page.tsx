@@ -251,25 +251,10 @@ export default async function LessonPage({
                'This lesson’s video is coming soon. You can study it now from the summary and sources, start the assignment, and complete it as usual.')}
           </p>
         )}
-        {canTick && quiz && (quiz.ready || (!done && aiReady)) && (
-          <LessonQuiz lessonId={lesson.id} initial={quiz} canWrite={aiReady && !done} revalidate={here} />
-        )}
         {canTick && (
-          <form action={toggleLesson} className="lesson-done-form">
-            <input type="hidden" name="lesson_id" value={lesson.id} />
-            <input type="hidden" name="completed" value={String(done)} />
-            <input type="hidden" name="revalidate" value={here} />
-            {!done && quiz?.ready && !quiz.passed ? (
-              <>
-                <button className="btn btn-primary btn-lg" type="button" disabled>{t('علّم الدرس كمكتمل', 'Mark the lesson as done')}</button>
-                <p className="muted lesson-done-hint">{t('اجتز الاختبار القصير أعلاه أولاً — إجابتان صحيحتان من ثلاث.', 'Pass the short quiz above first — two right answers of three.')}</p>
-              </>
-            ) : (
-              <CelebrateSubmit className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} off={done}>
-                {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
-              </CelebrateSubmit>
-            )}
-          </form>
+          <a className="btn btn-ghost btn-sm lesson-jump" href="#lesson-finish">
+            {done ? t('✓ أكملت هذا الدرس', '✓ You finished this lesson') : t('↓ بعد الدرس: الاختبار وإكمال الدرس', '↓ After the lesson: the quiz and marking it done')}
+          </a>
         )}
       </section>
 
@@ -391,6 +376,32 @@ export default async function LessonPage({
               </section>
             )}
   
+            {canTick && (
+              <section className="panel section-block lesson-finish" id="lesson-finish">
+                <h3 style={{ fontSize: '0.98rem' }}><span className="ls-chip" aria-hidden="true">✅</span>{t('أنهِ الدرس', 'Finish the lesson')}</h3>
+              {canTick && quiz && (quiz.ready || (!done && aiReady)) && (
+                <LessonQuiz lessonId={lesson.id} initial={quiz} canWrite={aiReady && !done} revalidate={here} />
+              )}
+              {canTick && (
+                <form action={toggleLesson} className="lesson-done-form">
+                  <input type="hidden" name="lesson_id" value={lesson.id} />
+                  <input type="hidden" name="completed" value={String(done)} />
+                  <input type="hidden" name="revalidate" value={here} />
+                  {!done && quiz?.ready && !quiz.passed ? (
+                    <>
+                      <button className="btn btn-primary btn-lg" type="button" disabled>{t('علّم الدرس كمكتمل', 'Mark the lesson as done')}</button>
+                      <p className="muted lesson-done-hint">{t('اجتز الاختبار القصير أعلاه أولاً — إجابتان صحيحتان من ثلاث.', 'Pass the short quiz above first — two right answers of three.')}</p>
+                    </>
+                  ) : (
+                    <CelebrateSubmit className={`btn ${done ? 'btn-ghost' : 'btn-primary btn-lg'}`} off={done}>
+                      {done ? t('✓ مكتمل — تراجع', '✓ Done — undo') : t('علّم الدرس كمكتمل', 'Mark the lesson as done')}
+                    </CelebrateSubmit>
+                  )}
+                </form>
+              )}
+              </section>
+            )}
+
             <section className="panel section-block">
               <h3 style={{ fontSize: '0.98rem' }}>{t('أين يُحفَظ هذا العمل', 'Where this work lives')}</h3>
               <p className="muted" style={{ fontSize: '0.84rem', marginTop: 6 }}>

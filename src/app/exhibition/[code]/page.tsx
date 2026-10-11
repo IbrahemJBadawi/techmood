@@ -10,6 +10,7 @@ import type { ExhibitionSnapshot, ReviewCriterion } from '@/lib/database.types';
 
 import { CRITERION_LABEL, KIND_LABEL } from '../types';
 import { siteOrigin } from '@/lib/site';
+import { ShareButton } from '@/components/ShareButton';
 
 export const generateMetadata = localizedTitle('مشروع في معرض TechMood', 'A project in the TechMood exhibition');
 
@@ -94,6 +95,10 @@ export default async function ExhibitionEntryPage({
           <span className="muted"> · {KIND_LABEL[snapshot.kind]?.[locale] ?? snapshot.kind}</span>
           {snapshot.path && <span className="muted"> · {snapshot.path.title}</span>}
         </p>
+        <div style={{ marginTop: 10 }}>
+          <ShareButton path={`/exhibition/${code}`} title={snapshot.project_title}
+                       text={t(`مشروع «${snapshot.project_title}» في معرض TechMood`, `“${snapshot.project_title}” in the TechMood exhibition`)} />
+        </div>
 
         <div className="exhibit-headline">
           {evaluation?.rating != null && (

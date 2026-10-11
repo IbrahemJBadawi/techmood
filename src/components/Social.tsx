@@ -89,6 +89,7 @@ export function LikeButton({
   canLike,
   signedIn,
   path,
+  compact = false,
 }: {
   projectId: string;
   likes: number;
@@ -96,6 +97,8 @@ export function LikeButton({
   canLike: boolean;
   signedIn: boolean;
   path: string;
+  /** on a card in a grid: the heart and the number only */
+  compact?: boolean;
 }) {
   const t = useT();
   const [on, setOn] = useState(liked);
@@ -157,7 +160,7 @@ export function LikeButton({
         aria-label={`${on ? t('إلغاء الإعجاب', 'Unlike') : t('أعجبني', 'Like')} — ${label}`} aria-busy={pending}>
         <span className="like-icon" key={burst}>{heart(on)}</span>
         <span className="eng">{count}</span>
-        <span className="like-word">{on ? t('أعجبك', 'Liked') : t('أعجبني', 'Like')}</span>
+        {!compact && <span className="like-word">{on ? t('أعجبك', 'Liked') : t('أعجبني', 'Like')}</span>}
       </button>
       {error && <span className="muted" style={{ fontSize: '0.76rem' }}>{error}</span>}
     </span>

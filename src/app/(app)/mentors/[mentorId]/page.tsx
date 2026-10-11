@@ -5,6 +5,7 @@ import { Icon } from '@/components/Icon';
 import { Stars } from '@/components/Stars';
 import { avatarColor, domainLabel, initialOf } from '@/lib/mentor-look';
 import { FollowButton } from '@/components/Social';
+import { ShareButton } from '@/components/ShareButton';
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
@@ -123,6 +124,8 @@ export default async function MentorProfilePage({
                 path={`/mentors/${mentorId}`}
               />
             )}
+            <ShareButton path={`/mentors/${mentorId}`} title={profile?.full_name ?? 'TechMood'}
+                         text={t(`المنتور ${profile?.full_name ?? ''} على TechMood — احجز جلسة`, `${profile?.full_name ?? ''}, a mentor on TechMood — book a session`)} />
           </div>
         </div>
 

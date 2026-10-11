@@ -40,7 +40,7 @@ export function ActivityCharts({ days, totalXp }: { days: ActivityPoint[]; total
   return (
     <div className="ac-card">
       <div className="ac-head">
-        <div className="ac-stats">
+        <div className="act-stats">
           <span><strong className="eng">{active}</strong> {t('يوم نشاط', 'active days')}</span>
           <span><strong className="eng">{lessons}</strong> {t('درساً', 'lessons')}</span>
           <span className="muted">{t('آخر 13 أسبوعاً', 'last 13 weeks')}</span>
