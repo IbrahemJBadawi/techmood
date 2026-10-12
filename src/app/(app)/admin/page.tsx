@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { formatDate } from '@/lib/i18n';
 import type { Text } from '@/lib/i18n';
-import { IS_MVP } from '@/lib/scope';
 
 import { RoleReviewForm } from './RoleReviewForm';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
@@ -22,10 +21,8 @@ const ALL_ITEM_LABELS: Record<string, Text> = {
   reevaluation_request: { ar: 'طلب إعادة تقييم',          en: 'Re-evaluation request' },
 };
 
-// The incubator is outside the MVP (src/lib/scope.ts).
-const ITEM_LABELS = Object.fromEntries(
-  Object.entries(ALL_ITEM_LABELS).filter(([kind]) => !IS_MVP || kind !== 'incubator_application'),
-);
+// The incubator opened with the Startup Studio (0166).
+const ITEM_LABELS = ALL_ITEM_LABELS;
 
 export default async function AdminPage() {
   const t = await getT();
@@ -166,7 +163,7 @@ export default async function AdminPage() {
               {t('راجع طلبات السحب', 'Review payouts')} ({byKind('payout_request').length})
             </Link>
           )}
-          {!IS_MVP && byKind('incubator_application').length > 0 && (
+          {byKind('incubator_application').length > 0 && (
             <Link className="btn btn-sky btn-sm" href="/admin/incubator">
               {t('راجع طلبات الحاضنة', 'Review incubator')} ({byKind('incubator_application').length})
             </Link>

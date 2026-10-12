@@ -11702,6 +11702,16 @@ select public.assert_rejects($$select count(*) from public.startup_market$$,
 reset role;
 reset request.jwt.claim.sub;
 
+-- -----------------------------------------------------------------------------
+-- 124. The team-leader role can be asked for again (0167)
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.apply_for_role('team_leader', 'أقود فريق مشروع تخرّج') as tl124 \gset
+select public.assert((select status = 'pending_review' from public.profile_roles where id = :'tl124'),
+  '124.1 a team lead asks, and an admin reviews');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'
