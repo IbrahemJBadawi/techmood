@@ -58,14 +58,15 @@ export default async function MarketPage({
   // for sale, and what you bought. Jobs and freelancing are outside its scope
   // (src/lib/scope.ts) and their tabs are not shown.
   if (IS_MVP) {
-    const mvpTab = (['projects', 'services', 'jobs', 'offers', 'money'] as const)
+    const mvpTab = (['projects', 'services', 'jobs', 'freelance', 'offers', 'money'] as const)
       .find((key) => key === params.tab) ?? (params.tab === 'buying' ? 'money' : 'projects');
     const filters = { q: params.q, category: params.category,
                       type: params.type, sort: params.sort };
     const tabs: { key: typeof mvpTab; label: string; soon?: boolean }[] = [
       { key: 'projects', label: t('🧩 المشاريع', '🧩 Projects') },
       { key: 'services', label: t('🛠️ الخدمات', '🛠️ Services') },
-      { key: 'jobs', label: t('💼 الوظائف والطلبات', '💼 Jobs & requests'), soon: true },
+      { key: 'jobs', label: t('💼 الوظائف', '💼 Jobs') },
+      { key: 'freelance', label: t('🧑‍💻 مشاريع عمل حر', '🧑‍💻 Freelance projects') },
       { key: 'offers', label: t('💬 عروض الأسعار', '💬 Offers') },
       { key: 'money', label: t('مشترياتي ومبيعاتي', 'My purchases & sales') },
     ];
@@ -97,14 +98,22 @@ export default async function MarketPage({
                           emptyCta={<Link className="btn btn-primary btn-sm" href={`/projects/new?intent=market${mvpTab === 'services' ? '&type=digital_service' : ''}`}>
                             {mvpTab === 'services' ? t('اعرض أول خدمة', 'Offer the first service') : t('اعرض أول مشروع', 'List the first project')}</Link>} />
           )}
-          {mvpTab === 'jobs' && (
-            <div className="panel empty-state">
-              <h3 style={{ fontSize: '1rem' }}>💼 {t('الوظائف والطلبات — قريباً', 'Jobs & requests — coming soon')}</h3>
-              <p className="muted" style={{ fontSize: '0.86rem' }}>
-                {t('قريباً تنشر الشركات والأعضاء طلبات عمل ووظائف، ويتقدّم لها أعضاء TechMood بسجلّهم الموثّق.',
-                   'Soon companies and members will post jobs and work requests, and TechMood members apply with their verified record.')}
-              </p>
-            </div>
+          {(mvpTab === 'jobs' || mvpTab === 'freelance') && (
+            <>
+              <div className="market-post-row">
+                <p className="muted">
+                  {mvpTab === 'jobs'
+                    ? t('وظائف بدوام كامل أو جزئي وتدريب وعمل عن بُعد — تتقدّم لها بسجلّك الموثّق.', 'Full- and part-time jobs, internships and remote roles — apply with your verified record.')
+                    : t('مشاريع محددة بمخرجات ومدة — يتقدّم لها المستقلون والفرق بعروضهم.', 'Defined projects with deliverables and a deadline — freelancers and teams send offers.')}
+                </p>
+                <Link className="btn btn-primary btn-sm" href={`/marketplace/new${mvpTab === 'jobs' ? '?kind=job' : ''}`}>
+                  {mvpTab === 'jobs' ? t('+ انشر وظيفة', '+ Post a job') : t('+ انشر مشروعاً', '+ Post a project')}
+                </Link>
+              </div>
+              <JobList kind={mvpTab === 'freelance' ? 'freelance' : undefined}
+                       kinds={mvpTab === 'jobs' ? ['job', 'internship', 'remote'] : undefined}
+                       search={params.q} saved={new Set()} />
+            </>
           )}
           {mvpTab === 'offers' && <Offers />}
           {mvpTab === 'money' && (<><Purchases /><MoneyTab /></>)}

@@ -1313,6 +1313,11 @@ export type Database = {
         status: 'open' | 'won' | 'no_bids' | 'cancelled'; winning_usd: number | null; created_at: string; closed_at: string | null;
       }>;
       premium_memberships: Table<{ profile_id: string; until: string; since: string }>;
+      business_pages: Table<{
+        id: string; slug: string; owner_id: string; team_id: string | null; name: string; tagline: string | null;
+        about: string | null; sector: string | null; city: string | null; website_url: string | null; contact_note: string | null;
+        logo_url: string | null; is_published: boolean; created_at: string; updated_at: string;
+      }>;
       verified_members: Table<{ profile_id: string; since: string }>;
       identity_verifications: Table<{
         id: string;
@@ -2918,6 +2923,16 @@ export type Database = {
       };
       sponsored_click: { Args: { p_promotion: string }; Returns: undefined };
       ux_survey_due: { Args: Record<string, never>; Returns: boolean };
+      area_open: { Args: { p_area: string }; Returns: boolean };
+      business_access: { Args: Record<string, never>; Returns: { premium: boolean; can_publish: boolean; company_status: string | null; freelancer: boolean; page_slug: string | null }[] };
+      save_business_page: {
+        Args: { p_slug: string; p_name: string; p_tagline: string | null; p_about: string | null; p_sector: string | null; p_city: string | null; p_website: string | null; p_contact: string | null; p_team?: string | null; p_published?: boolean };
+        Returns: string;
+      };
+      business_directory: {
+        Args: { p_search?: string | null; p_limit?: number };
+        Returns: { id: string; slug: string; name: string; tagline: string | null; sector: string | null; city: string | null; owner_id: string; team_id: string | null; services: number; projects: number; openings: number; verified: boolean }[];
+      };
       submit_ux_survey: { Args: { p_ease: number; p_recommend: number; p_most_used: string | null; p_pains: string[]; p_suggestion: string | null; p_role?: string | null }; Returns: string };
       ux_survey_stats: { Args: { p_days?: number }; Returns: unknown };
       xp_balance: { Args: { p_profile: string }; Returns: number };

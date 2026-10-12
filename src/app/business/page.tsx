@@ -48,6 +48,7 @@ export default async function BusinessPage() {
           <div className="cta-row">
             <a className="btn btn-primary" href="#contact">{t('تواصل معنا', 'Contact us')}</a>
             <Link className="btn btn-ghost" href="/exhibition">{t('شاهد أعمالهم في المعرض', 'See their work in the gallery')}</Link>
+            <Link className="btn btn-ghost" href="/hub">{t('للأعضاء: ادخل TechMood Business', 'Members: open TechMood Business')}</Link>
           </div>
         </section>
 

@@ -1785,6 +1785,10 @@ reset role;
 -- Give that account an approved company role, the way review would.
 insert into public.profile_roles (profile_id, role, status)
 values ('22222222-2222-2222-2222-222222222222', 'company', 'approved');
+-- Publishing is for Premium (0165): the publishers in these tests subscribe.
+insert into public.premium_memberships (profile_id, until)
+values ('22222222-2222-2222-2222-222222222222', now() + interval '1 year')
+on conflict (profile_id) do update set until = excluded.until;
 
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
@@ -2235,7 +2239,7 @@ select public.assert_rejects($$select public.apply_for_role('student')$$,
 select public.assert_rejects($$select public.apply_for_role('admin')$$,
   '20.20 nobody applies to be an admin', 'لا يُطلب');
 
-select public.apply_for_role('freelancer', 'أعمل على مشاريع واجهات منذ سنتين') \gset req_
+select public.apply_for_role('company', 'أعمل على مشاريع واجهات منذ سنتين') \gset req_
 reset role;
 reset request.jwt.claim.sub;
 
@@ -2252,7 +2256,7 @@ select public.assert(
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.assert(
-  public.can_enter_role('freelancer') = false,
+  public.can_enter_role('company') = false,
   '20.23 a pending role is visible but not enterable');
 
 select public.assert_rejects($$
@@ -2300,7 +2304,7 @@ select public.assert(
 
 select public.assert(
   (select count(*) from public.profile_roles
-    where profile_id = '77777777-7777-7777-7777-777777777777' and role = 'freelancer') = 1,
+    where profile_id = '77777777-7777-7777-7777-777777777777' and role = 'company') = 1,
   '20.30 one person, one request per role');
 
 select public.assert(
@@ -2318,10 +2322,10 @@ reset request.jwt.claim.sub;
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.assert(
-  public.can_enter_role('freelancer') = true,
+  public.can_enter_role('company') = true,
   '20.32 approval is what opens the workspace, nothing else');
 
-select public.assert_rejects($$select public.apply_for_role('freelancer')$$,
+select public.assert_rejects($$select public.apply_for_role('company')$$,
   '20.33 you cannot apply for a role you already hold', 'بالفعل');
 reset role;
 reset request.jwt.claim.sub;
@@ -2358,7 +2362,7 @@ reset role;
 reset request.jwt.claim.sub;
 
 -- --- suspension ------------------------------------------------------------
-update public.profiles set primary_role = 'freelancer'
+update public.profiles set primary_role = 'company'
  where id = '77777777-7777-7777-7777-777777777777';
 
 set role authenticated;
@@ -2375,10 +2379,10 @@ select public.assert(
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
 select public.assert(
-  public.can_enter_role('freelancer') = false,
+  public.can_enter_role('company') = false,
   '20.38 a suspended role is shut immediately');
 
-select public.assert_rejects($$select public.apply_for_role('freelancer')$$,
+select public.assert_rejects($$select public.apply_for_role('company')$$,
   '20.39 a suspended role is not re-opened by applying again', 'موقوف');
 reset role;
 reset request.jwt.claim.sub;
@@ -5866,7 +5870,14 @@ select public.assert(
   (select status from public.profile_roles where id = :'mentor_req') = 'pending_review',
   '53.3 a role that does make a claim still waits for a person to read it');
 
--- The client's brief.
+-- The client's brief. Publishing is for Premium (0165).
+select public.assert(not public.can_post_opportunity('freelance'::public.opportunity_kind),
+  '53.4a without Premium a client does not publish');
+reset role;
+insert into public.premium_memberships (profile_id, until)
+values ('77777777-7777-7777-7777-777777777777', now() + interval '1 year')
+on conflict (profile_id) do update set until = excluded.until;
+set role authenticated;
 select public.assert(
   public.can_post_opportunity('freelance'::public.opportunity_kind),
   '53.4 and the client may now publish a brief, which a bare account may not');
@@ -8540,7 +8551,7 @@ select public.assert(
          -- a running auction and its bids, as initials (0153)
          'auction_state', 'auction_bids_public',
          -- who is Premium, like a badge (0154)
-         'is_premium', 'is_verified', 'can_study_course', 'lesson_unlocked', 'lesson_id_unlocked', 'course_outline', 'course_offer', 'sponsored_course', 'sponsored_click',
+         'is_premium', 'is_verified', 'area_open', 'can_study_course', 'lesson_unlocked', 'lesson_id_unlocked', 'course_outline', 'course_offer', 'sponsored_course', 'sponsored_click',
          -- the front page's counted numbers, and a profile's activity graph (0156)
          'platform_stats', 'profile_activity')
   ),
@@ -8550,13 +8561,14 @@ select public.assert(
 -- 74. The MVP's scope is one switch (0103)
 -- ===========================================================================
 update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
+update public.platform_settings set value = 'off' where key = 'area_freelance';
 
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select public.assert(public.in_mvp(), '74.1 the platform runs in its MVP scope');
 select public.assert_rejects(
   $$select public.apply_for_role('freelancer')$$,
-  '74.2 a hidden role cannot be asked for', 'غير متاح');
+  '74.2 a role whose area is switched off cannot be asked for (0165)', 'غير متاح');
 select public.assert_rejects(
   $$insert into public.startups (slug, founder_id, name_ar) values ('mvp-idea', '11111111-1111-1111-1111-111111111111', 'فكرة')$$,
   '74.3 nor a startup opened', 'غير متاحة');
@@ -8567,6 +8579,10 @@ select public.assert_rejects(
   $$insert into public.freelancer_services (profile_id, title_ar, from_usd)
     values ('11111111-1111-1111-1111-111111111111', 'خدمة', 10)$$,
   '74.4 nor a freelance service, even by a trusted path', 'غير متاحة');
+update public.platform_settings set value = 'on' where key = 'area_freelance';
+select public.assert(public.area_open('jobs') and public.area_open('freelance') and public.area_open('business')
+  and not public.area_open('studio'),
+  '74.4b jobs, freelance and business are open; the studio waits (0165)');
 
 select public.assert(
   not public.is_mvp_hidden_role('student') and not public.is_mvp_hidden_role('mentor')
@@ -9514,6 +9530,8 @@ select public.assert(
   '86.8 no client role may TRUNCATE a table');
 
 -- The assistant's daily limit (0116): three for the test, then refused.
+-- (77777777 subscribed to Premium in 53.4 for publishing; this is the free cap)
+delete from public.premium_memberships where profile_id = '77777777-7777-7777-7777-777777777777';
 update public.platform_settings set value = '3' where key = 'ai_daily_messages';
 set role authenticated;
 set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
@@ -11592,6 +11610,38 @@ select public.assert(
           and (s->'pains'->>'mobile')::int = 1 and jsonb_array_length(s->'suggestions') = 1
      from public.ux_survey_stats(90) s),
   '121.7 the admin reads the totals: answers, NPS, ease, pains, suggestions');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 122. TechMood Business: area switches, instant freelancer, Premium pages (0165)
+delete from public.premium_memberships where profile_id = '99999999-9999-9999-9999-999999999999';
+set role authenticated;
+set request.jwt.claim.sub = '99999999-9999-9999-9999-999999999999';
+select public.apply_for_role('freelancer') as fl122 \gset
+select public.assert((select status = 'approved' from public.profile_roles where id = :'fl122'),
+  '122.1 a freelancer opens at once');
+select public.assert(not public.can_post_opportunity('freelance'), '122.2 but publishing needs Premium');
+select public.assert_rejects($$select public.save_business_page('nine-studio', 'Nine Studio', null, null, null, null, null, null)$$,
+  '122.3 and so does a business page', 'Premium');
+reset role;
+insert into public.premium_memberships (profile_id, until) values ('99999999-9999-9999-9999-999999999999', now() + interval '1 month')
+on conflict (profile_id) do update set until = excluded.until;
+set role authenticated;
+select public.assert(public.can_post_opportunity('freelance'), '122.4 with Premium the freelancer publishes');
+select public.save_business_page('nine-studio', 'Nine Studio', 'تصميم وتطوير مواقع', 'نبني مواقع سريعة.', 'Web', 'Gaza', 'https://nine.example', null) as bp122 \gset
+select public.assert((select count(*) from public.business_directory('Nine', 10)) = 1, '122.5 the page appears in the directory');
+select public.assert_rejects($$select public.save_business_page('Bad Slug!', 'x y', null, null, null, null, null, null)$$,
+  '122.6 a page address is lowercase letters, digits and dashes', 'check');
+select public.assert_rejects(format($$select public.save_business_page('team-x', 'Team X', null, null, null, null, null, null, %L)$$, :'team'),
+  '122.7 only a team''s leader makes its page', 'قائده');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects($$select public.save_business_page('nine-studio', 'Copy', null, null, null, null, null, null)$$,
+  '122.8 an address belongs to one page', 'مستخدم');
+reset role;
+set role anon;
+select public.assert_rejects($$select count(*) from public.business_pages$$,
+  '122.9 business pages are for members, not visitors', 'permission denied');
 reset role;
 reset request.jwt.claim.sub;
 

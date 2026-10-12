@@ -18,11 +18,14 @@ import { SaveButton } from './SaveButton';
  */
 export async function JobList({
   kind,
+  kinds,
   search,
   remoteOnly,
   saved,
 }: {
   kind?: OpportunityKind;
+  /** several kinds at once — the market's «jobs» tab (0165) */
+  kinds?: OpportunityKind[];
   search?: string;
   remoteOnly?: boolean;
   saved: Set<string>;
@@ -40,6 +43,7 @@ export async function JobList({
     .order('created_at', { ascending: false });
 
   if (kind) query = query.eq('kind', kind);
+  else if (kinds?.length) query = query.in('kind', kinds);
   if (remoteOnly) query = query.eq('is_remote', true);
   if (search) query = query.ilike('title_ar', `%${search}%`);
 

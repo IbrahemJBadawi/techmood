@@ -19,7 +19,7 @@ export default async function NewOpportunityPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ data: canPost }, { data: teams }, { data: paths }, { data: memberships }] = await Promise.all([
+  const [{ data: canPost }, { data: teams }, { data: paths }, { data: memberships }, { data: accessRows }] = await Promise.all([
     supabase.rpc('can_post_opportunity', { p_kind: 'freelance', p_team: null }),
     supabase.from('teams').select('id, title_ar').eq('leader_id', user.id),
     supabase.from('learning_paths').select('id, title_ar').eq('status', 'published').order('sort_order'),
@@ -28,7 +28,9 @@ export default async function NewOpportunityPage({
       .select('startup_id, role, startups(id, name_ar)')
       .eq('profile_id', user.id)
       .in('role', ['founder', 'cofounder', 'manager']),
+    supabase.rpc('business_access'),
   ]);
+  const access = accessRows?.[0];
 
   const companies = (memberships ?? [])
     .map((row) => row.startups as unknown as { id: string; name_ar: string } | null)
@@ -38,10 +40,20 @@ export default async function NewOpportunityPage({
     return (
       <>
         <BackLink href="/marketplace" label={t('رجوع للسوق', 'Back to work')} />
-        <p className="notice" style={{ marginTop: 16 }}>
-          {t('نشر الفرص يحتاج دوراً معتمداً: شركة، مؤسس، قائد فريق، أو فريلانسر. اطلب الدور من صفحة الجواز المهني — دور الطالب وحده يتيح لك التقدّم على الفرص لا نشرها.',
-             'Posting needs an approved role: organisation, founder, team lead or freelancer. Ask for one from your passport — the student role lets you apply to openings, not publish them.')}
-        </p>
+        <section className="panel section-block business-gate" style={{ marginTop: 16 }}>
+          <h3>💼 {t('النشر في TechMood Business', 'Publishing on TechMood Business')}</h3>
+          <p className="muted">{t('نشر الوظائف ومشاريع العمل الحر لمشتركي Premium الذين يحملون دور فريلانسر أو عميل أو شركة (أو منتور). التقدّم على الفرص مفتوح لكل عضو.',
+                                  'Publishing jobs and freelance projects is for Premium members with a freelancer, client or company role (or mentors). Applying stays open to every member.')}</p>
+          <ul className="business-gate-list">
+            <li className={access?.premium ? 'is-ok' : ''}>{access?.premium ? '✓' : '✦'} {t('اشتراك Premium', 'A Premium membership')}
+              {!access?.premium && <> — <a href="/premium">{t('اشترك', 'Subscribe')}</a></>}</li>
+            <li className={access?.freelancer || access?.company_status === 'approved' ? 'is-ok' : ''}>
+              {access?.freelancer || access?.company_status === 'approved' ? '✓' : '•'} {t('دور فريلانسر أو عميل أو شركة', 'A freelancer, client or company role')}
+              {access?.company_status === 'pending_review' && <> — {t('حساب الشركة قيد التوثيق', 'company account being verified')}</>}
+              {!access?.freelancer && access?.company_status !== 'approved' && <> — <a href="/settings/roles">{t('اختر دورك', 'Choose your role')}</a></>}
+            </li>
+          </ul>
+        </section>
       </>
     );
   }

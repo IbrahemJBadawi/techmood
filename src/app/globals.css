@@ -7784,3 +7784,45 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 .sv-suggestions li { padding: 10px 12px; border-radius: 12px; background: var(--bg-deep); }
 .sv-suggestions p { margin: 0 0 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sv-suggestions span { font-size: 0.76rem; }
+
+/* TechMood Business (0165) */
+.biz-hero h1 { font-size: 1.4rem; margin: 4px 0; }
+.biz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.biz-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; text-decoration: none; color: inherit; }
+.biz-card:hover { border-color: var(--royal); }
+.biz-card-mark, .biz-page-mark {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; font-weight: 800; font-size: 1.2rem;
+  color: #fff; background: linear-gradient(140deg, var(--royal), var(--sky-deep));
+}
+.biz-page-mark { width: 64px; height: 64px; font-size: 1.6rem; border-radius: 18px; }
+.biz-card-body { display: grid; gap: 3px; min-width: 0; }
+.biz-card-body > span { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; }
+.biz-card-meta { color: var(--ink-soft); }
+.biz-card-counts { font-size: 0.76rem !important; }
+.biz-page-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: start; margin-top: 16px; }
+.biz-page-titles h1 { font-size: 1.4rem; margin: 2px 0; overflow-wrap: anywhere; }
+.biz-page-tagline { color: var(--ink-soft); }
+.biz-services, .biz-projects { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.biz-services li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg-deep); }
+.biz-services li p { grid-column: 1 / -1; margin: 0; font-size: 0.84rem; }
+.biz-form { display: grid; gap: 4px; max-width: 680px; }
+.biz-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .biz-form-row { grid-template-columns: minmax(0, 1fr); } }
+.input-prefix { display: flex; align-items: center; gap: 6px; }
+.input-prefix span { color: var(--ink-soft); font-size: 0.9rem; }
+.input-prefix input { flex: 1; min-width: 0; }
+.business-gate { display: grid; gap: 8px; }
+.business-gate-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.business-gate-list li { padding: 8px 12px; border-radius: 10px; background: var(--bg-deep); }
+.business-gate-list li.is-ok { color: #0E7A4F; }
+.market-post-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.market-post-row p { margin: 0; font-size: 0.86rem; flex: 1; min-width: 200px; }
+.search-row { display: flex; gap: 8px; }
+.search-row input[name="q"] { flex: 1; min-width: 0; }
+/* a two-up form row never forces the page wider than the phone */
+.rules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rules-grid > .field, .rules-grid .num-stepper, .rules-grid select { min-width: 0; max-width: 100%; }
+@media (max-width: 560px) { .rules-grid { grid-template-columns: minmax(0, 1fr); } }
+/* the freelancer's «add a service» row stacks on a phone */
+.meeting-form > * { min-width: 0; }
+@media (max-width: 560px) { .meeting-form { grid-template-columns: minmax(0, 1fr) !important; } }

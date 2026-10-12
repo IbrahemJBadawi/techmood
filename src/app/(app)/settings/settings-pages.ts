@@ -1,6 +1,5 @@
 import type { Text } from '@/lib/i18n';
 import type { IconName } from '@/lib/roles';
-import { IS_MVP } from '@/lib/scope';
 
 /** The settings sections, in the order the menu and the settings home list them. */
 export const SETTINGS_PAGES: { href: string; label: Text; hint: Text; icon: IconName; color: string }[] = ([
@@ -18,4 +17,4 @@ export const SETTINGS_PAGES: { href: string; label: Text; hint: Text; icon: Icon
     hint: { ar: 'تفضيلاته وما يتذكّره عنك', en: 'Its preferences and what it remembers' }, icon: 'assistant', color: '#D6336C' },
   { href: '/settings/freelancer', label: { ar: 'إدراجي في السوق', en: 'My listing' },
     hint: { ar: 'كيف تظهر لمن يبحث عن مستقل', en: 'How you appear to clients' }, icon: 'work', color: '#C77700' },
-] as const).filter((page) => !IS_MVP || page.href !== '/settings/freelancer');
+] as const);

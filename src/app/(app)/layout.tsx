@@ -26,7 +26,7 @@ import { roleInScope } from '@/lib/scope';
 const MORE_PLACES = [
   { href: '/workshops', ar: 'ورش العمل', en: 'Workshops', icon: 'calendar' as const },
   { href: '/blog', ar: 'المدونة', en: 'Blog', icon: 'review' as const },
-  { href: '/business', ar: 'للأعمال', en: 'For business', icon: 'company' as const },
+  { href: '/hub', ar: 'TechMood Business', en: 'TechMood Business', icon: 'company' as const },
   { href: '/premium', ar: 'Premium', en: 'Premium', icon: 'star' as const },
 ];
 
