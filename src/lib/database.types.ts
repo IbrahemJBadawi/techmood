@@ -1319,6 +1319,27 @@ export type Database = {
         logo_url: string | null; is_published: boolean; created_at: string; updated_at: string;
       }>;
       verified_members: Table<{ profile_id: string; since: string }>;
+      startup_market: Table<{
+        startup_id: string; segment_ar: string | null; tam_usd: number | null; sam_usd: number | null; som_usd: number | null;
+        method_ar: string | null; trends_ar: string | null; sources_ar: string | null; our_price: number | null; our_quality: number | null;
+        updated_by: string | null; updated_at: string;
+      }>;
+      startup_competitors: Table<{
+        id: string; startup_id: string; name: string; kind: 'direct' | 'indirect' | 'substitute'; website_url: string | null;
+        pricing_ar: string | null; strengths_ar: string | null; weaknesses_ar: string | null; our_edge_ar: string | null;
+        price_level: number | null; quality_level: number | null; sort_order: number; created_by: string | null;
+        created_at: string; updated_at: string;
+      }>;
+      startup_personas: Table<{
+        id: string; startup_id: string; name: string; age_range: string | null; occupation_ar: string | null; goals_ar: string | null;
+        pains_ar: string | null; channels_ar: string | null; quote_ar: string | null; pays_usd: number | null; is_primary: boolean;
+        created_by: string | null; created_at: string; updated_at: string;
+      }>;
+      startup_feasibility: Table<{
+        startup_id: string; unit_ar: string | null; price_usd: number; variable_cost_usd: number; fixed_monthly_usd: number;
+        startup_cost_usd: number; units_month1: number; growth_pct: number; months: number; notes_ar: string | null;
+        updated_by: string | null; updated_at: string;
+      }>;
       identity_verifications: Table<{
         id: string;
         profile_id: string;
@@ -2933,6 +2954,15 @@ export type Database = {
         Args: { p_search?: string | null; p_limit?: number };
         Returns: { id: string; slug: string; name: string; tagline: string | null; sector: string | null; city: string | null; owner_id: string; team_id: string | null; services: number; projects: number; openings: number; verified: boolean }[];
       };
+      feasibility_projection: {
+        Args: { p_startup: string };
+        Returns: { month: number; units: number; revenue: number; variable_costs: number; fixed_costs: number; profit: number; cumulative: number }[];
+      };
+      feasibility_summary: {
+        Args: { p_startup: string };
+        Returns: { margin_usd: number; margin_pct: number | null; breakeven_units: number | null; first_profit_month: number | null; payback_month: number | null; total_revenue: number; total_profit: number }[];
+      };
+      studio_snapshot: { Args: { p_startup: string }; Returns: unknown };
       submit_ux_survey: { Args: { p_ease: number; p_recommend: number; p_most_used: string | null; p_pains: string[]; p_suggestion: string | null; p_role?: string | null }; Returns: string };
       ux_survey_stats: { Args: { p_days?: number }; Returns: unknown };
       xp_balance: { Args: { p_profile: string }; Returns: number };

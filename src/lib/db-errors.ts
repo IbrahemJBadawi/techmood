@@ -16,6 +16,8 @@ import type { T } from '@/lib/i18n';
  * language is more useful than hiding it in the right one.
  */
 const PHRASES: { match: string; en: string }[] = [
+  // the Startup Studio (0166)
+  { match: 'تأسيس مشروع ناشئ',               en: 'Starting a startup in the Startup Studio is for Premium members.' },
   // session rules (0125)
   { match: 'الحجز الفوري يبدأ بعد',          en: 'An instant booking has to start a little later, so the payment can be confirmed first.' },
   { match: 'اعترضت على تسجيل الغياب بالفعل',  en: 'You already disputed it — TechMood is reviewing it.' },

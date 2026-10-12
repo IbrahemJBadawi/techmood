@@ -38,9 +38,11 @@ export default async function StartupsPage() {
       <section className="section-block">
         <div className="row-between">
           <div>
+            <p className="studio-kicker">Startup Studio</p>
             <h2 style={{ fontSize: '1.2rem' }}>{t('مشاريعي الناشئة', 'My startups')}</h2>
             <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6 }}>
-              {t('نموذج العمل وخطة العمل والاستراتيجية — مساحة عملك الخاصة حتى تقرّر أنت غير ذلك.', 'The business model, the plan and the strategy — your own private workspace until you decide otherwise.')}
+              {t('ست أدوات من الفكرة إلى الشركة: السوق، والمنافسون، والمستخدمون، والجدوى، وخطة العمل، ونموذج العمل — في مساحة خاصة بك وبفريقك.',
+                 'Six tools from idea to company: market, competitors, users, feasibility, the business plan and the business model — in a space private to you and your team.')}
             </p>
           </div>
           <Link className="btn btn-primary btn-sm" href="/startups/new">{t('+ مشروع جديد', '+ New startup')}</Link>
@@ -49,7 +51,7 @@ export default async function StartupsPage() {
 
       {(startups?.length ?? 0) === 0 ? (
         <p className="notice">
-          {t('لا مشاريع بعد. ابدأ بفكرة، واملأ نموذج العمل، ثم قدّم للحاضنة حين تكون جاهزاً.', 'Nothing yet. Start with an idea, fill in the business model, then apply to the incubator when you are ready.')}
+          {t('لا مشاريع بعد. ابدأ بفكرة، ومرّ على الأدوات الست بالترتيب، ثم قدّم للحاضنة حين تكون جاهزاً.', 'Nothing yet. Start with an idea, go through the six tools in order, then apply to the incubator when you are ready.')}
         </p>
       ) : (
         <div className="card-grid">

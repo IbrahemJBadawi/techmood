@@ -3,20 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useT } from '@/lib/i18n.client';
+import { STUDIO_TOOLS } from '@/lib/studio-tools';
 
 /**
  * The workspace's own navigation.
  *
- * It is a room with sections, not a profile with tabs: the order runs from
- * thinking (canvases, plans) through deciding (strategy, incubation) to doing
- * (projects, team, hiring) and finally to showing (documents, showcase).
+ * It is a room with sections, not a profile with tabs: the six studio tools
+ * come first (0166) — market, competitors, users, feasibility, the plan and
+ * the model — then deciding (strategy, incubation), doing (roadmap,
+ * projects, team, hiring) and finally showing (documents, sharing).
  */
 const TABS = [
   { href: '',              label: { ar: 'نظرة عامة',   en: 'Overview' } },
-  { href: '/incubation',   label: { ar: 'الاحتضان',    en: 'Incubation' } },
-  { href: '/canvases',     label: { ar: 'اللوحات',     en: 'Canvases' } },
-  { href: '/plan',         label: { ar: 'خطة العمل',   en: 'Business plan' } },
+  ...STUDIO_TOOLS.map((tool) => ({ href: tool.href, label: tool.label })),
   { href: '/strategy',     label: { ar: 'الاستراتيجية', en: 'Strategy' } },
+  { href: '/incubation',   label: { ar: 'الاحتضان',    en: 'Incubation' } },
   { href: '/roadmap',      label: { ar: 'خارطة الطريق', en: 'Roadmap' } },
   { href: '/projects',     label: { ar: 'المشاريع',    en: 'Projects' } },
   { href: '/team',         label: { ar: 'الفريق',      en: 'Team' } },

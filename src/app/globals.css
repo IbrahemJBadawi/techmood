@@ -7826,3 +7826,134 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 /* the freelancer's «add a service» row stacks on a phone */
 .meeting-form > * { min-width: 0; }
 @media (max-width: 560px) { .meeting-form { grid-template-columns: minmax(0, 1fr) !important; } }
+
+/* ===========================================================================
+   Startup Studio — the six tools (0166)
+   =========================================================================== */
+.studio-kicker, .studio-step { margin: 0 0 4px; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.02em; color: var(--royal-dark); }
+.studio-tool-title { flex-wrap: wrap; gap: 10px; align-items: center; }
+.studio-tool-title h2 { font-size: 1.15rem; min-width: 0; overflow-wrap: anywhere; }
+.studio-tool-title h2 .muted { font-weight: 500; font-size: 0.95rem; }
+.studio-tool-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.studio-tool-intro { font-size: 0.88rem; margin-top: 6px; max-width: 80ch; }
+.studio-h3 { font-size: 0.98rem; margin-bottom: 12px; }
+.studio-h4 { font-size: 0.88rem; margin: 14px 0 4px; }
+.studio-body, .studio-line { font-size: 0.86rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.studio-line { margin-top: 6px; }
+.studio-line strong { font-weight: 700; }
+.studio-edge { padding: 6px 10px; border-radius: 10px; background: var(--sky-tint); }
+.studio-note { font-size: 0.8rem; margin-top: 10px; }
+.studio-link { display: inline-block; font-size: 0.8rem; margin-top: 4px; overflow-wrap: anywhere; }
+.studio-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; margin-bottom: 22px; }
+.studio-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.studio-form .field { min-width: 0; }
+.studio-narrow { max-width: 760px; }
+.studio-num-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 12px; }
+.studio-num-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio-check { cursor: pointer; gap: 8px; margin-bottom: 12px; display: flex; width: fit-content; }
+.studio-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.studio-card h4, .persona-card h4 { font-size: 0.98rem; min-width: 0; overflow-wrap: anywhere; }
+.studio-card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin-top: 12px; }
+.studio-card-actions > form { display: contents; }
+.studio-edit[open] { flex-basis: 100%; }
+.studio-edit > summary { list-style: none; display: inline-flex; }
+.studio-edit > summary::-webkit-details-marker { display: none; }
+.studio-edit[open] > summary { margin-bottom: 10px; }
+.tag-direct { background: rgba(214, 69, 69, 0.12); color: var(--danger-ink); }
+.tag-indirect { background: rgba(181, 118, 10, 0.12); color: var(--warn-ink); }
+.tag-substitute { background: var(--bg-deep); color: var(--ink-soft); }
+
+/* the overview: six doors, in order */
+.studio-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 12px; margin-top: 12px; }
+.studio-tool {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius-s);
+  background: var(--panel); border: 1px solid var(--line); color: inherit; text-decoration: none;
+  transition: border-color .15s, transform .15s;
+}
+.studio-tool:hover { border-color: var(--royal); transform: translateY(-1px); }
+.studio-tool-icon { font-size: 1.5rem; line-height: 1; }
+.studio-tool-text { display: grid; gap: 3px; min-width: 0; }
+.studio-tool-text strong { font-size: 0.92rem; }
+.studio-tool-text .muted { font-size: 0.76rem; }
+.studio-tool-state { font-size: 0.78rem; font-weight: 700; color: var(--ink-faint); }
+.studio-tool.is-started .studio-tool-state { color: var(--warn-ink); }
+.studio-tool.is-done { border-color: rgba(22, 163, 106, 0.4); }
+.studio-tool.is-done .studio-tool-state { color: var(--ok-ink); }
+
+/* the market: three nested circles */
+.market-rings {
+  position: relative; width: min(100%, 320px); aspect-ratio: 1; margin: 6px auto 0;
+  display: grid; place-items: end center;
+}
+.market-rings .ring {
+  grid-area: 1 / 1; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 8%; font-size: 0.74rem; font-weight: 700; color: var(--ink);
+}
+.market-rings .ring-tam { width: 100%; background: var(--sky-tint); border: 1px solid rgba(0, 107, 224, 0.25); }
+.market-rings .ring-sam { background: rgba(56, 189, 248, 0.32); }
+.market-rings .ring-som { background: var(--royal-fill); color: #fff; align-items: center; padding-top: 0; min-width: 64px; }
+
+/* the competitors: a price × quality map */
+.position-map {
+  position: relative; aspect-ratio: 1; width: min(100%, 380px); margin: 0 auto; border-radius: var(--radius-s);
+  background:
+    linear-gradient(var(--line-strong), var(--line-strong)) center / 1px 100% no-repeat,
+    linear-gradient(var(--line-strong), var(--line-strong)) center / 100% 1px no-repeat,
+    var(--bg-deep);
+}
+.position-map .axis { position: absolute; font-size: 0.7rem; color: var(--ink-faint); }
+.position-map .axis-x { bottom: 4px; right: 8px; }
+.position-map .axis-y { top: 6px; left: 8px; }
+.position-map .dot {
+  position: absolute; transform: translate(-50%, 50%); max-width: 40%; padding: 3px 8px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--panel); border: 1px solid var(--line-strong); box-shadow: var(--shadow-1);
+}
+.position-map .dot-direct { border-color: var(--danger); }
+.position-map .dot-indirect { border-color: var(--warn); }
+.position-map .dot-us { background: var(--royal-fill); color: #fff; border-color: transparent; z-index: 1; }
+
+/* the users: persona cards */
+.persona-card.is-primary { border-color: var(--royal); }
+.persona-head { display: flex; gap: 10px; align-items: center; }
+.persona-head > div { flex: 1; min-width: 0; }
+.persona-head .muted { font-size: 0.78rem; }
+.persona-avatar {
+  width: 42px; height: 42px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--sky-tint); color: var(--royal-dark); font-weight: 800; font-size: 1.1rem;
+}
+.persona-quote { margin: 10px 0 0; padding: 8px 12px; border-inline-start: 3px solid var(--royal); background: var(--bg-deep); border-radius: 8px; font-size: 0.86rem; font-style: italic; }
+
+/* feasibility: the running balance, above and below zero */
+.studio-verdict { margin-top: 12px; }
+.cash-chart { display: flex; align-items: stretch; gap: 3px; height: 180px; margin-bottom: 14px; }
+.cash-col { flex: 1; min-width: 0; display: grid; grid-template-rows: 1fr 1fr auto; }
+.cash-half { position: relative; }
+.cash-up { border-bottom: 1px solid var(--line-strong); }
+.cash-bar { position: absolute; inset-inline: 10%; border-radius: 3px; }
+.cash-up .cash-bar { bottom: 0; background: var(--ok); }
+.cash-down .cash-bar { top: 0; background: var(--danger); opacity: 0.75; }
+.cash-month { font-size: 0.62rem; text-align: center; color: var(--ink-faint); padding-top: 3px; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.studio-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.studio-table th, .studio-table td { padding: 6px 8px; text-align: start; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.studio-table th { font-size: 0.74rem; color: var(--ink-soft); font-weight: 700; }
+.studio-table .is-neg { color: var(--danger-ink); }
+.studio-table .is-pos { color: var(--ok-ink); }
+.studio-table tr.is-payback td { background: rgba(22, 163, 106, 0.1); font-weight: 700; }
+
+@media (max-width: 760px) {
+  .studio-split { grid-template-columns: minmax(0, 1fr); }
+  .studio-num-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cash-chart { height: 140px; gap: 2px; }
+}
+@media (max-width: 420px) {
+  .studio-num-grid, .studio-num-grid-2 { grid-template-columns: minmax(0, 1fr); }
+}
+.market-legend { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; font-size: 0.84rem; }
+.market-legend li { display: flex; align-items: center; gap: 8px; }
+.market-legend bdi { margin-inline-start: auto; font-weight: 700; }
+.market-legend .swatch { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.market-legend .swatch.ring-tam { background: var(--sky-tint); border: 1px solid rgba(0, 107, 224, 0.35); }
+.market-legend .swatch.ring-sam { background: rgba(56, 189, 248, 0.6); }
+.market-legend .swatch.ring-som { background: var(--royal-fill); }

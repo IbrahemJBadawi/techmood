@@ -1558,6 +1558,11 @@ select public.assert(
 -- 17. Incubator: canvas, business plan, strategy
 -- ===========================================================================
 
+-- Starting a startup is for Premium (0166): the founders in these tests subscribe.
+insert into public.premium_memberships (profile_id, until)
+values ('11111111-1111-1111-1111-111111111111', now() + interval '1 day'),
+       ('22222222-2222-2222-2222-222222222222', now() + interval '1 year')
+on conflict (profile_id) do update set until = excluded.until;
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
@@ -1566,6 +1571,7 @@ values ('sehha-raqamiya', 'صحة رقمية', 'منصة متابعة صحية �
         '11111111-1111-1111-1111-111111111111', 'متابعة المرضى بلا أوراق.', true)
 returning id as startup \gset
 reset role;
+delete from public.premium_memberships where profile_id = '11111111-1111-1111-1111-111111111111';
 
 select public.assert(
   (select role from public.startup_members
@@ -8562,6 +8568,7 @@ select public.assert(
 -- ===========================================================================
 update public.platform_settings set value = 'mvp' where key = 'mvp_scope';
 update public.platform_settings set value = 'off' where key = 'area_freelance';
+update public.platform_settings set value = 'off' where key = 'area_studio';
 
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
@@ -8579,10 +8586,10 @@ select public.assert_rejects(
   $$insert into public.freelancer_services (profile_id, title_ar, from_usd)
     values ('11111111-1111-1111-1111-111111111111', 'خدمة', 10)$$,
   '74.4 nor a freelance service, even by a trusted path', 'غير متاحة');
-update public.platform_settings set value = 'on' where key = 'area_freelance';
+update public.platform_settings set value = 'on' where key in ('area_freelance', 'area_studio');
 select public.assert(public.area_open('jobs') and public.area_open('freelance') and public.area_open('business')
-  and not public.area_open('studio'),
-  '74.4b jobs, freelance and business are open; the studio waits (0165)');
+  and public.area_open('studio'),
+  '74.4b jobs, freelance, business and the studio are open (0165, 0166)');
 
 select public.assert(
   not public.is_mvp_hidden_role('student') and not public.is_mvp_hidden_role('mentor')
@@ -11642,6 +11649,56 @@ reset role;
 set role anon;
 select public.assert_rejects($$select count(*) from public.business_pages$$,
   '122.9 business pages are for members, not visitors', 'permission denied');
+reset role;
+reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 123. The Startup Studio's six tools (0166)
+delete from public.premium_memberships where profile_id = '33333333-3333-3333-3333-333333333333';
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(
+  $$insert into public.startups (slug, founder_id, name_ar) values ('no-premium', '33333333-3333-3333-3333-333333333333', 'فكرة')$$,
+  '123.1 starting a startup is for Premium', 'Premium');
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into public.startup_market (startup_id, segment_ar, tam_usd, sam_usd, som_usd, our_price, our_quality)
+values (:'startup', 'العيادات الصغيرة في فلسطين', 50000000, 4000000, 200000, 2, 4);
+select public.assert_rejects(
+  format($$update public.startup_market set som_usd = 9000000 where startup_id = %L$$, :'startup'),
+  '123.2 the obtainable market fits inside the served one', 'startup_market_nested');
+insert into public.startup_competitors (startup_id, name, kind, price_level, quality_level)
+values (:'startup', 'Clinicy', 'direct', 4, 3), (:'startup', 'دفتر ورقي', 'substitute', 1, 1);
+select public.assert_rejects(
+  format($$insert into public.startup_competitors (startup_id, name, kind) values (%L, 'X', 'friend')$$, :'startup'),
+  '123.3 a competitor is direct, indirect or a substitute', 'check');
+insert into public.startup_personas (startup_id, name, occupation_ar, pains_ar, pays_usd, is_primary)
+values (:'startup', 'د. ليلى', 'طبيبة عامة', 'الملفات الورقية تضيع', 25, true);
+insert into public.startup_feasibility (startup_id, price_usd, variable_cost_usd, fixed_monthly_usd, startup_cost_usd,
+                                        units_month1, growth_pct, months)
+values (:'startup', 20, 5, 3000, 6000, 100, 20, 12);
+select public.assert(
+  (select margin_usd = 15 and breakeven_units = 200 and first_profit_month = 5 and payback_month = 10
+     from public.feasibility_summary(:'startup')),
+  '123.4 feasibility: a 15$ margin, 200 units to break even, profit from month 5, paid back in month 10');
+select public.assert((select count(*) = 12 and min(units) = 100 from public.feasibility_projection(:'startup')),
+  '123.5 the projection runs month by month for the chosen horizon');
+select public.assert(
+  (select (s->'market'->>'done')::boolean and (s->>'competitors')::int = 2 and (s->>'personas')::int = 1
+          and (s->'feasibility'->>'payback_month')::int = 10
+     from public.studio_snapshot(:'startup') s),
+  '123.6 the snapshot reads all six tools');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert((select count(*) from public.startup_competitors where startup_id = :'startup') = 0
+  and (select count(*) from public.feasibility_projection(:'startup')) = 0
+  and public.studio_snapshot(:'startup') is null,
+  '123.7 someone outside the room sees none of it — even of a listed startup');
+select public.assert_rejects(
+  format($$insert into public.startup_personas (startup_id, name) values (%L, 'دخيل')$$, :'startup'),
+  '123.8 nor writes into it', 'row-level security');
+reset role;
+set role anon;
+select public.assert_rejects($$select count(*) from public.startup_market$$,
+  '123.9 visitors never reach the studio', 'permission denied');
 reset role;
 reset request.jwt.claim.sub;
 

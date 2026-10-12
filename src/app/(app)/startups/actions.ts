@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
+import { dbError } from '@/lib/db-errors';
 import type { GoalStatus, PlanSection,  SwotQuadrant } from '@/lib/database.types';
 
 export type StartupState = { error?: string; ok?: string } | undefined;
@@ -37,10 +38,11 @@ export async function createStartup(_prev: StartupState, formData: FormData): Pr
     .select('id')
     .single();
 
-  if (error || !data) return { error: t('تعذّر إنشاء المشروع.', 'The startup could not be created.') };
+  if (error || !data) return { error: error ? dbError(t, error.message) : t('تعذّر إنشاء المشروع.', 'The startup could not be created.') };
 
   revalidatePath('/startups');
-  redirect(`/startups/${data.id}/canvas`);
+  // the overview lays out the six tools, in order (0166)
+  redirect(`/startups/${data.id}`);
 }
 
 /*

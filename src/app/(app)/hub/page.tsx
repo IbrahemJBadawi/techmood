@@ -59,6 +59,7 @@ export default async function BusinessHubPage({ searchParams }: { searchParams: 
                 {access?.premium ? t('+ أنشئ صفحة أعمالك', '+ Create your business page') : t('✦ صفحة أعمال مع Premium', '✦ A business page with Premium')}
               </Link>}
           <Link className="btn btn-ghost btn-sm" href="/marketplace/new">{t('انشر وظيفة أو مشروعاً', 'Post a job or project')}</Link>
+          <Link className="btn btn-ghost btn-sm" href="/startups">🚀 Startup Studio</Link>
           {!access?.freelancer && <Link className="btn btn-ghost btn-sm" href="/settings/roles">{t('فعّل دور الفريلانسر', 'Become a freelancer')}</Link>}
           {access?.freelancer && <Link className="btn btn-ghost btn-sm" href="/settings/freelancer">{t('ملف خدماتي', 'My services profile')}</Link>}
         </div>

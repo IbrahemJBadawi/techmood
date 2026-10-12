@@ -9,6 +9,16 @@ import { ORG_KIND, STARTUP_STAGES } from '@/lib/incubator';
 import { StartupNav } from './StartupNav';
 import { ApplyPanel } from './ApplyPanel';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
+import { STUDIO_TOOLS, shortUsd, type StudioToolKey } from '@/lib/studio-tools';
+
+type Snapshot = {
+  market: { tam: number | null; sam: number | null; som: number | null; done: boolean } | null;
+  competitors: number;
+  personas: number;
+  feasibility: { margin_usd: number; breakeven_units: number | null; payback_month: number | null } | null;
+  plan_percent: number;
+  model_cards: number;
+} | null;
 
 export default async function StartupOverviewPage({
   params,
@@ -25,10 +35,10 @@ export default async function StartupOverviewPage({
   const { data: startup } = await supabase.from('startups').select('*').eq('id', startupId).maybeSingle();
   if (!startup) notFound();
 
-  const [{ data: overview }, , { data: progress }, { data: cards }, { data: goals }, { data: history }, { data: application }] =
+  const [{ data: overview }, { data: snapshotRaw }, { data: progress }, { data: cards }, { data: goals }, { data: history }, { data: application }] =
     await Promise.all([
       supabase.rpc('startup_overview', { p_startup: startupId }),
-      supabase.rpc('can_edit_startup', { p_startup: startupId }),
+      supabase.rpc('studio_snapshot', { p_startup: startupId }),
       supabase.from('business_plan_progress').select('*').eq('startup_id', startupId).maybeSingle(),
       supabase.from('canvas_cards').select('id').eq('startup_id', startupId),
       supabase.from('smart_goals').select('id, status').eq('startup_id', startupId),
@@ -45,6 +55,42 @@ export default async function StartupOverviewPage({
   const stageIndex = STARTUP_STAGES.findIndex((stage) => stage.key === startup.stage);
   const isFounder = startup.founder_id === user.id;
   const numbers = overview?.[0];
+  const snap = snapshotRaw as Snapshot;
+
+  // What each tool says about itself on the card: done, started, or empty.
+  const toolState: Record<StudioToolKey, { done: boolean; started: boolean; line: React.ReactNode }> = {
+    market: {
+      done: !!snap?.market?.done, started: !!snap?.market,
+      line: snap?.market?.tam
+        ? <bdi dir="ltr">{`TAM ${shortUsd(snap.market.tam)} · SOM ${shortUsd(snap.market.som)}`}</bdi>
+        : t('لم يُقدَّر بعد', 'Not sized yet'),
+    },
+    competitors: {
+      done: (snap?.competitors ?? 0) >= 3, started: (snap?.competitors ?? 0) > 0,
+      line: t(`${snap?.competitors ?? 0} منافسين`, `${snap?.competitors ?? 0} competitors`),
+    },
+    users: {
+      done: (snap?.personas ?? 0) >= 1, started: (snap?.personas ?? 0) > 0,
+      line: t(`${snap?.personas ?? 0} شخصيات`, `${snap?.personas ?? 0} personas`),
+    },
+    feasibility: {
+      done: !!snap?.feasibility?.payback_month, started: !!snap?.feasibility,
+      line: snap?.feasibility
+        ? (snap.feasibility.payback_month
+            ? t(`الاسترداد في الشهر ${snap.feasibility.payback_month}`, `Payback in month ${snap.feasibility.payback_month}`)
+            : t('لا استرداد ضمن المدة', 'No payback within the horizon'))
+        : t('لم تُحسب بعد', 'Not calculated yet'),
+    },
+    plan: {
+      done: (snap?.plan_percent ?? 0) >= 100, started: (snap?.plan_percent ?? 0) > 0,
+      line: t(`${snap?.plan_percent ?? 0}% مكتملة`, `${snap?.plan_percent ?? 0}% complete`),
+    },
+    model: {
+      done: (snap?.model_cards ?? 0) >= 9, started: (snap?.model_cards ?? 0) > 0,
+      line: t(`${snap?.model_cards ?? 0} بطاقة`, `${snap?.model_cards ?? 0} cards`),
+    },
+  };
+  const toolsDone = STUDIO_TOOLS.filter((tool) => toolState[tool.key].done).length;
 
   return (
     <>
@@ -85,6 +131,29 @@ export default async function StartupOverviewPage({
       </section>
 
       <StartupNav startupId={startupId} />
+
+      <section className="section-block">
+        <div className="row-between">
+          <h3 style={{ fontSize: '1rem' }}>{t('أدوات الاستوديو', 'Studio tools')}</h3>
+          <span className="muted eng" style={{ fontSize: '0.84rem' }}>{toolsDone}/6</span>
+        </div>
+        <div className="studio-tools">
+          {STUDIO_TOOLS.map((tool, index) => {
+            const state = toolState[tool.key];
+            return (
+              <Link key={tool.key} href={`/startups/${startupId}${tool.href}`}
+                    className={`studio-tool${state.done ? ' is-done' : state.started ? ' is-started' : ''}`}>
+                <span className="studio-tool-icon" aria-hidden>{tool.icon}</span>
+                <span className="studio-tool-text">
+                  <strong><span className="eng">{index + 1}.</span> {t(tool.label)}</strong>
+                  <span className="muted">{t(tool.hint)}</span>
+                  <span className="studio-tool-state">{state.done ? '✓ ' : ''}{state.line}</span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="section-block">
         <div className="row-between">
