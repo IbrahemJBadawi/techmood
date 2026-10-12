@@ -25,7 +25,10 @@ export default async function PremiumPage() {
   const date = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { timeZone: PLATFORM_TIME_ZONE, dateStyle: 'long' });
 
   const perks = [
-    { icon: '✦', title: t('شارة موثّقة', 'A verified badge'), body: t('نجمة Premium بجانب اسمك في ملفك وفي قوائم السوق.', 'The Premium star next to your name on your profile and in market lists.') },
+    // not «verified»: that is the ✓ an admin gives after checking an ID (0161)
+    { icon: '✦', title: t('شارة Premium', 'The Premium badge'), body: t('نجمة Premium بجانب اسمك في ملفك وفي قوائم السوق.', 'The Premium star next to your name on your profile and in market lists.') },
+    { icon: '💼', title: t('TechMood Business', 'TechMood Business'), body: t('انشر وظائف ومشاريع عمل حر، وأنشئ صفحة أعمال لك أو لفريقك.', 'Post jobs and freelance projects, and create a business page for you or your team.') },
+    { icon: '🚀', title: 'Startup Studio', body: t('أسّس مشروعك الناشئ بالأدوات الست: السوق، المنافسون، المستخدمون، الجدوى، خطة العمل، ونموذج العمل.', 'Found your startup with the six tools: market, competitors, users, feasibility, the business plan and the business model.') },
     { icon: '🤖', title: t('مساعد ذكي أكثر', 'More of the assistant'), body: t(`${offer?.ai_daily_premium ?? 150} سؤالاً في اليوم بدل ${offer?.ai_daily ?? 40}.`, `${offer?.ai_daily_premium ?? 150} questions a day instead of ${offer?.ai_daily ?? 40}.`) },
     { icon: '⭐', title: t('ملف مميّز وأولوية', 'Featured, first'), body: t('تظهر أولاً بين الكفاءات في السوق، وبين الأشخاص المقترحين للمتابعة.', 'You appear first among the talent in the market, and among people suggested to follow.') },
     { icon: '🚫', title: t('بلا إعلانات', 'No ads'), body: t('تختفي كل المساحات الترويجية — مثل زر «احجز جلسة» العائم — وأي إعلان يُضاف مستقبلاً لا يظهر لك.', 'Every promotional spot disappears — like the floating «Book a session» button — and no ad added later is shown to you.') },

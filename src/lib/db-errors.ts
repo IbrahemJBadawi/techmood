@@ -45,7 +45,7 @@ const PHRASES: { match: string; en: string }[] = [
   { match: 'سبب تحديد المستوى مطلوب',        en: 'Write the reason for the level — the mentor reads it.' },
   { match: 'مراجعة الترقيات للإدارة فقط',     en: 'Only TechMood reviews upgrades.' },
   { match: 'تحديد المستوى للإدارة فقط',       en: 'Only TechMood sets a mentor\u2019s level.' },
-  { match: 'mentor_profiles_level_mvp',      en: 'There are three mentor levels: Peer / Junior, Professional, Senior / Specialist.' },
+  { match: 'mentor_profiles_level_mvp',      en: 'There are four mentor levels: Peer / Junior, Professional, Senior / Specialist, Expert / Elite.' },
   // the assistant's daily limit (0116)
   { match: 'بلغت حدّ أسئلة المساعد',         en: 'You have reached today\u2019s limit of questions to the assistant. It resets tomorrow.' },
   // teams (0113)

@@ -63,20 +63,23 @@ export async function submitPaymentProof(_prev: PaymentState, formData: FormData
  * cancel_booking() checks who is asking and which states can still be called
  * off, and tells the other side.
  */
-export async function cancelBooking(formData: FormData) {
+export async function cancelBooking(_prev: HubState, formData: FormData): Promise<HubState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const bookingId = String(formData.get('booking_id') ?? '');
 
-  await supabase.rpc('cancel_booking', {
+  const { error } = await supabase.rpc('cancel_booking', {
     p_booking: bookingId,
     p_reason: String(formData.get('reason') ?? '').slice(0, 500) || null,
   });
 
   revalidatePath('/bookings');
   revalidatePath(`/bookings/${bookingId}`);
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: t('أُلغي الطلب.', 'The request is cancelled.') };
 }
 
 // ---------------------------------------------------------------------------

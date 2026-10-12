@@ -81,8 +81,8 @@ export default async function GuidePage() {
       <section className="panel section-block">
         <h3 style={{ fontSize: '1rem' }}>🧭 {t('مستويات المنتورز', 'Mentor levels')}</h3>
         <p className="muted" style={{ fontSize: '0.84rem', marginTop: 4 }}>
-          {t('ثلاثة مستويات. المستوى يحدد نطاق السعر المسموح به لساعة الجلسة، والمنتور يحدد سعره داخله حسب خبرته ونوع الجلسة. يبدأ المنتور الجديد من Peer / Junior ما لم تحدّد الإدارة مستوى أعلى عند اعتماده.',
-             'Three levels. A level sets the allowed price range for a session hour; the mentor names their own price inside it by their experience and the kind of session. A new mentor starts at Peer / Junior unless TechMood places them higher on approval.')}
+          {t('أربعة مستويات. المستوى يحدد نطاق السعر المسموح به لساعة الجلسة، والمنتور يحدد سعره داخله حسب خبرته ونوع الجلسة. يبدأ المنتور الجديد من Peer / Junior ما لم تحدّد الإدارة مستوى أعلى عند اعتماده.',
+             'Four levels. A level sets the allowed price range for a session hour; the mentor names their own price inside it by their experience and the kind of session. A new mentor starts at Peer / Junior unless TechMood places them higher on approval.')}
         </p>
         <table className="data" style={{ marginTop: 10 }}>
           <thead>
@@ -106,7 +106,7 @@ export default async function GuidePage() {
         </table>
         <h4 style={{ fontSize: '0.92rem', marginTop: 14 }}>{t('كيف تترقّى', 'How to move up')}</h4>
         <ol className="guide-list">
-          <li>{t('من «مستواي» تضغط «طلب ترقية المستوى» — مستوى واحد في كل مرة: Peer / Junior ← Professional ← Senior / Specialist.', 'From “My level” you press “Request a level upgrade” — one level at a time: Peer / Junior → Professional → Senior / Specialist.')}</li>
+          <li>{t('من «مستواي» تضغط «طلب ترقية المستوى» — مستوى واحد في كل مرة: Peer / Junior ← Professional ← Senior / Specialist ← Expert / Elite.', 'From “My level” you press “Request a level upgrade” — one level at a time: Peer / Junior → Professional → Senior / Specialist → Expert / Elite.')}</li>
           <li>{t('تجيب عن استبيان الترقية:', 'Answer the upgrade questionnaire:')}
             <ul>{(questions ?? []).map((q) => <li key={q.key}>{q.question_ar}</li>)}</ul>
           </li>

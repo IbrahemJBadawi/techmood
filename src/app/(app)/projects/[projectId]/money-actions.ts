@@ -65,7 +65,8 @@ export async function submitEscrowProof(_prev: MoneyState, formData: FormData): 
 }
 
 /** Letting the money go, freezing it, or judging the work. */
-export async function escrowAction(formData: FormData) {
+export async function escrowAction(_prev: MoneyState, formData: FormData): Promise<MoneyState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -73,16 +74,17 @@ export async function escrowAction(formData: FormData) {
   const escrowId = String(formData.get('escrow_id') ?? '');
   const action = String(formData.get('action') ?? '');
 
-  if (action === 'release') {
-    await supabase.rpc('release_escrow', { p_escrow: escrowId, p_note: null });
-  } else if (action === 'dispute') {
-    await supabase.rpc('dispute_escrow', {
-      p_escrow: escrowId,
-      p_reason: String(formData.get('reason') ?? '').trim() || 'خلاف على التسليم',
-    });
-  }
+  const { error } = action === 'release'
+    ? await supabase.rpc('release_escrow', { p_escrow: escrowId, p_note: null })
+    : await supabase.rpc('dispute_escrow', {
+        p_escrow: escrowId,
+        p_reason: String(formData.get('reason') ?? '').trim() || 'خلاف على التسليم',
+      });
 
   revalidatePath(String(formData.get('revalidate') ?? '/marketplace'));
+  // money that did not move must never look as if it did
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: action === 'release' ? t('أُفرج عن المبلغ.', 'The money is released.') : t('فُتح النزاع — المبلغ مجمّد حتى تفصل الإدارة.', 'Dispute opened — the money is frozen until TechMood decides.') };
 }
 
 /**

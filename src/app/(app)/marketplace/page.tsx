@@ -58,8 +58,14 @@ export default async function MarketPage({
   // for sale, and what you bought. Jobs and freelancing are outside its scope
   // (src/lib/scope.ts) and their tabs are not shown.
   if (IS_MVP) {
-    const mvpTab = (['projects', 'services', 'jobs', 'freelance', 'offers', 'money'] as const)
-      .find((key) => key === params.tab) ?? (params.tab === 'buying' ? 'money' : 'projects');
+    // talent, teams and work opened with TechMood Business (0165): the client's
+    // «find a freelancer», the company's «find talent» and the dashboard's
+    // «active projects» land on them.
+    const mvpTab = (['projects', 'services', 'jobs', 'freelance', 'talent', 'teams', 'offers', 'work', 'money'] as const)
+      .find((key) => key === params.tab) ?? (params.tab === 'buying' ? 'money' : params.tab === 'saved' ? 'work' : 'projects');
+    const { data: saves } = await supabase.from('market_saves').select('target_kind, target_id').eq('profile_id', user.id);
+    const savedOf = (target: 'opportunity' | 'talent' | 'team') =>
+      new Set((saves ?? []).filter((row) => row.target_kind === target).map((row) => row.target_id));
     const filters = { q: params.q, category: params.category,
                       type: params.type, sort: params.sort };
     const tabs: { key: typeof mvpTab; label: string; soon?: boolean }[] = [
@@ -67,7 +73,10 @@ export default async function MarketPage({
       { key: 'services', label: t('🛠️ الخدمات', '🛠️ Services') },
       { key: 'jobs', label: t('💼 الوظائف', '💼 Jobs') },
       { key: 'freelance', label: t('🧑‍💻 مشاريع عمل حر', '🧑‍💻 Freelance projects') },
+      { key: 'talent', label: t('🙋 المستقلون', '🙋 Freelancers') },
+      { key: 'teams', label: t('👥 الفرق', '👥 Teams') },
       { key: 'offers', label: t('💬 عروض الأسعار', '💬 Offers') },
+      { key: 'work', label: t('📋 عملي', '📋 My work') },
       { key: 'money', label: t('مشترياتي ومبيعاتي', 'My purchases & sales') },
     ];
     return (
@@ -112,9 +121,20 @@ export default async function MarketPage({
               </div>
               <JobList kind={mvpTab === 'freelance' ? 'freelance' : undefined}
                        kinds={mvpTab === 'jobs' ? ['job', 'internship', 'remote'] : undefined}
-                       search={params.q} saved={new Set()} />
+                       search={params.q} saved={savedOf('opportunity')} />
             </>
           )}
+          {mvpTab === 'talent' && (
+            <>
+              <TalentList search={(params.q ?? '').trim() || undefined} saved={savedOf('talent')} />
+              <p className="muted" style={{ fontSize: '0.8rem', marginTop: 14 }}>
+                {t('تريد أن تظهر هنا؟ ', 'Want to appear here? ')}
+                <Link href="/settings/freelancer">{t('أدرج نفسك في السوق', 'List yourself in the market')}</Link>
+              </p>
+            </>
+          )}
+          {mvpTab === 'teams' && <TeamList search={(params.q ?? '').trim() || undefined} saved={savedOf('team')} />}
+          {mvpTab === 'work' && <MyWork />}
           {mvpTab === 'offers' && <Offers />}
           {mvpTab === 'money' && (<><Purchases /><MoneyTab /></>)}
         </section>

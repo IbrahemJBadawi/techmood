@@ -3,21 +3,31 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import type { ActionFormState } from '@/components/ActionForm';
 import { createClient } from '@/lib/supabase/server';
+import { dbError } from '@/lib/db-errors';
+import { getT } from '@/lib/i18n.server';
 
-/** The mentor's decision. Only the booked mentor may make it — checked in the database. */
-export async function decideBooking(formData: FormData) {
+/**
+ * The mentor's decision. Only the booked mentor may make it — checked in the database.
+ * Accepting or declining a paid request: a refusal (too late, already decided) is said, not swallowed.
+ */
+export async function decideBooking(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  await supabase.rpc('mentor_decide_booking', {
+  const accept = formData.get('decision') === 'accept';
+  const { error } = await supabase.rpc('mentor_decide_booking', {
     p_booking_id: String(formData.get('booking_id') ?? ''),
-    p_accept: formData.get('decision') === 'accept',
+    p_accept: accept,
     p_reason: String(formData.get('reason') ?? '').slice(0, 500) || null,
   });
 
   revalidatePath('/mentor-requests');
+  if (error) return { error: dbError(t, error.message) };
+  return { ok: accept ? t('قُبلت الجلسة.', 'Session accepted.') : t('أُرسل الاعتذار.', 'Declined.') };
 }
 
 /*

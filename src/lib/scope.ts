@@ -27,9 +27,6 @@ export function roleInScope(role: UserRole) {
 /** Routes outside the MVP. Anything under them goes home. */
 export const HIDDEN_PREFIXES: string[] = [];
 
-/** Market tabs that belong to jobs and freelancing, not to the Student Market. */
-export const HIDDEN_MARKET_TABS = ['teams', 'work', 'saved'];
-
 export function pathInScope(pathname: string) {
   if (!IS_MVP) return true;
   if (HIDDEN_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) return false;

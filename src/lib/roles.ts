@@ -30,7 +30,8 @@ export type RoleDefinition = {
    *
    *   automatic  — every account has it (student).
    *   self_serve — you choose it and it opens at once, because it claims
-   *                nothing about you that anybody could verify (mentee, client).
+   *                nothing about you that anybody could verify (mentee, client,
+   *                freelancer — whose record speaks in the directory).
    *   review     — a person reads it, because it does make a claim.
    */
   grant: 'automatic' | 'self_serve' | 'review';
@@ -71,7 +72,9 @@ export const ROLES: RoleDefinition[] = [
     value: 'freelancer',
     label: { ar: 'فريلانسر', en: 'Freelancer' },
     blurb: { ar: 'تتقدّم على الفرص، تنفّذ أعمالاً مدفوعة، وتسحب أرباحك.', en: 'You apply for openings, do paid work, and withdraw what you earn.' },
-    grant: 'review',
+    // opens at once (0165); the talent directory lists you once your
+    // services profile has a summary and a service
+    grant: 'self_serve',
     home: '/marketplace',
     icon: 'work',
   },
@@ -507,6 +510,43 @@ export function mobileTabsFor(role: UserRole): NavItem[] {
         { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
         { href: '/mentorship', label: { ar: 'أهدافي', en: 'Goals' }, icon: 'passport' },
         { href: '/mentors', label: { ar: 'المنتورز', en: 'Mentors' }, icon: 'mentor' },
+        messages,
+      ];
+    // TechMood Business (0165, 0166): each working role gets its own two
+    // shortcuts instead of the student's «Learn» and «Mentors».
+    case 'client':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/client', label: { ar: 'مشاريعي', en: 'My projects' }, icon: 'application' },
+        { href: '/marketplace?tab=talent', label: { ar: 'منفّذون', en: 'Freelancers' }, icon: 'work' },
+        messages,
+      ];
+    case 'freelancer':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/marketplace?tab=freelance', label: { ar: 'مشاريع', en: 'Projects' }, icon: 'work' },
+        { href: '/marketplace?tab=work', label: { ar: 'عملي', en: 'My work' }, icon: 'application' },
+        messages,
+      ];
+    case 'company':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/marketplace?tab=jobs', label: { ar: 'الوظائف', en: 'Jobs' }, icon: 'work' },
+        { href: '/hub', label: { ar: 'الأعمال', en: 'Business' }, icon: 'company' },
+        messages,
+      ];
+    case 'founder':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/startups', label: { ar: 'مشاريعي', en: 'Startups' }, icon: 'startup' },
+        { href: '/hub', label: { ar: 'الأعمال', en: 'Business' }, icon: 'company' },
+        messages,
+      ];
+    case 'team_leader':
+      return [
+        { href: '/home', label: { ar: 'الرئيسية', en: 'Home' }, icon: 'home' },
+        { href: '/teams', label: { ar: 'فرقي', en: 'Teams' }, icon: 'team' },
+        { href: '/academy', label: { ar: 'تعلّم', en: 'Learn' }, icon: 'academy' },
         messages,
       ];
     default:

@@ -416,6 +416,7 @@ export default async function LessonPage({
                   <input type="hidden" name="lesson_id" value={lesson.id} />
                   <input type="hidden" name="completed" value={String(done)} />
                   <input type="hidden" name="revalidate" value={here} />
+                  <input type="hidden" name="lesson_href" value={here} />
                   {!done && quiz?.ready && !quiz.passed ? (
                     <>
                       <button className="btn btn-primary btn-lg" type="button" disabled>{t('علّم الدرس كمكتمل', 'Mark the lesson as done')}</button>

@@ -61,7 +61,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('next', request.nextUrl.pathname);
+    // the whole address comes back after signing in, query included
+    // (/support/new?type=profile&id=… must still know what is reported)
+    url.search = '';
+    url.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

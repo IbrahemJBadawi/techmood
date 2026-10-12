@@ -141,8 +141,8 @@ export function MentorApplicationForm({
         </div>
 
         <p className="notice">
-          {t('مستواك كمنتور تحدّده الإدارة عند مراجعة طلبك: Peer / Junior أو Professional أو Senior / Specialist. المستوى يحدد نطاق السعر المسموح به، وأنت تحدد سعرك داخله. وبعدها تطلب الترقية متى شئت وتراجعها الإدارة على خبرتك وأعمالك وتقييماتك وجلساتك.',
-             'TechMood sets your mentor level when it reviews your application: Peer / Junior, Professional or Senior / Specialist. A level sets the allowed price range; you name your own price inside it. Later you can request an upgrade whenever you like, reviewed on your experience, works, ratings and sessions.')}
+          {t('مستواك كمنتور تحدّده الإدارة عند مراجعة طلبك: Peer / Junior أو Professional أو Senior / Specialist أو Expert / Elite (بلا سقف للسعر). المستوى يحدد نطاق السعر المسموح به، وأنت تحدد سعرك داخله. وبعدها تطلب الترقية متى شئت وتراجعها الإدارة على خبرتك وأعمالك وتقييماتك وجلساتك.',
+             'TechMood sets your mentor level when it reviews your application: Peer / Junior, Professional, Senior / Specialist or Expert / Elite (no price ceiling). A level sets the allowed price range; you name your own price inside it. Later you can request an upgrade whenever you like, reviewed on your experience, works, ratings and sessions.')}
         </p>
 
         {state?.error && <p className="notice notice-danger">{state.error}</p>}

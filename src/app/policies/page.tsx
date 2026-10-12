@@ -42,7 +42,7 @@ export default async function PoliciesPage() {
         t('TechMood منصة تعلّم وعمل: أكاديمية، منتورز، فرق، معرض وسوق. باستخدامك لها توافق على هذه الشروط.', 'TechMood is a platform for learning and work: an academy, mentors, teams, a gallery and a market. Using it means you accept these terms.'),
         t('حساب واحد لكل شخص، باسمك الحقيقي. أنت مسؤول عمّا يُنشر من حسابك.', 'One account per person, in your real name. You are responsible for what your account publishes.'),
         t('لا تنشر عمل غيرك على أنه عملك، ولا محتوى مخالفاً للقانون أو مسيئاً أو يحتوي بيانات أشخاص دون إذنهم.', 'Do not publish someone else’s work as yours, nor anything unlawful, abusive, or containing people’s data without their consent.'),
-        t('لـTechMood أن تخفي محتوى أو توقف ميزة عن حساب يخالف الشروط، مع ذكر السبب، ولك أن تعترض عبر الدعم.', 'TechMood may hide content or restrict a feature for an account that breaks these terms, with the reason given; you may appeal through Support.'),
+        t('يحق لـ TechMood أن تخفي محتوى أو توقف ميزة عن حساب يخالف الشروط، مع ذكر السبب، ولك أن تعترض عبر الدعم.', 'TechMood may hide content or restrict a feature for an account that breaks these terms, with the reason given; you may appeal through Support.'),
       ],
     },
     {

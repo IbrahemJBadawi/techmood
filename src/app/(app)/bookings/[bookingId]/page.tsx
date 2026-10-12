@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
+import { ActionForm } from '@/components/ActionForm';
 import { getT } from '@/lib/i18n.server';
 import { contentText, formatDate } from '@/lib/i18n';
 import { BOOKING_STATUS, BOOKING_TIMELINE, PAYMENT_STATUS, formatSlot, money } from '@/lib/booking';
@@ -453,10 +454,10 @@ export default async function BookingDetailPage({
           )}
 
           {isStudent && ['payment_pending', 'payment_submitted', 'payment_verified', 'mentor_pending'].includes(booking.status) && (
-            <form action={cancelBooking} className="panel">
+            <ActionForm action={cancelBooking} className="panel" variant="ghost" submitLabel={t('إلغاء الطلب', 'Cancel the request')}
+                        confirm={t('إلغاء طلب الجلسة؟', 'Cancel this session request?')}>
               <input type="hidden" name="booking_id" value={bookingId} />
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%' }}>{t('إلغاء الطلب', 'Cancel the request')}</button>
-            </form>
+            </ActionForm>
           )}
         </aside>
       </div>

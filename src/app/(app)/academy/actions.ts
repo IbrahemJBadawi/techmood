@@ -20,7 +20,7 @@ export async function toggleLesson(formData: FormData) {
   const lessonId = String(formData.get('lesson_id') ?? '');
   const completed = formData.get('completed') === 'true';
 
-  await supabase.from('lesson_progress').upsert(
+  const { error } = await supabase.from('lesson_progress').upsert(
     {
       profile_id: user.id,
       lesson_id: lessonId,
@@ -29,6 +29,12 @@ export async function toggleLesson(formData: FormData) {
     },
     { onConflict: 'profile_id,lesson_id' },
   );
+
+  // Refused (the lesson's quiz is not passed yet, or the lesson is locked):
+  // take the learner to where the lesson is finished, which says why and
+  // holds the quiz, instead of a tick that silently does nothing.
+  const lessonHref = String(formData.get('lesson_href') ?? '');
+  if (error && lessonHref.startsWith('/academy/')) redirect(`${lessonHref}#lesson-finish`);
 
   // The first lesson of a course also joins its path (0118), so the academy
   // and home pages change too.

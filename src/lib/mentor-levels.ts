@@ -2,7 +2,7 @@ import type { MentorLevel } from '@/lib/database.types';
 
 /**
  * The four mentor levels (0120, 0163), as people read them. The database keeps the
- * codes (L1–L3) and each level's allowed price range in `mentor_levels`; this is
+ * codes (L1–L4) and each level's allowed price range in `mentor_levels`; this is
  * only the name and badge a chip shows, so a page that has just the code does
  * not need another query. If an admin renames a level, change it here and in
  * `mentor_levels.title` together.

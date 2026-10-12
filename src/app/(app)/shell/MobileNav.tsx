@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Icon } from '@/components/Icon';
@@ -10,7 +10,13 @@ import type { IconName } from '@/lib/roles';
 type Item = { href: string; label: string; icon: IconName };
 type Group = { label: string; items: Item[] };
 
-const isOn = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+/** A tab like /marketplace?tab=work is on only on that tab of the page, not on all of it. */
+const isOn = (pathname: string, search: URLSearchParams, href: string) => {
+  const [path, query] = href.split('?');
+  if (!(pathname === path || pathname.startsWith(`${path}/`))) return false;
+  if (!query || pathname !== path) return true;
+  return [...new URLSearchParams(query)].every(([key, value]) => search.get(key) === value);
+};
 
 /**
  * The phone's navigation: four tabs at the bottom where a thumb reaches, and
@@ -36,6 +42,7 @@ export function MobileTabBar({
   children?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -52,7 +59,7 @@ export function MobileTabBar({
 
   // Only the longest matching tab is lit, so /admin does not light up on /admin/payments.
   const active = tabs
-    .filter((tab) => isOn(pathname, tab.href))
+    .filter((tab) => isOn(pathname, search, tab.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 
   return (
@@ -114,7 +121,7 @@ export function MobileTabBar({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`sheet-tile${isOn(pathname, item.href) ? ' is-active' : ''}`}
+                    className={`sheet-tile${isOn(pathname, search, item.href) ? ' is-active' : ''}`}
                   >
                     <span className="sheet-tile-icon"><Icon name={item.icon} size={22} /></span>
                     <span>{item.label}</span>

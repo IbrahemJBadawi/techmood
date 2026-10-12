@@ -5,6 +5,7 @@ import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { formatSlot, money } from '@/lib/booking';
+import { ActionForm } from '@/components/ActionForm';
 import { getT, localizedTitle } from '@/lib/i18n.server';
 import { contentText } from '@/lib/i18n';
 import { IS_MVP } from '@/lib/scope';
@@ -211,17 +212,15 @@ export default async function MentorRequestsPage() {
               )}
 
               <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-                <form action={decideBooking}>
+                <ActionForm action={decideBooking} submitLabel={t('قبول الجلسة', 'Accept the session')}>
                   <input type="hidden" name="booking_id" value={request.id} />
                   <input type="hidden" name="decision" value="accept" />
-                  <button className="btn btn-primary btn-sm">{t('قبول الجلسة', 'Accept the session')}</button>
-                </form>
-                <form action={decideBooking} style={{ display: 'flex', gap: 8, flex: 1 }}>
+                </ActionForm>
+                <ActionForm action={decideBooking} submitLabel={t('اعتذار', 'Decline')} variant="ghost" className="decline-form">
                   <input type="hidden" name="booking_id" value={request.id} />
                   <input type="hidden" name="decision" value="decline" />
                   <input name="reason" placeholder={t('سبب الاعتذار (اختياري)', 'Why you are declining (optional)')} style={{ flex: 1, minWidth: 0 }} />
-                  <button className="btn btn-ghost btn-sm">{t('اعتذار', 'Decline')}</button>
-                </form>
+                </ActionForm>
               </div>
             </article>
           );

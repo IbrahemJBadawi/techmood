@@ -11712,6 +11712,18 @@ select public.assert((select status = 'pending_review' from public.profile_roles
 reset role;
 reset request.jwt.claim.sub;
 
+-- -----------------------------------------------------------------------------
+-- 125. Fixes from the platform review (0168)
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+select public.assert(not exists (
+  select 1 from public.suggested_opportunities(50) s
+    join public.opportunities o on o.id = s.id
+   where o.visibility <> 'public' and not public.can_see_private_brief(o.id)),
+  '125.1 home suggestions never list an invite-only brief the member cannot open');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

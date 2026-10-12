@@ -357,6 +357,7 @@ export default async function CoursePage({
                     ) : (
                     <form action={toggleLesson}>
                       <input type="hidden" name="lesson_id" value={lesson.id} />
+                      <input type="hidden" name="lesson_href" value={`/academy/${pathSlug}/${courseSlug}/${lesson.slug}`} />
                       <input type="hidden" name="completed" value={String(done)} />
                       <input type="hidden" name="revalidate" value={revalidate} />
                       <button

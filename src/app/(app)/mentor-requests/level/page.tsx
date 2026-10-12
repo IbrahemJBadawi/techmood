@@ -57,7 +57,7 @@ export default async function MentorLevelPage() {
         </p>
       </section>
 
-      {/* The three levels, the mentor's own highlighted. */}
+      {/* The four levels, the mentor's own highlighted. */}
       <section className="card-grid section-block">
         {(levels ?? []).map((level) => (
           <article className={`panel${level.level === p.current_level ? ' is-current' : ''}`} key={level.level}

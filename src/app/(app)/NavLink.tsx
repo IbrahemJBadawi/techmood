@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/lib/roles';
@@ -11,7 +11,13 @@ import type { IconName } from '@/lib/roles';
  * hides it visually — a nav that is only icons must still be readable by a
  * screen reader.
  */
-const matches = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+const matches = (pathname: string, search: URLSearchParams, href: string) => {
+  const [path, query] = href.split('?');
+  if (!(pathname === path || pathname.startsWith(`${path}/`))) return false;
+  // /marketplace?tab=talent lights on that tab only, not on the whole market
+  if (!query || pathname !== path) return true;
+  return [...new URLSearchParams(query)].every(([key, value]) => search.get(key) === value);
+};
 
 export function NavLink({
   href,
@@ -29,10 +35,11 @@ export function NavLink({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const search = useSearchParams();
   // "Session requests" and "My prices" (/mentor-requests/pricing) both match
   // the prices page; only the closest one lights up.
-  const isActive = matches(pathname, href)
-    && !siblings.some((other) => other !== href && other.startsWith(`${href}/`) && matches(pathname, other));
+  const isActive = matches(pathname, search, href)
+    && !siblings.some((other) => other !== href && other.startsWith(`${href}/`) && matches(pathname, search, other));
 
   return (
     <Link

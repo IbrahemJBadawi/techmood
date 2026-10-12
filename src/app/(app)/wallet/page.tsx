@@ -169,7 +169,7 @@ export default async function WalletPage({
     <>
       {/* the balance (design lab 4: «شحن بتحويل + إيصال» and «يختار الرصيد أو التحويل») */}
       <section className="section-block wallet-card is-credit">
-        <p className="wallet-card-label">{t('رصيدك في TechMood', 'Your TechMood balance')}</p>
+        <p className="wallet-card-label">{t('رصيد الشحن', 'Spending balance')}</p>
         <p className="wallet-card-amount eng">{money(balance)}</p>
         <p className="wallet-card-sub">{t('تدفع منه الجلسات والسوق وPremium فوراً — يُصرف داخل المنصة ولا يُسحب نقداً.', 'Pays for sessions, the market and Premium at once — spent on the platform, not withdrawable.')}</p>
         <nav className="wallet-actions" aria-label={t('إجراءات الرصيد', 'Balance actions')}>
@@ -195,14 +195,16 @@ export default async function WalletPage({
 
       <section className="section-block wallet-card is-secondary">
         <p className="wallet-card-label">
-          {earns ? t('متاح للسحب', 'Available to withdraw') : t('إجمالي ما دفعته', 'Total you have paid')}
+          {earns ? t('أرباحك المتاحة للسحب', 'Your earnings, available to withdraw') : t('إجمالي ما دفعته', 'Total you have paid')}
         </p>
         <p className={`wallet-card-amount eng${earns && available < 0 ? ' is-negative' : ''}`}>
           {earns ? money(available) : money(Number(o?.paid_usd ?? 0) - Number(o?.refunded_usd ?? 0))}
         </p>
-        {earns && (o?.pending_usd ?? 0) > 0 && (
+        {earns && (
           <p className="wallet-card-sub">
-            {t('وقيد الانتظار ', 'plus pending ')}<span className="eng">{money(o?.pending_usd ?? 0)}</span>
+            {/* two pockets, said plainly: what you earned is not what you topped up */}
+            {t('من جلساتك ومبيعاتك — منفصلة عن رصيد الشحن.', 'From your sessions and sales — separate from the spending balance.')}
+            {(o?.pending_usd ?? 0) > 0 && <>{t(' وقيد الانتظار ', ' Plus pending ')}<span className="eng">{money(o?.pending_usd ?? 0)}</span></>}
           </p>
         )}
         <nav className="wallet-actions" aria-label={t('إجراءات المحفظة', 'Wallet actions')}>

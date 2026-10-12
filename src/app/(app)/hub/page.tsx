@@ -29,10 +29,14 @@ export default async function BusinessHubPage({ searchParams }: { searchParams: 
   const tab: Tab = TABS.find((key) => key === params.tab) ?? 'pages';
   const q = params.q?.trim() || undefined;
 
-  const [{ data: accessRows }, { data: pages }] = await Promise.all([
+  const [{ data: accessRows }, { data: pages }, { data: saves }] = await Promise.all([
     supabase.rpc('business_access'),
     tab === 'pages' ? supabase.rpc('business_directory', { p_search: q ?? null, p_limit: 40 }) : Promise.resolve({ data: [] }),
+    // what this member already saved, so the save buttons show it
+    supabase.from('market_saves').select('target_kind, target_id').eq('profile_id', user.id),
   ]);
+  const savedOf = (target: 'opportunity' | 'talent' | 'team') =>
+    new Set((saves ?? []).filter((row) => row.target_kind === target).map((row) => row.target_id));
   const access = accessRows?.[0];
 
   const labels: Record<Tab, string> = {
@@ -108,10 +112,10 @@ export default async function BusinessHubPage({ searchParams }: { searchParams: 
             )}
           </>
         )}
-        {tab === 'services' && <TalentList search={q} saved={new Set()} />}
-        {tab === 'projects' && <JobList kind="freelance" search={q} saved={new Set()} />}
-        {tab === 'jobs' && <JobList kinds={['job', 'internship', 'remote']} search={q} saved={new Set()} />}
-        {tab === 'teams' && <TeamList search={q} saved={new Set()} />}
+        {tab === 'services' && <TalentList search={q} saved={savedOf('talent')} />}
+        {tab === 'projects' && <JobList kind="freelance" search={q} saved={savedOf('opportunity')} />}
+        {tab === 'jobs' && <JobList kinds={['job', 'internship', 'remote']} search={q} saved={savedOf('opportunity')} />}
+        {tab === 'teams' && <TeamList search={q} saved={savedOf('team')} />}
       </section>
     </>
   );

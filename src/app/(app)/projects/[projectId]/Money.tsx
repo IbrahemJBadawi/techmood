@@ -228,16 +228,20 @@ export function EscrowControls({
   revalidate: string;
 }) {
   const t = useT();
+  const [state, formAction, pending] = useActionState(escrowAction, undefined as MoneyState);
 
   if (status !== 'funded' && status !== 'disputed') return null;
 
   return (
-    <form action={escrowAction} className="row-actions" style={{ marginTop: 12 }}>
+    <form action={formAction} className="row-actions" style={{ marginTop: 12 }}>
       <input type="hidden" name="escrow_id" value={escrowId} />
       <input type="hidden" name="revalidate" value={revalidate} />
 
       {isPayer && status === 'funded' && (
-        <button className="btn btn-primary btn-sm" name="action" value="release">
+        <button className="btn btn-primary btn-sm" name="action" value="release" disabled={pending}
+                onClick={(event) => {
+                  if (!window.confirm(t('تأكيد الإفراج عن المبلغ للمنفّذ؟ لا يمكن التراجع.', 'Release the money to the freelancer? This cannot be undone.'))) event.preventDefault();
+                }}>
           {t('استلمت العمل — أفرج عن المبلغ', 'I have the work — release it')}
         </button>
       )}
@@ -250,7 +254,7 @@ export function EscrowControls({
             placeholder={t('سبب الخلاف', 'What is the disagreement?')}
             aria-label={t('سبب الخلاف', 'Reason')}
           />
-          <button className="btn btn-ghost btn-sm" name="action" value="dispute">
+          <button className="btn btn-ghost btn-sm" name="action" value="dispute" disabled={pending}>
             {t('افتح نزاعاً', 'Open a dispute')}
           </button>
         </>
@@ -261,6 +265,8 @@ export function EscrowControls({
           {t('المبلغ مجمّد حتى تفصل الإدارة.', 'The money is frozen until TechMood decides.')}
         </p>
       )}
+      {state?.error && <p className="notice notice-danger" style={{ flexBasis: '100%' }}>{state.error}</p>}
+      {state?.ok && <p className="form-ok" role="status" style={{ flexBasis: '100%' }}>{state.ok}</p>}
     </form>
   );
 }

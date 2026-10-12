@@ -6066,7 +6066,9 @@ input[type="file"]::file-selector-button:hover { border-color: var(--royal); col
 .lp-list button.is-active { border-color: var(--royal); background: var(--sky-tint); }
 .lp-num { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--bg-deep); font-size: 0.76rem; flex: none; }
 .lp-list button span:nth-child(2) { flex: 1; }
-.lesson-locked { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 32px 18px; }
+.lesson-locked { text-align: center; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; justify-items: center; padding: 32px 18px; }
+/* a long lesson title in the button wraps instead of widening the card past the screen */
+.lesson-locked .btn { white-space: normal; max-width: 100%; height: auto; }
 .lesson-lock-icon { font-size: 2.4rem; margin: 0; }
 .lesson-row.is-locked { opacity: 0.62; }
 /* «احجز جلسة» — opposite the assistant's button */
@@ -7957,3 +7959,6 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 .market-legend .swatch.ring-tam { background: var(--sky-tint); border: 1px solid rgba(0, 107, 224, 0.35); }
 .market-legend .swatch.ring-sam { background: rgba(56, 189, 248, 0.6); }
 .market-legend .swatch.ring-som { background: var(--royal-fill); }
+
+/* the mentor's «decline» row: the reason and the button side by side, the database's answer under them */
+.decline-form { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; align-items: center; min-width: 0; }
