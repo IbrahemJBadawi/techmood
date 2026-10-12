@@ -64,7 +64,7 @@ export default async function MentorLevelPage() {
                    style={level.level === p.current_level ? { outline: '2px solid var(--mentor)' } : undefined}>
             <h3 style={{ fontSize: '1rem' }}>{level.badge} <span className="eng">{level.title}</span></h3>
             <p className="eng" style={{ fontWeight: 700, marginTop: 4 }}>
-              {money(level.min_session_usd)} – {money(level.max_session_usd)} <span className="muted" style={{ fontWeight: 400 }}>{t('/ ساعة', '/ hour')}</span>
+              {money(level.min_session_usd)} – {level.max_session_usd == null ? t('بلا سقف', 'no ceiling') : money(level.max_session_usd)} <span className="muted" style={{ fontWeight: 400 }}>{t('/ ساعة', '/ hour')}</span>
             </p>
             {(level.fits_ar || level.fits_en) && (
               <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>{t(level.fits_ar ?? '', level.fits_en ?? level.fits_ar ?? '')}</p>

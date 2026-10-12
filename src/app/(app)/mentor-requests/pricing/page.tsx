@@ -50,8 +50,8 @@ export default async function MentorPricingPage() {
       <section className="section-block" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: '1.2rem' }}>{t('أسعاري وجلساتي', 'My prices and sessions')}</h2>
         <p className="muted" style={{ fontSize: '0.9rem', marginTop: 6, maxWidth: '70ch' }}>
-          {t(`مستواك ${level?.badge ?? ''} ${level?.title ?? ''}. المستوى يحدد نطاق السعر المسموح به: للساعة من ${level?.min_session_usd ?? '—'} إلى ${level?.max_session_usd ?? '—'} دولاراً، وأنت تحدد سعرك داخله حسب خبرتك ونوع الجلسة. نسبة تكمود ${level?.commission_pct ?? '—'}%، والجلسات الأقصر تُحسب بنسبة مدتها.`,
-             `Your level: ${level?.badge ?? ''} ${level?.title ?? ''}. A level sets the allowed price range: $${level?.min_session_usd ?? '—'} to $${level?.max_session_usd ?? '—'} an hour, and you name your own price inside it by your experience and the kind of session. TechMood keeps ${level?.commission_pct ?? '—'}%; shorter sessions are priced by their length.`)}
+          {t(`مستواك ${level?.badge ?? ''} ${level?.title ?? ''}. المستوى يحدد نطاق السعر المسموح به: للساعة من ${level?.min_session_usd ?? '—'} ${level?.max_session_usd == null ? 'بلا سقف' : `إلى ${level.max_session_usd} دولاراً`}، وأنت تحدد سعرك داخله حسب خبرتك ونوع الجلسة. نسبة تكمود ${level?.commission_pct ?? '—'}%، والجلسات الأقصر تُحسب بنسبة مدتها.`,
+             `Your level: ${level?.badge ?? ''} ${level?.title ?? ''}. A level sets the allowed price range: $${level?.min_session_usd ?? '—'} ${level?.max_session_usd == null ? 'with no ceiling' : `to $${level.max_session_usd}`} an hour, and you name your own price inside it by your experience and the kind of session. TechMood keeps ${level?.commission_pct ?? '—'}%; shorter sessions are priced by their length.`)}
           {' '}<Link href="/mentor-requests/level">{t('مستواي وطلب الترقية', 'My level and upgrade request')}</Link>
         </p>
         <p className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
@@ -69,7 +69,7 @@ export default async function MentorPricingPage() {
           isCustom={row.is_custom}
           offered={row.is_active}
           min={Number(row.min_usd)}
-          max={Number(row.max_usd)}
+          max={row.max_usd == null ? 100000 : Number(row.max_usd)}
           fallback={Number(row.default_usd)}
           commissionPct={Number(level?.commission_pct ?? 0)}
         />

@@ -212,7 +212,7 @@ function BasicsStep({
       <div className="field">
         <label htmlFor="full_name">{t('اسمك بالإنجليزية', 'Your name in English')}</label>
         <input id="full_name" name="full_name" defaultValue={isEnglishName(profile.full_name) ? profile.full_name : ''} required
-               dir="ltr" lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
+               dir="ltr" lang="en" placeholder="Sara Ahmad Khalil" pattern={ENGLISH_NAME_PATTERN}
                title={t('حروف إنجليزية فقط', 'English letters only')} />
         <small className="muted">
           {t('بالحروف الإنجليزية، كما سيظهر في حسابك وعلى شهاداتك. معرّفك في TechMood: ',

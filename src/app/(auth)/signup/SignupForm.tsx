@@ -30,7 +30,7 @@ export function SignupForm() {
       <div className="field">
         <label htmlFor="full_name">{t('اسمك بالإنجليزية', 'Your name in English')}</label>
         <input id="full_name" name="full_name" type="text" required autoComplete="name" dir="ltr"
-               lang="en" placeholder="Ibrahem Jamal Badawi" pattern={ENGLISH_NAME_PATTERN}
+               lang="en" placeholder="Sara Ahmad Khalil" pattern={ENGLISH_NAME_PATTERN}
                value={name} onChange={(event) => setName(event.target.value)}
                aria-invalid={nameBad} aria-describedby="name-hint"
                title={t('حروف إنجليزية فقط', 'English letters only')} />

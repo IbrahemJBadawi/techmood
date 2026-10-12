@@ -630,10 +630,10 @@ select public.assert(
   '10.5 every mentor level splits its price consistently');
 
 select public.assert(
-  (select string_agg(title || ' ' || min_session_usd || '-' || max_session_usd, ' | ' order by sort_order)
+  (select string_agg(title || ' ' || min_session_usd || '-' || coalesce(max_session_usd::text, '∞'), ' | ' order by sort_order)
      from public.mentor_levels)
-    = 'Peer / Junior 10.00-30.00 | Professional 25.00-75.00 | Senior / Specialist 50.00-150.00',
-  '10.6 the MVP ladder is three levels, each an allowed price range: 10$ to 150$ an hour');
+    = 'Peer / Junior 10.00-30.00 | Professional 10.00-75.00 | Senior / Specialist 10.00-150.00 | Expert / Elite 10.00-∞',
+  '10.6 four levels, each from 10$ an hour, the fourth without a ceiling (0163)');
 
 -- ===========================================================================
 -- 11. Mentor review workflow and re-evaluation
@@ -6798,12 +6798,13 @@ reset request.jwt.claim.sub;
 
 select public.assert(
   (select min_session_usd || '-' || session_price_usd || '-' || max_session_usd || '@' || commission_pct
-     from public.mentor_levels where level = 'L2') = '25.00-40.00-75.00@30.00'
+     from public.mentor_levels where level = 'L2') = '10.00-40.00-75.00@30.00'
   and (select platform_share_usd from public.mentor_levels where level = 'L2') = 12.00
   and (select string_agg(level || '@' || commission_pct, ',' order by sort_order) from public.mentor_levels)
-      = 'L1@33.33,L2@30.00,L3@30.00'
+      = 'L1@33.33,L2@30.00,L3@30.00,L4@30.00'
   and (select platform_share_usd || '/' || mentor_share_usd from public.mentor_levels where level = 'L1') = '3.33/6.67'
-  and (select min(min_session_usd) || '-' || max(max_session_usd) from public.mentor_levels) = '10.00-150.00',
+  and (select min(min_session_usd) || '-' || max(max_session_usd) from public.mentor_levels) = '10.00-150.00'
+  and (select max_session_usd is null from public.mentor_levels where level = 'L4'),
   '58.1 every level has a band and a percentage: 10$ to 150$, 30% to TechMood, and a new mentor''s 10$ is 3.33$ + 6.67$');
 
 select public.assert(
@@ -6817,8 +6818,8 @@ select public.assert(
   (select min_usd || '-' || default_usd || '-' || max_usd
      from public.session_quote('33333333-3333-3333-3333-333333333333',
                                (select id from public.session_types where slug = 'portfolio_review')))
-    = '18.75-30.00-56.25',
-  '58.3 a 45-minute session is priced for 45 minutes, band and all');
+    = '10.00-30.00-56.25',
+  '58.3 a 45-minute session is priced for 45 minutes, never under 10$ (0163)');
 
 set role authenticated;
 set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
@@ -6828,8 +6829,8 @@ select public.assert_rejects(
   'خارج حدود مستواك');
 
 select public.assert_rejects(
-  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 20)$$,
-  '58.5 nor below its floor',
+  $$select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 5)$$,
+  '58.5 nor below its floor of 10$',
   'خارج حدود مستواك');
 
 select public.set_session_price((select id from public.session_types where slug = 'career_guidance'), 45);
@@ -11569,6 +11570,30 @@ set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 select public.assert_rejects(format($$select public.promote_course(%L, 3)$$, :'pc120'),
   '120.19 only the author sponsors a course', 'دوراتك');
 reset role;
+
+-- -----------------------------------------------------------------------------
+-- 121. The standing UX survey (0164)
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert(public.ux_survey_due(), '121.1 a member who never answered is invited');
+select public.submit_ux_survey(4::smallint, 9::smallint, 'academy', array['mobile', 'content'], 'أضيفوا دروس فيديو أكثر', 'student');
+select public.assert(not public.ux_survey_due(), '121.2 and not again for 90 days');
+select public.assert_rejects($$select public.submit_ux_survey(5::smallint, 10::smallint, 'ai', '{}', null)$$,
+  '121.3 one answer per 90 days', '90');
+select public.assert_rejects($$select public.ux_survey_stats(90)$$, '121.4 the totals are for admins', 'للإدارة');
+select public.assert((select count(*) from public.ux_survey_responses) = 1, '121.5 a member sees only their own answer');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects($$select public.submit_ux_survey(6::smallint, 9::smallint, null, '{}', null)$$,
+  '121.6 answers stay in range', 'check');
+select public.submit_ux_survey(2::smallint, 3::smallint, 'mentors', array['prices'], null, 'student');
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert(
+  (select (s->>'responses')::int = 2 and (s->>'nps')::int = 0 and (s->>'ease_avg')::numeric = 3
+          and (s->'pains'->>'mobile')::int = 1 and jsonb_array_length(s->'suggestions') = 1
+     from public.ux_survey_stats(90) s),
+  '121.7 the admin reads the totals: answers, NPS, ease, pains, suggestions');
+reset role;
+reset request.jwt.claim.sub;
 
 \echo ''
 \echo '================================================'

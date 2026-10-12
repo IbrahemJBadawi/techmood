@@ -61,7 +61,7 @@ export type CertificateKind = 'course' | 'path';
 export type CertificateStatus = 'active' | 'revoked';
 // The enum still has L4–L6 (Postgres cannot drop enum values); 0120 lets a
 // mentor and a level row hold only these three.
-export type MentorLevel = 'L1' | 'L2' | 'L3';
+export type MentorLevel = 'L1' | 'L2' | 'L3' | 'L4';
 /** What a finished course is rated on (0080). */
 export type CourseCriterion = 'content' | 'clarity' | 'practice' | 'pace' | 'usefulness';
 /** Why a mentor is not taking requests: their choice, a holiday, or unanswered requests (0077). */
@@ -1667,7 +1667,7 @@ export type Database = {
       mentor_levels: Table<{
         level: MentorLevel; session_price_usd: number; platform_share_usd: number;
         mentor_share_usd: number; min_sessions: number; min_rating: number; sort_order: number;
-        min_session_usd: number; max_session_usd: number; commission_pct: number;
+        min_session_usd: number; max_session_usd: number | null; commission_pct: number;
         title: string; badge: string; fits_ar: string | null; fits_en: string | null;
       }>;
     };
@@ -2917,6 +2917,9 @@ export type Database = {
         Returns: { promotion_id: string; course_id: string; course_slug: string; path_slug: string | null; title_ar: string; description_ar: string | null; mentor_name: string | null; price_mode: string; price_usd: number | null }[];
       };
       sponsored_click: { Args: { p_promotion: string }; Returns: undefined };
+      ux_survey_due: { Args: Record<string, never>; Returns: boolean };
+      submit_ux_survey: { Args: { p_ease: number; p_recommend: number; p_most_used: string | null; p_pains: string[]; p_suggestion: string | null; p_role?: string | null }; Returns: string };
+      ux_survey_stats: { Args: { p_days?: number }; Returns: unknown };
       xp_balance: { Args: { p_profile: string }; Returns: number };
       my_gift_allowance: { Args: Record<string, never>; Returns: { balance: number; sent_today: number; left_today: number }[] };
       gift_xp: { Args: { p_to: string; p_amount: number; p_note?: string | null }; Returns: string };
@@ -3019,7 +3022,7 @@ export type Database = {
         Args: { p_mentor: string; p_session_type: string };
         Returns: {
           price_usd: number; platform_share_usd: number; mentor_share_usd: number;
-          min_usd: number; max_usd: number; default_usd: number; commission_pct: number;
+          min_usd: number; max_usd: number | null; default_usd: number; commission_pct: number;
           duration_minutes: number;
         }[];
       };
@@ -3027,14 +3030,14 @@ export type Database = {
         Args: { p_mentor: string };
         Returns: {
           session_type_id: string; name_ar: string; name_en: string | null; duration_minutes: number;
-          price_usd: number; mentor_share_usd: number; min_usd: number; max_usd: number;
+          price_usd: number; mentor_share_usd: number; min_usd: number; max_usd: number | null;
           default_usd: number; is_custom: boolean; is_active: boolean;
         }[];
       };
       set_session_price: { Args: { p_session_type: string; p_price: number | null }; Returns: undefined };
       save_mentor_level: {
         Args: {
-          p_level: MentorLevel; p_default_usd: number; p_min_usd: number; p_max_usd: number;
+          p_level: MentorLevel; p_default_usd: number; p_min_usd: number; p_max_usd: number | null;
           p_commission_pct: number;
         };
         Returns: undefined;

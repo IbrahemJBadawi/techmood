@@ -9,6 +9,7 @@ import type { UserRole } from '@/lib/database.types';
 
 import { DeviceSetup } from '@/components/DeviceSetup';
 import { WelcomeTour } from '@/components/WelcomeTour';
+import { SurveyInvite } from '@/components/SurveyInvite';
 
 import { RoleDashboard } from './RoleDashboard';
 import { StudentHome } from './student/StudentHome';
@@ -68,6 +69,9 @@ export default async function HomePage({
 
       {/* A first visit gets the welcome guide; ?tour=1 replays it (0129). */}
       <WelcomeTour open={!profile.welcomed_at || params.tour === '1'} />
+
+      {/* the standing experience survey (0164), until answered */}
+      <SurveyInvite className="section-block" />
 
       {/* Install + notifications, until both are on for this device. */}
       <DeviceSetup variant="home" publicKey={(pushKey as string | null) ?? null} />

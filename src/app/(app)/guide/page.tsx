@@ -97,7 +97,7 @@ export default async function GuidePage() {
             {(levels ?? []).map((level) => (
               <tr key={level.level}>
                 <td className="eng" style={{ whiteSpace: 'nowrap' }}>{level.badge} {level.title}</td>
-                <td className="eng" style={{ whiteSpace: 'nowrap' }}>{money(level.min_session_usd)} – {money(level.max_session_usd)}</td>
+                <td className="eng" style={{ whiteSpace: 'nowrap' }}>{money(level.min_session_usd)} – {level.max_session_usd == null ? t('بلا سقف', 'no ceiling') : money(level.max_session_usd)}</td>
                 <td className="eng">{Number(level.commission_pct)}%</td>
                 <td style={{ fontSize: '0.82rem' }}>{t(level.fits_ar ?? '', level.fits_en ?? level.fits_ar ?? '')}</td>
               </tr>

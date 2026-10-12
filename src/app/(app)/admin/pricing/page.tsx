@@ -192,7 +192,7 @@ export default async function AdminPricingPage() {
                 <input name="default_usd" type="number" step="0.5" min={1} defaultValue={level.session_price_usd} style={{ width: 90 }} />
               </label>
               <label className="muted" style={{ fontSize: '0.78rem' }}>{t('أعلى', 'Ceiling')}
-                <input name="max_usd" type="number" step="0.5" min={1} defaultValue={level.max_session_usd} style={{ width: 90 }} />
+                <input name="max_usd" type="number" step="0.5" min={1} defaultValue={level.max_session_usd ?? ''} placeholder="∞" title="فارغ = بلا سقف" style={{ width: 90 }} />
               </label>
               <label className="muted" style={{ fontSize: '0.78rem' }}>{t('نسبة تكمود %', 'TechMood %')}
                 <input name="commission_pct" type="number" step="0.01" min={0} max={60} defaultValue={level.commission_pct} style={{ width: 80 }} />

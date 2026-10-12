@@ -31,7 +31,8 @@ export async function saveLevel(_prev: ActionFormState, formData: FormData): Pro
     p_level: String(formData.get('level')) as MentorLevel,
     p_default_usd: num(formData, 'default_usd'),
     p_min_usd: num(formData, 'min_usd'),
-    p_max_usd: num(formData, 'max_usd'),
+    // empty = no ceiling (0163)
+    p_max_usd: String(formData.get('max_usd') ?? '').trim() === '' ? null : num(formData, 'max_usd'),
     p_commission_pct: num(formData, 'commission_pct'),
   });
   revalidatePath('/mentors');

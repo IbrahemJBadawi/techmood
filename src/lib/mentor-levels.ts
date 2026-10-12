@@ -1,7 +1,7 @@
 import type { MentorLevel } from '@/lib/database.types';
 
 /**
- * The three mentor levels (0120), as people read them. The database keeps the
+ * The four mentor levels (0120, 0163), as people read them. The database keeps the
  * codes (L1–L3) and each level's allowed price range in `mentor_levels`; this is
  * only the name and badge a chip shows, so a page that has just the code does
  * not need another query. If an admin renames a level, change it here and in
@@ -14,6 +14,7 @@ export const MENTOR_LEVEL_LOOK: Record<MentorLevel, { title: string; badge: stri
   L1: { title: 'Peer / Junior', badge: '🟢' },
   L2: { title: 'Professional', badge: '🔵' },
   L3: { title: 'Senior / Specialist', badge: '🟣' },
+  L4: { title: 'Expert / Elite', badge: '🟡' },
 };
 
 /** «🔵 Professional» for a level code; the code itself for anything unknown. */
