@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getT } from '@/lib/i18n.server';
 import type { Text } from '@/lib/i18n';
 import { avatarColor, initialOf } from '@/lib/mentor-look';
+import { badgesFor } from '@/lib/badges';
+import { NameBadges } from '@/components/VerifiedBadge';
 
 export type LeagueMetric = 'points' | 'streak' | 'rating';
 export type LeagueWindow = 'today' | 'week' | 'month' | 'year' | 'all';
@@ -24,6 +26,12 @@ const WINDOWS: { key: LeagueWindow; label: Text }[] = [
 ];
 
 const MEDAL: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+/** This week's place by points, or null for someone who is not in the league. */
+export async function myLeagueRank(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data } = await supabase.rpc('student_league', { p_metric: 'points', p_window: 'week', p_path: null, p_limit: 1 });
+  return (data ?? []).find((row) => row.is_me)?.rank ?? null;
+}
 
 export function parseLeague(params: { lm?: string; lw?: string; lp?: string }): LeagueQuery {
   const metric = METRICS.some((m) => m.key === params.lm) ? (params.lm as LeagueMetric) : 'points';
@@ -50,6 +58,7 @@ export async function League({
     p_metric: query.metric, p_window: query.window, p_path: query.path, p_limit: 10,
   });
   const rows = data ?? [];
+  const marks = await badgesFor(supabase, rows.map((row) => row.profile_id));
   const top = rows.filter((row) => row.rank <= 10);
   const me = rows.find((row) => row.is_me);
   const meOutside = me && me.rank > 10 ? me : null;
@@ -83,7 +92,7 @@ export async function League({
           : initialOf(row.name)}
       </span>
       <span className="hm-rank-name">
-        <strong>{row.is_me ? t('أنت', 'You') : row.name}</strong>
+        <strong>{row.is_me ? t('أنت', 'You') : row.name}<NameBadges verified={marks.verified.has(row.profile_id)} premium={marks.premium.has(row.profile_id)} /></strong>
         <span className="muted">{detailOf(row)}</span>
       </span>
       <span className={`hm-rank-xp is-${query.metric}`} dir={query.metric === 'streak' ? undefined : 'ltr'}>{scoreOf(row)}</span>

@@ -33,6 +33,8 @@ export function Assistant() {
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
   const [sending, setSending] = useState<string | null>(null);
+  // design lab 5: the same panel, a tap away from filling the screen
+  const [wide, setWide] = useState(false);
 
   const isOpen = assistant?.isOpen ?? false;
   const where = assistant?.where;
@@ -102,7 +104,7 @@ export function Assistant() {
         <button type="button" className="ai-backdrop" aria-label={t('إغلاق', 'Close')} onClick={assistant.close} />
       )}
       {isOpen && (
-        <aside className="ai-panel" role="dialog" aria-label={t('مساعد TechMood', 'TechMood AI')}>
+        <aside className={`ai-panel${wide ? ' is-wide' : ''}`} role="dialog" aria-label={t('مساعد TechMood', 'TechMood AI')}>
           <header className="ai-panel-head">
             <span className="ai-head-mark" aria-hidden>✦</span>
             <div className="ai-head-text">
@@ -113,6 +115,11 @@ export function Assistant() {
               </span>
             </div>
             <div className="ai-panel-tools">
+              <button type="button" className="ai-head-btn" onClick={() => setWide((value) => !value)}
+                      title={wide ? t('صغّر', 'Shrink') : t('كبّر', 'Expand')} aria-label={wide ? t('صغّر', 'Shrink') : t('كبّر', 'Expand')}
+                      aria-pressed={wide}>
+                {wide ? '⤡' : '⤢'}
+              </button>
               <button type="button" className="ai-head-btn" title={t('محادثة جديدة', 'New chat')}
                       aria-label={t('محادثة جديدة', 'New chat')}
                       onClick={() => setState({ ...EMPTY, live: state.live, suggestions: state.suggestions, recent: state.recent })}>
@@ -185,6 +192,20 @@ export function Assistant() {
           />
 
           {state.error && <p className="form-error ai-form-error">{state.error}</p>}
+
+          {/* quick replies, once a conversation is going: the next question is usually one of these */}
+          {state.messages.length > 0 && !pending && (
+            <div className="ai-quick" role="group" aria-label={t('ردود سريعة', 'Quick replies')}>
+              {[
+                t('اشرحها أبسط', 'Explain it simpler'),
+                t('أعطني مثالاً', 'Give me an example'),
+                t('ما الخطوة التالية؟', 'What next?'),
+                t('لخّص ما سبق', 'Sum it up'),
+              ].map((quick) => (
+                <button key={quick} type="button" className="ai-quick-chip" onClick={() => send(quick)}>{quick}</button>
+              ))}
+            </div>
+          )}
 
           <ChatComposer
             value={draft}

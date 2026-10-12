@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { NameBadges } from '@/components/VerifiedBadge';
+import { badgesFor } from '@/lib/badges';
+
 import { Stars } from '@/components/Stars';
 import { createClient } from '@/lib/supabase/server';
 import { getT, localizedTitle } from '@/lib/i18n.server';
@@ -51,6 +54,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
     .in('id', mentorIds.length ? mentorIds : ['00000000-0000-0000-0000-000000000000']);
 
   const profileById = new Map((profiles ?? []).map((row) => [row.id, row]));
+  const marks = await badgesFor(supabase, mentorIds);
 
   // A mentor's field, by name: their domains are field slugs; a mentor who
   // listed none is shown their primary field from their profile.
@@ -177,7 +181,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
                     {mentor.is_accepting && <span className="mn-online" aria-hidden="true" />}
                   </span>
                   <span className="mn-card-id">
-                    <strong>{name}</strong>
+                    <strong>{name}<NameBadges verified={marks.verified.has(mentor.profile_id)} premium={marks.premium.has(mentor.profile_id)} /></strong>
                     <span className="mn-headline">{mentor.headline_ar ?? profile?.headline ?? t('منتور', 'Mentor')}</span>
                     <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span>
                   </span>

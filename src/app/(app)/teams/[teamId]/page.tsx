@@ -1,3 +1,5 @@
+import { NameBadges } from '@/components/VerifiedBadge';
+import { badgesFor } from '@/lib/badges';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
@@ -46,6 +48,7 @@ export default async function TeamOverviewPage({
     const ids = (people ?? []).map((row) => row.profile_id);
     const { data: names } = await supabase.from('profiles').select('id, full_name, techmood_id')
       .in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
+    const marks = await badgesFor(supabase, ids);
     return (
       <>
         <section className="section-block ac-cover" style={{ '--hue': avatarColor(team.id) } as React.CSSProperties}>
@@ -73,6 +76,7 @@ export default async function TeamOverviewPage({
             {(names ?? []).map((person) => (
               <li key={person.id}>
                 {person.techmood_id ? <Link href={`/u/${person.techmood_id}`}>{person.full_name}</Link> : person.full_name}
+                <NameBadges verified={marks.verified.has(person.id)} premium={marks.premium.has(person.id)} />
                 {person.id === team.leader_id && <span className="sc-leader">{t('القائد', 'Lead')}</span>}
               </li>
             ))}

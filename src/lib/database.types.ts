@@ -744,7 +744,8 @@ export type BookingReviewItem = {
 export type XpSource =
   | 'lesson_completed' | 'assignment_evaluated' | 'course_project_evaluated'
   | 'course_completed' | 'path_project_evaluated' | 'path_completed'
-  | 'mentor_session_attended' | 'mentor_session_booked' | 'team_contribution' | 'achievement_awarded';
+  | 'mentor_session_attended' | 'mentor_session_booked' | 'team_contribution' | 'achievement_awarded'
+  | 'lesson_quiz_passed' | 'gift_sent' | 'gift_received';
 
 export type Profile = {
   id: string;
@@ -1307,6 +1308,19 @@ export type Database = {
         status: 'open' | 'won' | 'no_bids' | 'cancelled'; winning_usd: number | null; created_at: string; closed_at: string | null;
       }>;
       premium_memberships: Table<{ profile_id: string; until: string; since: string }>;
+      verified_members: Table<{ profile_id: string; since: string }>;
+      identity_verifications: Table<{
+        id: string;
+        profile_id: string;
+        legal_name: string;
+        document_path: string | null;
+        status: 'pending' | 'approved' | 'rejected';
+        reason: string | null;
+        reviewed_by: string | null;
+        reviewed_at: string | null;
+        created_at: string;
+      }>;
+      xp_gifts: Table<{ id: string; from_id: string; to_id: string; amount: number; note: string | null; created_at: string }>;
       business_inquiries: Table<{
         id: string; company: string; contact_name: string; email: string; phone: string | null; need: BusinessNeed;
         message: string; profile_id: string | null; status: 'new' | 'contacted' | 'closed'; created_at: string;
@@ -2874,6 +2888,13 @@ export type Database = {
         Returns: { amount_usd: number; bidder: string; created_at: string; is_me: boolean }[];
       };
       is_premium: { Args: { p_profile: string }; Returns: boolean };
+      is_verified: { Args: { p_profile: string }; Returns: boolean };
+      xp_balance: { Args: { p_profile: string }; Returns: number };
+      my_gift_allowance: { Args: Record<string, never>; Returns: { balance: number; sent_today: number; left_today: number }[] };
+      gift_xp: { Args: { p_to: string; p_amount: number; p_note?: string | null }; Returns: string };
+      request_identity_verification: { Args: { p_legal_name: string; p_document_path: string }; Returns: string };
+      review_identity_verification: { Args: { p_id: string; p_approve: boolean; p_reason?: string | null }; Returns: string | null };
+      revoke_verification: { Args: { p_profile: string; p_reason: string }; Returns: undefined };
       premium_offer: {
         Args: Record<string, never>;
         Returns: { monthly_usd: number; yearly_usd: number; my_until: string | null; ai_daily: number; ai_daily_premium: number }[];

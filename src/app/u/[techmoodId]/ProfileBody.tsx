@@ -14,6 +14,7 @@ import { siteOrigin } from '@/lib/site';
 import { PRIMARY_LINK_KINDS, isPrimaryLink } from '@/lib/profile-links';
 import { roleLabel } from '@/lib/roles';
 import { ShareButton } from '@/components/ShareButton';
+import { GiftXp } from '@/components/GiftXp';
 import { ActivityGraph } from './ActivityGraph';
 
 const LINK_LABEL: Record<LinkKind, string> = {
@@ -220,6 +221,9 @@ export async function ProfileBody({ techmoodId, inApp }: { techmoodId: string; i
               signedIn={Boolean(viewer)}
               path={`/u/${card.techmood_id}`}
             />
+          )}
+          {viewer && viewer.id !== card.profile_id && (
+            <GiftXp to={card.profile_id} name={(card.display_name ?? card.full_name ?? '').split(' ')[0]} path={`/u/${card.techmood_id}`} />
           )}
           <ShareButton path={`/u/${card.techmood_id}`} title={card.full_name ?? card.techmood_id}
                        text={t(`الملف المهني لـ ${card.full_name ?? card.techmood_id} على TechMood`, `${card.full_name ?? card.techmood_id}’s profile on TechMood`)} />

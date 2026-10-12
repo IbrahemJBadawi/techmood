@@ -1,3 +1,5 @@
+import { NameBadges } from '@/components/VerifiedBadge';
+import { badgesFor } from '@/lib/badges';
 import Link from 'next/link';
 
 import { LikeButton } from '@/components/Social';
@@ -48,6 +50,7 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
 
   const listing = page.listing_id && page.listing_status && ['listed', 'reserved', 'sold'].includes(page.listing_status) ? page : null;
   const isPeople = (people ?? []).some((person) => person.profile_id === user?.id);
+  const marks = await badgesFor(supabase, (people ?? []).map((person) => person.profile_id));
   const canBuy = Boolean(user && listing?.listing_status === 'listed' && !page.can_edit && !isPeople);
 
   const [{ data: methods }, { data: agreedRows }, { data: minPctRow }, { data: myPriceRows }] = await Promise.all([
@@ -307,6 +310,7 @@ export async function ShowcaseView({ page, inApp }: { page: ShowcasePage; inApp:
                     : <span className="sc-avatar is-initial" style={{ background: avatarColor(person.full_name ?? '?') }}>{(person.full_name ?? '?').charAt(0)}</span>}
                   <span>
                     {person.techmood_id ? <Link href={memberHref(person.techmood_id, inApp)}>{person.full_name}</Link> : person.full_name}
+                    <NameBadges verified={marks.verified.has(person.profile_id)} premium={marks.premium.has(person.profile_id)} />
                     {person.is_leader && <span className="sc-leader">{t('القائد', 'Lead')}</span>}
                     {person.role_ar && <small className="muted"> · {person.role_ar}</small>}
                   </span>

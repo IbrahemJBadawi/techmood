@@ -42,6 +42,7 @@ export async function StudentHero({
   totalXp,
   stars,
   streak,
+  rank = null,
 }: {
   name: string;
   avatarUrl: string | null;
@@ -50,6 +51,8 @@ export async function StudentHero({
   totalXp: number;
   stars: number;
   streak: number;
+  /** this week's place in the students' league, when the member is in it */
+  rank?: number | null;
 }) {
   const t: T = await getT();
   const level = levelInfo(totalXp);
@@ -104,6 +107,13 @@ export async function StudentHero({
             </InfoTip>
           </span>
           <span className="hm-pill is-level">{t(level.current.title)}</span>
+          {rank && (
+            <a className="hm-pill is-rank" href="#leaderboard">
+              <span aria-hidden="true">🏆</span>
+              <strong className="eng">#{rank}</strong>
+              <span className="hm-pill-label">{t('في الدوري', 'in the league')}</span>
+            </a>
+          )}
         </div>
       </section>
 

@@ -10,6 +10,8 @@ export const SETTINGS_PAGES: { href: string; label: Text; hint: Text; icon: Icon
     hint: { ar: 'مجالك الرئيسي واهتماماتك', en: 'Your main field and interests' }, icon: 'layers', color: '#7C5CFF' },
   { href: '/settings/roles', label: { ar: 'أدواري', en: 'My roles' },
     hint: { ar: 'طالب، منتور، متدرّب — وطلباتك', en: 'Student, mentor, mentee — and your requests' }, icon: 'team', color: '#0E9F6E' },
+  { href: '/settings/verification', label: { ar: 'توثيق الحساب', en: 'Verification' },
+    hint: { ar: 'العلامة الزرقاء ✓ بعد مراجعة هويتك', en: 'The blue ✓ after an identity check' }, icon: 'shield', color: '#1D9BF0' },
   { href: '/settings/notifications', label: { ar: 'الإشعارات', en: 'Notifications' },
     hint: { ar: 'ما يصلك على المنصة والبريد والهاتف', en: 'What reaches you in-app, by email and on your phone' }, icon: 'bell', color: '#E8590C' },
   { href: '/settings/ai', label: { ar: 'المساعد الذكي', en: 'AI assistant' },

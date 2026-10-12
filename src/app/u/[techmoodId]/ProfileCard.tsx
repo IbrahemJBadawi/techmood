@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-import { PremiumBadge } from '@/components/PremiumBadge';
+import { NameBadges } from '@/components/VerifiedBadge';
 import { createClient } from '@/lib/supabase/server';
 
 import { Stars } from '@/components/Stars';
@@ -41,7 +41,10 @@ export async function ProfileCard({
   const name = card.display_name ?? card.full_name;
   // the Premium mark (0154), public like any badge
   const supabase = await createClient();
-  const { data: premium } = await supabase.rpc('is_premium', { p_profile: card.profile_id });
+  const [{ data: premium }, { data: verified }] = await Promise.all([
+    supabase.rpc('is_premium', { p_profile: card.profile_id }),
+    supabase.rpc('is_verified', { p_profile: card.profile_id }),
+  ]);
   const initial = name.trim().charAt(0);
 
   const stats: { value: string; label: string }[] = [
@@ -72,7 +75,7 @@ export async function ProfileCard({
         )}
 
         <div className="identity-who">
-          <h1>{name}{premium && <> <PremiumBadge /></>}</h1>
+          <h1>{name}<NameBadges verified={!!verified} premium={!!premium} /></h1>
           {card.headline && <p className="identity-title">{card.headline}</p>}
           {card.primary_field && <p className="identity-field">{card.primary_field}</p>}
         </div>

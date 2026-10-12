@@ -8539,7 +8539,7 @@ select public.assert(
          -- a running auction and its bids, as initials (0153)
          'auction_state', 'auction_bids_public',
          -- who is Premium, like a badge (0154)
-         'is_premium',
+         'is_premium', 'is_verified',
          -- the front page's counted numbers, and a profile's activity graph (0156)
          'platform_stats', 'profile_activity')
   ),
@@ -11400,6 +11400,83 @@ select public.assert(
        and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1]
                          and c.conkey::int2[] <@ i.indkey::int2[])),
   '118.3 every foreign key has an index');
+
+-- -----------------------------------------------------------------------------
+-- 119. XP gifts and identity verification (0160, 0161)
+insert into public.xp_events (profile_id, source, xp, ref_table, ref_id)
+values ('22222222-2222-2222-2222-222222222222', 'achievement_awarded', 200, 'test119', extensions.gen_random_uuid());
+select public.xp_balance('22222222-2222-2222-2222-222222222222') as giver0,
+       public.xp_balance('55555555-5555-5555-5555-555555555555') as taker0 \gset
+select public.assert_rejects(
+  $$insert into public.xp_events (profile_id, source, xp, ref_table, ref_id)
+    values ('22222222-2222-2222-2222-222222222222', 'lesson_completed', -5, 'test119', extensions.gen_random_uuid())$$,
+  '119.1 only a gift sent takes points away', 'xp_events_xp_check');
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.gift_xp('55555555-5555-5555-5555-555555555555', 10, 'شكراً على المساعدة') as gift119 \gset
+select public.assert(
+  public.xp_balance('22222222-2222-2222-2222-222222222222') = :giver0 - 10
+  and public.xp_balance('55555555-5555-5555-5555-555555555555') = :taker0 + 10,
+  '119.2 a gift moves exactly its points from the giver to the receiver');
+select public.assert_rejects($$select public.gift_xp('22222222-2222-2222-2222-222222222222', 5)$$,
+  '119.3 nobody gifts themselves', 'نفسك');
+select public.assert_rejects($$select public.gift_xp('55555555-5555-5555-5555-555555555555', 51)$$,
+  '119.4 a gift is at most 50 XP', '50');
+select public.gift_xp('55555555-5555-5555-5555-555555555555', 50);
+select public.gift_xp('55555555-5555-5555-5555-555555555555', 40);
+select public.assert_rejects($$select public.gift_xp('55555555-5555-5555-5555-555555555555', 1)$$,
+  '119.5 and 100 XP a day', 'اليومي');
+select public.assert((select left_today = 0 from public.my_gift_allowance()), '119.6 the allowance says so');
+select public.assert_rejects($$insert into public.xp_gifts (from_id, to_id, amount) values ('22222222-2222-2222-2222-222222222222', '55555555-5555-5555-5555-555555555555', 5)$$,
+  '119.7 gifts are given only through gift_xp', 'permission denied');
+reset role;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '55555555-5555-5555-5555-555555555555'
+            and entity_id = :'gift119' and title_ar like '🎁%'),
+  '119.8 the receiver is told');
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects($$select public.gift_xp('55555555-5555-5555-5555-555555555555', 50)$$,
+  '119.9 nobody gives more than they hold', 'لا تكفي')
+ where public.xp_balance('33333333-3333-3333-3333-333333333333') < 50;
+select public.assert(not exists (select 1 from public.xp_gifts where id = :'gift119'),
+  '119.10 a gift is private to its two members');
+
+-- identity
+select public.assert_rejects($$select public.request_identity_verification('Test Person', '33333333-3333-3333-3333-333333333333/none.png')$$,
+  '119.11 no request without the document', 'ارفع');
+reset role;
+insert into storage.objects (bucket_id, name, owner)
+values ('identity-docs', '33333333-3333-3333-3333-333333333333/id.png', '33333333-3333-3333-3333-333333333333');
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects($$select public.request_identity_verification('Test Person', '22222222-2222-2222-2222-222222222222/id.png')$$,
+  '119.12 nor with somebody else''s file', 'ارفع');
+select public.request_identity_verification('Test Person', '33333333-3333-3333-3333-333333333333/id.png') as ver119 \gset
+select public.assert_rejects($$select public.request_identity_verification('Test Person', '33333333-3333-3333-3333-333333333333/id.png')$$,
+  '119.13 one request at a time', 'قيد المراجعة');
+select public.assert_rejects(format($$select public.review_identity_verification(%L, true)$$, :'ver119'),
+  '119.14 a member does not verify themselves', 'للإدارة');
+select public.assert_rejects($$insert into public.verified_members (profile_id) values ('33333333-3333-3333-3333-333333333333')$$,
+  '119.15 nor writes to the verified list', 'permission denied');
+set request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';
+select public.assert_rejects(format($$select public.review_identity_verification(%L, false)$$, :'ver119'),
+  '119.16 a refusal carries its reason', 'سبب');
+select public.assert(
+  public.review_identity_verification(:'ver119', true) = '33333333-3333-3333-3333-333333333333/id.png',
+  '119.17 an approval hands back the document to delete');
+select public.assert(
+  (select status = 'approved' and document_path is null from public.identity_verifications where id = :'ver119'),
+  '119.18 and keeps only the outcome');
+reset role;
+set role anon;
+select public.assert(public.is_verified('33333333-3333-3333-3333-333333333333'),
+  '119.19 everybody can see the ✓');
+reset role;
+select public.assert(
+  exists (select 1 from public.notifications where profile_id = '33333333-3333-3333-3333-333333333333'
+            and entity_id = :'ver119' and title_ar like '✓%'),
+  '119.20 the member is told');
 
 \echo ''
 \echo '================================================'

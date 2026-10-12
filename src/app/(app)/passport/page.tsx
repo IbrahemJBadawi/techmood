@@ -42,6 +42,9 @@ const XP_SOURCE_LABELS: Record<string, Text> = {
   mentor_session_booked:    { ar: 'تأكيد حجز جلسة',       en: 'Mentor session booked' },
   team_contribution:        { ar: 'مساهمة في فريق',       en: 'Team contribution' },
   achievement_awarded:      { ar: 'إنجاز',                en: 'Achievement' },
+  lesson_quiz_passed:       { ar: 'اجتياز اختبار درس',     en: 'Lesson quiz passed' },
+  gift_sent:                { ar: '🎁 هدية أرسلتها',       en: '🎁 Gift sent' },
+  gift_received:            { ar: '🎁 هدية وصلتك',         en: '🎁 Gift received' },
 };
 
 export default async function PassportPage() {
@@ -197,7 +200,7 @@ export default async function PassportPage() {
                         <strong>{XP_SOURCE_LABELS[event.source] ? t(XP_SOURCE_LABELS[event.source]) : event.source}</strong>
                         <span className="txn-meta">{new Date(event.created_at).toLocaleDateString(t.locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { timeZone: PLATFORM_TIME_ZONE })}</span>
                       </span>
-                      <span className="txn-side"><span className="eng txn-amount is-in">+{event.xp} XP</span></span>
+                      <span className="txn-side"><span className={`eng txn-amount ${event.xp < 0 ? 'is-out' : 'is-in'}`}>{event.xp < 0 ? '−' : '+'}{Math.abs(event.xp)} XP</span></span>
                     </div>
                   </li>
                 ))}

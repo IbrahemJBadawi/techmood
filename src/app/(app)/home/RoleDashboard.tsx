@@ -8,6 +8,8 @@ import type { Database, UserRole } from '@/lib/database.types';
 import { IS_MVP } from '@/lib/scope';
 import { PLATFORM_TIME_ZONE } from '@/lib/zoned';
 
+import { League, myLeagueRank, type LeagueQuery } from './student/League';
+
 type Tile = { value: number | string; label: string; href: string };
 
 /**
@@ -15,7 +17,7 @@ type Tile = { value: number | string; label: string; href: string };
  * real count from a real table — an empty workspace shows a zero and says what
  * to do about it, rather than a decorative figure.
  */
-export async function RoleDashboard({ role, userId, name }: { role: UserRole; userId: string; name: string }) {
+export async function RoleDashboard({ role, userId, name, league }: { role: UserRole; userId: string; name: string; league: LeagueQuery }) {
   const t = await getT();
   const supabase = await createClient();
 
@@ -179,6 +181,9 @@ export async function RoleDashboard({ role, userId, name }: { role: UserRole; us
   const firstName = name.trim().split(/\s+/)[0];
   // The tile that asks something of you comes first and is coloured; a zero stays quiet.
   const look = ROLE_BY_VALUE[role];
+  // every role sees the students' league (design lab 5), and a member who is
+  // also a student sees their own place in the greeting
+  const rank = await myLeagueRank(supabase);
 
   return (
     <>
@@ -187,7 +192,10 @@ export async function RoleDashboard({ role, userId, name }: { role: UserRole; us
           <span className="rd-role-icon" aria-hidden="true"><Icon name={look.icon} size={24} /></span>
           <div style={{ minWidth: 0 }}>
             <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
-            <p className="muted">{t(`أنت الآن في لوحة ${t(roleLabel(role))}`, `You are in your ${t(roleLabel(role))} dashboard`)}</p>
+            <p className="muted">
+              {t(`أنت الآن في لوحة ${t(roleLabel(role))}`, `You are in your ${t(roleLabel(role))} dashboard`)}
+              {rank && <> · <a href="#leaderboard">🏆 <span className="eng">#{rank}</span> {t('في الدوري', 'in the league')}</a></>}
+            </p>
           </div>
         </div>
         {cta && <Link className="btn btn-primary" href={cta.href}>{cta.label}</Link>}
@@ -203,6 +211,10 @@ export async function RoleDashboard({ role, userId, name }: { role: UserRole; us
             <span className="rd-go" aria-hidden="true"><Icon name="arrow" size={16} /></span>
           </Link>
         ))}
+      </div>
+
+      <div className="section-block rd-league">
+        <League query={league} paths={[]} />
       </div>
     </>
   );

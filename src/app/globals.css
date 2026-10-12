@@ -7663,3 +7663,32 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 /* a lesson row's details wrap instead of running past a narrow screen */
 .lesson-meta { flex-wrap: wrap; min-width: 0; }
 .lesson-meta > * { min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- Lab 5: names carry their marks; gifts; identity ---------- */
+.name-badges { display: inline-flex; align-items: center; gap: 3px; margin-inline-start: 4px; vertical-align: middle; }
+.verified-badge {
+  display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; border-radius: 50%; vertical-align: middle;
+  background: #1D9BF0; color: #fff; font-size: 0.72em; font-weight: 900; line-height: 1;
+}
+.txn-amount.is-out { color: var(--ink-soft); }
+.gift-sheet .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.gift-sheet .chip { min-height: 40px; padding-inline: 16px; }
+.gift-sheet .chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.hm-pill.is-rank { text-decoration: none; background: #FFF4D6; color: #8A5A00; border-color: transparent; }
+.hm-hero .hm-pill.is-rank { background: rgba(255, 255, 255, 0.92); color: #8A5A00; }
+.rd-league { max-width: 720px; }
+.hm-hero .hm-pill.is-rank .hm-pill-label { color: #8A5A00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .hm-pill.is-rank:not(.hm-hero .hm-pill) { background: #3A2E10; color: #F5C451; } }
+:root[data-theme="dark"] .hm-pill.is-rank:not(.hm-hero .hm-pill) { background: #3A2E10; color: #F5C451; }
+
+/* the assistant, improved (design lab 5): expand to fill the screen, quick replies above the box */
+.ai-panel { transition: width 0.2s ease, height 0.2s ease; }
+.ai-panel.is-wide { width: min(760px, 100vw); }
+@media (max-width: 720px) { .ai-panel.is-wide { height: 100dvh; border-radius: 0; } }
+.ai-quick { display: flex; gap: 6px; overflow-x: auto; padding: 6px 12px 0; scrollbar-width: none; flex: none; }
+.ai-quick::-webkit-scrollbar { display: none; }
+.ai-quick-chip {
+  flex: none; white-space: nowrap; padding: 6px 12px; border-radius: 99px; font: inherit; font-size: 0.78rem; font-weight: 600;
+  border: 1px solid var(--line); background: var(--sky-tint); color: var(--royal-dark); cursor: pointer;
+}
+.ai-quick-chip:hover { border-color: var(--royal); }

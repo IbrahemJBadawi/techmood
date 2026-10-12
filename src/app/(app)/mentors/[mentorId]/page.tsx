@@ -16,6 +16,8 @@ import { AskAI } from '@/components/AskAI';
 import { FeedbackSummary } from '@/components/FeedbackSummary';
 import { mentorLevelLabel } from '@/lib/mentor-levels';
 import { BackLink } from '@/components/BackLink';
+import { NameBadges } from '@/components/VerifiedBadge';
+import { badgesFor } from '@/lib/badges';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -45,6 +47,7 @@ export default async function MentorProfilePage({
   if (!mentor) notFound();
 
   const { data: { user } } = await supabase.auth.getUser();
+  const marks = await badgesFor(supabase, [mentorId]);
 
   const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }, { data: followRows }] = await Promise.all([
     supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url, avatar_url').eq('id', mentorId).single(),
@@ -130,7 +133,7 @@ export default async function MentorProfilePage({
         </div>
 
         <div className="pp-identity">
-          <h2>{profile?.full_name} <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span></h2>
+          <h2>{profile?.full_name}<NameBadges verified={marks.verified.has(mentorId)} premium={marks.premium.has(mentorId)} /> <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span></h2>
           {mentor.headline_ar && <p className="pp-headline">{mentor.headline_ar}</p>}
           <div className="mn-rating">
             <Stars value={mentor.rating_avg ?? 0} />

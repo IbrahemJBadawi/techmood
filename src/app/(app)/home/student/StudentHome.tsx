@@ -11,7 +11,7 @@ import { IS_MVP } from '@/lib/scope';
 import { Avatar } from '../../shell/ProfileMenu';
 import { ContinueLearning, type Resume } from './ContinueLearning';
 import { DailyBoard, type AgendaEntry } from './DailyBoard';
-import { League, type LeagueQuery } from './League';
+import { League, myLeagueRank, type LeagueQuery } from './League';
 import { Pomodoro } from './Pomodoro';
 import { StudentHero, StreakCard, type ActivityDay } from './StudentHero';
 import { ProgressRing } from '../../academy/ProgressRing';
@@ -114,6 +114,7 @@ export async function StudentHome({
   // Lookups are separate queries rather than PostgREST embeds: the hand-written
   // schema types declare no relationships, so an embed would typecheck as an
   // error object. Separate reads are also easier to reason about under RLS.
+  const myRank = await myLeagueRank(supabase);
   const [{ data: paths }, { data: mentorNames }, { data: dimensions }, team] = await Promise.all([
     supabase
       .from('enrollments')
@@ -193,6 +194,7 @@ export async function StudentHome({
         totalXp={xp?.total_xp ?? 0}
         stars={stars?.stars_avg ?? 0}
         streak={typeof streak === 'number' ? streak : 0}
+        rank={myRank}
       />
 
       <div className="hm-layout">
