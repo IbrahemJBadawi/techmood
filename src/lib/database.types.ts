@@ -845,6 +845,9 @@ export type Course = {
   submitted_at: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
+  /** how a mentor's course is studied (0162); TechMood's own are free */
+  price_mode: 'free' | 'once' | 'subscription';
+  price_usd: number | null;
 }
 
 export type Lesson = {
@@ -863,6 +866,8 @@ export type Lesson = {
   sort_order: number;
   /** published: open · planned: «قريباً» (shown, not completable) · draft/archived: hidden (0078). */
   status: ContentStatus;
+  /** the free first lesson of a paid course (0162) */
+  is_preview: boolean;
 }
 
 export type LessonVideo = {
@@ -1320,6 +1325,10 @@ export type Database = {
         reviewed_at: string | null;
         created_at: string;
       }>;
+      mentor_course_plans: Table<{ mentor_id: string; monthly_usd: number; is_active: boolean; updated_at: string }>;
+      course_purchases: Table<{ id: string; course_id: string; profile_id: string; mentor_id: string | null; price_usd: number; fee_usd: number; created_at: string }>;
+      mentor_subscriptions: Table<{ id: string; mentor_id: string; profile_id: string; from_at: string; until: string; price_usd: number; fee_usd: number; created_at: string }>;
+      course_promotions: Table<{ id: string; course_id: string; mentor_id: string; days: number; daily_usd: number; paid_usd: number; starts_at: string; ends_at: string; impressions: number; clicks: number; created_at: string }>;
       xp_gifts: Table<{ id: string; from_id: string; to_id: string; amount: number; note: string | null; created_at: string }>;
       business_inquiries: Table<{
         id: string; company: string; contact_name: string; email: string; phone: string | null; need: BusinessNeed;
@@ -2889,6 +2898,25 @@ export type Database = {
       };
       is_premium: { Args: { p_profile: string }; Returns: boolean };
       is_verified: { Args: { p_profile: string }; Returns: boolean };
+      can_study_course: { Args: { p_course: string; p_profile?: string | null }; Returns: boolean };
+      course_outline: {
+        Args: { p_course: string };
+        Returns: { module_id: string; module_title: string; module_order: number; lesson_id: string; slug: string; title_ar: string; title_en: string | null; kind: string; duration_minutes: number | null; sort_order: number; status: string; is_preview: boolean; unlocked: boolean }[];
+      };
+      course_offer: {
+        Args: { p_course: string };
+        Returns: { price_mode: 'free' | 'once' | 'subscription'; price_usd: number | null; monthly_usd: number | null; mentor_id: string | null; has_access: boolean; subscribed_until: string | null; balance: number | null }[];
+      };
+      set_course_price: { Args: { p_course: string; p_mode: string; p_price?: number | null }; Returns: undefined };
+      set_course_plan: { Args: { p_monthly: number; p_active?: boolean }; Returns: undefined };
+      buy_course: { Args: { p_course: string }; Returns: string };
+      subscribe_to_mentor: { Args: { p_mentor: string }; Returns: string };
+      promote_course: { Args: { p_course: string; p_days: number }; Returns: string };
+      sponsored_course: {
+        Args: Record<string, never>;
+        Returns: { promotion_id: string; course_id: string; course_slug: string; path_slug: string | null; title_ar: string; description_ar: string | null; mentor_name: string | null; price_mode: string; price_usd: number | null }[];
+      };
+      sponsored_click: { Args: { p_promotion: string }; Returns: undefined };
       xp_balance: { Args: { p_profile: string }; Returns: number };
       my_gift_allowance: { Args: Record<string, never>; Returns: { balance: number; sent_today: number; left_today: number }[] };
       gift_xp: { Args: { p_to: string; p_amount: number; p_note?: string | null }; Returns: string };

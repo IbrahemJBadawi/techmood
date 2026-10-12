@@ -326,3 +326,24 @@ export async function runPrecheck(submissionId: string, revalidate: string): Pro
   revalidatePath(revalidate);
   return { precheck: (data as Precheck | null) ?? null, error: run.ok ? undefined : run.error };
 }
+
+// ---------------------------------------------------------------------------
+// Paying for a mentor's course (0162): from the balance, checked by the database
+// ---------------------------------------------------------------------------
+export async function buyCourseAction(courseId: string, path: string) {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('buy_course', { p_course: courseId });
+  if (error) return { ok: false, error: dbError(t, error.message) };
+  revalidatePath(path);
+  return { ok: true };
+}
+
+export async function subscribeMentorAction(mentorId: string, path: string) {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('subscribe_to_mentor', { p_mentor: mentorId });
+  if (error) return { ok: false, error: dbError(t, error.message) };
+  revalidatePath(path);
+  return { ok: true };
+}

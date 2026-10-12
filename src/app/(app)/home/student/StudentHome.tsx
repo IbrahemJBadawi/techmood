@@ -1,3 +1,4 @@
+import { SponsoredCourse } from '@/components/SponsoredCourse';
 import Link from 'next/link';
 
 import { Icon } from '@/components/Icon';
@@ -389,6 +390,8 @@ export async function StudentHome({
           />
 
           <Pomodoro suggestion={resume?.lesson_title ?? null} />
+
+          <SponsoredCourse />
 
           <League
             query={league}

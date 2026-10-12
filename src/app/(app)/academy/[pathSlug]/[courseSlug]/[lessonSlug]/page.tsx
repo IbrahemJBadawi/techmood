@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { CourseOffer } from '../../../CourseOffer';
+import { BackLink } from '@/components/BackLink';
 import { notFound, redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -102,7 +104,34 @@ export default async function LessonPage({
     .map((entry) => entry.lesson);
 
   const index = lessons.findIndex((row) => row.slug === lessonSlug);
-  if (index === -1) notFound();
+  if (index === -1) {
+    // A lesson of a paid course this member has not opened yet (0162): it
+    // exists in the outline, so say what it costs instead of «not found».
+    const [{ data: outline }, { data: offerRows }] = await Promise.all([
+      supabase.rpc('course_outline', { p_course: course.id }),
+      supabase.rpc('course_offer', { p_course: course.id }),
+    ]);
+    const locked = (outline ?? []).find((row) => row.slug === lessonSlug && !row.unlocked);
+    const offer = offerRows?.[0];
+    if (!locked || !offer || offer.price_mode === 'free') notFound();
+    const coursePath = `/academy/${pathSlug}/${courseSlug}`;
+    return (
+      <>
+        <BackLink href={coursePath} label={t('رجوع للدورة', 'Back to the course')} />
+        <section className="panel section-block lesson-paywall">
+          <span className="lesson-paywall-icon" aria-hidden="true">🔒</span>
+          <h2>{locked.title_ar}</h2>
+          <p className="muted">
+            {offer.price_mode === 'subscription'
+              ? t(`هذا الدرس من «${course.title_ar}»، وهي ضمن اشتراك المنتور الشهري.`, `This lesson is part of “${course.title_ar}”, in the mentor’s monthly plan.`)
+              : t(`هذا الدرس من «${course.title_ar}» — دورة مدفوعة تشتريها مرة واحدة.`, `This lesson is part of “${course.title_ar}” — a paid course you buy once.`)}
+          </p>
+          <CourseOffer courseId={course.id} mentorId={offer.mentor_id} mode={offer.price_mode}
+                       price={offer.price_usd} monthly={offer.monthly_usd} balance={Number(offer.balance ?? 0)} path={coursePath} />
+        </section>
+      </>
+    );
+  }
   const lesson = lessons[index];
   const next = lessons[index + 1] ?? null;
 

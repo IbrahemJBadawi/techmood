@@ -284,3 +284,42 @@ export async function reviewStudioItem(_prev: ActionFormState, formData: FormDat
   done(['/admin/studio', '/academy']);
   return { ok: approve ? t('نُشر، ووصل المنتور إشعار.', 'Published, and the mentor has been told.') : t('أُعيد للمنتور مع ملاحظتك.', 'Sent back to the mentor with your note.') };
 }
+
+// ---------------------------------------------------------------------------
+// Selling a course (0162): its price, the mentor's monthly plan, a sponsored card
+// ---------------------------------------------------------------------------
+export async function saveCoursePrice(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const id = text(formData, 'course_id');
+  const mode = text(formData, 'price_mode');
+  const price = Number(text(formData, 'price_usd') || '0');
+  const { error } = await supabase.rpc('set_course_price', {
+    p_course: id, p_mode: mode, p_price: mode === 'once' ? price : null,
+  });
+  if (error) return { error: dbError(t, error.message) };
+  done(['/studio', `/studio/courses/${id}`]);
+  return { ok: mode === 'free' ? t('الدورة مجانية الآن.', 'The course is free now.') : t('حُفظ السعر — الدرس الأول يبقى معاينة مجانية.', 'Price saved — the first lesson stays a free preview.') };
+}
+
+export async function saveCoursePlan(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_course_plan', {
+    p_monthly: Number(text(formData, 'monthly_usd') || '0'),
+    p_active: formData.get('is_active') !== 'off',
+  });
+  if (error) return { error: dbError(t, error.message) };
+  done(['/studio']);
+  return { ok: t('حُفظ اشتراكك الشهري.', 'Your monthly plan is saved.') };
+}
+
+export async function promoteCourse(_prev: ActionFormState, formData: FormData): Promise<ActionFormState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const id = text(formData, 'course_id');
+  const { error } = await supabase.rpc('promote_course', { p_course: id, p_days: Number(text(formData, 'days') || '0') });
+  if (error) return { error: dbError(t, error.message) };
+  done([`/studio/courses/${id}`, '/wallet']);
+  return { ok: t('بدأ التمويل — تظهر بطاقة «مُموَّل» لدورتك في الأكاديمية والرئيسية.', 'Sponsored — your course card now shows in the academy and on home pages.') };
+}

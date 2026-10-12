@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Icon } from '@/components/Icon';
+import { SponsoredCourse } from '@/components/SponsoredCourse';
 import { createClient } from '@/lib/supabase/server';
 import { ROLE_BY_VALUE, roleLabel } from '@/lib/roles';
 import { getT } from '@/lib/i18n.server';
@@ -212,6 +213,8 @@ export async function RoleDashboard({ role, userId, name, league }: { role: User
           </Link>
         ))}
       </div>
+
+      <SponsoredCourse className="section-block rd-league" />
 
       <div className="section-block rd-league">
         <League query={league} paths={[]} />

@@ -36,6 +36,8 @@ const MEMBER_SETTINGS: { key: string; label: Text; unit: Text; step: number; max
   { key: 'package_3_discount_pct',    label: { ar: 'خصم باقة 3 جلسات', en: 'Discount, 3-session package' }, unit: { ar: '٪', en: '%' }, step: 1, max: 50 },
   { key: 'package_5_discount_pct',    label: { ar: 'خصم باقة 5 جلسات', en: 'Discount, 5-session package' }, unit: { ar: '٪', en: '%' }, step: 1, max: 50 },
   { key: 'ai_daily_messages',         label: { ar: 'أسئلة المساعد في اليوم — العضو العادي', en: 'Assistant questions a day — members' }, unit: { ar: 'سؤال', en: 'questions' }, step: 1, max: 2000 },
+  { key: 'course_commission_pct',     label: { ar: 'حصة TechMood من الكورسات المدفوعة', en: 'TechMood’s share of paid courses' }, unit: { ar: '٪', en: '%' }, step: 1, max: 90 },
+  { key: 'course_ad_daily_usd',       label: { ar: 'سعر يوم «مُموَّل» لكورس', en: 'A sponsored course, per day' }, unit: { ar: 'دولار', en: 'USD' }, step: 0.5, max: 100 },
   { key: 'ai_daily_messages_premium', label: { ar: 'أسئلة المساعد في اليوم — Premium', en: 'Assistant questions a day — Premium' }, unit: { ar: 'سؤال', en: 'questions' }, step: 1, max: 5000 },
 ];
 

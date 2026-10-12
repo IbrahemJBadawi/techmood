@@ -15,6 +15,7 @@ import { SubmissionPanel } from '../../SubmissionPanel';
 import { CourseRatingForm } from '../../CourseRatingForm';
 import { ShareButton } from '@/components/ShareButton';
 import { BackLink } from '@/components/BackLink';
+import { CourseOffer } from '../../CourseOffer';
 
 const LESSON_KIND_LABELS: Record<string, Text> = {
   video:    { ar: 'فيديو',        en: 'Video' },
@@ -48,7 +49,7 @@ export default async function CoursePage({
 
   const { data: course } = await supabase
     .from('courses')
-    .select('id, slug, title_ar, description_ar, estimated_hours, status, author_id')
+    .select('id, slug, title_ar, description_ar, estimated_hours, status, author_id, price_mode, price_usd')
     .eq('slug', courseSlug)
     .single();
 
@@ -84,6 +85,26 @@ export default async function CoursePage({
       .map((lesson) => (course.status === 'draft' && lesson.status === 'draft' ? { ...lesson, status: 'published' } : lesson))
       .sort((a, b) => a.sort_order - b.sort_order),
   })).filter((module) => module.lessons.length > 0);
+  // A paid mentor course (0162): without access, only the preview lesson is
+  // readable, so the syllabus comes from the outline and the rest is marked.
+  const { data: offerRows } = course.price_mode !== 'free'
+    ? await supabase.rpc('course_offer', { p_course: course.id })
+    : { data: null };
+  const offer = offerRows?.[0] ?? null;
+  const paywalled = new Set<string>();
+  if (offer && !offer.has_access) {
+    const { data: outline } = await supabase.rpc('course_outline', { p_course: course.id });
+    const byModule = new Map<string, { id: string; title_ar: string; order: number; lessons: CourseLesson[] }>();
+    for (const row of outline ?? []) {
+      if (!row.unlocked) paywalled.add(row.lesson_id);
+      const group = byModule.get(row.module_id) ?? { id: row.module_id, title_ar: row.module_title, order: row.module_order, lessons: [] };
+      group.lessons.push({ id: row.lesson_id, slug: row.slug, title_ar: row.title_ar, title_en: row.title_en, kind: row.kind,
+                            duration_minutes: row.duration_minutes, summary_ar: null, sort_order: row.sort_order, status: row.status });
+      byModule.set(row.module_id, group);
+    }
+    courseModules.splice(0, courseModules.length, ...[...byModule.values()].sort((a, b) => a.order - b.order)
+      .map((group) => ({ id: group.id, title_ar: group.title_ar, lessons: group.lessons })));
+  }
   const lessons = courseModules.flatMap((module) => module.lessons);
 
   const lessonIds = lessons.map((lesson) => lesson.id);
@@ -166,7 +187,7 @@ export default async function CoursePage({
   const openLessons = lessons.filter((lesson) => lesson.status === 'published');
   const lessonsDone = openLessons.filter((lesson) => completedLessons.has(lesson.id)).length;
   const lessonPercent = openLessons.length ? Math.round((lessonsDone / openLessons.length) * 100) : 0;
-  const nextLesson = openLessons.find((lesson) => !completedLessons.has(lesson.id)) ?? null;
+  const nextLesson = openLessons.find((lesson) => !completedLessons.has(lesson.id) && !paywalled.has(lesson.id)) ?? null;
   const typedAssignments = (assignments ?? []) as Assignment[];
   const courseProject = typedAssignments.find((assignment) => assignment.kind === 'course_project');
   const courseTask = typedAssignments.find((assignment) => assignment.kind === 'course_task');
@@ -229,6 +250,14 @@ export default async function CoursePage({
           <li>{isComplete ? t('✓ مكتملة', '✓ Completed') : t('قيد التقدّم', 'In progress')}</li>
         </ul>
 
+        {offer && !offer.has_access && course.status === 'published' && offer.price_mode !== 'free' && (
+          <CourseOffer courseId={course.id} mentorId={offer.mentor_id} mode={offer.price_mode}
+                       price={offer.price_usd} monthly={offer.monthly_usd} balance={Number(offer.balance ?? 0)} path={revalidate} />
+        )}
+        {offer?.has_access && offer.subscribed_until && course.author_id !== user.id && (
+          <p className="course-offer-own">🔁 {t('ضمن اشتراكك حتى ', 'In your subscription until ')}
+            {new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' }).format(new Date(offer.subscribed_until))}</p>
+        )}
         {nextLesson && course.status !== 'planned' && (
           <div className="ac-cover-actions">
             <Link className="btn ac-cover-cta" href={`/academy/${pathSlug}/${courseSlug}/${nextLesson.slug}`}>
@@ -318,12 +347,13 @@ export default async function CoursePage({
               {module.lessons.map((lesson) => {
                 const done = completedLessons.has(lesson.id);
                 const soon = lesson.status !== 'published';
-                const locked = !done && lockedLessons.has(lesson.id);
+                const paid = paywalled.has(lesson.id);
+                const locked = !done && (paid || lockedLessons.has(lesson.id));
                 return (
                   <div className={`lesson-row${done ? ' is-done' : ''}${nextLesson?.id === lesson.id ? ' is-next' : ''}${locked ? ' is-locked' : ''}`} key={lesson.id}>
                     {soon || locked ? (
-                      <span className="lstat" aria-label={soon ? t('قريباً', 'Coming soon') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}
-                            title={soon ? t('قريباً', 'Coming soon') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}><Icon name="lock" size={14} /></span>
+                      <span className="lstat" aria-label={soon ? t('قريباً', 'Coming soon') : paid ? t('مدفوع', 'Paid') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}
+                            title={soon ? t('قريباً', 'Coming soon') : paid ? t('مدفوع', 'Paid') : t('مقفل حتى تُكمل الدرس السابق', 'Locked until you finish the previous lesson')}><Icon name="lock" size={14} /></span>
                     ) : (
                     <form action={toggleLesson}>
                       <input type="hidden" name="lesson_id" value={lesson.id} />
@@ -350,7 +380,8 @@ export default async function CoursePage({
                       <div className="lesson-meta">
                         <span className="tag">{LESSON_KIND_LABELS[lesson.kind] ? t(LESSON_KIND_LABELS[lesson.kind]) : lesson.kind}</span>
                         {soon && <span className="status-pill status-pending">{t('قيد التحضير', 'Being prepared')}</span>}
-                        {locked && !soon && <span className="status-pill status-muted">🔒 {t('يُفتح بعد الدرس السابق', 'Opens after the previous lesson')}</span>}
+                        {locked && !soon && !paid && <span className="status-pill status-muted">🔒 {t('يُفتح بعد الدرس السابق', 'Opens after the previous lesson')}</span>}
+                        {paid && !soon && <span className="status-pill status-muted">🔒 {offer?.price_mode === 'subscription' ? t('للمشتركين', 'Subscribers') : t('بعد الشراء', 'After buying')}</span>}
                         {missingVideo(lesson) && <span className="status-pill status-muted lesson-gap">{t('الفيديو يُضاف قريباً', 'Video coming soon')}</span>}
                         {lesson.duration_minutes && <span className="eng">{lesson.duration_minutes} min</span>}
                         {lesson.title_en && <span className="eng muted">{lesson.title_en}</span>}

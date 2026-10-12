@@ -7692,3 +7692,30 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
   border: 1px solid var(--line); background: var(--sky-tint); color: var(--royal-dark); cursor: pointer;
 }
 .ai-quick-chip:hover { border-color: var(--royal); }
+
+/* paid mentor courses and the sponsored card (design lab 5) */
+.course-offer { display: grid; gap: 8px; margin-top: 12px; padding: 14px; border-radius: var(--radius-m); background: rgba(255, 255, 255, 0.94); color: var(--ink); }
+.course-offer-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.course-offer-price strong { font-size: 1.5rem; }
+.course-offer-price span { font-size: 0.84rem; color: var(--ink-soft); }
+.course-offer-note { font-size: 0.8rem; margin: 0; }
+.course-offer .btn { justify-self: start; }
+.course-offer-own { margin-top: 10px; font-size: 0.86rem; }
+.lesson-paywall { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 28px 18px; }
+.lesson-paywall .course-offer { justify-items: center; background: var(--bg-deep); }
+.lesson-paywall .course-offer .btn { justify-self: center; }
+.lesson-paywall-icon { font-size: 2rem; }
+.studio-sell .field { margin-bottom: 10px; }
+.sponsored-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 14px; position: relative;
+  padding: 14px 16px; border-radius: var(--radius-m); border: 1px dashed var(--line-strong); background: var(--panel);
+}
+.sponsored-tag {
+  grid-column: 1 / -1; justify-self: start; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 99px; background: var(--bg-deep); color: var(--ink-soft);
+}
+.sponsored-body { min-width: 0; display: grid; gap: 4px; }
+.sponsored-body strong { font-size: 0.98rem; }
+.sponsored-body p { margin: 0; font-size: 0.82rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sponsored-meta { color: var(--ink-soft); }
+@media (max-width: 480px) { .sponsored-card { grid-template-columns: minmax(0, 1fr); } .sponsored-card .btn { justify-self: start; } }

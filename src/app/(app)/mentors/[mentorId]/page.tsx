@@ -18,6 +18,7 @@ import { mentorLevelLabel } from '@/lib/mentor-levels';
 import { BackLink } from '@/components/BackLink';
 import { NameBadges } from '@/components/VerifiedBadge';
 import { badgesFor } from '@/lib/badges';
+import { CourseOffer } from '../../academy/CourseOffer';
 
 const DAY_NAMES: Text[] = [
   { ar: 'الأحد',    en: 'Sunday' },
@@ -48,6 +49,12 @@ export default async function MentorProfilePage({
 
   const { data: { user } } = await supabase.auth.getUser();
   const marks = await badgesFor(supabase, [mentorId]);
+  const [{ data: coursePlan }, { data: mySubRows }] = await Promise.all([
+    supabase.from('mentor_course_plans').select('monthly_usd, is_active').eq('mentor_id', mentorId).maybeSingle(),
+    user ? supabase.from('mentor_subscriptions').select('until').eq('mentor_id', mentorId).eq('profile_id', user.id)
+      .gt('until', new Date().toISOString()).order('until', { ascending: false }).limit(1) : Promise.resolve({ data: [] as { until: string }[] }),
+  ]);
+  const mySubUntil = mySubRows?.[0]?.until ?? null;
 
   const [{ data: profile }, { data: prices }, { data: availability }, { data: offered }, { data: followRows }] = await Promise.all([
     supabase.from('profiles').select('full_name, techmood_id, bio, github_url, linkedin_url, avatar_url').eq('id', mentorId).single(),
@@ -182,6 +189,22 @@ export default async function MentorProfilePage({
       )}
 
       <FeedbackSummary profileId={mentorId} isMentor />
+
+      {/* the mentor's monthly plan for their courses (0162) */}
+      {coursePlan?.is_active && user?.id !== mentorId && (
+        <section className="panel section-block">
+          <h3 style={{ fontSize: '0.98rem' }}>🔁 {t('اشترك في كورساته', 'Subscribe to their courses')}</h3>
+          {mySubUntil ? (
+            <p className="muted" style={{ marginTop: 6 }}>
+              {t('اشتراكك فعّال حتى ', 'Your subscription runs until ')}
+              {new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' }).format(new Date(mySubUntil))}
+            </p>
+          ) : (
+            <CourseOffer courseId="" mentorId={mentorId} mode="subscription" price={null}
+                         monthly={Number(coursePlan.monthly_usd)} balance={myBalance} path={`/mentors/${mentorId}`} />
+          )}
+        </section>
+      )}
 
       {(hasGallery || user?.id === mentorId) && (
         <section className="panel section-block">

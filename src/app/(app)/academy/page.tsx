@@ -1,3 +1,4 @@
+import { SponsoredCourse } from '@/components/SponsoredCourse';
 import type { Database } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 import { getLocale, getT, localizedTitle } from '@/lib/i18n.server';
@@ -159,6 +160,7 @@ export default async function AcademyPage() {
       />
 
       <GoalStrip goal={goal} next={nextStep} />
+      <SponsoredCourse className="section-block" />
 
       <AcademyExplorer paths={paths} courses={courses} roadmap={roadmap}>
         {/* ---- my paths ---- */}

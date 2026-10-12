@@ -8,7 +8,7 @@ import type { StudioReviewState } from '@/lib/database.types';
 
 import {
   addStudioModule, deleteStudioCourse, deleteStudioModule, moveStudioItem, renameStudioModule,
-  saveStudioCourse, submitStudioItem, withdrawStudioItem,
+  saveStudioCourse, submitStudioItem, withdrawStudioItem, saveCoursePrice, promoteCourse,
 } from '../../actions';
 import { LEVELS, REVIEW_STATE, editable } from '../../review';
 import { NumberStepper } from '@/components/NumberStepper';
@@ -28,17 +28,25 @@ export default async function StudioCoursePage({ params }: { params: Promise<{ c
 
   const { data: course } = await supabase
     .from('courses')
-    .select('id, slug, title_ar, title_en, description_ar, level, estimated_hours, status, author_id, review_state, review_note_ar')
+    .select('id, slug, title_ar, title_en, description_ar, level, estimated_hours, status, author_id, review_state, review_note_ar, price_mode, price_usd')
     .eq('id', courseId)
     .maybeSingle();
   if (!course || course.author_id !== user.id) notFound();
 
-  const [{ data: modules }, { data: paths }] = await Promise.all([
+  const [{ data: modules }, { data: paths }, { data: plan }, { count: sold }, { data: promos }, { data: dailyRow }] = await Promise.all([
     supabase.from('modules')
       .select('id, title_ar, sort_order, lessons(id, title_ar, kind, sort_order, assignments(id), lesson_videos(id))')
       .eq('course_id', course.id).order('sort_order'),
     supabase.from('path_courses').select('learning_paths(slug, title_ar)').eq('course_id', course.id),
+    supabase.from('mentor_course_plans').select('monthly_usd, is_active').eq('mentor_id', user.id).maybeSingle(),
+    supabase.from('course_purchases').select('id', { count: 'exact', head: true }).eq('course_id', course.id),
+    supabase.from('course_promotions').select('id, days, paid_usd, starts_at, ends_at, impressions, clicks')
+      .eq('course_id', course.id).order('created_at', { ascending: false }).limit(5),
+    supabase.from('platform_settings').select('value').eq('key', 'course_ad_daily_usd').maybeSingle(),
   ]);
+  const adDaily = Number(dailyRow?.value ?? 2) || 2;
+  const livePromo = (promos ?? []).find((row) => new Date(row.ends_at) > new Date());
+  const dateFmt = new Intl.DateTimeFormat(t.locale === 'ar' ? 'ar-u-nu-latn' : 'en', { dateStyle: 'medium' });
 
   const state = course.review_state as StudioReviewState;
   const canEdit = editable(state);
@@ -208,6 +216,65 @@ export default async function StudioCoursePage({ params }: { params: Promise<{ c
           </ActionForm>
         )}
       </section>
+
+      {/* selling and sponsoring it (design lab 5, 0162) */}
+      <section className="panel section-block studio-sell">
+        <h3 style={{ fontSize: '1rem' }}>💳 {t('البيع', 'Selling')}</h3>
+        <p className="muted" style={{ fontSize: '0.84rem', margin: '6px 0 12px' }}>
+          {t('اختر كيف تُدرس الدورة. في المدفوعة يبقى الدرس الأول معاينة مجانية، وتصلك 85٪ من كل بيع في محفظتك بعد 7 أيام (نافذة الاسترداد).',
+             'Choose how the course is studied. A paid course keeps its first lesson as a free preview, and 85% of each sale reaches your wallet after 7 days (the refund window).')}
+        </p>
+        <ActionForm action={saveCoursePrice} submitLabel={t('احفظ', 'Save')} className="studio-price-form">
+          <input type="hidden" name="course_id" value={course.id} />
+          <div className="field">
+            <label htmlFor="price_mode">{t('طريقة الدراسة', 'How it is studied')}</label>
+            <select id="price_mode" name="price_mode" defaultValue={course.price_mode}>
+              <option value="free">{t('مجانية', 'Free')}</option>
+              <option value="once">{t('شراء مرة واحدة', 'Bought once')}</option>
+              <option value="subscription" disabled={!plan?.is_active}>
+                {t('ضمن اشتراكي الشهري', 'In my monthly plan')}{!plan?.is_active ? t(' (حدّد سعره من الاستوديو)', ' (set it in the studio)') : ''}
+              </option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="price_usd">{t('السعر عند الشراء مرة واحدة ($)', 'Price when bought once ($)')}</label>
+            <input id="price_usd" name="price_usd" type="number" min={1} max={300} step={0.5} inputMode="decimal"
+                   defaultValue={course.price_usd ?? ''} placeholder="20" />
+          </div>
+        </ActionForm>
+        <p className="muted" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+          {course.price_mode === 'free' ? t('الدورة مجانية الآن.', 'Free right now.')
+            : course.price_mode === 'once' ? t(`تُباع بـ ${course.price_usd}$ — بيعت ${sold ?? 0} مرة.`, `Sold at $${course.price_usd} — ${sold ?? 0} sold.`)
+            : t(`ضمن اشتراكك (${plan?.monthly_usd ?? '—'}$ شهرياً).`, `In your plan ($${plan?.monthly_usd ?? '—'} a month).`)}
+        </p>
+      </section>
+
+      {course.status === 'published' && (
+        <section className="panel section-block studio-sell">
+          <h3 style={{ fontSize: '1rem' }}>📣 {t('موِّل دورتك', 'Sponsor your course')}</h3>
+          <p className="muted" style={{ fontSize: '0.84rem', margin: '6px 0 12px' }}>
+            {t(`بطاقة «مُموَّل» لدورتك في الأكاديمية والرئيسية. ${adDaily}$ لليوم من رصيدك، وتتوقف وحدها حين تنتهي الأيام. لا تظهر لأعضاء Premium ولا لمن يملك الدورة.`,
+               `A «sponsored» card for your course in the academy and on home pages. $${adDaily} a day from your balance; it stops by itself when the days run out. Never shown to Premium members or to people who have the course.`)}
+          </p>
+          {livePromo && (
+            <p className="notice notice-ok" style={{ marginBottom: 10 }}>
+              {t(`مموَّلة حتى ${dateFmt.format(new Date(livePromo.ends_at))} · ظهرت ${livePromo.impressions} مرة · ${livePromo.clicks} نقرة`,
+                 `Sponsored until ${dateFmt.format(new Date(livePromo.ends_at))} · ${livePromo.impressions} views · ${livePromo.clicks} clicks`)}
+            </p>
+          )}
+          <ActionForm action={promoteCourse} submitLabel={livePromo ? t('مدّد التمويل', 'Extend') : t('موِّل الآن', 'Sponsor now')}
+                      className="inline-form"
+                      confirm={t('يُخصم المبلغ من رصيدك الآن ولا يُسترد. متأكد؟', 'The amount comes off your balance now and is not refunded. Sure?')}>
+            <input type="hidden" name="course_id" value={course.id} />
+            <label className="sr-only" htmlFor="promo_days">{t('عدد الأيام', 'Days')}</label>
+            <select id="promo_days" name="days" defaultValue="7">
+              {[3, 7, 14, 30].map((days) => (
+                <option key={days} value={days}>{t(`${days} أيام — ${(days * adDaily).toFixed(2)}$`, `${days} days — $${(days * adDaily).toFixed(2)}`)}</option>
+              ))}
+            </select>
+          </ActionForm>
+        </section>
+      )}
 
       {canEdit && (
         <section className="panel section-block">

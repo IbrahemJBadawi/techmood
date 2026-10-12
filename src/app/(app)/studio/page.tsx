@@ -6,7 +6,7 @@ import { getT, localizedTitle } from '@/lib/i18n.server';
 import { createClient } from '@/lib/supabase/server';
 import type { StudioReviewState } from '@/lib/database.types';
 
-import { createStudioCourse, createStudioPath } from './actions';
+import { createStudioCourse, createStudioPath, saveCoursePlan } from './actions';
 import { LEVELS, REVIEW_STATE } from './review';
 
 export const generateMetadata = localizedTitle('استوديو المحتوى — TechMood', 'Content studio — TechMood');
@@ -37,12 +37,15 @@ export default async function StudioPage() {
     );
   }
 
-  const [{ data: courses }, { data: paths }, { data: schools }] = await Promise.all([
+  const [{ data: courses }, { data: paths }, { data: schools }, { data: plan }, { count: subscribers }] = await Promise.all([
     supabase.from('courses').select('id, slug, title_ar, review_state, review_note_ar, status, modules(id, lessons(id))')
       .eq('author_id', user.id).order('title_ar'),
     supabase.from('learning_paths').select('id, slug, title_ar, review_state, status, path_courses(course_id)')
       .eq('author_id', user.id).order('title_ar'),
     supabase.from('schools').select('slug, name_ar').order('sort_order'),
+    supabase.from('mentor_course_plans').select('monthly_usd, is_active').eq('mentor_id', user.id).maybeSingle(),
+    supabase.from('mentor_subscriptions').select('id', { count: 'exact', head: true })
+      .eq('mentor_id', user.id).gt('until', new Date().toISOString()),
   ]);
 
   const lessonCount = (row: { modules: unknown }) =>
@@ -60,6 +63,25 @@ export default async function StudioPage() {
         <p style={{ marginTop: 10 }}>
           <Link className="btn btn-ghost btn-sm" href={`/mentors/${user.id}`}>{t('معرضي العام', 'My public gallery')}</Link>
         </p>
+      </section>
+
+      {/* one monthly price for every course a mentor puts in their plan (0162) */}
+      <section className="panel section-block studio-sell">
+        <h3 style={{ fontSize: '1rem' }}>🔁 {t('اشتراكي الشهري', 'My monthly plan')}</h3>
+        <p className="muted" style={{ fontSize: '0.84rem', margin: '6px 0 12px' }}>
+          {t('سعر واحد في الشهر يفتح كل دوراتك التي تختار لها «ضمن اشتراكي». تصلك 85٪ منه بعد 7 أيام.',
+             'One monthly price opens every course you mark «in my plan». You receive 85% of it after 7 days.')}
+          {plan?.is_active && <> {t(`مشتركون الآن: ${subscribers ?? 0}.`, `Subscribers now: ${subscribers ?? 0}.`)}</>}
+        </p>
+        <ActionForm action={saveCoursePlan} submitLabel={t('احفظ', 'Save')} className="inline-form">
+          <label className="sr-only" htmlFor="monthly_usd">{t('السعر الشهري ($)', 'Monthly price ($)')}</label>
+          <input id="monthly_usd" name="monthly_usd" type="number" min={1} max={100} step={0.5} inputMode="decimal"
+                 defaultValue={plan?.monthly_usd ?? ''} placeholder={t('السعر الشهري $', 'Monthly $')} required />
+          <select name="is_active" defaultValue={plan?.is_active === false ? 'off' : 'on'} aria-label={t('الحالة', 'State')}>
+            <option value="on">{t('مفعّل', 'On')}</option>
+            <option value="off">{t('موقوف — لا مشتركين جدد', 'Paused — no new subscribers')}</option>
+          </select>
+        </ActionForm>
       </section>
 
       <div className="detail-grid">

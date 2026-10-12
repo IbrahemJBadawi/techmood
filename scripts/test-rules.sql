@@ -8539,7 +8539,7 @@ select public.assert(
          -- a running auction and its bids, as initials (0153)
          'auction_state', 'auction_bids_public',
          -- who is Premium, like a badge (0154)
-         'is_premium', 'is_verified',
+         'is_premium', 'is_verified', 'can_study_course', 'lesson_unlocked', 'lesson_id_unlocked', 'course_outline', 'course_offer', 'sponsored_course', 'sponsored_click',
          -- the front page's counted numbers, and a profile's activity graph (0156)
          'platform_stats', 'profile_activity')
   ),
@@ -11477,6 +11477,98 @@ select public.assert(
   exists (select 1 from public.notifications where profile_id = '33333333-3333-3333-3333-333333333333'
             and entity_id = :'ver119' and title_ar like '✓%'),
   '119.20 the member is told');
+
+-- -----------------------------------------------------------------------------
+-- 120. Paid courses, mentor subscriptions, sponsored cards (0162)
+select c.id as pc120, m.id as pm120
+  from public.courses c join public.modules m on m.course_id = c.id
+ where c.author_id = '33333333-3333-3333-3333-333333333333' and c.status = 'published'
+ order by c.created_at desc limit 1 \gset
+insert into public.lessons (module_id, title_ar, kind, sort_order, slug, status)
+values (:'pm120', 'الدرس الثاني المدفوع', 'reading', 99, 'paid-l2-' || substr(md5(random()::text), 1, 6), 'published')
+returning id as pl120 \gset
+insert into public.credit_entries (profile_id, amount_usd, kind, description_ar) values
+  ('22222222-2222-2222-2222-222222222222', 100, 'topup', 'test'),
+  ('55555555-5555-5555-5555-555555555555', 100, 'topup', 'test'),
+  ('33333333-3333-3333-3333-333333333333', 50, 'topup', 'test');
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(format($$select public.set_course_price(%L, 'once', 20)$$, :'pc120'),
+  '120.1 only the author prices a course', 'كاتب');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(format($$select public.set_course_price(%L, 'once', 500)$$, :'pc120'),
+  '120.2 a price has bounds', '300');
+select public.set_course_price(:'pc120', 'once', 20);
+reset role;
+reset request.jwt.claim.sub;
+select public.assert(
+  (select count(*) filter (where l.is_preview) = 1 from public.lessons l where l.module_id = :'pm120'),
+  '120.3 a paid course keeps one preview lesson');
+set role anon;
+select public.assert(
+  (select count(*) from public.lessons where module_id = :'pm120') = 1
+  and (select count(*) from public.course_outline(:'pc120')) = 2,
+  '120.4 a visitor reads the preview and the outline, not the paid lessons');
+reset role;
+select public.assert_rejects(
+  format($$insert into public.lesson_progress (profile_id, lesson_id, status) values ('22222222-2222-2222-2222-222222222222', %L, 'completed')$$, :'pl120'),
+  '120.5 nobody completes a paid lesson without the course', 'مدفوعة');
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.my_credit_balance() as bal120 \gset
+select public.buy_course(:'pc120') as buy120 \gset
+select public.assert(
+  public.my_credit_balance() = :bal120 - 20
+  and (select count(*) from public.lessons where module_id = :'pm120') = 2,
+  '120.6 buying takes the price from the balance and opens every lesson');
+select public.assert_rejects(format($$select public.buy_course(%L)$$, :'pc120'),
+  '120.7 a course is bought once', 'من قبل');
+reset role;
+select public.assert(
+  (select fee_usd = 3 and price_usd = 20 from public.course_purchases where id = :'buy120')
+  and exists (select 1 from public.wallet_entries where ref_id = :'buy120'
+                and profile_id = '33333333-3333-3333-3333-333333333333' and amount_usd = 17 and status = 'pending'),
+  '120.8 the mentor earns the price less 15%, held');
+update public.wallet_entries set created_at = now() - interval '8 days' where ref_id = :'buy120';
+select public.release_course_earnings();
+select public.assert((select status = 'available' from public.wallet_entries where ref_id = :'buy120'),
+  '120.9 after seven days the earning can be withdrawn');
+set role authenticated;
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(format($$select public.buy_course(%L)$$, :'pc120'),
+  '120.10 an author does not buy their own course', 'دورتك');
+select public.assert_rejects(format($$select public.set_course_price(%L, 'subscription')$$, :'pc120'),
+  '120.11 a subscription course needs the mentor''s monthly price', 'الشهري');
+select public.set_course_plan(5);
+select public.set_course_price(:'pc120', 'subscription');
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert((select count(*) from public.lessons where module_id = :'pm120') = 1,
+  '120.12 without a subscription only the preview opens');
+select public.subscribe_to_mentor('33333333-3333-3333-3333-333333333333');
+select public.assert((select count(*) from public.lessons where module_id = :'pm120') = 2,
+  '120.13 a subscriber studies every subscription course');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert((select count(*) from public.lessons where module_id = :'pm120') = 2,
+  '120.14 and a buyer keeps what they bought');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.promote_course(:'pc120', 3) as promo120 \gset
+reset role;
+select public.assert((select paid_usd = 6 and ends_at > now() + interval '2 days' from public.course_promotions where id = :'promo120'),
+  '120.15 a sponsorship is paid by the day');
+set role authenticated;
+set request.jwt.claim.sub = '77777777-7777-7777-7777-777777777777';
+select public.assert((select count(*) from public.sponsored_course()) = 1, '120.16 a member sees the sponsored card');
+set request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';
+select public.assert((select count(*) from public.sponsored_course()) = 0, '120.17 not for someone who already has the course');
+reset role;
+select profile_id as prem120 from public.premium_memberships where until > now() limit 1 \gset
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'prem120', false);
+select public.assert((select count(*) from public.sponsored_course()) = 0, '120.18 nor for Premium — no ads');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.assert_rejects(format($$select public.promote_course(%L, 3)$$, :'pc120'),
+  '120.19 only the author sponsors a course', 'دوراتك');
+reset role;
 
 \echo ''
 \echo '================================================'
