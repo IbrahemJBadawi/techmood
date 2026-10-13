@@ -202,7 +202,8 @@ export async function RoleDashboard({ role, userId, name, league }: { role: User
         {cta && <Link className="btn btn-primary" href={cta.href}>{cta.label}</Link>}
       </section>
 
-      <p className="rd-lede section-block">{lede} {t(look.blurb)}</p>
+      {/* the role's own sentence once — its blurb in roles.ts said nearly the same */}
+      <p className="rd-lede section-block">{lede}</p>
 
       <div className="rd-tiles section-block">
         {tiles.map((tile) => (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/lib/roles';
@@ -23,15 +23,7 @@ const isOn = (pathname: string, search: URLSearchParams, href: string) => {
  * "More" — a sheet holding everything the sidebar holds on a larger screen,
  * plus whatever the server passes in (the role switcher, the theme).
  */
-export function MobileTabBar({
-  tabs,
-  groups,
-  moreLabel,
-  closeLabel,
-  unread,
-  soon,
-  children,
-}: {
+type TabBarProps = {
   tabs: Item[];
   groups: Group[];
   moreLabel: string;
@@ -40,9 +32,35 @@ export function MobileTabBar({
   /** Announced places, not open yet: shown, not linked. */
   soon?: { title: string; tag: string; items: { label: string; icon: Item['icon'] }[] };
   children?: React.ReactNode;
-}) {
-  const pathname = usePathname();
+};
+
+const EMPTY = new URLSearchParams();
+
+/** The query is read under a Suspense boundary; until then the bar lights from the path alone. */
+export function MobileTabBar(props: TabBarProps) {
+  return (
+    <Suspense fallback={<TabBarView {...props} search={EMPTY} />}>
+      <TabBarWithQuery {...props} />
+    </Suspense>
+  );
+}
+
+function TabBarWithQuery(props: TabBarProps) {
   const search = useSearchParams();
+  return <TabBarView {...props} search={search} />;
+}
+
+function TabBarView({
+  tabs,
+  groups,
+  moreLabel,
+  closeLabel,
+  unread,
+  soon,
+  children,
+  search,
+}: TabBarProps & { search: URLSearchParams }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

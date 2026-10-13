@@ -115,6 +115,19 @@ export async function StudentHero({
             </a>
           )}
         </div>
+
+        {/* booking a mentor lives on the card itself now, not on a floating button */}
+        <div className="hm-hero-actions">
+          <Link className="hm-hero-book" href="/mentors">
+            <span aria-hidden="true">📅</span>
+            {t('احجز جلسة مع منتور', 'Book a mentor session')}
+          </Link>
+          {currentPath && (
+            <Link className="hm-hero-link" href={`/academy/${currentPath.slug}`}>
+              {t('مساري', 'My path')} <bdi dir="ltr" className="eng">{currentPath.percent}%</bdi>
+            </Link>
+          )}
+        </div>
       </section>
 
       {!primaryField && (

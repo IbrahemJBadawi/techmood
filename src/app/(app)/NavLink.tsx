@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
@@ -19,13 +20,7 @@ const matches = (pathname: string, search: URLSearchParams, href: string) => {
   return [...new URLSearchParams(query)].every(([key, value]) => search.get(key) === value);
 };
 
-export function NavLink({
-  href,
-  icon,
-  siblings = [],
-  count = 0,
-  children,
-}: {
+type NavLinkProps = {
   href: string;
   icon?: IconName;
   /** Every link in the same navigation: a deeper one that also matches wins. */
@@ -33,9 +28,37 @@ export function NavLink({
   /** A blue count beside the label (unread messages, 0126). */
   count?: number;
   children: React.ReactNode;
-}) {
-  const pathname = usePathname();
+};
+
+/**
+ * Reading the query (useSearchParams) needs a Suspense boundary wherever a
+ * page could be rendered ahead of time; until it resolves the link is drawn
+ * from the path alone.
+ */
+export function NavLink(props: NavLinkProps) {
+  return (
+    <Suspense fallback={<NavLinkView {...props} search={EMPTY} />}>
+      <NavLinkWithQuery {...props} />
+    </Suspense>
+  );
+}
+
+const EMPTY = new URLSearchParams();
+
+function NavLinkWithQuery(props: NavLinkProps) {
   const search = useSearchParams();
+  return <NavLinkView {...props} search={search} />;
+}
+
+function NavLinkView({
+  href,
+  icon,
+  siblings = [],
+  count = 0,
+  children,
+  search,
+}: NavLinkProps & { search: URLSearchParams }) {
+  const pathname = usePathname();
   // "Session requests" and "My prices" (/mentor-requests/pricing) both match
   // the prices page; only the closest one lights up.
   const isActive = matches(pathname, search, href)

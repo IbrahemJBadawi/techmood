@@ -139,7 +139,8 @@ export default async function WalletPage({
                 <strong>{row.label_ar}</strong>
                 <span className="txn-meta">
                   <span className="date">{formatDateTime(locale, row.at)}</span>
-                  {row.code && <span className="eng"> · {row.code}</span>}
+                  {/* the reference on its own line, never run into the date */}
+                  {row.code && <bdi dir="ltr" className="eng txn-code">{row.code}</bdi>}
                 </span>
               </span>
               <span className="txn-side">

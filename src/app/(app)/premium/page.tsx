@@ -31,7 +31,7 @@ export default async function PremiumPage() {
     { icon: '🚀', title: 'Startup Studio', body: t('أسّس مشروعك الناشئ بالأدوات الست: السوق، المنافسون، المستخدمون، الجدوى، خطة العمل، ونموذج العمل.', 'Found your startup with the six tools: market, competitors, users, feasibility, the business plan and the business model.') },
     { icon: '🤖', title: t('مساعد ذكي أكثر', 'More of the assistant'), body: t(`${offer?.ai_daily_premium ?? 150} سؤالاً في اليوم بدل ${offer?.ai_daily ?? 40}.`, `${offer?.ai_daily_premium ?? 150} questions a day instead of ${offer?.ai_daily ?? 40}.`) },
     { icon: '⭐', title: t('ملف مميّز وأولوية', 'Featured, first'), body: t('تظهر أولاً بين الكفاءات في السوق، وبين الأشخاص المقترحين للمتابعة.', 'You appear first among the talent in the market, and among people suggested to follow.') },
-    { icon: '🚫', title: t('بلا إعلانات', 'No ads'), body: t('تختفي كل المساحات الترويجية — مثل زر «احجز جلسة» العائم — وأي إعلان يُضاف مستقبلاً لا يظهر لك.', 'Every promotional spot disappears — like the floating «Book a session» button — and no ad added later is shown to you.') },
+    { icon: '🚫', title: t('بلا إعلانات', 'No ads'), body: t('تختفي كل المساحات الترويجية — مثل بطاقات الدورات المموّلة — وأي إعلان يُضاف مستقبلاً لا يظهر لك.', 'Every promotional spot disappears — like sponsored course cards — and no ad added later is shown to you.') },
   ];
 
   return (

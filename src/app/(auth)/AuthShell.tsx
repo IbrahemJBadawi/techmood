@@ -1,3 +1,4 @@
+import { InstallFloat } from '@/components/InstallFloat';
 import Link from 'next/link';
 
 import { Icon } from '@/components/Icon';
@@ -82,6 +83,7 @@ export async function AuthShell({
           <p className="au-foot">{footer}</p>
         </div>
       </main>
+      <InstallFloat />
     </div>
   );
 }

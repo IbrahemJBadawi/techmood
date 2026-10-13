@@ -9,6 +9,7 @@ import type { IconName } from '@/lib/roles';
 import { ThemeToggle } from './ThemeToggle';
 import { SiteMenu } from './SiteMenu';
 import { CONTACT_EMAIL, SUPPORT_EMAIL } from '@/lib/contact';
+import { InstallFloat } from '@/components/InstallFloat';
 
 /**
  * The public header.
@@ -149,6 +150,8 @@ export async function SiteFooter() {
         <span>© <span className="eng">{year}</span> TechMood Technology</span>
         <span>{t('العربية أولاً، والإنجليزية دائماً', 'Arabic first, English always')}</span>
       </div>
+      {/* every public page offers installing the app (a floating card) */}
+      <InstallFloat />
     </footer>
   );
 }

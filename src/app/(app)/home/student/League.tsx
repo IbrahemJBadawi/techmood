@@ -102,7 +102,7 @@ export async function League({
   return (
     <article className="hm-card hm-league" id="leaderboard">
       <div className="hm-card-head">
-        <h3>🏆 {t('دوري الطلاب', 'Student league')}</h3>
+        <h3>🏆 {t('دوري TechMood', 'TechMood league')}</h3>
         {me && <span className="hm-myrank">{t('ترتيبك ', 'You are ')}<strong>#{me.rank}</strong></span>}
       </div>
 
