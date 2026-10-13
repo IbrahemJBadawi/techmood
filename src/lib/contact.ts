@@ -18,3 +18,15 @@ export const CONTACT_EMAIL = 'contact@techmoodtech.com';
 // techmoodtech.com is on hold at the registrar; until it is back, the Vercel
 // address is the official one (migration 0142 does the same in the database).
 export const SITE_URL = 'https://techmoodtech.vercel.app';
+
+/** TechMood's own accounts — one handle everywhere. */
+export const SOCIAL_HANDLE = '@techmoodtech';
+
+export const SOCIAL_LINKS = [
+  { key: 'facebook', label: 'Facebook', href: 'https://www.facebook.com/techmoodtech' },
+  { key: 'instagram', label: 'Instagram', href: 'https://www.instagram.com/techmoodtech' },
+  { key: 'tiktok', label: 'TikTok', href: 'https://www.tiktok.com/@techmoodtech' },
+  { key: 'telegram', label: 'Telegram', href: 'https://t.me/techmoodtech' },
+] as const;
+
+export type SocialKey = (typeof SOCIAL_LINKS)[number]['key'];

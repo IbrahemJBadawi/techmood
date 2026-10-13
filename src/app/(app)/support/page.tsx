@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SocialLinks } from '@/components/SocialLinks';
 import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
@@ -58,6 +59,13 @@ export default async function SupportCenterPage() {
           </p>
         </div>
         <Link className="btn sp-hero-cta" href="/support/new">{t('بلّغ عن مشكلة', 'Report a problem')}</Link>
+      </section>
+
+      <section className="section-block sp-social">
+        <p className="muted" style={{ fontSize: '0.86rem' }}>
+          {t('تابعنا أو راسلنا على حساباتنا الرسمية:', 'Follow or message us on our official accounts:')}
+        </p>
+        <SocialLinks label={t('حسابات TechMood', 'TechMood accounts')} />
       </section>
 
       <section className="section-block">

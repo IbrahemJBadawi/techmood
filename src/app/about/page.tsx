@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SocialLinks } from '@/components/SocialLinks';
 
 import { SiteFooter, SiteNav } from '@/components/SiteNav';
 import { getT, localizedTitle } from '@/lib/i18n.server';
@@ -105,6 +106,14 @@ export default async function AboutPage() {
           <Link className="btn btn-primary" href="/signup">{t('أنشئ حسابك', 'Create your account')}</Link>
           <Link className="btn btn-ghost" href="/verify">{t('تحقّق من شهادة', 'Verify a certificate')}</Link>
         </div>
+      </section>
+
+      <section className="panel section-block about-social" style={{ textAlign: 'center' }}>
+        <h2 style={{ fontSize: '1.1rem', marginBottom: 4 }}>{t('تابع TechMood', 'Follow TechMood')}</h2>
+        <p className="muted" style={{ fontSize: '0.88rem' }}>
+          {t('على فيسبوك وإنستغرام وتيك توك وتيليجرام — باسم واحد.', 'On Facebook, Instagram, TikTok and Telegram — one name.')}
+        </p>
+        <SocialLinks label={t('حسابات TechMood', 'TechMood accounts')} />
       </section>
     </main>
     <SiteFooter />

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CONTACT_EMAIL, SITE_URL, SOCIAL_LINKS } from '@/lib/contact';
 import { redirect } from 'next/navigation';
 
 import { Icon } from '@/components/Icon';
@@ -130,8 +131,20 @@ export default async function LandingPage() {
 
   const week = t.locale === 'ar' ? ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'] : ['S', 'S', 'M', 'T', 'W', 'T', 'F'];
 
+  // who TechMood is, for search engines: the site and its official accounts
+  const organisation = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'TechMood',
+    url: SITE_URL,
+    logo: `${SITE_URL}/logo.png`,
+    email: CONTACT_EMAIL,
+    sameAs: SOCIAL_LINKS.map((link) => link.href),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organisation) }} />
       <SiteNav />
 
       <main className="home">

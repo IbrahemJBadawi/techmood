@@ -8047,3 +8047,19 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 /* how many learn it (0169) */
 .ac-stop-learners { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; color: var(--ink-soft); }
 .lcard-meta .lcard-learners { color: var(--royal-dark); font-weight: 600; }
+
+/* TechMood's social accounts (@techmoodtech) */
+.social-links { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 12px 0; }
+.social-links ul { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.social-link {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--bg-deep); color: var(--ink-soft); border: 1px solid var(--line); transition: transform .15s, color .15s, background .15s;
+}
+.social-link:hover { transform: translateY(-2px); color: #fff; }
+.social-link.is-facebook:hover { background: #1877F2; }
+.social-link.is-instagram:hover { background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF); }
+.social-link.is-tiktok:hover { background: #111; }
+.social-link.is-telegram:hover { background: #229ED9; }
+.social-handle { font-size: 0.85rem; font-weight: 700; color: var(--ink-soft); }
+.about-social .social-links, .sp-social .social-links { justify-content: center; }
+.sp-social { text-align: center; }

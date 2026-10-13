@@ -10,6 +10,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { SiteMenu } from './SiteMenu';
 import { CONTACT_EMAIL, SUPPORT_EMAIL } from '@/lib/contact';
 import { InstallFloat } from '@/components/InstallFloat';
+import { SocialLinks } from '@/components/SocialLinks';
 
 /**
  * The public header.
@@ -131,6 +132,7 @@ export async function SiteFooter() {
             <br />
             {t('التواصل الرسمي: ', 'Official contact: ')}<a className="eng" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
+          <SocialLinks label={t('TechMood على الشبكات الاجتماعية', 'TechMood on social media')} />
           <LanguagePicker current={t.locale} />
         </div>
 
