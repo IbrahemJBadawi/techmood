@@ -34,7 +34,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
 
   const { data: mentors } = await supabase
     .from('mentor_profiles')
-    .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg')
+    .select('profile_id, level, headline_ar, bio_ar, domains, session_minutes, is_accepting, sessions_count, rating_avg, years_experience, languages')
     .order('rating_avg', { ascending: false, nullsFirst: false });
 
   const mentorIds = (mentors ?? []).map((row) => row.profile_id);
@@ -170,8 +170,15 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
             const name = profile?.full_name ?? '—';
 
             return (
-              <Link className={`mn-card${mentor.is_accepting ? '' : ' is-paused'}`} key={mentor.profile_id}
+              <Link className={`mn-card lvl-${mentor.level}${mentor.is_accepting ? '' : ' is-paused'}`} key={mentor.profile_id}
                     href={`/mentors/${mentor.profile_id}`}>
+                {/* a coloured band in the level's colour, the way the welcome cards are */}
+                <span className="mn-band">
+                  <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span>
+                  <span className={`mn-status${mentor.is_accepting ? ' is-on' : ''}`}>
+                    {mentor.is_accepting ? t('● متاح للحجز', '● Taking bookings') : t('متوقف مؤقتاً', 'Paused')}
+                  </span>
+                </span>
                 <span className="mn-card-top">
                   <span className="mn-avatar" style={{ background: avatarColor(mentor.profile_id) }}>
                     {profile?.avatar_url
@@ -183,20 +190,22 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
                   <span className="mn-card-id">
                     <strong>{name}<NameBadges verified={marks.verified.has(mentor.profile_id)} premium={marks.premium.has(mentor.profile_id)} /></strong>
                     <span className="mn-headline">{mentor.headline_ar ?? profile?.headline ?? t('منتور', 'Mentor')}</span>
-                    <span className="mn-level eng">{mentorLevelLabel(mentor.level)}</span>
                   </span>
                 </span>
 
-                <span className="mn-rating">
-                  <Stars value={mentor.rating_avg ?? 0} />
-                  <span className="eng">{mentor.rating_avg ? Number(mentor.rating_avg).toFixed(1) : '—'}</span>
-                  <span className="muted">· {t(`${mentor.sessions_count} جلسة`, `${mentor.sessions_count} ${mentor.sessions_count === 1 ? 'session' : 'sessions'}`)}</span>
+                <span className="mn-facts">
+                  <span className="mn-fact"><Stars value={mentor.rating_avg ?? 0} /><b className="eng">{mentor.rating_avg ? Number(mentor.rating_avg).toFixed(1) : '—'}</b></span>
+                  <span className="mn-fact">🎯 <b className="eng">{mentor.sessions_count}</b> {t('جلسة', mentor.sessions_count === 1 ? 'session' : 'sessions')}</span>
+                  {mentor.years_experience ? <span className="mn-fact">💼 <b className="eng">{mentor.years_experience}</b> {t('سنوات خبرة', 'yrs exp.')}</span> : null}
                 </span>
 
-                <span className={`mn-field-box${fieldsOf(mentor).length ? '' : ' is-empty'}`}>
-                  <small>{t('المجال', 'Field')}</small>
-                  <strong>{fieldsOf(mentor).length ? fieldsOf(mentor).slice(0, 3).join(' · ') : t('لم يُحدَّد بعد', 'Not set yet')}</strong>
-                </span>
+                {fieldsOf(mentor).length > 0 ? (
+                  <span className="mn-domains">
+                    {fieldsOf(mentor).slice(0, 3).map((field) => <span className="mn-domain" key={field}>{field}</span>)}
+                  </span>
+                ) : (
+                  <span className="mn-domains"><span className="mn-domain is-empty">{t('المجال لم يُحدَّد بعد', 'Field not set yet')}</span></span>
+                )}
 
                 <span className="mn-card-foot">
                   <span className="mn-price">
@@ -205,7 +214,7 @@ export default async function MentorsPage({ searchParams }: { searchParams: Prom
                       : <span className="muted">{t('لم يُسعّر بعد', 'Not priced yet')}</span>}
                   </span>
                   <span className={`mn-cta${mentor.is_accepting ? '' : ' is-off'}`}>
-                    {mentor.is_accepting ? t('احجز', 'Book') : t('غير متاح', 'Unavailable')}
+                    {mentor.is_accepting ? t('احجز', 'Book') : t('الملف', 'Profile')}
                   </span>
                 </span>
               </Link>

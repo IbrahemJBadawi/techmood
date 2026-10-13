@@ -11738,6 +11738,34 @@ select public.assert(
   = (select max(n) from (select count(distinct profile_id) n from public.enrollments where path_id is not null group by path_id) x),
   '126.2 a path counts its enrolled members once each');
 
+-- -----------------------------------------------------------------------------
+-- 127. Teams say which members they are looking for (0170)
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+insert into public.teams (slug, title_ar, leader_id, visibility, join_policy)
+values ('seek-127', 'فريق يبحث', '22222222-2222-2222-2222-222222222222', 'listed', 'request_allowed')
+returning id as t127 \gset
+insert into public.team_members (team_id, profile_id, role) values (:'t127', '22222222-2222-2222-2222-222222222222', 'leader');
+insert into public.team_openings (team_id, role_ar, seats, skills) values (:'t127', 'مطوّر واجهات', 1, array['React'])
+returning id as o127 \gset
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert_rejects(format($$insert into public.team_openings (team_id, role_ar) values (%L, 'دخيل')$$, :'t127'),
+  '127.1 only the team lead names the roles it needs', 'row-level security');
+select public.assert((select count(*) = 1 from public.team_openings_board(50) where opening_id = :'o127'),
+  '127.2 a listed team''s open role is on the board');
+select public.apply_to_team_opening(:'o127', 'أعمل بـ React منذ سنة') as a127 \gset
+select public.assert((select role_wanted = 'مطوّر واجهات' and opening_id = :'o127' from public.team_applications where id = :'a127'),
+  '127.3 the request carries the role it is for');
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select public.decide_team_application(:'a127', true);
+select public.assert((select not is_open from public.team_openings where id = :'o127'),
+  '127.4 the role closes once enough people are accepted');
+set request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+select public.assert((select count(*) = 0 from public.team_openings_board(50) where opening_id = :'o127'),
+  '127.5 and leaves the board');
+reset role;
+reset request.jwt.claim.sub;
+
 \echo ''
 \echo '================================================'
 \echo ' all business rule tests passed'

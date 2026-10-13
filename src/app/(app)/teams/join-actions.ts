@@ -31,3 +31,36 @@ export async function decideJoin(formData: FormData) {
   });
   revalidatePath(`/teams/${String(formData.get('team_id') ?? '')}/members`);
 }
+
+/** Apply for one open seat (0170): the join request names the role. */
+export async function applyToOpening(_prev: JoinState, formData: FormData): Promise<JoinState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('apply_to_team_opening', {
+    p_opening: String(formData.get('opening_id') ?? ''),
+    p_message: String(formData.get('message') ?? '').trim() || null,
+  });
+  if (error) return { error: dbError(t, error.message) };
+  revalidatePath('/teams');
+  return { ok: t('✓ أُرسل طلبك — يصلك إشعار حين يردّ قائد الفريق.', '✓ Request sent — you will be notified when the team lead answers.') };
+}
+
+/** Open or close a seat, or add one — the leader's (row-level security checks it). */
+export async function saveOpening(_prev: JoinState, formData: FormData): Promise<JoinState> {
+  const t = await getT();
+  const supabase = await createClient();
+  const teamId = String(formData.get('team_id') ?? '');
+  const id = String(formData.get('id') ?? '');
+  const { error } = id
+    ? await supabase.from('team_openings').update({ is_open: formData.get('is_open') === 'true' }).eq('id', id).eq('team_id', teamId)
+    : await supabase.from('team_openings').insert({
+        team_id: teamId,
+        role_ar: String(formData.get('role') ?? '').trim(),
+        seats: Math.min(10, Math.max(1, Number(formData.get('seats') ?? 1) || 1)),
+        skills: String(formData.get('skills') ?? '').split(/[,،]/).map((skill) => skill.trim()).filter(Boolean).slice(0, 8),
+      });
+  if (error) return { error: error.message.includes('check') ? t('اكتب اسم الدور (حرفان على الأقل).', 'Name the role (two letters at least).') : dbError(t, error.message) };
+  revalidatePath(`/teams/${teamId}/members`);
+  revalidatePath('/teams');
+  return { ok: id ? t('حُدّث.', 'Updated.') : t('أُضيف الدور المطلوب.', 'Role added.') };
+}

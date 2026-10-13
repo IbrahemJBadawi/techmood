@@ -1296,7 +1296,7 @@ export type Database = {
       }>;
       client_review_scores: Table<{ review_id: string; criterion: ClientCriterion; stars: number }>;
       team_applications: Table<{
-        id: string; team_id: string; profile_id: string; role_wanted: string | null; message_ar: string | null;
+        id: string; team_id: string; profile_id: string; role_wanted: string | null; opening_id: string | null; message_ar: string | null;
         status: 'pending' | 'accepted' | 'declined' | 'withdrawn'; decided_by: string | null; decided_at: string | null; created_at: string;
       }>;
       credit_topups: Table<{
@@ -1319,6 +1319,10 @@ export type Database = {
         logo_url: string | null; is_published: boolean; created_at: string; updated_at: string;
       }>;
       verified_members: Table<{ profile_id: string; since: string }>;
+      team_openings: Table<{
+        id: string; team_id: string; role_ar: string; seats: number; skills: string[]; note_ar: string | null;
+        is_open: boolean; created_at: string;
+      }>;
       startup_market: Table<{
         startup_id: string; segment_ar: string | null; tam_usd: number | null; sam_usd: number | null; som_usd: number | null;
         method_ar: string | null; trends_ar: string | null; sources_ar: string | null; our_price: number | null; our_quality: number | null;
@@ -2963,6 +2967,15 @@ export type Database = {
         Returns: { margin_usd: number; margin_pct: number | null; breakeven_units: number | null; first_profit_month: number | null; payback_month: number | null; total_revenue: number; total_profit: number }[];
       };
       studio_snapshot: { Args: { p_startup: string }; Returns: unknown };
+      apply_to_team_opening: { Args: { p_opening: string; p_message?: string | null }; Returns: string };
+      team_openings_board: {
+        Args: { p_limit?: number };
+        Returns: {
+          opening_id: string; team_id: string; team_title: string; team_kind: string; team_focus: string | null;
+          leader_name: string | null; members: number; role_ar: string; seats: number; filled: number;
+          skills: string[]; note_ar: string | null; my_status: string | null; my_opening: string | null; created_at: string;
+        }[];
+      };
       catalog_learners: { Args: Record<string, never>; Returns: { kind: 'path' | 'course'; id: string; learners: number }[] };
       submit_ux_survey: { Args: { p_ease: number; p_recommend: number; p_most_used: string | null; p_pains: string[]; p_suggestion: string | null; p_role?: string | null }; Returns: string };
       ux_survey_stats: { Args: { p_days?: number }; Returns: unknown };

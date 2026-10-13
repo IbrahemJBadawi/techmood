@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { parseOpenings } from '@/lib/team-openings';
 import { localToUtc } from '@/lib/zoned';
 import { dbError } from '@/lib/db-errors';
 import { getT } from '@/lib/i18n.server';
@@ -30,6 +31,8 @@ export async function createTeam(_prev: TeamState, formData: FormData): Promise<
   if (title.length < 3) return { error: t('اكتب اسماً واضحاً للفريق.', 'Give the team a clear name.') };
 
   const slug = `${slugify(title)}-${Math.random().toString(36).slice(2, 6)}`;
+  // Looking for members only works if others can see the team and ask to join.
+  const openings = parseOpenings(formData.get('openings'));
 
   const { data, error } = await supabase
     .from('teams')
@@ -40,8 +43,8 @@ export async function createTeam(_prev: TeamState, formData: FormData): Promise<
       focus_ar: String(formData.get('focus') ?? '').trim() || null,
       kind: (String(formData.get('kind') ?? 'project') as TeamKind),
       leader_id: user.id,
-      join_policy: formData.get('join_policy') === 'request_allowed' ? 'request_allowed' : 'invite_only',
-      visibility: formData.get('visibility') === 'listed' ? 'listed' : 'private',
+      join_policy: openings.length || formData.get('join_policy') === 'request_allowed' ? 'request_allowed' : 'invite_only',
+      visibility: openings.length || formData.get('visibility') === 'listed' ? 'listed' : 'private',
     })
     .select('id')
     .single();
@@ -54,6 +57,11 @@ export async function createTeam(_prev: TeamState, formData: FormData): Promise<
     profile_id: user.id,
     role: 'leader',
   });
+
+  // The seats it is looking for (0170), if the leader named any.
+  if (openings.length) {
+    await supabase.from('team_openings').insert(openings.map((row) => ({ ...row, team_id: data.id })));
+  }
 
   revalidatePath('/teams');
   redirect(`/teams/${data.id}`);

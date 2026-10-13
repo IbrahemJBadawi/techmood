@@ -8063,3 +8063,107 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
 .social-handle { font-size: 0.85rem; font-weight: 700; color: var(--ink-soft); }
 .about-social .social-links, .sp-social .social-links { justify-content: center; }
 .sp-social { text-align: center; }
+
+/* teams: my teams as a grid, and the board of open seats (0170) */
+.team-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.team-grid .lcard { width: auto; }
+.lcard-meta .team-seeking { background: color-mix(in srgb, var(--xp) 14%, var(--panel)); color: var(--xp-ink); font-weight: 700; }
+.seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; margin-top: 14px; }
+.seat-card {
+  display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: var(--radius-m);
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow-1);
+  border-top: 4px solid var(--hue, var(--royal));
+}
+.seat-head { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.seat-head > div { display: grid; min-width: 0; }
+.seat-head strong { font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-head .muted { font-size: 0.76rem; }
+.seat-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--hue, var(--royal)) 14%, var(--panel)); color: var(--hue, var(--royal));
+}
+.seat-role { margin: 4px 0 0; font-size: 1.05rem; font-weight: 800; color: var(--ink); }
+.seat-count { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+.seat-skills { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.seat-skills li { padding: 3px 10px; border-radius: 999px; background: var(--sky-tint); color: var(--royal-dark); font-size: 0.74rem; font-weight: 600; }
+.seat-focus { margin: 0; font-size: 0.8rem; }
+.seat-foot { margin-top: 4px; }
+.opening-apply { display: grid; gap: 8px; }
+.opening-apply textarea { width: 100%; }
+.opening-apply-row { display: flex; gap: 8px; }
+
+/* team creation: the roles the team needs */
+.openings-editor { border: 1px dashed var(--line-strong); border-radius: var(--radius-s); padding: 12px 14px 14px; margin: 4px 0 14px; min-width: 0; }
+.openings-editor legend { font-weight: 700; font-size: 0.9rem; padding: 0 6px; }
+.openings-hint { font-size: 0.78rem; margin: 0 0 10px; }
+.opening-row { position: relative; display: grid; grid-template-columns: minmax(0, 2fr) 80px minmax(0, 2fr); gap: 0 10px; padding: 10px 10px 0; margin-bottom: 10px; border-radius: 12px; background: var(--bg-deep); }
+.opening-remove {
+  position: absolute; inset-block-start: -8px; inset-inline-end: -8px; width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink-soft); cursor: pointer; line-height: 1;
+}
+@media (max-width: 520px) {
+  .opening-row { grid-template-columns: minmax(0, 1fr) 80px; }
+  .opening-row .opening-skills { grid-column: 1 / -1; }
+}
+
+/* the team's members page: its open roles */
+.opening-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.opening-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.opening-list li.is-closed { opacity: 0.6; }
+.opening-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.opening-add input[name="role"] { flex: 2 1 180px; min-width: 0; }
+.opening-add input[name="skills"] { flex: 2 1 180px; min-width: 0; }
+.opening-add select { flex: 0 0 72px; }
+.join-role { margin-inline-start: 8px; }
+
+/* mentor cards: a band in the level's colour on top (like the welcome cards),
+   the facts in one row, the fields as chips */
+.mn-card { padding: 0 0 16px; overflow: hidden; gap: 12px; --lvl: var(--royal-fill); }
+.mn-card.lvl-L1 { --lvl: linear-gradient(135deg, #08703F, #13894F); }
+.mn-card.lvl-L2 { --lvl: linear-gradient(135deg, #0057D9, #2B7BEA); }
+.mn-card.lvl-L3 { --lvl: linear-gradient(135deg, #5B3DDB, #7C5CFF); }
+.mn-card.lvl-L4 { --lvl: linear-gradient(135deg, #8A5A00, #C28A12); }
+.mn-card > :not(.mn-band) { margin-inline: 16px; }
+.mn-band {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 16px 30px; background: var(--lvl); color: #fff;
+}
+.mn-band .mn-level { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.mn-status { font-size: 0.72rem; font-weight: 700; opacity: 0.85; }
+.mn-status.is-on { opacity: 1; }
+.mn-card .mn-card-top { margin-top: -30px; align-items: flex-end; }
+.mn-card .mn-avatar { width: 62px; height: 62px; border: 3px solid var(--panel); box-shadow: var(--shadow-1); overflow: hidden; }
+.mn-card .mn-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.mn-card .mn-card-id { padding-bottom: 2px; }
+.mn-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+.mn-fact { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--bg-deep); font-size: 0.76rem; color: var(--ink-soft); }
+.mn-fact b { color: var(--ink); }
+.mn-domain { background: var(--sky-tint); color: var(--royal-dark); font-weight: 600; }
+.mn-domain.is-empty { background: var(--bg-deep); color: var(--ink-faint); font-weight: 500; }
+.mn-card .mn-card-foot { margin-top: auto; }
+.mn-card.is-paused .mn-band { filter: grayscale(0.6); }
+
+/* the member card in the welcome card's colours: the same blue, white type,
+   frosted white boxes for the numbers and a white level pill */
+.identity-card {
+  background:
+    radial-gradient(120% 80% at 90% 0%, rgba(255, 255, 255, 0.18), transparent 55%),
+    linear-gradient(160deg, #1A7CF0 0%, var(--royal-fill) 45%, #0049B8 100%);
+  color: #fff;
+  box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--royal-fill) 80%, transparent);
+}
+.identity-card::after { background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 68%); }
+.identity-avatar { border-color: rgba(255, 255, 255, 0.55); }
+.identity-initial { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.identity-title, .identity-field { color: rgba(255, 255, 255, 0.88); }
+.identity-level { background: #fff; color: var(--royal-dark); border-color: transparent; font-weight: 700; }
+.identity-level-title { color: var(--royal-dark); }
+.identity-stars { color: #fff; }
+.identity-stats dd { color: rgba(255, 255, 255, 0.82); }
+.identity-story .identity-stats > div { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.24); }
+.identity-top-kicker { color: #fff; background: rgba(255, 255, 255, 0.16); }
+.identity-url { color: rgba(255, 255, 255, 0.82); }
+.identity-foot { border-color: rgba(255, 255, 255, 0.22); }
+.identity-card .id-chip { background: rgba(255, 255, 255, 0.16); color: #fff; border-color: transparent; }
+/* the blue mark on a blue card sits on a small white tile, as the app icon does */
+.identity-top img, .identity-brand img { background: #fff; border-radius: 28%; padding: 0.5cqw; box-sizing: content-box; }

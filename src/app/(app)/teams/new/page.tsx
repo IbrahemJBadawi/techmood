@@ -5,6 +5,7 @@ import { useActionState } from 'react';
 import { createTeam, type TeamState } from '../actions';
 import { useT } from '@/lib/i18n.client';
 import { BackLink } from '@/components/BackLink';
+import { OpeningsEditor } from '../OpeningsEditor';
 
 export default function NewTeamPage() {
   const t = useT();
@@ -63,6 +64,8 @@ export default function NewTeamPage() {
             </select>
           </div>
         </div>
+
+        <OpeningsEditor />
 
         <p className="muted" style={{ fontSize: '0.78rem', marginBottom: 14 }}>
           {t('«ملف مهني عام» ينشر اسم الفريق وأعضاءه ومشاريعه المكتملة فقط — ولا يكشف المهام ولا المحادثة ولا المستندات أبداً.',
