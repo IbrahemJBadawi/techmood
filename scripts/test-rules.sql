@@ -8557,7 +8557,7 @@ select public.assert(
          -- a running auction and its bids, as initials (0153)
          'auction_state', 'auction_bids_public',
          -- who is Premium, like a badge (0154)
-         'is_premium', 'is_verified', 'area_open', 'can_study_course', 'lesson_unlocked', 'lesson_id_unlocked', 'course_outline', 'course_offer', 'sponsored_course', 'sponsored_click',
+         'is_premium', 'is_verified', 'area_open', 'can_study_course', 'lesson_unlocked', 'lesson_id_unlocked', 'course_outline', 'course_offer', 'sponsored_course', 'sponsored_click', 'catalog_learners',
          -- the front page's counted numbers, and a profile's activity graph (0156)
          'platform_stats', 'profile_activity')
   ),
@@ -11723,6 +11723,20 @@ select public.assert(not exists (
   '125.1 home suggestions never list an invite-only brief the member cannot open');
 reset role;
 reset request.jwt.claim.sub;
+
+-- -----------------------------------------------------------------------------
+-- 126. How many learn each path and course (0169)
+set role anon;
+select public.assert(
+  (select count(*) > 0 from public.catalog_learners() where kind = 'course')
+  and not exists (select 1 from public.catalog_learners() where learners <= 0),
+  '126.1 visitors see learner counts — numbers only, never who');
+reset role;
+select public.assert(
+  (select learners from public.catalog_learners() c join public.enrollments e on e.path_id = c.id
+    where c.kind = 'path' group by c.id, c.learners order by c.learners desc limit 1)
+  = (select max(n) from (select count(distinct profile_id) n from public.enrollments where path_id is not null group by path_id) x),
+  '126.2 a path counts its enrolled members once each');
 
 \echo ''
 \echo '================================================'

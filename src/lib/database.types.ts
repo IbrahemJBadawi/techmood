@@ -2963,6 +2963,7 @@ export type Database = {
         Returns: { margin_usd: number; margin_pct: number | null; breakeven_units: number | null; first_profit_month: number | null; payback_month: number | null; total_revenue: number; total_profit: number }[];
       };
       studio_snapshot: { Args: { p_startup: string }; Returns: unknown };
+      catalog_learners: { Args: Record<string, never>; Returns: { kind: 'path' | 'course'; id: string; learners: number }[] };
       submit_ux_survey: { Args: { p_ease: number; p_recommend: number; p_most_used: string | null; p_pains: string[]; p_suggestion: string | null; p_role?: string | null }; Returns: string };
       ux_survey_stats: { Args: { p_days?: number }; Returns: unknown };
       xp_balance: { Args: { p_profile: string }; Returns: number };

@@ -11,10 +11,13 @@ import { contentText, plural } from '@/lib/i18n';
  */
 // author_name: the mentor who wrote it in the studio (0115), added by the page;
 // hours_total, projects_total and skills: what the path gives (0156), likewise.
+// learners: how many members learn it (0169), added by the page likewise.
 export type AcademyPath = Database['public']['Functions']['academy_paths']['Returns'][number] & {
-  author_name?: string | null; hours_total?: number | null; projects_total?: number; skills?: string[];
+  author_name?: string | null; hours_total?: number | null; projects_total?: number; skills?: string[]; learners?: number;
 };
-export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number] & { author_name?: string | null };
+export type AcademyCourse = Database['public']['Functions']['academy_courses']['Returns'][number] & {
+  author_name?: string | null; learners?: number;
+};
 export type AcademyRoadmapPath = Database['public']['Functions']['academy_roadmap']['Returns'][number];
 
 export const STATUS_LABEL: Record<LearningStatus, Text> = {
@@ -138,4 +141,12 @@ export function inDuration(hours: number | null | undefined, duration: Duration)
   if (duration === 'short') return hours <= 10;
   if (duration === 'medium') return hours > 10 && hours <= 40;
   return hours > 40;
+}
+
+/** «12 متعلّماً» — how many members learn a path or a course (0169); nobody yet invites the first. */
+export function learnerCount(locale: Locale, count: number) {
+  if (count <= 0) return locale === 'ar' ? 'كن أول الملتحقين' : 'Be the first to join';
+  return counted(locale, count,
+    { one: 'متعلّم واحد', two: 'متعلّمان', few: `${count} متعلّمين`, many: `${count} متعلّماً` },
+    { one: '1 learner', other: `${count} learners` });
 }

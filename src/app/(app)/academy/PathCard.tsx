@@ -7,7 +7,7 @@ import { NextBestAction, pathAction } from './NextBestAction';
 import { ProgressRing } from './ProgressRing';
 import { StatusBadge } from './StatusBadge';
 import { schoolLook } from './schools';
-import { courseCount, levelRange, pathTitle, type AcademyPath } from './types';
+import { courseCount, learnerCount, levelRange, pathTitle, type AcademyPath } from './types';
 
 /**
  * A path as a card: its school's colour and icon on top, what it is, how far
@@ -46,6 +46,7 @@ export function PathCard({ path }: { path: AcademyPath }) {
 
         <ul className="lcard-meta">
           <li><Icon name="layers" size={14} />{courseCount(t.locale, path.courses_total)}</li>
+          {path.learners !== undefined && <li className="lcard-learners"><Icon name="team" size={14} />{learnerCount(t.locale, path.learners)}</li>}
           {hours ? <li><Icon name="clock" size={14} />{t(`~${hours} ساعة`, `~${hours} h`)}</li> : null}
           {projects > 0 && <li><Icon name="work" size={14} />{t(projects === 1 ? 'مشروع واحد' : projects === 2 ? 'مشروعان' : `${projects} مشاريع`, `${projects} project${projects === 1 ? '' : 's'}`)}</li>}
           {range && <li><Icon name="chart" size={14} />{range}</li>}

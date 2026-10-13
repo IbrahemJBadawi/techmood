@@ -6,6 +6,7 @@ import { getT } from '@/lib/i18n.server';
 
 import type { Evaluation, Submission } from '@/lib/database.types';
 
+import { learnerCount } from '../types';
 import { Icon } from '@/components/Icon';
 
 import { enrolInPath } from '../actions';
@@ -104,10 +105,13 @@ export default async function PathPage({
     readiness.set(row.course_id, current);
   }
 
-  const [{ data: pathCompleteRaw }, { data: pathSkills }] = await Promise.all([
+  const [{ data: pathCompleteRaw }, { data: pathSkills }, { data: learnerRows }] = await Promise.all([
     supabase.rpc('is_path_complete', { p_profile: user.id, p_path: path.id }),
     supabase.rpc('path_skills', { p_path: path.id }),
+    // how many members learn the path and each of its courses (0169)
+    supabase.rpc('catalog_learners'),
   ]);
+  const learnersOf = new Map((learnerRows ?? []).map((row) => [`${row.kind}:${row.id}`, row.learners]));
 
   const pathComplete = !preview && pathCompleteRaw === true;
 
@@ -200,6 +204,7 @@ export default async function PathPage({
 
         <ul className="ac-cover-meta">
           <li><Icon name="layers" size={15} />{t(`${doneCount} من ${courses.length} دورات مكتملة`, `${doneCount} of ${courses.length} courses done`)}</li>
+          {learnerRows && <li><Icon name="team" size={15} />{learnerCount(t.locale, learnersOf.get(`path:${path.id}`) ?? 0)}</li>}
           {hoursTotal ? <li><Icon name="clock" size={15} />{t(`~${hoursTotal} ساعة`, `~${hoursTotal} h`)}</li> : null}
           {projectsTotal > 0 && <li><Icon name="work" size={15} />{t(`${projectsTotal} ${projectsTotal > 2 && projectsTotal < 11 ? 'مشاريع' : 'مشروع'} تطبيقية`, `${projectsTotal} hands-on project${projectsTotal === 1 ? '' : 's'}`)}</li>}
           {path.tags?.slice(0, 4).map((tag) => <li className="eng" key={tag}>{tag}</li>)}
@@ -288,6 +293,7 @@ export default async function PathPage({
                     </span>
                     <strong>{course.title_ar}</strong>
                     {course.description_ar && <span className="ac-stop-desc">{course.description_ar}</span>}
+                    {learnerRows && <span className="ac-stop-learners"><Icon name="team" size={13} />{learnerCount(t.locale, learnersOf.get(`course:${course.id}`) ?? 0)}</span>}
                     {(() => {
                       // What is ready in this course, and what is still being prepared.
                       const ready = readiness.get(course.id) ?? { open: 0, total: 0 };

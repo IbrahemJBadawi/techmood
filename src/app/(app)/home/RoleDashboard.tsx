@@ -188,22 +188,26 @@ export async function RoleDashboard({ role, userId, name, league }: { role: User
 
   return (
     <>
-      <section className="hm-hello section-block">
-        <div className="hm-hello-id">
+      {/* the same coloured welcome card every member gets, in the role's own colour */}
+      <section className={`hm-hello hm-hero rd-hero is-${role} section-block`}>
+        <div className="hm-hero-top">
           <span className="rd-role-icon" aria-hidden="true"><Icon name={look.icon} size={24} /></span>
-          <div style={{ minWidth: 0 }}>
+          <div className="hm-hero-who">
             <h1>{greeting}{t('، ', ', ')}{firstName} 👋</h1>
-            <p className="muted">
+            <p className="hm-hero-sub">
               {t(`أنت الآن في لوحة ${t(roleLabel(role))}`, `You are in your ${t(roleLabel(role))} dashboard`)}
               {rank && <> · <a href="#leaderboard">🏆 <span className="eng">#{rank}</span> {t('في الدوري', 'in the league')}</a></>}
             </p>
           </div>
         </div>
-        {cta && <Link className="btn btn-primary" href={cta.href}>{cta.label}</Link>}
+        {/* the role's own sentence once — its blurb in roles.ts said nearly the same */}
+        <p className="rd-hero-lede">{lede}</p>
+        {cta && (
+          <div className="hm-hero-actions">
+            <Link className="hm-hero-book" href={cta.href}>{cta.label}</Link>
+          </div>
+        )}
       </section>
-
-      {/* the role's own sentence once — its blurb in roles.ts said nearly the same */}
-      <p className="rd-lede section-block">{lede}</p>
 
       <div className="rd-tiles section-block">
         {tiles.map((tile) => (

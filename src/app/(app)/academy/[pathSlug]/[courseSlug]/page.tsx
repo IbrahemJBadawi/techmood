@@ -6,6 +6,7 @@ import { getT } from '@/lib/i18n.server';
 import { type Text } from '@/lib/i18n';
 import { Assignment, Evaluation, Submission } from '@/lib/database.types';
 
+import { learnerCount } from '../../types';
 import { Icon } from '@/components/Icon';
 
 import { toggleLesson } from '../../actions';
@@ -165,10 +166,13 @@ export default async function CoursePage({
   });
   const isComplete = !preview && completeRaw === true;
 
-  const [{ data: ratingRows }, { data: myRating }] = await Promise.all([
+  const [{ data: ratingRows }, { data: myRating }, { data: learnerRows }] = await Promise.all([
     supabase.rpc('course_rating', { p_course: course.id }),
     supabase.from('course_feedback').select('id').eq('course_id', course.id).eq('profile_id', user.id).maybeSingle(),
+    // how many members learn this course (0169)
+    supabase.rpc('catalog_learners'),
   ]);
+  const learners = learnerRows ? learnerRows.find((row) => row.kind === 'course' && row.id === course.id)?.learners ?? 0 : null;
   const rating = ratingRows?.[0];
 
   const completedLessons = new Set(
@@ -239,6 +243,7 @@ export default async function CoursePage({
 
         <ul className="ac-cover-meta">
           <li><Icon name="play" size={15} />{t(`${lessonsDone} من ${openLessons.length} دروس`, `${lessonsDone} of ${openLessons.length} lessons`)}</li>
+          {learners !== null && <li><Icon name="team" size={15} />{learnerCount(t.locale, learners)}</li>}
           {course.estimated_hours && <li><Icon name="clock" size={15} /><span className="eng">~{course.estimated_hours}h</span></li>}
           {rating && rating.rated_count > 0 && (
             <li>

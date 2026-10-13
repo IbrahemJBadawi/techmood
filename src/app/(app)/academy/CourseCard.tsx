@@ -6,7 +6,7 @@ import { useT } from '@/lib/i18n.client';
 import { courseAction, NextBestAction } from './NextBestAction';
 import { StatusBadge } from './StatusBadge';
 import { schoolLook } from './schools';
-import { courseDomains, courseTitle, lessonCount, LEVEL_LABEL, type AcademyCourse } from './types';
+import { courseDomains, courseTitle, learnerCount, lessonCount, LEVEL_LABEL, type AcademyCourse } from './types';
 
 /**
  * A course as a card. Its colour is the school of the first path carrying it
@@ -37,6 +37,7 @@ export function CourseCard({ course }: { course: AcademyCourse }) {
 
         <ul className="lcard-meta">
           <li><Icon name="play" size={14} />{lessonCount(t.locale, course.lessons_count)}</li>
+          {course.learners !== undefined && <li className="lcard-learners"><Icon name="team" size={14} />{learnerCount(t.locale, course.learners)}</li>}
           {course.estimated_hours && <li><Icon name="clock" size={14} /><span className="eng">~{course.estimated_hours}h</span></li>}
           {course.status !== 'completed' && course.xp_award !== null && (
             <li className="lcard-xp"><span className="eng">+{course.xp_award} XP</span></li>

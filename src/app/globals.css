@@ -8027,3 +8027,23 @@ a, button, [role="button"], label, summary, input, select, textarea { touch-acti
   .rd-tile strong { font-size: 1.6rem; }
   .rd-tile span { font-size: 0.8rem; }
 }
+
+/* every role's welcome card is coloured too, each in its own hue (white text
+   stays above 4.5:1 on all of them) */
+.rd-hero { background: var(--royal-fill); }
+.rd-hero.is-mentor, .rd-hero.is-mentee { background: linear-gradient(135deg, #5B3DDB, #7C5CFF); }
+.rd-hero.is-client { background: linear-gradient(135deg, #0B6E66, #12897F); }
+.rd-hero.is-freelancer { background: linear-gradient(135deg, #08703F, #13894F); }
+.rd-hero.is-company { background: linear-gradient(135deg, #12306E, #1D4BA8); }
+.rd-hero.is-founder { background: linear-gradient(135deg, #A4460A, #C2570F); }
+.rd-hero.is-team_leader { background: linear-gradient(135deg, #0B5D8F, #0E76B5); }
+.rd-hero.is-admin { background: linear-gradient(135deg, #1F2937, #374151); }
+.rd-hero .rd-role-icon { background: rgba(255, 255, 255, 0.16); color: #fff; flex: none; }
+.rd-hero .hm-hero-sub a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.rd-hero-lede { margin: 0; font-size: 0.9rem; line-height: 1.6; color: rgba(255, 255, 255, 0.9); }
+.rd-hero .hm-hero-book { color: var(--ink); }
+.rd-hero h1 { white-space: normal; }
+
+/* how many learn it (0169) */
+.ac-stop-learners { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; color: var(--ink-soft); }
+.lcard-meta .lcard-learners { color: var(--royal-dark); font-weight: 600; }
